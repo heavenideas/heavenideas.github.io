@@ -7,6 +7,7 @@
     <title>Lorcana Turn Mapper</title>
     <script src="https://cdn.jsdelivr.net/npm/fuse.js@6.6.2"></script>
     <script src="https://cdn.jsdelivr.net/npm/leader-line-new@1.1.9/leader-line.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         :root {
             --bg-color: #1a1a1a;
@@ -15,6 +16,7 @@
             --text-color: #f0f0f0;
             --border-color: #666;
             --accent-color: #a855f7;
+            --danger-color: #f43f5e;
         }
 
         body {
@@ -41,13 +43,23 @@
             /* Ensure sidebar is on top of arrows */
         }
 
-        #decklist-section {
-            display: flex;
-            flex-direction: column;
+        .sidebar-section {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
             margin-bottom: 1rem;
         }
 
-        #decklist-input {
+        .sidebar-section h3 {
+            margin-top: 0;
+            text-align: center;
+            border-bottom: 1px solid var(--secondary-color);
+            padding-bottom: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        #decklist-input,
+        #import-text-input {
             background-color: var(--secondary-color);
             color: var(--text-color);
             border: 1px solid var(--border-color);
@@ -55,9 +67,11 @@
             padding: 0.5rem;
             height: 150px;
             resize: vertical;
+            width: 100%;
+            box-sizing: border-box;
         }
 
-        #load-deck-btn {
+        .btn {
             background-color: var(--accent-color);
             color: white;
             border: none;
@@ -66,20 +80,31 @@
             cursor: pointer;
             margin-top: 0.5rem;
             transition: background-color 0.3s;
+            width: 100%;
+            box-sizing: border-box;
         }
 
-        #load-deck-btn:hover {
+        .btn:hover {
             background-color: #9333ea;
         }
 
+        .btn-secondary {
+            background-color: var(--secondary-color);
+        }
+
+        .btn-secondary:hover {
+            background-color: #555;
+        }
+
         #search-input {
-            width: calc(100% - 1rem);
+            width: 100%;
             padding: 0.5rem;
             margin-bottom: 1rem;
             background-color: var(--secondary-color);
             color: var(--text-color);
             border: 1px solid var(--border-color);
             border-radius: 8px;
+            box-sizing: border-box;
         }
 
         #card-list {
@@ -100,6 +125,7 @@
             width: 100px;
             border-radius: 8px;
             transition: transform 0.2s;
+            display: block;
         }
 
         .card-image:hover {
@@ -134,19 +160,7 @@
         }
 
         #add-turn-btn {
-            background-color: var(--accent-color);
-            color: white;
-            border: none;
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
-            cursor: pointer;
-            margin: 1rem;
             align-self: center;
-            transition: background-color 0.3s;
-        }
-
-        #add-turn-btn:hover {
-            background-color: #9333ea;
         }
 
         #lanes-wrapper {
@@ -154,6 +168,8 @@
             flex-grow: 1;
             overflow-x: auto;
             border-bottom: 1px solid var(--border-color);
+            background-color: var(--bg-color);
+            /* Ensure background for PNG export */
         }
 
         .turn-column {
@@ -201,34 +217,32 @@
         .modal {
             display: none;
             position: fixed;
-            z-index: 1001;
+            z-index: 2000;
             left: 0;
             top: 0;
             width: 100%;
             height: 100%;
             overflow: auto;
             background-color: rgba(0, 0, 0, 0.6);
+            align-items: center;
+            justify-content: center;
         }
 
         .modal-content {
             background-color: var(--primary-color);
-            margin: 15% auto;
             padding: 20px;
             border: 1px solid var(--border-color);
             width: 80%;
-            max-width: 400px;
+            max-width: 500px;
             border-radius: 8px;
             text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
         }
 
-        #arrow-annotation-input {
-            width: calc(100% - 20px);
-            padding: 10px;
-            margin-bottom: 10px;
-            background-color: var(--secondary-color);
-            color: var(--text-color);
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
+        .leader-line {
+            z-index: 500;
         }
     </style>
 </head>
@@ -236,30 +250,65 @@
 <body>
 
     <div id="sidebar">
-        <div id="decklist-section">
-            <textarea id="decklist-input"
-                placeholder="Paste decklist here, e.g.&#10;4 Mickey Mouse - Brave Little Tailor"></textarea>
-            <button id="load-deck-btn">Load Deck</button>
+        <div class="sidebar-section">
+            <h3>Decklist</h3>
+            <textarea id="decklist-input" placeholder="Paste decklist here..."></textarea>
+            <button id="load-deck-btn" class="btn">Load Deck</button>
         </div>
-        <input type="text" id="search-input" placeholder="Search for any card...">
-        <div id="card-list">
-            <p>Load a deck or search for cards.</p>
+
+        <div class="sidebar-section">
+            <h3>Card Search</h3>
+            <input type="text" id="search-input" placeholder="Search for any card...">
+            <div id="card-list">
+                <p>Load a deck or search.</p>
+            </div>
         </div>
+
+        <div class="sidebar-section">
+            <h3>Import / Export</h3>
+            <button id="import-btn" class="btn btn-secondary">Import from Text</button>
+            <button id="export-text-btn" class="btn">Export to Text</button>
+            <button id="export-png-btn" class="btn">Export as PNG</button>
+        </div>
+
     </div>
 
     <div id="main-content">
         <div id="lanes-wrapper">
             <!-- Turn columns will be added dynamically -->
         </div>
-        <button id="add-turn-btn">Add Turn</button>
+        <button id="add-turn-btn" class="btn" style="width: auto; padding: 0.5rem 1rem;">Add Turn</button>
     </div>
 
+    <!-- Modals -->
     <div id="arrow-modal" class="modal">
         <div class="modal-content">
             <label for="arrow-annotation-input">Arrow Annotation (optional):</label>
             <input type="text" id="arrow-annotation-input">
-            <button id="save-arrow-btn">Create Arrow</button>
-            <button id="cancel-arrow-btn">Cancel</button>
+            <div>
+                <button id="save-arrow-btn" class="btn">Create Arrow</button>
+                <button id="cancel-arrow-btn" class="btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+    <div id="export-modal" class="modal">
+        <div class="modal-content">
+            <h3>Exported Map Data</h3>
+            <p>Copy the text below to save your map.</p>
+            <textarea id="export-text-output" readonly
+                style="height: 150px; width: 100%; background-color: var(--bg-color); color: var(--text-color); border-radius: 8px;"></textarea>
+            <button id="close-export-modal-btn" class="btn">Close</button>
+        </div>
+    </div>
+    <div id="import-modal" class="modal">
+        <div class="modal-content">
+            <h3>Import Map Data</h3>
+            <p>Paste your map data below and click Import.</p>
+            <textarea id="import-text-input"></textarea>
+            <div>
+                <button id="confirm-import-btn" class="btn">Import</button>
+                <button id="close-import-modal-btn" class="btn btn-secondary">Cancel</button>
+            </div>
         </div>
     </div>
 
@@ -272,10 +321,8 @@
             let turnCount = 0;
             let draggedCardData = null;
             let lines = [];
-            let cardElements = {}; // Store references to card DOM elements by a unique ID
+            let cardElements = {};
             let nextCardInstanceId = 0;
-
-            // For creating arrows
             let arrowStartElement = null;
 
             // --- DOM ELEMENTS ---
@@ -285,40 +332,44 @@
             const loadDeckBtnEl = document.getElementById('load-deck-btn');
             const lanesWrapperEl = document.getElementById('lanes-wrapper');
             const addTurnBtnEl = document.getElementById('add-turn-btn');
+
+            // Arrow Modal
             const arrowModalEl = document.getElementById('arrow-modal');
             const arrowAnnotationInputEl = document.getElementById('arrow-annotation-input');
             const saveArrowBtnEl = document.getElementById('save-arrow-btn');
             const cancelArrowBtnEl = document.getElementById('cancel-arrow-btn');
 
+            // Import/Export
+            const importBtnEl = document.getElementById('import-btn');
+            const exportTextBtnEl = document.getElementById('export-text-btn');
+            const exportPngBtnEl = document.getElementById('export-png-btn');
+            const exportModalEl = document.getElementById('export-modal');
+            const exportTextOutputEl = document.getElementById('export-text-output');
+            const closeExportModalBtnEl = document.getElementById('close-export-modal-btn');
+            const importModalEl = document.getElementById('import-modal');
+            const importTextInputEl = document.getElementById('import-text-input');
+            const confirmImportBtnEl = document.getElementById('confirm-import-btn');
+            const closeImportModalBtnEl = document.getElementById('close-import-modal-btn');
 
             // --- INITIALIZATION ---
             fetch('https://raw.githubusercontent.com/heavenideas/similcana/main/database/allCards.json')
                 .then(response => response.json())
                 .then(data => {
                     allCards = data.cards;
-                    // Filter out enchanted cards and only keep unique cards by fullName
                     const uniqueCards = new Map();
                     allCards.forEach(card => {
                         if (!card.rarity.includes('Enchanted')) {
-                            // Use fullName for primary key, but keep first encountered art
                             if (!uniqueCards.has(card.fullName)) {
                                 uniqueCards.set(card.fullName, card);
                             }
                         }
                     });
                     allCards = Array.from(uniqueCards.values());
-
-                    fuse = new Fuse(allCards, {
-                        keys: ['fullName', 'name', 'version'],
-                        includeScore: true,
-                        threshold: 0.4,
-                    });
-                    console.log('Card data loaded and processed.');
-                    searchInputEl.placeholder = "Search from all Lorcana cards...";
+                    fuse = new Fuse(allCards, { keys: ['fullName', 'name', 'version'], includeScore: true, threshold: 0.4 });
                 })
                 .catch(error => {
                     console.error('Error fetching card data:', error);
-                    cardListEl.innerHTML = '<p>Error loading card data. Please refresh.</p>';
+                    cardListEl.innerHTML = '<p>Error loading card data.</p>';
                 });
 
             // --- DECKLIST HANDLING ---
@@ -330,21 +381,19 @@
                 for (const line of lines) {
                     const match = line.match(cardNameRegex);
                     if (match) {
-                        const count = parseInt(match[1], 10);
-                        let name = match[2].trim();
-
-                        cardEntries.push({ count, name });
+                        cardEntries.push({ count: parseInt(match[1], 10), name: match[2].trim() });
                     }
                 }
                 return cardEntries;
             };
 
+            function findCardById(id) {
+                return allCards.find(c => c.id === id);
+            }
+
             function findCardByName(name) {
-                // Prioritize exact match
                 let card = allCards.find(c => c.fullName.toLowerCase() === name.toLowerCase());
                 if (card) return card;
-
-                // Fuzzy search as fallback
                 const results = fuse.search(name);
                 return results.length > 0 ? results[0].item : null;
             };
@@ -352,44 +401,70 @@
             function loadDeck() {
                 const decklistText = decklistInputEl.value;
                 if (!decklistText) return;
-
                 const parsedDeck = parseDecklist(decklistText);
                 const uniqueDeckCards = new Map();
-
                 parsedDeck.forEach(entry => {
                     const cardData = findCardByName(entry.name);
-                    if (cardData) {
-                        if (!uniqueDeckCards.has(cardData.fullName)) {
-                            uniqueDeckCards.set(cardData.fullName, cardData);
-                        }
-                    } else {
-                        console.warn(`Card not found: ${entry.name}`);
+                    if (cardData && !uniqueDeckCards.has(cardData.fullName)) {
+                        uniqueDeckCards.set(cardData.fullName, cardData);
                     }
                 });
-
-                deckCards = Array.from(uniqueDeckCards.values());
-                deckCards.sort((a, b) => a.cost - b.cost);
+                deckCards = Array.from(uniqueDeckCards.values()).sort((a, b) => a.cost - b.cost);
                 displayCardsInSidebar(deckCards);
             };
 
             loadDeckBtnEl.addEventListener('click', loadDeck);
 
             // --- UI & DISPLAY ---
+            function createCardDOM(cardData, instanceId) {
+                const cardContainer = document.createElement('div');
+                cardContainer.className = 'droppable-card-container';
+                const cardEl = createCardElement(cardData, false, instanceId);
+                makeCardMovable(cardEl, cardContainer);
+                const commentInput = document.createElement('input');
+                commentInput.type = 'text';
+                commentInput.placeholder = 'Add comment...';
+                commentInput.className = 'card-comment';
+                cardContainer.appendChild(cardEl);
+                cardContainer.appendChild(commentInput);
+
+                cardEl.addEventListener('contextmenu', (ev) => {
+                    ev.preventDefault();
+                    if (!arrowStartElement) {
+                        arrowStartElement = cardEl;
+                        arrowStartElement.style.outline = '3px solid var(--accent-color)';
+                    } else {
+                        showArrowModal(arrowStartElement, cardEl);
+                    }
+                });
+                return { cardContainer, commentInput };
+            }
+
             function createCardElement(cardData, isDraggable = true, instanceId = null) {
                 const cardContainer = document.createElement('div');
                 cardContainer.className = 'card-container';
-                if (isDraggable) {
-                    cardContainer.draggable = true;
-                }
+                if (isDraggable) cardContainer.draggable = true;
 
                 const cardImage = document.createElement('img');
-                cardImage.src = cardData.images.full;
+                const originalUrl = cardData.images.full;
+                // Use a proxy that sets CORS headers, necessary for html2canvas
+                const proxiedUrl = `https://images.weserv.nl/?url=${encodeURIComponent(originalUrl)}`;
+
+                cardImage.crossOrigin = 'anonymous';
+                cardImage.src = proxiedUrl;
+
+                // Add an error handler to fall back to the direct URL for live view if the proxy fails
+                cardImage.onerror = () => {
+                    console.warn(`Proxy failed for ${originalUrl}, falling back to direct URL. PNG export for this image may fail.`);
+                    cardImage.src = originalUrl;
+                };
+
                 cardImage.alt = cardData.fullName;
                 cardImage.className = 'card-image';
 
-                // Assign a unique ID for arrow targeting
                 const uniqueId = instanceId !== null ? `card-instance-${instanceId}` : `card-lib-${cardData.id}`;
                 cardContainer.id = uniqueId;
+                cardContainer.dataset.cardId = cardData.id;
                 cardElements[uniqueId] = cardContainer;
 
                 cardContainer.appendChild(cardImage);
@@ -397,104 +472,54 @@
                 if (isDraggable) {
                     cardContainer.addEventListener('dragstart', (e) => {
                         draggedCardData = cardData;
-                        // For dragging from sidebar, create a temporary copy
-                        if (cardContainer.parentElement.id === 'card-list') {
-                            const clone = e.target.cloneNode(true);
-                            clone.style.position = 'absolute';
-                            clone.style.left = '-9999px'; // Hide it off-screen
-                            document.body.appendChild(clone);
-                            e.dataTransfer.setDragImage(clone, 50, 70); // Center the image on cursor
-                            setTimeout(() => document.body.removeChild(clone), 0);
-                        }
+                        const clone = e.target.cloneNode(true);
+                        clone.style.position = 'absolute';
+                        clone.style.left = '-9999px';
+                        document.body.appendChild(clone);
+                        e.dataTransfer.setDragImage(clone, 50, 70);
+                        setTimeout(() => document.body.removeChild(clone), 0);
                     });
                 }
-
                 return cardContainer;
             };
 
             function displayCardsInSidebar(cards) {
-                cardListEl.innerHTML = '';
-                if (cards.length === 0) {
-                    cardListEl.innerHTML = '<p>No cards found.</p>';
-                    return;
-                }
-                cards.forEach(card => {
-                    const cardEl = createCardElement(card);
-                    cardListEl.appendChild(cardEl);
-                });
+                cardListEl.innerHTML = cards.length > 0 ? '' : '<p>No cards found.</p>';
+                cards.forEach(card => cardListEl.appendChild(createCardElement(card)));
             };
 
             searchInputEl.addEventListener('input', (e) => {
                 const query = e.target.value.trim();
                 if (query.length < 2) {
-                    // If empty, show decklist if loaded, otherwise nothing
-                    if (deckCards.length > 0) {
-                        displayCardsInSidebar(deckCards);
-                    } else {
-                        cardListEl.innerHTML = '<p>Search for cards by name.</p>';
-                    }
+                    if (deckCards.length > 0) displayCardsInSidebar(deckCards);
+                    else cardListEl.innerHTML = '<p>Search for cards by name.</p>';
                     return;
                 }
-                const results = fuse.search(query).slice(0, 50); // Limit results for performance
-                const resultCards = results.map(r => r.item);
-                displayCardsInSidebar(resultCards);
+                const results = fuse.search(query).slice(0, 50).map(r => r.item);
+                displayCardsInSidebar(results);
             });
 
             // --- DRAG & DROP ---
             function setupDropZone(zone) {
-                zone.addEventListener('dragover', (e) => {
-                    e.preventDefault();
-                    zone.style.backgroundColor = 'var(--secondary-color)';
-                });
-                zone.addEventListener('dragleave', (e) => {
-                    e.preventDefault();
-                    zone.style.backgroundColor = '';
-                });
+                zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.style.backgroundColor = 'var(--secondary-color)'; });
+                zone.addEventListener('dragleave', (e) => { e.preventDefault(); zone.style.backgroundColor = ''; });
                 zone.addEventListener('drop', (e) => {
                     e.preventDefault();
                     zone.style.backgroundColor = '';
-
                     const droppedCardId = e.dataTransfer.getData('text/plain');
 
-                    if (draggedCardData) { // Dropping a new card from sidebar
+                    if (draggedCardData) {
                         const instanceId = nextCardInstanceId++;
-                        const cardContainer = document.createElement('div');
-                        cardContainer.className = 'droppable-card-container';
-
-                        const cardEl = createCardElement(draggedCardData, false, instanceId);
-                        makeCardMovable(cardEl, cardContainer); // Make it movable within lanes
-
-                        const commentInput = document.createElement('input');
-                        commentInput.type = 'text';
-                        commentInput.placeholder = 'Add comment...';
-                        commentInput.className = 'card-comment';
-
-                        cardContainer.appendChild(cardEl);
-                        cardContainer.appendChild(commentInput);
+                        const { cardContainer } = createCardDOM(draggedCardData, instanceId);
                         zone.appendChild(cardContainer);
-
-                        // Right-click to start arrow
-                        cardEl.addEventListener('contextmenu', (ev) => {
-                            ev.preventDefault();
-                            if (!arrowStartElement) {
-                                arrowStartElement = cardEl;
-                                arrowStartElement.style.outline = '3px solid var(--accent-color)';
-                            } else {
-                                // We have a start, now this is the end
-                                showArrowModal(arrowStartElement, cardEl);
-                            }
-                        });
-
-                    } else if (droppedCardId) { // Moving an existing card
+                    } else if (droppedCardId) {
                         const cardInstance = document.getElementById(droppedCardId);
                         if (cardInstance) {
-                            const parentContainer = cardInstance.closest('.droppable-card-container');
-                            zone.appendChild(parentContainer);
+                            zone.appendChild(cardInstance.closest('.droppable-card-container'));
                             updateLines();
                         }
                     }
-
-                    draggedCardData = null; // Reset
+                    draggedCardData = null;
                 });
             };
 
@@ -502,15 +527,11 @@
                 cardEl.draggable = true;
                 cardEl.addEventListener('dragstart', (e) => {
                     e.dataTransfer.setData('text/plain', cardEl.id);
-                    // Hide original smoothly
-                    setTimeout(() => {
-                        container.style.opacity = '0.5';
-                    }, 0);
+                    setTimeout(() => container.style.opacity = '0.5', 0);
                 });
-
-                cardEl.addEventListener('dragend', (e) => {
+                cardEl.addEventListener('dragend', () => {
                     container.style.opacity = '1';
-                    draggedCardData = null; // Important to clear this
+                    draggedCardData = null;
                     updateLines();
                 });
             }
@@ -520,34 +541,26 @@
                 turnCount++;
                 const turnColumn = document.createElement('div');
                 turnColumn.className = 'turn-column';
-
                 const songArea = document.createElement('div');
                 songArea.className = 'song-area drop-zone';
                 songArea.dataset.laneId = `song-${turnCount}`;
-
                 const characterArea = document.createElement('div');
                 characterArea.className = 'character-area drop-zone';
                 characterArea.dataset.laneId = `character-${turnCount}`;
-
                 const label = document.createElement('div');
                 label.className = 'turn-label';
                 label.textContent = `TURN ${turnCount}`;
-
-                turnColumn.appendChild(songArea);
-                turnColumn.appendChild(characterArea);
-                turnColumn.appendChild(label);
-
+                turnColumn.append(songArea, characterArea, label);
                 lanesWrapperEl.appendChild(turnColumn);
-
                 setupDropZone(songArea);
                 setupDropZone(characterArea);
             };
 
             addTurnBtnEl.addEventListener('click', addTurnColumn);
 
-            // --- ARROWS (LEADER-LINE) ---
+            // --- ARROWS ---
             function showArrowModal(startEl, endEl) {
-                arrowModalEl.style.display = 'block';
+                arrowModalEl.style.display = 'flex';
                 arrowAnnotationInputEl.value = '';
                 arrowAnnotationInputEl.focus();
 
@@ -555,74 +568,35 @@
                     createArrow(startEl, endEl, arrowAnnotationInputEl.value);
                     cleanupArrowModal();
                 };
-
-                const cancelHandler = () => {
-                    cleanupArrowModal();
-                };
-
+                const cancelHandler = () => cleanupArrowModal();
                 const cleanupArrowModal = () => {
                     arrowModalEl.style.display = 'none';
-                    if (arrowStartElement) {
-                        arrowStartElement.style.outline = '';
-                    }
+                    if (arrowStartElement) arrowStartElement.style.outline = '';
                     arrowStartElement = null;
                     saveArrowBtnEl.removeEventListener('click', saveHandler);
                     cancelArrowBtnEl.removeEventListener('click', cancelHandler);
                 }
-
                 saveArrowBtnEl.addEventListener('click', saveHandler, { once: true });
                 cancelArrowBtnEl.addEventListener('click', cancelHandler, { once: true });
             }
 
             function createArrow(startEl, endEl, label) {
-                const lineOptions = {
-                    start: startEl,
-                    end: endEl,
-                    color: 'rgba(255, 255, 255, 0.7)',
-                    size: 3,
-                    path: 'fluid',
-                    endPlug: 'arrow1',
-                };
-
-                if (label) {
-                    lineOptions.middleLabel = LeaderLine.captionLabel(label, {
-                        color: 'var(--accent-color)',
-                        outlineColor: 'var(--bg-color)',
-                        fontSize: 14,
-                    });
-                }
-
+                const lineOptions = { start: startEl, end: endEl, color: 'rgba(255, 255, 255, 0.7)', size: 3, path: 'fluid', endPlug: 'arrow1' };
+                if (label) lineOptions.middleLabel = LeaderLine.captionLabel(label, { color: 'var(--accent-color)', outlineColor: 'var(--bg-color)', fontSize: 14 });
                 const line = new LeaderLine(lineOptions);
-                lines.push(line);
-
-                // Cleanup highlighting
-                if (arrowStartElement) {
-                    arrowStartElement.style.outline = '';
-                }
+                lines.push({ line, label });
+                if (arrowStartElement) arrowStartElement.style.outline = '';
                 arrowStartElement = null;
             }
 
             function updateLines() {
                 setTimeout(() => {
-                    lines.forEach(line => {
-                        try {
-                            line.position();
-                        } catch (e) {
-                            // If an element was removed, leader-line might throw an error.
-                            // We should handle line removal logic here if cards can be deleted.
-                            console.warn("Could not reposition a line, an element might be missing.", e);
-                        }
-                    });
-                }, 10); // A small delay ensures DOM has updated positions
+                    lines.forEach(l => { try { l.line.position(); } catch (e) { /* ignore error */ } });
+                }, 10);
             }
 
-            // Reposition lines on window resize
             new ResizeObserver(updateLines).observe(document.body);
-
-            // Reposition lines on horizontal scroll
             lanesWrapperEl.addEventListener('scroll', updateLines);
-
-            // Clicking outside an element to cancel arrow creation
             document.addEventListener('click', (e) => {
                 if (arrowStartElement && !e.target.closest('.card-container')) {
                     arrowStartElement.style.outline = '';
@@ -630,10 +604,122 @@
                 }
             });
 
-            // --- FINAL SETUP ---
-            // Initialize with a few turns
-            for (let i = 0; i < 5; i++) addTurnColumn();
+            // --- IMPORT/EXPORT ---
+            function gatherState() {
+                const placedCards = [];
+                document.querySelectorAll('.droppable-card-container').forEach(container => {
+                    const cardEl = container.querySelector('.card-container');
+                    const commentEl = container.querySelector('.card-comment');
+                    placedCards.push({
+                        cardId: parseInt(cardEl.dataset.cardId),
+                        instanceId: parseInt(cardEl.id.split('-').pop()),
+                        laneId: container.parentElement.dataset.laneId,
+                        comment: commentEl.value
+                    });
+                });
 
+                const arrowData = lines.map(({ line, label }) => ({
+                    start: line.start.id,
+                    end: line.end.id,
+                    label: label || ''
+                }));
+
+                return {
+                    turnCount,
+                    cards: placedCards,
+                    arrows: arrowData,
+                    nextCardInstanceId,
+                    decklist: decklistInputEl.value
+                };
+            }
+
+            function clearBoard() {
+                lanesWrapperEl.innerHTML = '';
+                lines.forEach(({ line }) => line.remove());
+                lines = [];
+                cardElements = {};
+                turnCount = 0;
+                nextCardInstanceId = 0;
+            }
+
+            function loadState(state) {
+                clearBoard();
+
+                decklistInputEl.value = state.decklist || '';
+                if (decklistInputEl.value) {
+                    loadDeck();
+                }
+
+                nextCardInstanceId = state.nextCardInstanceId || 0;
+                for (let i = 0; i < state.turnCount; i++) addTurnColumn();
+
+                state.cards.forEach(cardState => {
+                    const cardData = findCardById(cardState.cardId);
+                    if (cardData) {
+                        const { cardContainer, commentInput } = createCardDOM(cardData, cardState.instanceId);
+                        commentInput.value = cardState.comment;
+                        const targetLane = document.querySelector(`[data-lane-id="${cardState.laneId}"]`);
+                        if (targetLane) targetLane.appendChild(cardContainer);
+                    }
+                });
+
+                state.arrows.forEach(arrowState => {
+                    const startEl = document.getElementById(arrowState.start);
+                    const endEl = document.getElementById(arrowState.end);
+                    if (startEl && endEl) createArrow(startEl, endEl, arrowState.label);
+                });
+            }
+
+            exportTextBtnEl.addEventListener('click', () => {
+                const state = gatherState();
+                const stateString = btoa(JSON.stringify(state));
+                exportTextOutputEl.value = stateString;
+                exportModalEl.style.display = 'flex';
+            });
+
+            exportPngBtnEl.addEventListener('click', () => {
+                addTurnBtnEl.style.visibility = 'hidden';
+                document.querySelectorAll('.leader-line').forEach(l => l.style.visibility = 'hidden');
+
+                html2canvas(lanesWrapperEl, {
+                    allowTaint: true,
+                    useCORS: true, // This is crucial for loading the proxied images
+                    backgroundColor: getComputedStyle(document.body).getPropertyValue('--bg-color'),
+                    scrollX: 0,
+                    scrollY: 0,
+                    windowWidth: lanesWrapperEl.scrollWidth,
+                    windowHeight: lanesWrapperEl.scrollHeight,
+                }).then(canvas => {
+                    const link = document.createElement('a');
+                    link.download = 'lorcana-map.png';
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                }).catch(err => {
+                    console.error("PNG Export failed:", err);
+                    alert("PNG Export failed. Some images may not be accessible.");
+                }).finally(() => {
+                    addTurnBtnEl.style.visibility = 'visible';
+                    document.querySelectorAll('.leader-line').forEach(l => l.style.visibility = 'visible');
+                });
+            });
+
+
+            importBtnEl.addEventListener('click', () => { importModalEl.style.display = 'flex'; });
+            closeExportModalBtnEl.addEventListener('click', () => { exportModalEl.style.display = 'none'; });
+            closeImportModalBtnEl.addEventListener('click', () => { importModalEl.style.display = 'none'; });
+            confirmImportBtnEl.addEventListener('click', () => {
+                try {
+                    const state = JSON.parse(atob(importTextInputEl.value));
+                    loadState(state);
+                    importModalEl.style.display = 'none';
+                } catch (e) {
+                    alert('Invalid map data! Please check the text and try again.');
+                    console.error("Import failed:", e);
+                }
+            });
+
+            // --- FINAL SETUP ---
+            for (let i = 0; i < 5; i++) addTurnColumn();
         });
     </script>
 </body>
