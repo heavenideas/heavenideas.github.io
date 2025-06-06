@@ -16,7 +16,7 @@
             --text-color: #f0f0f0;
             --border-color: #666;
             --accent-color: #a855f7;
-            --danger-color: #f43f5e;
+            --danger-color: #ef4444;
         }
 
         body {
@@ -149,6 +149,11 @@
             text-align: center;
             border-bottom-left-radius: 8px;
             border-bottom-right-radius: 8px;
+            resize: none;
+            overflow: hidden;
+            font-family: inherit;
+            white-space: pre-wrap;
+            word-wrap: break-word;
         }
 
         #main-content {
@@ -156,7 +161,6 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            /* Prevent overflow issues */
         }
 
         #add-turn-btn {
@@ -169,7 +173,6 @@
             overflow-x: auto;
             border-bottom: 1px solid var(--border-color);
             background-color: var(--bg-color);
-            /* Ensure background for PNG export */
         }
 
         .turn-column {
@@ -205,13 +208,36 @@
             text-align: center;
             padding: 0.5rem;
             margin-top: auto;
-            /* Pushes label to the bottom */
         }
 
         .droppable-card-container {
             position: relative;
-            margin-bottom: 20px;
-            /* Space for comment */
+        }
+
+        .delete-card-btn {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            width: 20px;
+            height: 20px;
+            background-color: var(--danger-color);
+            color: white;
+            border: 1px solid white;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: bold;
+            line-height: 1;
+            z-index: 10;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .droppable-card-container:hover .delete-card-btn {
+            opacity: 1;
         }
 
         .modal {
@@ -243,6 +269,12 @@
 
         .leader-line {
             z-index: 500;
+            cursor: pointer;
+            transition: filter 0.2s;
+        }
+
+        .leader-line:hover {
+            filter: drop-shadow(0 0 5px var(--danger-color));
         }
     </style>
 </head>
@@ -421,12 +453,29 @@
                 cardContainer.className = 'droppable-card-container';
                 const cardEl = createCardElement(cardData, false, instanceId);
                 makeCardMovable(cardEl, cardContainer);
-                const commentInput = document.createElement('input');
-                commentInput.type = 'text';
-                commentInput.placeholder = 'Add comment...';
-                commentInput.className = 'card-comment';
+
+                const commentEl = document.createElement('textarea');
+                commentEl.rows = 1;
+                commentEl.placeholder = 'Add comment...';
+                commentEl.className = 'card-comment';
+
+                commentEl.addEventListener('input', () => {
+                    commentEl.style.height = 'auto';
+                    commentEl.style.height = `${commentEl.scrollHeight}px`;
+                    updateLines();
+                });
+
+                // Add delete button
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'delete-card-btn';
+                deleteBtn.innerHTML = '&times;';
+                deleteBtn.addEventListener('click', () => {
+                    deleteCard(cardContainer, cardEl.id);
+                });
+
+                cardContainer.appendChild(deleteBtn);
                 cardContainer.appendChild(cardEl);
-                cardContainer.appendChild(commentInput);
+                cardContainer.appendChild(commentEl);
 
                 cardEl.addEventListener('contextmenu', (ev) => {
                     ev.preventDefault();
@@ -437,7 +486,7 @@
                         showArrowModal(arrowStartElement, cardEl);
                     }
                 });
-                return { cardContainer, commentInput };
+                return { cardContainer, commentInput: commentEl };
             }
 
             function createCardElement(cardData, isDraggable = true, instanceId = null) {
@@ -447,13 +496,11 @@
 
                 const cardImage = document.createElement('img');
                 const originalUrl = cardData.images.full;
-                // Use a proxy that sets CORS headers, necessary for html2canvas
                 const proxiedUrl = `https://images.weserv.nl/?url=${encodeURIComponent(originalUrl)}`;
 
                 cardImage.crossOrigin = 'anonymous';
                 cardImage.src = proxiedUrl;
 
-                // Add an error handler to fall back to the direct URL for live view if the proxy fails
                 cardImage.onerror = () => {
                     console.warn(`Proxy failed for ${originalUrl}, falling back to direct URL. PNG export for this image may fail.`);
                     cardImage.src = originalUrl;
@@ -488,16 +535,17 @@
                 cards.forEach(card => cardListEl.appendChild(createCardElement(card)));
             };
 
-            searchInputEl.addEventListener('input', (e) => {
-                const query = e.target.value.trim();
-                if (query.length < 2) {
-                    if (deckCards.length > 0) displayCardsInSidebar(deckCards);
-                    else cardListEl.innerHTML = '<p>Search for cards by name.</p>';
-                    return;
-                }
-                const results = fuse.search(query).slice(0, 50).map(r => r.item);
-                displayCardsInSidebar(results);
-            });
+            function deleteCard(cardDOMContainer, cardId) {
+                // Remove any lines connected to this card
+                lines = lines.filter(l => {
+                    if (l.line.start.id === cardId || l.line.end.id === cardId) {
+                        l.line.remove();
+                        return false; // Remove from array
+                    }
+                    return true; // Keep in array
+                });
+                cardDOMContainer.remove();
+            }
 
             // --- DRAG & DROP ---
             function setupDropZone(zone) {
@@ -584,10 +632,34 @@
                 const lineOptions = { start: startEl, end: endEl, color: 'rgba(255, 255, 255, 0.7)', size: 3, path: 'fluid', endPlug: 'arrow1' };
                 if (label) lineOptions.middleLabel = LeaderLine.captionLabel(label, { color: 'var(--accent-color)', outlineColor: 'var(--bg-color)', fontSize: 14 });
                 const line = new LeaderLine(lineOptions);
-                lines.push({ line, label });
+
+                // Add a unique ID to the line for deletion
+                const lineId = `line-${Date.now()}`;
+                line.setOptions({
+                    startSocket: 'auto',
+                    endSocket: 'auto',
+                    startPlug: 'disc',
+                    endPlug: 'arrow1',
+                    startPlugSize: 1,
+                });
+                document.querySelector('.leader-line:last-of-type').id = lineId;
+                lines.push({ id: lineId, line, label });
+
                 if (arrowStartElement) arrowStartElement.style.outline = '';
                 arrowStartElement = null;
             }
+
+            document.body.addEventListener('click', (e) => {
+                if (e.target.closest('.leader-line')) {
+                    const lineId = e.target.closest('.leader-line').id;
+                    const lineIndex = lines.findIndex(l => l.id === lineId);
+                    if (lineIndex > -1) {
+                        lines[lineIndex].line.remove();
+                        lines.splice(lineIndex, 1);
+                    }
+                }
+            });
+
 
             function updateLines() {
                 setTimeout(() => {
@@ -658,16 +730,26 @@
                     if (cardData) {
                         const { cardContainer, commentInput } = createCardDOM(cardData, cardState.instanceId);
                         commentInput.value = cardState.comment;
+
+                        if (commentInput.value) {
+                            setTimeout(() => {
+                                commentInput.style.height = 'auto';
+                                commentInput.style.height = `${commentInput.scrollHeight}px`;
+                            }, 0);
+                        }
+
                         const targetLane = document.querySelector(`[data-lane-id="${cardState.laneId}"]`);
                         if (targetLane) targetLane.appendChild(cardContainer);
                     }
                 });
 
-                state.arrows.forEach(arrowState => {
-                    const startEl = document.getElementById(arrowState.start);
-                    const endEl = document.getElementById(arrowState.end);
-                    if (startEl && endEl) createArrow(startEl, endEl, arrowState.label);
-                });
+                setTimeout(() => {
+                    state.arrows.forEach(arrowState => {
+                        const startEl = document.getElementById(arrowState.start);
+                        const endEl = document.getElementById(arrowState.end);
+                        if (startEl && endEl) createArrow(startEl, endEl, arrowState.label);
+                    });
+                }, 100);
             }
 
             exportTextBtnEl.addEventListener('click', () => {
@@ -683,7 +765,7 @@
 
                 html2canvas(lanesWrapperEl, {
                     allowTaint: true,
-                    useCORS: true, // This is crucial for loading the proxied images
+                    useCORS: true,
                     backgroundColor: getComputedStyle(document.body).getPropertyValue('--bg-color'),
                     scrollX: 0,
                     scrollY: 0,
