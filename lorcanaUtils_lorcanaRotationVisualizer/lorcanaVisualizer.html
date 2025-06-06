@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lorcana Deck Builder</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Define custom HSL color variables based on globals.css */
+        :root {
+            --background: 215 30% 15%;
+            --foreground: 0 0% 98%;
+            --card: 215 30% 17%;
+            --card-foreground: 0 0% 98%;
+            --popover: 215 30% 12%;
+            --popover-foreground: 0 0% 98%;
+            --primary: 205 60% 50%;
+            --primary-foreground: 0 0% 98%;
+            --secondary: 210 20% 30%;
+            --secondary-foreground: 0 0% 98%;
+            --muted: 215 20% 25%;
+            --muted-foreground: 210 15% 65%;
+            --accent: 0 70% 55%;
+            --accent-foreground: 0 0% 98%;
+            --destructive: 0 70% 55%;
+            --destructive-foreground: 0 0% 98%;
+            --border: 215 25% 20%;
+            --input: 215 25% 20%;
+            --ring: 205 60% 50%;
+            --radius: 0.5rem;
+        }
+
+        .dark {
+            --background: 215 30% 15%;
+            --foreground: 0 0% 98%;
+            --card: 215 30% 17%;
+            --card-foreground: 0 0% 98%;
+            --popover: 215 30% 12%;
+            --popover-foreground: 0 0% 98%;
+            --primary: 205 60% 50%;
+            --primary-foreground: 0 0% 98%;
+            --secondary: 210 20% 30%;
+            --secondary-foreground: 0 0% 98%;
+            --muted: 215 20% 25%;
+            --muted-foreground: 210 15% 65%;
+            --accent: 0 70% 55%;
+            --accent-foreground: 0 0% 98%;
+            --destructive: 0 70% 55%;
+            --destructive-foreground: 0 0% 98%;
+            --border: 215 25% 20%;
+            --input: 215 25% 20%;
+            --ring: 205 60% 50%;
+        }
+
+        /* Apply base styles using Tailwind's @apply directive within a style tag */
+        @layer base {
+            * {
+                @apply border-border;
+            }
+
+            body {
+                @apply bg-background text-foreground;
+            }
+        }
+
+        /* Custom styles */
+        .card-image {
+            transition: filter 0.3s ease-in-out;
+            width: 150px;
+            /* Fixed width for consistency */
+            height: auto;
+        }
+
+        .card-item.filtered-out .card-image {
+            filter: grayscale(100%) opacity(50%);
+        }
+
+        .card-item.filtered-out .card-name,
+        .card-item.filtered-out .card-set {
+            /* Also fade out set name */
+            opacity: 50%;
+        }
+
+        .loader {
+            border: 4px solid hsl(var(--secondary));
+            border-top: 4px solid hsl(var(--primary));
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+    <script>
+        // Configure Tailwind CSS
+        tailwind.config = {
+            darkMode: 'class', // Use the 'dark' class for dark mode
+            theme: {
+                extend: {
+                    colors: {
+                        background: 'hsl(var(--background))',
+                        foreground: 'hsl(var(--foreground))',
+                        card: {
+                            DEFAULT: 'hsl(var(--card))',
+                            foreground: 'hsl(var(--card-foreground))'
+                        },
+                        popover: {
+                            DEFAULT: 'hsl(var(--popover))',
+                            foreground: 'hsl(var(--popover-foreground))'
+                        },
+                        primary: {
+                            DEFAULT: 'hsl(var(--primary))',
+                            foreground: 'hsl(var(--primary-foreground))'
+                        },
+                        secondary: {
+                            DEFAULT: 'hsl(var(--secondary))',
+                            foreground: 'hsl(var(--secondary-foreground))'
+                        },
+                        muted: {
+                            DEFAULT: 'hsl(var(--muted))',
+                            foreground: 'hsl(var(--muted-foreground))'
+                        },
+                        accent: {
+                            DEFAULT: 'hsl(var(--accent))',
+                            foreground: 'hsl(var(--accent-foreground))'
+                        },
+                        destructive: {
+                            DEFAULT: 'hsl(var(--destructive))',
+                            foreground: 'hsl(var(--destructive-foreground))'
+                        },
+                        border: 'hsl(var(--border))',
+                        input: 'hsl(var(--input))',
+                        ring: 'hsl(var(--ring))',
+                    },
+                    borderRadius: {
+                        lg: 'var(--radius)',
+                        md: 'calc(var(--radius) - 2px)',
+                        sm: 'calc(var(--radius) - 4px)'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+
+<body class="p-4 md:p-8 font-sans">
+
+    <div class="container mx-auto max-w-6xl">
+        <h1 class="text-3xl font-bold mb-6 text-primary">Lorcana Set Rotation Visualizer</h1>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="md:col-span-1 space-y-6">
+                <div>
+                    <label for="decklistInput" class="block text-lg font-medium mb-2 text-foreground">Paste
+                        Decklist:</label>
+                    <textarea id="decklistInput" rows="10"
+                        class="w-full p-3 rounded-md bg-card text-card-foreground border border-border focus:ring-ring focus:border-primary placeholder-muted-foreground"
+                        placeholder="Example:&#10;4 Mickey Mouse - Brave Little Tailor&#10;2 Elsa - Spirit of Winter"></textarea>
+                    <button id="parseButton"
+                        class="mt-3 w-full bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background">
+                        Parse Decklist
+                    </button>
+                </div>
+
+                <div>
+                    <h2 class="text-lg font-medium mb-2 text-foreground">Filter by Set:</h2>
+                    <div id="setFilters"
+                        class="space-y-2 max-h-60 overflow-y-auto p-3 bg-card rounded-md border border-border">
+                        <p class="text-muted-foreground">Loading sets...</p>
+                    </div>
+                    <button id="selectAllSetsButton"
+                        class="mt-3 mr-2 bg-secondary text-secondary-foreground px-3 py-1 rounded-md text-sm hover:bg-secondary/90 transition-colors focus:outline-none focus:ring-2 focus:ring-ring">
+                        Select All
+                    </button>
+                    <button id="deselectAllSetsButton"
+                        class="mt-3 bg-secondary text-secondary-foreground px-3 py-1 rounded-md text-sm hover:bg-secondary/90 transition-colors focus:outline-none focus:ring-2 focus:ring-ring">
+                        Deselect All
+                    </button>
+                </div>
+
+                <div id="messageArea" class="mt-4 text-sm min-h-[20px]"></div>
+                <div id="loadingIndicator" class="flex justify-center items-center mt-4 hidden">
+                    <div class="loader"></div>
+                    <span class="ml-3 text-muted-foreground">Loading cards...</span>
+                </div>
+            </div>
+
+            <div class="md:col-span-2">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold text-foreground">Deck Display</h2>
+                    <div id="percentageDisplay" class="text-lg font-medium text-primary"></div>
+                </div>
+                <div id="cardDisplay"
+                    class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4 bg-card rounded-md border border-border min-h-[300px]">
+                    <p class="text-muted-foreground col-span-full text-center py-10">Enter a decklist and click "Parse
+                        Decklist".</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Configuration ---
+        const DATABASE_URL = 'https://raw.githubusercontent.com/heavenideas/similcana/refs/heads/main/database/allCards.json';
+        const PLACEHOLDER_IMAGE = 'https://placehold.co/150x210/2d3748/e2e8f0?text=No+Image';
+
+        // --- DOM Elements ---
+        const decklistInput = document.getElementById('decklistInput');
+        const parseButton = document.getElementById('parseButton');
+        const setFiltersContainer = document.getElementById('setFilters');
+        const cardDisplayContainer = document.getElementById('cardDisplay');
+        const messageArea = document.getElementById('messageArea');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const selectAllSetsButton = document.getElementById('selectAllSetsButton');
+        const deselectAllSetsButton = document.getElementById('deselectAllSetsButton');
+        const percentageDisplay = document.getElementById('percentageDisplay');
+
+        // --- State ---
+        let lorcanaDatabase = null;
+        let parsedDeck = [];
+        let selectedSets = new Set();
+
+        // --- Utility Functions ---
+        function showMessage(text, type = 'info') {
+            messageArea.textContent = text;
+            messageArea.classList.remove('text-destructive', 'text-green-500', 'text-muted-foreground');
+            if (type === 'error') messageArea.classList.add('text-destructive');
+            else if (type === 'success') messageArea.classList.add('text-green-500');
+            else messageArea.classList.add('text-muted-foreground');
+        }
+
+        function setLoading(show) {
+            loadingIndicator.classList.toggle('hidden', !show);
+            parseButton.disabled = show;
+            parseButton.classList.toggle('opacity-50', show);
+            parseButton.classList.toggle('cursor-not-allowed', show);
+        }
+
+        // --- Core Logic ---
+        async function fetchDatabase() {
+            if (lorcanaDatabase) return lorcanaDatabase;
+            setLoading(true);
+            showMessage('Fetching card database...');
+            try {
+                const response = await fetch(DATABASE_URL);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const data = await response.json();
+
+                if (!data.cards || !data.sets) {
+                    console.warn("Fetched data structure might be different.");
+                    if (Array.isArray(data)) { // If root is cards array
+                        data = { cards: data, sets: {}, cardsByName: new Map() };
+                        console.log("Assuming fetched data is the cards array.");
+                    } else {
+                        throw new Error("Could not find 'cards' or 'sets' in the fetched database.");
+                    }
+                }
+                data.cardsByName = new Map();
+                data.cards.forEach(card => {
+                    const nameProperty = card.fullName || card.name;
+                    if (nameProperty) {
+                        const normalizedName = nameProperty.toLowerCase().replace(/\s+/g, ' ').trim();
+                        data.cardsByName.set(normalizedName, card);
+                    } else {
+                        console.warn("Card object missing expected name property:", card);
+                    }
+                });
+
+                if (Object.keys(data.sets).length === 0 && data.cards.length > 0) {
+                    console.log("Attempting to derive sets from card data...");
+                    data.sets = {};
+                    data.cards.forEach(card => {
+                        if (card.setCode && !data.sets[card.setCode]) {
+                            data.sets[card.setCode] = {
+                                name: `Set ${card.setCode.toUpperCase()}`,
+                                number: parseInt(card.setCode, 10) || 0,
+                                type: 'unknown',
+                                releaseDate: card.release_date || 'unknown',
+                                setCode: card.setCode
+                            };
+                        }
+                    });
+                    console.log("Derived sets:", data.sets);
+                }
+
+                lorcanaDatabase = data;
+                showMessage('Database loaded successfully.', 'success');
+                return lorcanaDatabase;
+            } catch (error) {
+                console.error('Failed to fetch Lorcana database:', error);
+                showMessage(`Error fetching database: ${error.message}`, 'error');
+                throw error;
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        function parseDecklist(decklist) {
+            if (!decklist || typeof decklist !== 'string') return [];
+            const lines = decklist.trim().split('\n');
+            const parsed = [];
+            let parseErrors = 0;
+            lines.forEach((line) => {
+                line = line.trim();
+                if (!line) return;
+                const match = line.match(/^(\d+)\s*x?\s+(.+?)(?:\s*\([A-Z0-9]{1,4}\))?$/);
+                if (match) {
+                    const quantity = parseInt(match[1], 10);
+                    let name = match[2].trim();
+                    if (!isNaN(quantity) && name) {
+                        parsed.push({ quantity, name });
+                    } else {
+                        console.warn(`Skipping invalid quantity/name in line: "${line}"`);
+                        parseErrors++;
+                    }
+                } else {
+                    const nameOnlyMatch = line.match(/^([a-zA-Z].*)$/);
+                    if (nameOnlyMatch && nameOnlyMatch[1].length > 3) {
+                        console.warn(`Assuming quantity 1 for line: "${line}"`);
+                        parsed.push({ quantity: 1, name: nameOnlyMatch[1].trim() });
+                    } else {
+                        console.warn(`Skipping invalid line format: "${line}"`);
+                        parseErrors++;
+                    }
+                }
+            });
+            if (parseErrors > 0) showMessage(`Parsed decklist with ${parseErrors} skipped line(s). Check console.`, 'info');
+            return parsed;
+        }
+
+        function renderSetFilters() {
+            if (!lorcanaDatabase || !lorcanaDatabase.sets || Object.keys(lorcanaDatabase.sets).length === 0) {
+                setFiltersContainer.innerHTML = '<p class="text-destructive">Set data not available or could not be derived.</p>';
+                return;
+            }
+
+            const setsArray = Object.entries(lorcanaDatabase.sets).map(([code, data]) => ({
+                ...data,
+                setCode: code
+            }));
+
+            // Filter for numeric set codes only and sort them
+            const numericSets = setsArray
+                .filter(set => /^\d+$/.test(set.setCode)) // Keep only sets with purely numeric setCode
+                .sort((a, b) => {
+                    const numA = parseInt(a.setCode, 10);
+                    const numB = parseInt(b.setCode, 10);
+                    return numA - numB; // Sort by set number ascending
+                });
+
+            setFiltersContainer.innerHTML = '';
+            selectedSets.clear();
+
+            if (numericSets.length === 0) {
+                setFiltersContainer.innerHTML = '<p class="text-muted-foreground">No standard sets found.</p>';
+                return;
+            }
+
+            numericSets.forEach(set => {
+                const setCode = set.setCode;
+                selectedSets.add(setCode); // Select all numeric sets by default
+
+                const div = document.createElement('div');
+                div.classList.add('flex', 'items-center', 'space-x-2');
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.id = `set-${setCode}`;
+                checkbox.value = setCode;
+                checkbox.checked = true;
+                checkbox.classList.add('h-4', 'w-4', 'rounded', 'border-border', 'text-primary', 'focus:ring-ring');
+                checkbox.addEventListener('change', handleFilterChange);
+
+                const label = document.createElement('label');
+                label.htmlFor = `set-${setCode}`;
+                label.textContent = `${set.name || `Set ${setCode.toUpperCase()}`} (${setCode.toUpperCase()})`;
+                label.classList.add('text-sm', 'font-medium', 'leading-none', 'peer-disabled:cursor-not-allowed', 'peer-disabled:opacity-70', 'text-foreground');
+
+                div.appendChild(checkbox);
+                div.appendChild(label);
+                setFiltersContainer.appendChild(div);
+            });
+        }
+
+        function findCardData(name) {
+            if (!lorcanaDatabase || !lorcanaDatabase.cardsByName) return null;
+            const normalizedName = name.toLowerCase().replace(/\s+/g, ' ').trim();
+            let card = lorcanaDatabase.cardsByName.get(normalizedName);
+            if (card) return card;
+
+            let bestMatch = null;
+            let highestScore = -1;
+            for (const [dbNameNormalized, dbCard] of lorcanaDatabase.cardsByName.entries()) {
+                let score = 0;
+                if (normalizedName.startsWith(dbNameNormalized)) score = dbNameNormalized.length;
+                else if (dbNameNormalized.startsWith(normalizedName)) score = normalizedName.length;
+                else if (dbNameNormalized.includes(normalizedName)) score = normalizedName.length * 0.5;
+                else if (normalizedName.includes(dbNameNormalized)) score = dbNameNormalized.length * 0.5;
+
+                if (score > highestScore) {
+                    highestScore = score;
+                    bestMatch = dbCard;
+                }
+            }
+            if (bestMatch) {
+                console.log(`Fuzzy match for "${name}": "${bestMatch.fullName || bestMatch.name}" (score ${highestScore})`);
+                return bestMatch;
+            }
+            console.warn(`Card not found: "${name}" (normalized: "${normalizedName}")`);
+            return null;
+        }
+
+        function displayDecklist() {
+            if (!lorcanaDatabase) {
+                showMessage('Database not loaded.', 'error');
+                percentageDisplay.textContent = '';
+                return;
+            }
+            if (parsedDeck.length === 0) {
+                cardDisplayContainer.innerHTML = '<p class="text-muted-foreground col-span-full text-center py-10">Decklist is empty or could not be parsed.</p>';
+                percentageDisplay.textContent = '';
+                return;
+            }
+
+            cardDisplayContainer.innerHTML = '';
+            let cardsFoundCount = 0;
+            let cardsNotFound = [];
+            let totalCardsInDeck = 0;
+            let cardsInSelectedSets = 0;
+
+            parsedDeck.forEach(item => {
+                totalCardsInDeck += item.quantity;
+                if (!item.cardData) item.cardData = findCardData(item.name);
+
+                if (!item.cardData) {
+                    cardsNotFound.push(item.name);
+                    const cardDiv = document.createElement('div');
+                    cardDiv.className = 'card-item p-2 bg-card/50 rounded-md flex flex-col items-center text-center border border-destructive';
+                    cardDiv.innerHTML = `
+                        <img src="${PLACEHOLDER_IMAGE}" alt="Card not found" class="card-image rounded-sm mb-2 object-cover">
+                        <span class="card-name text-xs font-medium text-destructive">${item.quantity}x ${item.name}</span>
+                        <span class="text-xs text-destructive/80">(Not Found)</span>`;
+                    cardDisplayContainer.appendChild(cardDiv);
+                    return;
+                }
+
+                cardsFoundCount++;
+                const card = item.cardData;
+                const setCode = card.Set_Code || card.setCode;
+                const fullName = card.fullName || card.Name;
+                const imageUrl = card.Image_Small || card.images?.thumbnail || card.Image || card.images?.full || PLACEHOLDER_IMAGE;
+
+                if (!setCode) console.warn("Card data missing set code:", card);
+                const isFilteredOut = setCode ? !selectedSets.has(setCode) : false;
+
+                if (!isFilteredOut) cardsInSelectedSets += item.quantity;
+
+                const cardDiv = document.createElement('div');
+                cardDiv.className = 'card-item p-2 bg-card/80 rounded-md flex flex-col items-center text-center border border-transparent transition-opacity duration-300';
+                if (isFilteredOut) cardDiv.classList.add('filtered-out');
+
+                cardDiv.innerHTML = `
+                    <img src="${imageUrl}" alt="${fullName || 'Card Image'}" class="card-image rounded-sm mb-2 object-cover" onerror="this.onerror=null; this.src='${PLACEHOLDER_IMAGE}';">
+                    <span class="card-name text-xs font-medium text-foreground">${item.quantity}x ${fullName || item.name}</span>
+                    <span class="card-set text-xs text-muted-foreground">Set: ${setCode ? setCode.toUpperCase() : 'N/A'}</span>`;
+                cardDisplayContainer.appendChild(cardDiv);
+            });
+
+            const percentage = totalCardsInDeck > 0 ? ((cardsInSelectedSets / totalCardsInDeck) * 100).toFixed(1) : 0;
+            percentageDisplay.textContent = `${percentage}% (${cardsInSelectedSets}/${totalCardsInDeck}) Cards Included`;
+
+            if (cardsNotFound.length > 0) showMessage(`Displayed ${cardsFoundCount} unique. Not found: ${cardsNotFound.join(', ')}`, 'info');
+            else if (cardsFoundCount > 0) showMessage(`Displayed ${cardsFoundCount} unique cards.`, 'success');
+            else if (parsedDeck.length > 0 && cardsFoundCount === 0 && cardsNotFound.length > 0) {
+                showMessage(`Could not find any cards for names: ${cardsNotFound.join(', ')}`, 'error');
+                percentageDisplay.textContent = '';
+            }
+        }
+
+        // --- Event Handlers ---
+        async function handleParseClick() {
+            showMessage('Parsing decklist...');
+            percentageDisplay.textContent = '';
+            cardDisplayContainer.innerHTML = '';
+            try {
+                await fetchDatabase();
+                const decklistText = decklistInput.value;
+                parsedDeck = parseDecklist(decklistText);
+                parsedDeck.forEach(item => item.cardData = null); // Reset before re-attaching
+                parsedDeck.forEach(item => item.cardData = findCardData(item.name));
+                displayDecklist();
+            } catch (error) {
+                console.error("Error during parsing or fetching:", error);
+                percentageDisplay.textContent = '';
+            }
+        }
+
+        function handleFilterChange(event) {
+            const setCode = event.target.value;
+            if (event.target.checked) selectedSets.add(setCode);
+            else selectedSets.delete(setCode);
+            displayDecklist();
+        }
+
+        function handleSelectAllSets() {
+            const checkboxes = setFiltersContainer.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(cb => { cb.checked = true; selectedSets.add(cb.value); });
+            displayDecklist();
+        }
+
+        function handleDeselectAllSets() {
+            const checkboxes = setFiltersContainer.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(cb => { cb.checked = false; selectedSets.delete(cb.value); });
+            displayDecklist();
+        }
+
+        // --- Initialization ---
+        async function initializeApp() {
+            parseButton.addEventListener('click', handleParseClick);
+            selectAllSetsButton.addEventListener('click', handleSelectAllSets);
+            deselectAllSetsButton.addEventListener('click', handleDeselectAllSets);
+            try {
+                await fetchDatabase();
+                renderSetFilters();
+            } catch (error) {
+                setFiltersContainer.innerHTML = '<p class="text-destructive">Could not load set filters.</p>';
+                percentageDisplay.textContent = '';
+            }
+        }
+        document.addEventListener('DOMContentLoaded', initializeApp);
+    </script>
+</body>
+
+</html>

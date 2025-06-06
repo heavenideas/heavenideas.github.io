@@ -1,0 +1,1304 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lorcana Deck Matchup Analyzer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a202c;
+            /* Dark mode background */
+            color: #e2e8f0;
+            /* Light text for dark mode */
+        }
+
+        .card-image {
+            width: 100px;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            transition: transform 0.2s ease-in-out;
+            cursor: pointer;
+        }
+
+        .card-image:hover {
+            transform: scale(1.1);
+        }
+
+        .card-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 8px;
+            background-color: #2d3748;
+            /* Slightly lighter dark background for sections */
+            border-radius: 8px;
+            min-height: 100px;
+            /* Adjusted min-height */
+            align-items: flex-start;
+            /* Align items to the top */
+        }
+
+        .analysis-section {
+            /* Generic class for major sections */
+            background-color: #222b3c;
+            /* Slightly different dark for main sections */
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        }
+
+        .outcome-section,
+        .song-breakdown-section,
+        .ability-impact-section,
+        .location-interaction-subsection {
+            /* Specific styling for subsections */
+            background-color: #2d3748;
+            padding: 12px;
+            /* Slightly reduced padding */
+            border-radius: 8px;
+            margin-bottom: 12px;
+            /* Reduced margin */
+        }
+
+        .section-title {
+            /* For main section titles like "Character Matchups" */
+            font-size: 1.5rem;
+            /* Larger */
+            font-weight: bold;
+            color: #c3dafe;
+            /* Light blueish */
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #4a5568;
+        }
+
+        .subsection-title {
+            /* For titles within outcome/song sections */
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #a0aec0;
+            font-size: 1rem;
+            /* Standardized size */
+        }
+
+        .ability-title {
+            /* For individual ability names */
+            font-weight: bold;
+            color: #b0c4de;
+            /* Lighter blue for ability names */
+            margin-top: 10px;
+            margin-bottom: 5px;
+        }
+
+        textarea {
+            background-color: #2d3748;
+            color: #e2e8f0;
+            border: 1px solid #4a5568;
+            border-radius: 8px;
+        }
+
+        button {
+            background-color: #4a5fa0;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-weight: bold;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: #3c4b80;
+        }
+
+        select {
+            background-color: #2d3748;
+            color: #e2e8f0;
+            border: 1px solid #4a5568;
+            border-radius: 8px;
+            padding: 8px;
+        }
+
+        .loading-spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid #fff;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 240px;
+            /* Increased width for more text */
+            background-color: #374151;
+            color: #e5e7eb;
+            text-align: left;
+            border-radius: 6px;
+            padding: 10px;
+            /* Increased padding */
+            position: absolute;
+            z-index: 10;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -120px;
+            /* Half of new width */
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 0.8rem;
+            line-height: 1.4;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+            white-space: pre-line;
+            /* Allow newlines in tooltip */
+        }
+
+        .tooltip .tooltiptext::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #374151 transparent transparent transparent;
+        }
+
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        /* Styling for radio buttons */
+        .radio-label {
+            margin-right: 10px;
+            cursor: pointer;
+        }
+
+        .radio-label input[type="radio"] {
+            margin-right: 5px;
+        }
+    </style>
+</head>
+
+<body class="p-4 md:p-8">
+
+    <header class="text-center mb-8">
+        <h1 class="text-3xl font-bold text-purple-400">Lorcana Matchup Analyzer</h1>
+        <p class="text-sm text-gray-400">Analyze character trade values, song threats, and location vulnerabilities.</p>
+    </header>
+
+    <div id="loadingIndicator" class="text-center my-4">
+        <div class="loading-spinner"></div>
+        <p>Loading Card Data...</p>
+    </div>
+
+    <main id="appContent" class="hidden">
+        <section class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div>
+                <h2 class="text-xl font-semibold mb-2">Your Deck</h2>
+                <textarea id="playerDeckInput" rows="10" class="w-full p-2"
+                    placeholder="4 Card Name&#10;2 Another Card Name..."></textarea>
+            </div>
+            <div>
+                <h2 class="text-xl font-semibold mb-2">Opponent's Deck</h2>
+                <textarea id="opponentDeckInput" rows="10" class="w-full p-2"
+                    placeholder="4 Card Name&#10;2 Another Card Name..."></textarea>
+            </div>
+        </section>
+
+        <div class="text-center mb-6">
+            <button id="analyzeButton" class="px-6 py-3">Load Decks & Analyze</button>
+        </div>
+
+        <section id="analysisControls" class="hidden mt-8 p-4 bg-gray-700 rounded-lg shadow-md">
+            <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
+                <div class="mb-4 sm:mb-0">
+                    <span class="mr-2 font-semibold">Analysis Mode:</span>
+                    <label class="radio-label"><input type="radio" name="analysisMode" value="character" checked> My
+                        Character</label>
+                    <label class="radio-label"><input type="radio" name="analysisMode" value="song"> My Song</label>
+                </div>
+
+                <div id="characterSelectionContainer">
+                    <label for="playerCharacterSelect" class="mr-2 font-semibold">Analyze My Character:</label>
+                    <select id="playerCharacterSelect" class="min-w-[200px]"></select>
+                </div>
+                <div id="songSelectionContainer" class="hidden">
+                    <label for="playerSongSelect" class="mr-2 font-semibold">Analyze My Song:</label>
+                    <select id="playerSongSelect" class="min-w-[200px]"></select>
+                </div>
+
+                <div id="challengePerspectiveContainer">
+                    <label for="turnContextSelect" class="mr-2 font-semibold">Challenge Perspective:</label>
+                    <select id="turnContextSelect">
+                        <option value="player">My Turn (I Challenge)</option>
+                        <option value="opponent">Opponent's Turn (They Challenge)</option>
+                    </select>
+                </div>
+            </div>
+        </section>
+
+        <section id="resultsDisplay" class="mt-8">
+        </section>
+    </main>
+
+    <script>
+        // --- Globals ---
+        let ALL_CARDS_DATA = null;
+        let ALL_CARDS_MAP = new Map();
+        let PLAYER_DECK_CHARS = [];
+        let OPPONENT_DECK_CHARS = [];
+        let PLAYER_DECK_SONGS = [];
+        let OPPONENT_DECK_SONGS = [];
+        let PLAYER_DECK_LOCATIONS = [];
+        let OPPONENT_DECK_LOCATIONS = [];
+
+
+        const CARD_DATA_URL = 'https://raw.githubusercontent.com/heavenideas/similcana/refs/heads/main/database/allCards.json';
+
+        const DEFAULT_PLAYER_DECK = `4 Diablo - Obedient Raven
+4 Fairy Ship - Royal Vessel
+4 Chernabog's Followers - Creatures of Evil
+4 Kuzco - Wanted Llama
+4 The Library - A Gift for Belle
+4 Madam Mim - Fox
+3 Merlin - Crab
+4 Friends on the Other Side
+4 Brawl
+2 The Queen's Castle - Mirror Chamber
+4 Merlin - Goat
+2 Merlin - Rabbit
+3 Genie - Wish Fulfilled
+3 Be Prepared
+2 Peter Pan - Shadow Finder
+2 Elsa - The Fifth Spirit
+2 Madam Mim - Snake
+1 Madame Medusa - The Boss
+2 Maui - Half-Shark
+2 Lady Tremaine - Imperious Queen`;
+
+        const DEFAULT_OPPONENT_DECK = `4 Diablo - Maleficent's Spy
+3 Morph - Space Goo
+4 Sudden Chill
+4 Ursula - Deceiver
+4 Pete - Games Referee
+4 Diablo - Devoted Herald
+4 Ursula - Deceiver of All
+4 Hypnotize
+3 Prince John - Greediest of All
+4 Strength of a Raging Fire
+3 Let the Storm Rage On
+3 The Muses - Proclaimers of Heroes
+4 We Don't Talk About Bruno
+3 Beast - Tragic Hero
+3 Beyond the Horizon
+3 Pete - Space Pirate
+2 Hidden Cove - Tranquil Haven
+1 Namaari - Single-Minded Rival`;
+
+        // --- DOM Elements ---
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const appContent = document.getElementById('appContent');
+        const playerDeckInput = document.getElementById('playerDeckInput');
+        const opponentDeckInput = document.getElementById('opponentDeckInput');
+        const analyzeButton = document.getElementById('analyzeButton');
+        const analysisControls = document.getElementById('analysisControls');
+
+        const analysisModeRadios = document.querySelectorAll('input[name="analysisMode"]');
+        const characterSelectionContainer = document.getElementById('characterSelectionContainer');
+        const songSelectionContainer = document.getElementById('songSelectionContainer');
+        const challengePerspectiveContainer = document.getElementById('challengePerspectiveContainer');
+
+        const playerCharacterSelect = document.getElementById('playerCharacterSelect');
+        const playerSongSelect = document.getElementById('playerSongSelect');
+        const turnContextSelect = document.getElementById('turnContextSelect');
+        const resultsDisplay = document.getElementById('resultsDisplay');
+
+        // --- Initialization ---
+        async function initializeApp() {
+            console.log("Initializing app...");
+            try {
+                const response = await fetch(CARD_DATA_URL);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                ALL_CARDS_DATA = await response.json();
+                console.log("Card data fetched successfully:", ALL_CARDS_DATA.cards.length, "cards loaded.");
+
+                ALL_CARDS_DATA.cards.forEach(card => {
+                    ALL_CARDS_MAP.set(card.fullName, card);
+                    if (card.simpleName && card.simpleName !== card.fullName) {
+                        ALL_CARDS_MAP.set(card.simpleName, card);
+                    }
+                });
+                console.log("ALL_CARDS_MAP populated with", ALL_CARDS_MAP.size, "entries.");
+
+                loadingIndicator.classList.add('hidden');
+                appContent.classList.remove('hidden');
+
+                playerDeckInput.value = DEFAULT_PLAYER_DECK;
+                opponentDeckInput.value = DEFAULT_OPPONENT_DECK;
+                console.log("Default decklists set.");
+
+                analyzeButton.addEventListener('click', handleAnalyzeButtonClick);
+                playerCharacterSelect.addEventListener('change', displayAnalysisResults);
+                playerSongSelect.addEventListener('change', displayAnalysisResults);
+                turnContextSelect.addEventListener('change', displayAnalysisResults);
+
+                analysisModeRadios.forEach(radio => {
+                    radio.addEventListener('change', handleAnalysisModeChange);
+                });
+                console.log("Event listeners attached.");
+
+            } catch (error) {
+                console.error("Error during app initialization:", error);
+                loadingIndicator.innerHTML = `<p class="text-red-500">Error loading card data. Please try refreshing. Details: ${error.message}</p>`;
+            }
+        }
+
+        // --- Deck Parsing ---
+        function parseDeckString(deckString) {
+            console.log("Parsing deck string:", deckString.substring(0, 50) + "...");
+            const lines = deckString.trim().split('\n');
+            const characters = [];
+            const songs = [];
+            const locations = []; // Added for locations
+            const uniqueCharNames = new Set();
+            const uniqueSongNames = new Set();
+            const uniqueLocationNames = new Set(); // Added for locations
+
+
+            lines.forEach(line => {
+                line = line.trim();
+                if (!line) return;
+
+                const match = line.match(/^(\d+)\s+(.+)/);
+                if (match) {
+                    const count = parseInt(match[1], 10);
+                    const cardName = match[2].trim();
+                    const cardData = ALL_CARDS_MAP.get(cardName);
+
+                    if (cardData) {
+                        if (cardData.type === 'Character') {
+                            if (!uniqueCharNames.has(cardData.fullName)) {
+                                characters.push({ cardInfo: cardData, count: count });
+                                uniqueCharNames.add(cardData.fullName);
+                            }
+                        } else if (cardData.type === 'Action' && cardData.subtypes?.includes('Song')) {
+                            if (!uniqueSongNames.has(cardData.fullName)) {
+                                songs.push({ cardInfo: cardData, count: count });
+                                uniqueSongNames.add(cardData.fullName);
+                            }
+                        } else if (cardData.type === 'Location') { // Added location check
+                            if (!uniqueLocationNames.has(cardData.fullName)) {
+                                locations.push({ cardInfo: cardData, count: count });
+                                uniqueLocationNames.add(cardData.fullName);
+                            }
+                        }
+                    } else {
+                        console.warn(`Card not found during parsing: ${cardName}`);
+                    }
+                } else {
+                    console.warn(`Invalid deck line format during parsing: ${line}`);
+                }
+            });
+            const parsedResult = {
+                characters: Array.from(uniqueCharNames).map(name => ({ cardInfo: ALL_CARDS_MAP.get(name) })),
+                songs: Array.from(uniqueSongNames).map(name => ({ cardInfo: ALL_CARDS_MAP.get(name) })),
+                locations: Array.from(uniqueLocationNames).map(name => ({ cardInfo: ALL_CARDS_MAP.get(name) })) // Added locations
+            };
+            console.log("Deck parsed. Characters:", parsedResult.characters.length, "Songs:", parsedResult.songs.length, "Locations:", parsedResult.locations.length);
+            return parsedResult;
+        }
+
+        // --- Keyword Extraction ---
+        function extractCharacterKeywords(card) {
+            const keywords = { Resist: 0, Challenger: 0, Evasive: false, Ward: false };
+            const otherKeywords = ['support', 'bodyguard', 'reckless', 'singer'];
+
+            if (card.abilities && Array.isArray(card.abilities)) {
+                card.abilities.forEach(ability => {
+                    if (ability.type === 'keyword') {
+                        const lowerKeyword = ability.keyword.toLowerCase();
+                        if (lowerKeyword === 'resist') keywords.Resist = ability.keywordValueNumber || 0;
+                        else if (lowerKeyword === 'challenger') keywords.Challenger = ability.keywordValueNumber || 0;
+                        else if (lowerKeyword === 'evasive') keywords.Evasive = true;
+                        else if (lowerKeyword === 'ward') keywords.Ward = true;
+                        else if (otherKeywords.includes(lowerKeyword)) {
+                            keywords[ability.keyword.toLowerCase()] = true;
+                        }
+                    }
+                });
+            }
+            if (card.subtypes && Array.isArray(card.subtypes)) {
+                card.subtypes.forEach(subtype => {
+                    keywords[subtype.toLowerCase()] = true;
+                });
+            }
+            return keywords;
+        }
+
+        // --- Matchup Calculation (Characters) ---
+        function calculateSingleMatchup(playerCharData, opponentCharData, turnType) {
+            const pKeywords = extractCharacterKeywords(playerCharData);
+            const oKeywords = extractCharacterKeywords(opponentCharData);
+            let pStrength = playerCharData.strength || 0;
+            const pWillpower = playerCharData.willpower || 0;
+            const pCost = playerCharData.cost || 0;
+            let oStrength = opponentCharData.strength || 0;
+            const oWillpower = opponentCharData.willpower || 0;
+            const oCost = opponentCharData.cost || 0;
+
+            if (turnType === 'player' && oKeywords.Evasive && !pKeywords.Evasive) return { outcomeName: "NoInteraction_OpponentEvasive", classification: "Neutral", details: "Opponent is Evasive" };
+            if (turnType === 'opponent' && pKeywords.Evasive && !oKeywords.Evasive) return { outcomeName: "NoInteraction_PlayerEvasive", classification: "Neutral", details: "Your character is Evasive" };
+
+            if (turnType === 'player' && pKeywords.Challenger > 0) pStrength += pKeywords.Challenger;
+            if (turnType === 'opponent' && oKeywords.Challenger > 0) oStrength += oKeywords.Challenger;
+
+            let damageToPlayer = Math.max(0, oStrength - pKeywords.Resist);
+            let damageToOpponent = Math.max(0, pStrength - oKeywords.Resist);
+
+            const playerBanished = damageToPlayer >= pWillpower;
+            const opponentBanished = damageToOpponent >= oWillpower;
+
+            let result;
+            if (playerBanished && opponentBanished) {
+                const inkDiff = oCost - pCost;
+                let classification = "Neutral";
+                if (inkDiff >= 2) classification = "Positive";
+                else if (inkDiff <= -2) classification = "Negative";
+                result = { outcomeName: "BothBanished", classification, details: `Ink Diff (Opp-Player): ${inkDiff}` };
+            } else if (!opponentBanished && playerBanished) {
+                result = { outcomeName: "OpponentSurvives_PlayerBanished", classification: "Negative", details: "Your character banished" };
+            } else if (opponentBanished && !playerBanished) {
+                result = { outcomeName: "PlayerSurvives_OpponentBanished", classification: "Positive", details: "Opponent character banished" };
+            } else if (!opponentBanished && !playerBanished) {
+                result = { outcomeName: "BothSurvive", classification: "Neutral", details: "Stalemate, both survive" };
+            } else {
+                result = { outcomeName: "Unknown", classification: "Neutral", details: "Error in logic" };
+            }
+            return result;
+        }
+
+        // --- Generic Ability/Effect Interaction Analysis ---
+        const TARGETING_PHRASES = {
+            directOpponent: ["an opposing character", "opponent controls a character", "opponent's character"],
+            generic: ["chosen character", "target character", "a character", "choose a character"],
+            selfExclusion: ["your character", "a character you control"],
+            aoeOpposing: ["each opposing character", "all opposing characters"],
+            aoeAll: ["each character", "all characters"],
+            wardProtectedSingleTarget: ["chosen character", "target character"]
+        };
+
+        function classifyAbilityEffectOnTarget(sourceCardInfo, abilityText, targetCharacterCard, sourceIsPlayerPerspective) {
+            const cleanedAbilityText = (abilityText || "").replace(/\n/g, ' ');
+            const lowerAbilityText = cleanedAbilityText.toLowerCase();
+            const targetCharKeywords = extractCharacterKeywords(targetCharacterCard);
+            const targetCharWillpower = targetCharacterCard.willpower || 0;
+            const targetCharCost = targetCharacterCard.cost || 0;
+            const targetCharStrength = targetCharacterCard.strength || 0;
+            let details = "";
+
+            let canTargetRelevantChar = false;
+            if (sourceIsPlayerPerspective) {
+                if (TARGETING_PHRASES.directOpponent.some(phrase => lowerAbilityText.includes(phrase)) ||
+                    TARGETING_PHRASES.aoeOpposing.some(phrase => lowerAbilityText.includes(phrase)) ||
+                    TARGETING_PHRASES.aoeAll.some(phrase => lowerAbilityText.includes(phrase))) {
+                    canTargetRelevantChar = true;
+                } else if (TARGETING_PHRASES.generic.some(phrase => lowerAbilityText.includes(phrase)) &&
+                    !TARGETING_PHRASES.selfExclusion.some(phrase => lowerAbilityText.includes(phrase))) {
+                    canTargetRelevantChar = true;
+                }
+            } else {
+                if (TARGETING_PHRASES.directOpponent.some(phrase => lowerAbilityText.includes(phrase)) ||
+                    TARGETING_PHRASES.aoeOpposing.some(phrase => lowerAbilityText.includes(phrase)) ||
+                    TARGETING_PHRASES.aoeAll.some(phrase => lowerAbilityText.includes(phrase))) {
+                    canTargetRelevantChar = true;
+                } else if (TARGETING_PHRASES.generic.some(phrase => lowerAbilityText.includes(phrase)) &&
+                    !TARGETING_PHRASES.selfExclusion.some(phrase => lowerAbilityText.includes(phrase))) {
+                    canTargetRelevantChar = true;
+                }
+            }
+
+            if (!canTargetRelevantChar) {
+                return { classification: "NoInteraction", details: "Effect does not target relevant characters.", card: sourceCardInfo };
+            }
+
+            if (targetCharKeywords.Ward &&
+                TARGETING_PHRASES.wardProtectedSingleTarget.some(phrase => lowerAbilityText.includes(phrase)) &&
+                !TARGETING_PHRASES.aoeOpposing.some(phrase => lowerAbilityText.includes(phrase)) &&
+                !TARGETING_PHRASES.aoeAll.some(phrase => lowerAbilityText.includes(phrase))
+            ) {
+                return { classification: "NoInteractionDueToWard", details: "Target character has Ward, likely protected from single target.", card: sourceCardInfo };
+            }
+
+            let costMatch = lowerAbilityText.match(/banish (?:chosen character|character|all characters|all opposing characters|opposing character|opposing characters) with cost (\d+) or less/);
+            if (!costMatch) costMatch = lowerAbilityText.match(/banish (?:chosen character|character|all characters|all opposing characters|opposing character|opposing characters) that costs (\d+) or less/);
+            if (costMatch) {
+                const costLimit = parseInt(costMatch[1]);
+                if (targetCharCost <= costLimit) {
+                    return { classification: "DirectRemoval", details: `Banishes due to cost ≤ ${costLimit} (Target char cost: ${targetCharCost}).`, card: sourceCardInfo };
+                } else {
+                    details += `Cost condition (≤ ${costLimit}) not met. `;
+                }
+            }
+
+            let wpMatch = lowerAbilityText.match(/banish (?:chosen character|character|all characters|all opposing characters|opposing character|opposing characters) with (\d+)\s*⛉ or less/);
+            if (!wpMatch) wpMatch = lowerAbilityText.match(/banish (?:chosen character|character|all characters|all opposing characters|opposing character|opposing characters) with willpower (\d+) or less/);
+            if (wpMatch) {
+                const wpLimit = parseInt(wpMatch[1]);
+                if (targetCharWillpower <= wpLimit) {
+                    return { classification: "DirectRemoval", details: `Banishes due to willpower ≤ ${wpLimit} (Target char WP: ${targetCharWillpower}).`, card: sourceCardInfo };
+                } else {
+                    details += `Willpower condition (≤ ${wpLimit}) not met. `;
+                }
+            }
+
+            let strMatch = lowerAbilityText.match(/banish (?:chosen character|character|all characters|all opposing characters|opposing character|opposing characters) with (\d+)\s*¤ or less/);
+            if (!strMatch) strMatch = lowerAbilityText.match(/banish (?:chosen character|character|all characters|all opposing characters|opposing character|opposing characters) with strength (\d+) or less/);
+            if (strMatch) {
+                const strLimit = parseInt(strMatch[1]);
+                if (targetCharStrength <= strLimit) {
+                    return { classification: "DirectRemoval", details: `Banishes due to strength ≤ ${strLimit} (Target char Str: ${targetCharStrength}).`, card: sourceCardInfo };
+                } else {
+                    details += `Strength condition (≤ ${strLimit}) not met. `;
+                }
+            }
+
+            const keywordBanishRegex = /banish (?:chosen|all|all opposing|opposing) (\w+) character(?:s)?/g;
+            let keywordMatch;
+            let tempRegex = new RegExp(keywordBanishRegex);
+            while ((keywordMatch = tempRegex.exec(lowerAbilityText)) !== null) {
+                const targetKeyword = keywordMatch[1];
+                if (targetCharKeywords[targetKeyword]) {
+                    return { classification: "DirectRemoval", details: `Banishes due to having keyword: ${targetKeyword}.`, card: sourceCardInfo };
+                } else {
+                    details += `Keyword condition (${targetKeyword}) not met. `;
+                }
+            }
+            const keywordBanishGenericRegex = /banish character(?:s)? with (\w+)/g;
+            tempRegex = new RegExp(keywordBanishGenericRegex);
+            while ((keywordMatch = tempRegex.exec(lowerAbilityText)) !== null) {
+                const targetKeyword = keywordMatch[1];
+                if (targetCharKeywords[targetKeyword]) {
+                    return { classification: "DirectRemoval", details: `Banishes due to having keyword: ${targetKeyword}.`, card: sourceCardInfo };
+                } else {
+                    details += `Keyword condition (${targetKeyword}) not met. `;
+                }
+            }
+
+            if (lowerAbilityText.includes("return chosen character to its player's hand") ||
+                lowerAbilityText.includes("return an opposing character to its player's hand") ||
+                lowerAbilityText.includes("return target character to its player's hand")) {
+                details = "Returns character to hand (Direct Removal)." + (details ? " Other conditions: " + details.trim() : "");
+                return { classification: "DirectRemoval", details: details, card: sourceCardInfo };
+            }
+
+            if (lowerAbilityText.includes("banish chosen character") ||
+                lowerAbilityText.includes("banish an opposing character") ||
+                lowerAbilityText.includes("banish target character") ||
+                lowerAbilityText.includes("banish all characters")
+            ) {
+                return { classification: "DirectRemoval", details: "Directly banishes (general effect)." + (details ? " Other conditions: " + details.trim() : ""), card: sourceCardInfo };
+            }
+
+            const damageRegex = /deal (\d+) damage to (?:chosen character|target character|an opposing character|each opposing character|each character)/g;
+            let damageAmountMatch;
+            let dealtDamage = 0;
+            tempRegex = new RegExp(damageRegex);
+            while ((damageAmountMatch = tempRegex.exec(lowerAbilityText)) !== null) {
+                if (damageAmountMatch[1]) {
+                    dealtDamage = Math.max(dealtDamage, parseInt(damageAmountMatch[1]));
+                }
+            }
+
+            if (dealtDamage > 0) {
+                if (dealtDamage >= targetCharWillpower) {
+                    details = `Deals ${dealtDamage} damage (lethal).` + (details ? " Other conditions: " + details.trim() : "");
+                    return { classification: "DirectRemoval", details: details, card: sourceCardInfo };
+                } else {
+                    details = `Deals ${dealtDamage} damage.` + (details ? " Other conditions: " + details.trim() : "");
+                    return { classification: "PotentialRemoval", details: details, card: sourceCardInfo };
+                }
+            }
+            if (dealtDamage === 0 &&
+                (lowerAbilityText.includes("deal damage to chosen character") ||
+                    lowerAbilityText.includes("deal damage to an opposing character") ||
+                    lowerAbilityText.includes("deal damage to target character") ||
+                    lowerAbilityText.includes("deal damage to each opposing character") ||
+                    lowerAbilityText.includes("deal damage to each character")
+                )) {
+                details = "Deals damage (amount varies/conditional)." + (details ? " Other conditions: " + details.trim() : "");
+                return { classification: "PotentialRemoval", details: details, card: sourceCardInfo };
+            }
+
+            let affectsReason = details;
+            if (lowerAbilityText.includes("exert chosen character") || lowerAbilityText.includes("exert an opposing character")) affectsReason += "Exerts character. ";
+            if (lowerAbilityText.includes("cannot challenge") || lowerAbilityText.includes("can't challenge")) affectsReason += "Prevents challenging. ";
+            if (lowerAbilityText.includes("cannot quest") || lowerAbilityText.includes("can't quest")) affectsReason += "Prevents questing. ";
+            if (lowerAbilityText.includes("loses") && (lowerAbilityText.includes("strength") || lowerAbilityText.includes("willpower") || lowerAbilityText.includes("⛉") || lowerAbilityText.includes("¤"))) affectsReason += "Reduces stats. ";
+            if (lowerAbilityText.includes("ready chosen character") && (lowerAbilityText.includes("opposing") || lowerAbilityText.includes("opponent controls"))) affectsReason += "Readies character (check context). ";
+
+            if (affectsReason.trim() !== details.trim() && affectsReason.trim() !== "") {
+                return { classification: "AffectsNoRemoval", details: affectsReason.trim(), card: sourceCardInfo };
+            }
+            else if (details.trim() !== "") {
+                return { classification: "PotentialRemoval", details: "Targets, but specific removal conditions not met: " + details.trim(), card: sourceCardInfo };
+            }
+
+            return { classification: "PotentialRemoval", details: "Targets character with an effect not specifically classified.", card: sourceCardInfo };
+        }
+
+        function getActiveAbilitiesForCharacter(characterCard, analysisContext) {
+            const activeAbilities = [];
+            if (!characterCard.abilities || !Array.isArray(characterCard.abilities)) {
+                return activeAbilities;
+            }
+
+            characterCard.abilities.forEach(ability => {
+                const cleanedFullText = (ability.fullText || "").replace(/\n/g, ' ');
+                const abilityTextLower = cleanedFullText.toLowerCase();
+                let isRelevant = false;
+
+                if (ability.type === 'static') {
+                    isRelevant = true;
+                } else if (analysisContext.perspective === "playerTurn") {
+                    if (ability.type === 'activated') {
+                        isRelevant = true;
+                    } else if (ability.type === 'triggered') {
+                        if (analysisContext.action === "onPlayOrChallenge") {
+                            if (abilityTextLower.includes("when you play this character") ||
+                                abilityTextLower.includes("whenever this character challenges") ||
+                                abilityTextLower.includes("after this character challenges") ||
+                                abilityTextLower.includes("when this character is played")) {
+                                isRelevant = true;
+                            }
+                        }
+                        if (abilityTextLower.includes("during your turn") ||
+                            abilityTextLower.includes("at the start of your turn")) {
+                            isRelevant = true;
+                        }
+                        if (abilityTextLower.includes("whenever this character quests")) {
+                            isRelevant = true;
+                        }
+                    }
+                }
+
+                if (isRelevant && ability.fullText) {
+                    activeAbilities.push({ text: cleanedFullText, name: ability.name || "Unnamed Ability" });
+                }
+            });
+            return activeAbilities;
+        }
+
+        // --- Location Interaction Analysis ---
+        function classifyLocationInteraction(sourceCardInfo, abilityText, sourceIsPlayerPerspective) {
+            const cleanedAbilityText = (abilityText || "").replace(/\n/g, ' ');
+            const lowerAbilityText = cleanedAbilityText.toLowerCase();
+            let interaction = null;
+
+            const banishPhrases = ["banish chosen location", "banish a location", "banish target location", "banish an opposing location"];
+            const targetPhrases = ["target location", "choose a location", "chosen location"]; // "chosen location" can be for banish or other effects
+
+            let targetsOpposingLocation = lowerAbilityText.includes("opposing location");
+            let targetsYourLocation = lowerAbilityText.includes("your location"); // Less common for removal from opponent
+            let targetsGenericLocation = targetPhrases.some(phrase => lowerAbilityText.includes(phrase)) || banishPhrases.some(phrase => lowerAbilityText.includes(phrase));
+
+            let canInteractWithRelevantLocation = false;
+            if (sourceIsPlayerPerspective) { // Player's card affecting opponent's location
+                if (targetsOpposingLocation || (targetsGenericLocation && !targetsYourLocation)) {
+                    canInteractWithRelevantLocation = true;
+                }
+            } else { // Opponent's card affecting player's location
+                if (targetsOpposingLocation || (targetsGenericLocation && !targetsYourLocation)) { // "Opposing" from opp's view is player's
+                    canInteractWithRelevantLocation = true;
+                }
+            }
+
+            if (canInteractWithRelevantLocation) {
+                if (banishPhrases.some(phrase => lowerAbilityText.includes(phrase))) {
+                    interaction = { canInteract: true, interactionType: "Banish", details: "Can banish a location.", card: sourceCardInfo };
+                } else if (targetPhrases.some(phrase => lowerAbilityText.includes(phrase))) {
+                    // If it targets but doesn't explicitly say banish, classify as "Target" (could be other effects)
+                    interaction = { canInteract: true, interactionType: "Target", details: "Can target a location.", card: sourceCardInfo };
+                }
+                // Add more specific checks if needed, e.g., for damage to locations, though less common.
+            }
+            return interaction;
+        }
+
+        // --- Event Handlers & UI Updates ---
+        function handleAnalysisModeChange() {
+            const selectedMode = document.querySelector('input[name="analysisMode"]:checked').value;
+            console.log("Analysis mode changed to:", selectedMode);
+            if (selectedMode === 'character') {
+                characterSelectionContainer.classList.remove('hidden');
+                songSelectionContainer.classList.add('hidden');
+                challengePerspectiveContainer.classList.remove('hidden');
+            } else { // song mode
+                characterSelectionContainer.classList.add('hidden');
+                songSelectionContainer.classList.remove('hidden');
+                challengePerspectiveContainer.classList.add('hidden');
+            }
+            displayAnalysisResults();
+        }
+
+        function handleAnalyzeButtonClick() {
+            console.log("Analyze button clicked.");
+            const playerData = parseDeckString(playerDeckInput.value);
+            PLAYER_DECK_CHARS = playerData.characters;
+            PLAYER_DECK_SONGS = playerData.songs;
+            PLAYER_DECK_LOCATIONS = playerData.locations;
+
+
+            const opponentData = parseDeckString(opponentDeckInput.value);
+            OPPONENT_DECK_CHARS = opponentData.characters;
+            OPPONENT_DECK_SONGS = opponentData.songs;
+            OPPONENT_DECK_LOCATIONS = opponentData.locations;
+
+            console.log("Decks loaded. Player Chars:", PLAYER_DECK_CHARS.length, "Player Songs:", PLAYER_DECK_SONGS.length, "Player Locations:", PLAYER_DECK_LOCATIONS.length);
+            console.log("Opponent Chars:", OPPONENT_DECK_CHARS.length, "Opponent Songs:", OPPONENT_DECK_SONGS.length, "Opponent Locations:", OPPONENT_DECK_LOCATIONS.length);
+
+
+            playerCharacterSelect.innerHTML = '<option value="">-- Select Character --</option>';
+            if (PLAYER_DECK_CHARS.length > 0) {
+                PLAYER_DECK_CHARS.forEach((pCharData, index) => {
+                    const option = document.createElement('option');
+                    option.value = index;
+                    option.textContent = pCharData.cardInfo.fullName;
+                    playerCharacterSelect.appendChild(option);
+                });
+            } else {
+                playerCharacterSelect.innerHTML = '<option value="">No characters in your deck</option>';
+            }
+
+            playerSongSelect.innerHTML = '<option value="">-- Select Song --</option>';
+            if (PLAYER_DECK_SONGS.length > 0) {
+                PLAYER_DECK_SONGS.forEach((pSongData, index) => {
+                    const option = document.createElement('option');
+                    option.value = index;
+                    option.textContent = pSongData.cardInfo.fullName;
+                    playerSongSelect.appendChild(option);
+                });
+            } else {
+                playerSongSelect.innerHTML = '<option value="">No songs in your deck</option>';
+            }
+
+            analysisControls.classList.remove('hidden');
+            handleAnalysisModeChange();
+        }
+
+        function displayAnalysisResults() {
+            console.log("Displaying analysis results...");
+            resultsDisplay.innerHTML = '';
+            const selectedMode = document.querySelector('input[name="analysisMode"]:checked').value;
+            console.log("Current analysis mode for display:", selectedMode);
+
+            if (selectedMode === 'character') {
+                displayCharacterAnalysis();
+            } else {
+                displayPlayerSongAnalysis();
+            }
+            // Always display location analysis regardless of character/song mode, if decks are loaded
+            if (PLAYER_DECK_CHARS.length > 0 || PLAYER_DECK_SONGS.length > 0 || OPPONENT_DECK_CHARS.length > 0 || OPPONENT_DECK_SONGS.length > 0) {
+                displayLocationInteractionAnalysis();
+            }
+        }
+
+        function displayCharacterAnalysis() {
+            console.log("Displaying Character Analysis.");
+            if (PLAYER_DECK_CHARS.length === 0 || playerCharacterSelect.value === "") {
+                resultsDisplay.innerHTML += `<p class="text-center text-gray-400 italic">Please load decks and select a character to analyze.</p>`;
+                return;
+            }
+
+            const selectedPlayerCharIndex = parseInt(playerCharacterSelect.value);
+            const playerCharEntry = PLAYER_DECK_CHARS[selectedPlayerCharIndex];
+            if (!playerCharEntry) {
+                resultsDisplay.innerHTML += `<p class="text-yellow-400 text-center">Invalid character selection.</p>`;
+                console.warn("Invalid player character selection index:", selectedPlayerCharIndex);
+                return;
+            }
+            const playerChar = playerCharEntry.cardInfo;
+            const turnType = turnContextSelect.value;
+            console.log(`Analyzing player character: ${playerChar.fullName}, Turn type: ${turnType}`);
+
+            const overallAnalysisContainer = document.createElement('div');
+
+            const playerCharDisplay = document.createElement('div');
+            playerCharDisplay.className = 'text-center mb-6 pb-4 border-b border-gray-700';
+            const pKeywords = extractCharacterKeywords(playerChar);
+            let pKeywordStr = Object.entries(pKeywords)
+                .filter(([key, value]) => value === true || (typeof value === 'number' && value > 0))
+                .map(([key, value]) => {
+                    if (typeof value === 'number' && value > 0) return `${key.charAt(0).toUpperCase() + key.slice(1)} +${value}`;
+                    return key.charAt(0).toUpperCase() + key.slice(1);
+                }).join(', ');
+            if (!pKeywordStr) pKeywordStr = 'No notable keywords/subtypes';
+
+            playerCharDisplay.innerHTML = `
+                <h2 class="text-2xl font-bold text-purple-300 mb-2">Analysis for Your Character: ${playerChar.fullName}</h2>
+                <img src="${playerChar.images?.thumbnail || 'https://placehold.co/100x140/2d3748/e2e8f0?text=No+Img'}" alt="${playerChar.fullName}" class="card-image mx-auto mb-2">
+                <p class="text-sm text-gray-300">Cost: ${playerChar.cost || 'N/A'} | Str: ${playerChar.strength || 'N/A'} | Wp: ${playerChar.willpower || 'N/A'} | Lore: ${playerChar.lore || '0'}</p>
+                <p class="text-xs text-gray-400">${pKeywordStr}</p>
+            `;
+            overallAnalysisContainer.appendChild(playerCharDisplay);
+
+            // Character Matchups Section
+            const charMatchupSection = document.createElement('section');
+            charMatchupSection.className = 'analysis-section';
+            const charMatchupTitle = document.createElement('h3');
+            charMatchupTitle.className = 'section-title';
+            charMatchupTitle.textContent = "Character Matchups (vs Opponent's Characters)";
+            charMatchupSection.appendChild(charMatchupTitle);
+
+            if (OPPONENT_DECK_CHARS.length > 0) {
+                const analysisResults = { noInteraction: [], bothBanishedPositive: [], bothBanishedNeutral: [], bothBanishedNegative: [], opponentSurvivesPlayerBanished: [], playerSurvivesOpponentBanished: [], bothSurvive: [] };
+                OPPONENT_DECK_CHARS.forEach(opponentCharEntry => {
+                    const matchup = calculateSingleMatchup(playerChar, opponentCharEntry.cardInfo, turnType);
+                    const opponentCard = opponentCharEntry.cardInfo;
+                    if (matchup.outcomeName.startsWith("NoInteraction")) analysisResults.noInteraction.push({ card: opponentCard, details: matchup.details });
+                    else if (matchup.outcomeName === "BothBanished") {
+                        if (matchup.classification === "Positive") analysisResults.bothBanishedPositive.push({ card: opponentCard, details: matchup.details });
+                        else if (matchup.classification === "Negative") analysisResults.bothBanishedNegative.push({ card: opponentCard, details: matchup.details });
+                        else analysisResults.bothBanishedNeutral.push({ card: opponentCard, details: matchup.details });
+                    }
+                    else if (matchup.outcomeName === "OpponentSurvives_PlayerBanished") analysisResults.opponentSurvivesPlayerBanished.push({ card: opponentCard, details: matchup.details });
+                    else if (matchup.outcomeName === "PlayerSurvives_OpponentBanished") analysisResults.playerSurvivesOpponentBanished.push({ card: opponentCard, details: matchup.details });
+                    else if (matchup.outcomeName === "BothSurvive") analysisResults.bothSurvive.push({ card: opponentCard, details: matchup.details });
+                });
+
+                const charGrid = document.createElement('div');
+                charGrid.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4';
+                charGrid.appendChild(createOutcomeSectionDOM("CAN'T CHALLENGE/BE CHALLENGED BY", analysisResults.noInteraction, OPPONENT_DECK_CHARS.length, 'bg-gray-600'));
+                charGrid.appendChild(createOutcomeSectionDOM("FAVORABLE (Player Survives, Opp Banished)", analysisResults.playerSurvivesOpponentBanished, OPPONENT_DECK_CHARS.length, 'bg-green-700'));
+                charGrid.appendChild(createOutcomeSectionDOM("MUTUAL BANISH (Favorable Ink)", analysisResults.bothBanishedPositive, OPPONENT_DECK_CHARS.length, 'bg-green-600'));
+                charGrid.appendChild(createOutcomeSectionDOM("MUTUAL BANISH (Neutral Ink)", analysisResults.bothBanishedNeutral, OPPONENT_DECK_CHARS.length, 'bg-yellow-600'));
+                charGrid.appendChild(createOutcomeSectionDOM("MUTUAL BANISH (Unfavorable Ink)", analysisResults.bothBanishedNegative, OPPONENT_DECK_CHARS.length, 'bg-red-600'));
+                charGrid.appendChild(createOutcomeSectionDOM("UNFAVORABLE (Opp Survives, Player Banished)", analysisResults.opponentSurvivesPlayerBanished, OPPONENT_DECK_CHARS.length, 'bg-red-700'));
+                charGrid.appendChild(createOutcomeSectionDOM("STALEMATE (Both Survive Challenge)", analysisResults.bothSurvive, OPPONENT_DECK_CHARS.length, 'bg-blue-600'));
+                charMatchupSection.appendChild(charGrid);
+            } else {
+                charMatchupSection.innerHTML += `<p class="text-center text-gray-400 italic">No opponent characters loaded for matchup analysis.</p>`;
+            }
+            overallAnalysisContainer.appendChild(charMatchupSection);
+
+            // Player Character's Abilities Impact Section
+            if (turnType === "player") {
+                const playerAbilitiesSection = document.createElement('section');
+                playerAbilitiesSection.className = 'analysis-section';
+                const playerAbilitiesTitle = document.createElement('h3');
+                playerAbilitiesTitle.className = 'section-title';
+                playerAbilitiesTitle.textContent = `Your "${playerChar.name}" Abilities vs Opponent's Characters`;
+                playerAbilitiesSection.appendChild(playerAbilitiesTitle);
+                console.log(`Analyzing abilities for ${playerChar.name} on player's turn.`);
+
+                const activePlayerAbilities = getActiveAbilitiesForCharacter(playerChar, { perspective: "playerTurn", action: "onPlayOrChallenge" });
+                if (activePlayerAbilities.length > 0 && OPPONENT_DECK_CHARS.length > 0) {
+                    activePlayerAbilities.forEach(ability => {
+                        console.log(`Processing ability: ${ability.name}`);
+                        const abilityImpactTitle = document.createElement('h4');
+                        abilityImpactTitle.className = 'ability-title';
+                        abilityImpactTitle.textContent = `Ability: ${ability.name}`;
+                        playerAbilitiesSection.appendChild(abilityImpactTitle);
+
+                        const abilityImpactOnOppChars = { directRemoval: [], potentialRemoval: [], affectsNoRemoval: [], noInteraction: [] };
+                        OPPONENT_DECK_CHARS.forEach(oppCharEntry => {
+                            const classificationResult = classifyAbilityEffectOnTarget(playerChar, ability.text, oppCharEntry.cardInfo, true);
+                            const displayItem = {
+                                card: oppCharEntry.cardInfo,
+                                details: classificationResult.details,
+                                classification: classificationResult.classification,
+                            };
+                            if (classificationResult.classification === "DirectRemoval") abilityImpactOnOppChars.directRemoval.push(displayItem);
+                            else if (classificationResult.classification === "PotentialRemoval") abilityImpactOnOppChars.potentialRemoval.push(displayItem);
+                            else if (classificationResult.classification === "AffectsNoRemoval") abilityImpactOnOppChars.affectsNoRemoval.push(displayItem);
+                            else abilityImpactOnOppChars.noInteraction.push(displayItem);
+                        });
+                        playerAbilitiesSection.appendChild(createAbilityImpactDOM(`Directly Removes Opp Chars (via ${ability.name})`, abilityImpactOnOppChars.directRemoval, OPPONENT_DECK_CHARS.length, 'bg-green-800', playerChar, ability.name));
+                        playerAbilitiesSection.appendChild(createAbilityImpactDOM(`Potentially Removes Opp Chars (via ${ability.name})`, abilityImpactOnOppChars.potentialRemoval, OPPONENT_DECK_CHARS.length, 'bg-lime-700 text-black', playerChar, ability.name));
+                        playerAbilitiesSection.appendChild(createAbilityImpactDOM(`Affects Opp Chars (No Direct Removal via ${ability.name})`, abilityImpactOnOppChars.affectsNoRemoval, OPPONENT_DECK_CHARS.length, 'bg-teal-800', playerChar, ability.name));
+                        playerAbilitiesSection.appendChild(createAbilityImpactDOM(`No Interaction with Opp Chars / Warded (via ${ability.name})`, abilityImpactOnOppChars.noInteraction, OPPONENT_DECK_CHARS.length, 'bg-gray-700', playerChar, ability.name));
+                    });
+                } else if (activePlayerAbilities.length === 0) {
+                    playerAbilitiesSection.innerHTML += `<p class="text-center text-gray-400 italic">Your selected character has no relevant active abilities for this turn context.</p>`;
+                } else {
+                    playerAbilitiesSection.innerHTML += `<p class="text-center text-gray-400 italic">No opponent characters to analyze abilities against.</p>`;
+                }
+                overallAnalysisContainer.appendChild(playerAbilitiesSection);
+            }
+
+
+            // Opponent's Song Interaction Section
+            const opponentSongSection = document.createElement('section');
+            opponentSongSection.className = 'analysis-section';
+            const opponentSongTitle = document.createElement('h3');
+            opponentSongTitle.className = 'section-title';
+            opponentSongTitle.textContent = `Opponent's Song Threats vs Your ${playerChar.name}`;
+            opponentSongSection.appendChild(opponentSongTitle);
+            console.log(`Analyzing opponent songs vs ${playerChar.name}`);
+
+            if (OPPONENT_DECK_SONGS.length > 0) {
+                const songAnalysis = { directRemoval: [], potentialRemoval: [], affectsNoRemoval: [], noInteraction: [] };
+                OPPONENT_DECK_SONGS.forEach(songEntry => {
+                    const songFullText = songEntry.cardInfo.effects?.join(' ') || songEntry.cardInfo.fullText || "";
+                    const result = classifyAbilityEffectOnTarget(songEntry.cardInfo, songFullText, playerChar, false);
+                    if (result.classification === "DirectRemoval") songAnalysis.directRemoval.push(result);
+                    else if (result.classification === "PotentialRemoval") songAnalysis.potentialRemoval.push(result);
+                    else if (result.classification === "AffectsNoRemoval") songAnalysis.affectsNoRemoval.push(result);
+                    else songAnalysis.noInteraction.push(result);
+                });
+
+                opponentSongSection.appendChild(createSongBreakdownDOM("DIRECT REMOVAL THREATS", songAnalysis.directRemoval, OPPONENT_DECK_SONGS.length, 'bg-red-700', null, playerChar));
+                opponentSongSection.appendChild(createSongBreakdownDOM("POTENTIAL REMOVAL / HIGH IMPACT", songAnalysis.potentialRemoval, OPPONENT_DECK_SONGS.length, 'bg-yellow-700 text-black', null, playerChar));
+                opponentSongSection.appendChild(createSongBreakdownDOM("AFFECTS (No Direct Removal)", songAnalysis.affectsNoRemoval, OPPONENT_DECK_SONGS.length, 'bg-blue-700', null, playerChar));
+                opponentSongSection.appendChild(createSongBreakdownDOM("NO INTERACTION / WARDED", songAnalysis.noInteraction, OPPONENT_DECK_SONGS.length, 'bg-gray-600', null, playerChar));
+            } else {
+                opponentSongSection.innerHTML += `<p class="text-center text-gray-400 italic">No opponent songs loaded for analysis.</p>`;
+            }
+            overallAnalysisContainer.appendChild(opponentSongSection);
+            resultsDisplay.appendChild(overallAnalysisContainer);
+        }
+
+        function displayPlayerSongAnalysis() {
+            console.log("Displaying Player Song Analysis.");
+            if (PLAYER_DECK_SONGS.length === 0 || playerSongSelect.value === "") {
+                resultsDisplay.innerHTML += `<p class="text-center text-gray-400 italic">Please load decks and select a song to analyze.</p>`;
+                return;
+            }
+            const selectedPlayerSongIndex = parseInt(playerSongSelect.value);
+            const playerSongEntry = PLAYER_DECK_SONGS[selectedPlayerSongIndex];
+            if (!playerSongEntry) {
+                resultsDisplay.innerHTML += `<p class="text-yellow-400 text-center">Invalid song selection.</p>`;
+                console.warn("Invalid player song selection index:", selectedPlayerSongIndex);
+                return;
+            }
+            const playerSongToAnalyze = playerSongEntry.cardInfo;
+            console.log(`Analyzing player song: ${playerSongToAnalyze.fullName}`);
+
+            const overallAnalysisContainer = document.createElement('div');
+
+            const playerSongDisplay = document.createElement('div');
+            playerSongDisplay.className = 'text-center mb-6 pb-4 border-b border-gray-700';
+            const songFullTextForDisplay = (playerSongToAnalyze.effects?.join(' ') || playerSongToAnalyze.fullText || 'No effect text.').replace(/\n/g, ' ');
+            playerSongDisplay.innerHTML = `
+                <h2 class="text-2xl font-bold text-purple-300 mb-2">Analysis for Your Song: ${playerSongToAnalyze.fullName}</h2>
+                <img src="${playerSongToAnalyze.images?.thumbnail || 'https://placehold.co/100x140/2d3748/e2e8f0?text=No+Img'}" alt="${playerSongToAnalyze.fullName}" class="card-image mx-auto mb-2">
+                <p class="text-sm text-gray-300">Cost: ${playerSongToAnalyze.cost || 'N/A'} | Inkable: ${playerSongToAnalyze.inkwell ? 'Yes' : 'No'}</p>
+                <p class="text-xs text-gray-400">${songFullTextForDisplay}</p>
+            `;
+            overallAnalysisContainer.appendChild(playerSongDisplay);
+
+            const playerSongImpactSection = document.createElement('section');
+            playerSongImpactSection.className = 'analysis-section';
+            const playerSongImpactTitle = document.createElement('h3');
+            playerSongImpactTitle.className = 'section-title';
+            playerSongImpactTitle.textContent = `Impact of Your "${playerSongToAnalyze.name}" on Opponent's Characters`;
+            playerSongImpactSection.appendChild(playerSongImpactTitle);
+
+            if (OPPONENT_DECK_CHARS.length > 0) {
+                const songImpactOnOppChars = { directRemoval: [], potentialRemoval: [], affectsNoRemoval: [], noInteraction: [] };
+                const songFullTextForAnalysis = playerSongToAnalyze.effects?.join(' ') || playerSongToAnalyze.fullText || "";
+
+                OPPONENT_DECK_CHARS.forEach(oppCharEntry => {
+                    const classificationResult = classifyAbilityEffectOnTarget(playerSongToAnalyze, songFullTextForAnalysis, oppCharEntry.cardInfo, true);
+                    const displayItem = {
+                        card: oppCharEntry.cardInfo,
+                        details: classificationResult.details,
+                        classification: classificationResult.classification,
+                    };
+                    if (classificationResult.classification === "DirectRemoval") songImpactOnOppChars.directRemoval.push(displayItem);
+                    else if (classificationResult.classification === "PotentialRemoval") songImpactOnOppChars.potentialRemoval.push(displayItem);
+                    else if (classificationResult.classification === "AffectsNoRemoval") songImpactOnOppChars.affectsNoRemoval.push(displayItem);
+                    else songImpactOnOppChars.noInteraction.push(displayItem);
+                });
+
+                playerSongImpactSection.appendChild(createSongBreakdownDOM("DIRECTLY REMOVES OPP CHARS", songImpactOnOppChars.directRemoval, OPPONENT_DECK_CHARS.length, 'bg-green-700', playerSongToAnalyze));
+                playerSongImpactSection.appendChild(createSongBreakdownDOM("POTENTIALLY REMOVES OPP CHARS", songImpactOnOppChars.potentialRemoval, OPPONENT_DECK_CHARS.length, 'bg-lime-600 text-black', playerSongToAnalyze));
+                playerSongImpactSection.appendChild(createSongBreakdownDOM("AFFECTS OPP CHARS (No Direct Removal)", songImpactOnOppChars.affectsNoRemoval, OPPONENT_DECK_CHARS.length, 'bg-teal-700', playerSongToAnalyze));
+                playerSongImpactSection.appendChild(createSongBreakdownDOM("NO INTERACTION WITH OPP CHARS / WARDED", songImpactOnOppChars.noInteraction, OPPONENT_DECK_CHARS.length, 'bg-gray-600', playerSongToAnalyze));
+
+            } else {
+                playerSongImpactSection.innerHTML += `<p class="text-center text-gray-400 italic">No opponent characters loaded to analyze song against.</p>`;
+            }
+            overallAnalysisContainer.appendChild(playerSongImpactSection);
+            resultsDisplay.appendChild(overallAnalysisContainer);
+        }
+
+        function displayLocationInteractionAnalysis() {
+            console.log("Displaying Location Interaction Analysis.");
+            const locationAnalysisSection = document.createElement('section');
+            locationAnalysisSection.className = 'analysis-section';
+            const locationTitle = document.createElement('h3');
+            locationTitle.className = 'section-title';
+            locationTitle.textContent = 'Location Interaction Analysis';
+            locationAnalysisSection.appendChild(locationTitle);
+
+            // Opponent's Threats to Your Locations
+            const oppThreatsContainer = document.createElement('div');
+            oppThreatsContainer.className = 'mb-6';
+            const oppThreatsTitle = document.createElement('h4');
+            oppThreatsTitle.className = 'text-lg font-semibold text-red-400 mb-2';
+            oppThreatsTitle.textContent = "Opponent's Threats to Your Locations";
+            oppThreatsContainer.appendChild(oppThreatsTitle);
+
+            let oppCharsThreateningLocations = [];
+            OPPONENT_DECK_CHARS.forEach(oppChar => {
+                const activeAbilities = getActiveAbilitiesForCharacter(oppChar.cardInfo, { perspective: "opponentTurn", action: "any" }); // Generic context for location abilities
+                activeAbilities.forEach(ability => {
+                    const interaction = classifyLocationInteraction(oppChar.cardInfo, ability.text, false); // false: opponent's card
+                    if (interaction && interaction.canInteract) {
+                        oppCharsThreateningLocations.push({ card: oppChar.cardInfo, details: `Ability: ${ability.name} - ${interaction.details}` });
+                    }
+                });
+            });
+            // Remove duplicates by card name if a char has multiple abilities affecting locations
+            oppCharsThreateningLocations = Array.from(new Set(oppCharsThreateningLocations.map(item => item.card.fullName)))
+                .map(name => oppCharsThreateningLocations.find(item => item.card.fullName === name));
+            oppThreatsContainer.appendChild(createLocationInteractorsDOM("Opponent Characters That Can Remove/Target Your Locations", oppCharsThreateningLocations, 'bg-red-800'));
+
+            let oppSongsThreateningLocations = [];
+            OPPONENT_DECK_SONGS.forEach(oppSong => {
+                const songText = oppSong.cardInfo.effects?.join(' ') || oppSong.cardInfo.fullText || "";
+                const interaction = classifyLocationInteraction(oppSong.cardInfo, songText, false);
+                if (interaction && interaction.canInteract) {
+                    oppSongsThreateningLocations.push({ card: oppSong.cardInfo, details: interaction.details });
+                }
+            });
+            oppThreatsContainer.appendChild(createLocationInteractorsDOM("Opponent Songs That Can Remove/Target Your Locations", oppSongsThreateningLocations, 'bg-red-700'));
+            locationAnalysisSection.appendChild(oppThreatsContainer);
+
+
+            // Your Options Against Opponent's Locations
+            const playerOptionsContainer = document.createElement('div');
+            const playerOptionsTitle = document.createElement('h4');
+            playerOptionsTitle.className = 'text-lg font-semibold text-green-400 mb-2';
+            playerOptionsTitle.textContent = "Your Options Against Opponent's Locations";
+            playerOptionsContainer.appendChild(playerOptionsTitle);
+
+            let playerCharsRemovingLocations = [];
+            PLAYER_DECK_CHARS.forEach(playerChar => {
+                const activeAbilities = getActiveAbilitiesForCharacter(playerChar.cardInfo, { perspective: "playerTurn", action: "any" });
+                activeAbilities.forEach(ability => {
+                    const interaction = classifyLocationInteraction(playerChar.cardInfo, ability.text, true); // true: player's card
+                    if (interaction && interaction.canInteract) {
+                        playerCharsRemovingLocations.push({ card: playerChar.cardInfo, details: `Ability: ${ability.name} - ${interaction.details}` });
+                    }
+                });
+            });
+            playerCharsRemovingLocations = Array.from(new Set(playerCharsRemovingLocations.map(item => item.card.fullName)))
+                .map(name => playerCharsRemovingLocations.find(item => item.card.fullName === name));
+            playerOptionsContainer.appendChild(createLocationInteractorsDOM("Your Characters That Can Remove/Target Opponent's Locations", playerCharsRemovingLocations, 'bg-green-800'));
+
+            let playerSongsRemovingLocations = [];
+            PLAYER_DECK_SONGS.forEach(playerSong => {
+                const songText = playerSong.cardInfo.effects?.join(' ') || playerSong.cardInfo.fullText || "";
+                const interaction = classifyLocationInteraction(playerSong.cardInfo, songText, true);
+                if (interaction && interaction.canInteract) {
+                    playerSongsRemovingLocations.push({ card: playerSong.cardInfo, details: interaction.details });
+                }
+            });
+            playerOptionsContainer.appendChild(createLocationInteractorsDOM("Your Songs That Can Remove/Target Opponent's Locations", playerSongsRemovingLocations, 'bg-green-700'));
+            locationAnalysisSection.appendChild(playerOptionsContainer);
+
+            resultsDisplay.appendChild(locationAnalysisSection);
+        }
+
+        function createOutcomeSectionDOM(title, cardsWithObjects, totalTargetChars, bgColorClass = 'bg-gray-700') {
+            const section = document.createElement('div');
+            section.className = `outcome-section shadow-md ${bgColorClass} p-3`;
+
+            const percentage = totalTargetChars > 0 ? ((cardsWithObjects.length / totalTargetChars) * 100).toFixed(0) : 0;
+            const titleElem = document.createElement('h4');
+            titleElem.className = 'subsection-title text-sm';
+            titleElem.textContent = `${title} (${cardsWithObjects.length}/${totalTargetChars} - ${percentage}%)`;
+            section.appendChild(titleElem);
+
+            const cardContainer = document.createElement('div');
+            cardContainer.className = 'card-container py-1';
+            if (cardsWithObjects.length === 0) {
+                cardContainer.innerHTML = `<p class="text-xs text-gray-400 italic p-1">None.</p>`;
+            } else {
+                cardsWithObjects.forEach(obj => {
+                    const card = obj.card;
+                    const details = obj.details;
+                    const keywords = extractCharacterKeywords(card);
+                    let keywordStr = Object.entries(keywords)
+                        .filter(([key, value]) => value === true || (typeof value === 'number' && value > 0))
+                        .map(([key, value]) => {
+                            if (typeof value === 'number' && value > 0) return `${key.charAt(0).toUpperCase() + key.slice(1)} +${value}`;
+                            return key.charAt(0).toUpperCase() + key.slice(1);
+                        }).join(', ');
+                    if (!keywordStr) keywordStr = 'None';
+
+                    const tooltipText = `Name: ${card.fullName}\nCost: ${card.cost}, Str: ${card.strength}, Wp: ${card.willpower}, Lore: ${card.lore || 0}\nKeywords: ${keywordStr}\nMatchup: ${details || 'N/A'}`;
+
+                    const tooltipWrapper = createCardTooltipWrapper(card, tooltipText);
+                    cardContainer.appendChild(tooltipWrapper);
+                });
+            }
+            section.appendChild(cardContainer);
+            return section;
+        }
+
+        function createSongBreakdownDOM(title, classifiedItems, totalTargetableItemsCount, bgColorClass = 'bg-gray-700', contextSongCard = null, contextCharCard = null) {
+            const section = document.createElement('div');
+            section.className = `song-breakdown-section shadow-md ${bgColorClass} p-3`;
+
+            const percentage = totalTargetableItemsCount > 0 ? ((classifiedItems.length / totalTargetableItemsCount) * 100).toFixed(0) : 0;
+            const titleElem = document.createElement('h4');
+            titleElem.className = 'subsection-title text-sm';
+            if (bgColorClass.includes('text-black')) {
+                titleElem.classList.add('text-black');
+            }
+            titleElem.textContent = `${title} (${classifiedItems.length}/${totalTargetableItemsCount} - ${percentage}%)`;
+            section.appendChild(titleElem);
+
+            const cardContainer = document.createElement('div');
+            cardContainer.className = 'card-container py-1';
+            if (classifiedItems.length === 0) {
+                cardContainer.innerHTML = `<p class="text-xs ${bgColorClass.includes('text-black') ? 'text-gray-700' : 'text-gray-400'} italic p-1">None.</p>`;
+            } else {
+                classifiedItems.forEach(item => {
+                    const cardForDisplay = item.card;
+                    const interactionSummary = item.details;
+                    const classificationType = item.classification;
+                    let tooltipText;
+
+                    if (contextSongCard) {
+                        const targetCharCard = cardForDisplay;
+                        const keywords = extractCharacterKeywords(targetCharCard);
+                        let keywordStr = Object.entries(keywords)
+                            .filter(([key, value]) => value === true || (typeof value === 'number' && value > 0))
+                            .map(([key, value]) => {
+                                if (typeof value === 'number' && value > 0) return `${key.charAt(0).toUpperCase() + key.slice(1)} +${value}`;
+                                return key.charAt(0).toUpperCase() + key.slice(1);
+                            }).join(', ');
+                        if (!keywordStr) keywordStr = 'None';
+                        tooltipText = `Target Char: ${targetCharCard.fullName}\nCost: ${targetCharCard.cost}, Str: ${targetCharCard.strength}, Wp: ${targetCharCard.willpower}\nKeywords: ${keywordStr}\nAffected by Your Song: "${contextSongCard.fullName}"\nInteraction: ${interactionSummary || 'N/A'}\nClassification: ${classificationType}`;
+                    } else {
+                        const opponentSongCard = cardForDisplay; // Here, item.card is the song itself
+                        tooltipText = `Opponent's Song: ${opponentSongCard.fullName}\nCost: ${opponentSongCard.cost} | Inkable: ${opponentSongCard.inkwell ? 'Yes' : 'No'}\nEffect Snippet: ${(opponentSongCard.effects?.join('; ') || opponentSongCard.fullText || '').replace(/\n/g, ' ').substring(0, 70) + '...'}\nInteraction with Your Char (${contextCharCard?.name || 'Selected Char'}): ${interactionSummary || 'N/A'}\nClassification: ${classificationType}`;
+                    }
+
+                    const tooltipWrapper = createCardTooltipWrapper(cardForDisplay, tooltipText);
+                    cardContainer.appendChild(tooltipWrapper);
+                });
+            }
+            section.appendChild(cardContainer);
+            return section;
+        }
+
+        function createAbilityImpactDOM(title, classifiedTargetChars, totalOpponentChars, bgColorClass = 'bg-gray-700', sourceCharCard, sourceAbilityName) {
+            const section = document.createElement('div');
+            section.className = `ability-impact-section shadow-md ${bgColorClass} p-3`;
+
+            const percentage = totalOpponentChars > 0 ? ((classifiedTargetChars.length / totalOpponentChars) * 100).toFixed(0) : 0;
+            const titleElem = document.createElement('h4');
+            titleElem.className = 'subsection-title text-sm';
+            if (bgColorClass.includes('text-black')) {
+                titleElem.classList.add('text-black');
+            }
+            titleElem.textContent = `${title} (${classifiedTargetChars.length}/${totalOpponentChars} - ${percentage}%)`;
+            section.appendChild(titleElem);
+
+            const cardContainer = document.createElement('div');
+            cardContainer.className = 'card-container py-1';
+            if (classifiedTargetChars.length === 0) {
+                cardContainer.innerHTML = `<p class="text-xs ${bgColorClass.includes('text-black') ? 'text-gray-700' : 'text-gray-400'} italic p-1">None.</p>`;
+            } else {
+                classifiedTargetChars.forEach(item => {
+                    const targetCharCard = item.card;
+                    const interactionSummary = item.details;
+                    const classificationType = item.classification;
+
+                    const keywords = extractCharacterKeywords(targetCharCard);
+                    let keywordStr = Object.entries(keywords)
+                        .filter(([key, value]) => value === true || (typeof value === 'number' && value > 0))
+                        .map(([key, value]) => {
+                            if (typeof value === 'number' && value > 0) return `${key.charAt(0).toUpperCase() + key.slice(1)} +${value}`;
+                            return key.charAt(0).toUpperCase() + key.slice(1);
+                        }).join(', ');
+                    if (!keywordStr) keywordStr = 'None';
+
+                    const tooltipText = `Target Char: ${targetCharCard.fullName}\nCost: ${targetCharCard.cost}, Str: ${targetCharCard.strength}, Wp: ${targetCharCard.willpower}\nKeywords: ${keywordStr}\nAffected by ${sourceCharCard.name}'s Ability: "${sourceAbilityName}"\nInteraction: ${interactionSummary || 'N/A'}\nClassification: ${classificationType}`;
+
+                    const tooltipWrapper = createCardTooltipWrapper(targetCharCard, tooltipText);
+                    cardContainer.appendChild(tooltipWrapper);
+                });
+            }
+            section.appendChild(cardContainer);
+            return section;
+        }
+
+        function createLocationInteractorsDOM(title, interactingCards, bgColorClass = 'bg-gray-700') {
+            const section = document.createElement('div');
+            section.className = `location-interaction-subsection shadow-md ${bgColorClass} p-3`;
+
+            const titleElem = document.createElement('h4');
+            titleElem.className = 'subsection-title text-sm';
+            titleElem.textContent = `${title} (${interactingCards.length})`;
+            section.appendChild(titleElem);
+
+            const cardContainer = document.createElement('div');
+            cardContainer.className = 'card-container py-1';
+            if (interactingCards.length === 0) {
+                cardContainer.innerHTML = `<p class="text-xs text-gray-400 italic p-1">None found.</p>`;
+            } else {
+                interactingCards.forEach(item => {
+                    const card = item.card; // This is the Character or Song card
+                    const details = item.details;
+                    const tooltipText = `Card: ${card.fullName}\nType: ${card.type}\nInteraction: ${details}`;
+                    const tooltipWrapper = createCardTooltipWrapper(card, tooltipText);
+                    cardContainer.appendChild(tooltipWrapper);
+                });
+            }
+            section.appendChild(cardContainer);
+            return section;
+        }
+
+
+        function createCardTooltipWrapper(cardData, tooltipTextContent) {
+            const tooltipWrapper = document.createElement('div');
+            tooltipWrapper.className = 'tooltip';
+
+            const img = document.createElement('img');
+            img.src = cardData.images?.thumbnail || `https://placehold.co/100x140/2d3748/e2e8f0?text=${cardData.name.substring(0, 10)}`;
+            img.alt = cardData.fullName;
+            img.className = 'card-image';
+            img.onerror = () => { img.src = `https://placehold.co/100x140/2d3748/e2e8f0?text=Error`; };
+            tooltipWrapper.appendChild(img);
+
+            const tooltipSpan = document.createElement('span');
+            tooltipSpan.className = 'tooltiptext';
+            tooltipSpan.textContent = tooltipTextContent;
+            tooltipWrapper.appendChild(tooltipSpan);
+
+            return tooltipWrapper;
+        }
+
+        // --- Start the app ---
+        initializeApp();
+    </script>
+</body>
+
+</html>
