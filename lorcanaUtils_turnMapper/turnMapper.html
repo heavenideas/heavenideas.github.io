@@ -25,8 +25,35 @@
             color: var(--text-color);
             margin: 0;
             display: flex;
+            flex-direction: column;
+            /* Changed for header/footer layout */
             height: 100vh;
             overflow: hidden;
+        }
+
+        header {
+            padding: 0.5rem 1rem;
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        header h1 {
+            margin: 0.25rem 0;
+            font-size: 1.5rem;
+            color: var(--accent-color);
+        }
+
+        header p {
+            margin: 0.25rem 0;
+            font-size: 0.9rem;
+            color: var(--secondary-color);
+        }
+
+        #app-container {
+            display: flex;
+            flex-grow: 1;
+            overflow: hidden;
+            /* Important for containing scrolling */
         }
 
         #sidebar {
@@ -288,41 +315,61 @@
         .leader-line:hover {
             filter: drop-shadow(0 0 5px var(--danger-color));
         }
+
+        footer {
+            padding: 0.5rem 1rem;
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--secondary-color);
+            border-top: 1px solid var(--border-color);
+        }
     </style>
 </head>
 
 <body>
+    <header>
+        <h1>Lorcana Turn Mapper</h1>
+        <p>Easily map turns of a given deck to get a better insight into your or opponents decks. Export and Share your
+            creation with friends and teammates.</p>
+    </header>
 
-    <div id="sidebar">
-        <div class="sidebar-section">
-            <h3>Decklist</h3>
-            <textarea id="decklist-input" placeholder="Paste decklist here..."></textarea>
-            <button id="load-deck-btn" class="btn">Load Deck</button>
-        </div>
-
-        <div class="sidebar-section">
-            <h3>Card Search</h3>
-            <input type="text" id="search-input" placeholder="Search for any card...">
-            <div id="card-list">
-                <p>Load a deck or search.</p>
+    <div id="app-container">
+        <div id="sidebar">
+            <div class="sidebar-section">
+                <h3>Decklist</h3>
+                <textarea id="decklist-input" placeholder="Paste decklist here..."></textarea>
+                <button id="load-deck-btn" class="btn">Load Deck</button>
             </div>
+
+            <div class="sidebar-section">
+                <h3>Card Search</h3>
+                <input type="text" id="search-input" placeholder="Search for any card...">
+                <div id="card-list">
+                    <p>Load a deck or search.</p>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <h3>Import / Export</h3>
+                <button id="import-btn" class="btn btn-secondary">Import from Text</button>
+                <button id="export-text-btn" class="btn">Export to Text</button>
+                <button id="export-png-btn" class="btn">Export as PNG</button>
+            </div>
+
         </div>
 
-        <div class="sidebar-section">
-            <h3>Import / Export</h3>
-            <button id="import-btn" class="btn btn-secondary">Import from Text</button>
-            <button id="export-text-btn" class="btn">Export to Text</button>
-            <button id="export-png-btn" class="btn">Export as PNG</button>
+        <div id="main-content">
+            <div id="lanes-wrapper">
+                <!-- Turn columns will be added dynamically -->
+            </div>
+            <button id="add-turn-btn" class="btn" style="width: auto; padding: 0.5rem 1rem;">Add Turn</button>
         </div>
-
     </div>
 
-    <div id="main-content">
-        <div id="lanes-wrapper">
-            <!-- Turn columns will be added dynamically -->
-        </div>
-        <button id="add-turn-btn" class="btn" style="width: auto; padding: 0.5rem 1rem;">Add Turn</button>
-    </div>
+    <footer>
+        <p>Lorcana Turn Mapper is NOT affiliated with Disney or Ravensburger. This is a fan project and is presented for
+            free as is for anyone to use.</p>
+    </footer>
 
     <!-- Modals -->
     <div id="arrow-modal" class="modal">
