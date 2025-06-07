@@ -360,8 +360,9 @@
 
             <div class="sidebar-section">
                 <h3>Import / Export</h3>
-                <button id="import-btn" class="btn btn-secondary">Import from Text</button>
-                <button id="export-text-btn" class="btn">Export to Text</button>
+                <button id="import-btn" class="btn btn-secondary">Import from Encoded Text</button>
+                <button id="export-text-btn" class="btn">Export as Encoded Text</button>
+                <button id="export-human-text-btn" class="btn">Export Turn By Turn Text</button>
                 <button id="export-png-btn" class="btn">Export as PNG</button>
             </div>
 
@@ -398,6 +399,15 @@
             <textarea id="export-text-output" readonly
                 style="height: 150px; width: 100%; background-color: var(--bg-color); color: var(--text-color); border-radius: 8px;"></textarea>
             <button id="close-export-modal-btn" class="btn">Close</button>
+        </div>
+    </div>
+    <div id="human-export-modal" class="modal">
+        <div class="modal-content">
+            <h3>Human-Readable Export</h3>
+            <p>Copy the text below to share.</p>
+            <textarea id="human-export-text-output" readonly
+                style="height: 250px; width: 100%; background-color: var(--bg-color); color: var(--text-color); border-radius: 8px;"></textarea>
+            <button id="close-human-export-modal-btn" class="btn">Close</button>
         </div>
     </div>
     <div id="import-modal" class="modal">
@@ -443,10 +453,14 @@
             // Import/Export
             const importBtnEl = document.getElementById('import-btn');
             const exportTextBtnEl = document.getElementById('export-text-btn');
+            const exportHumanTextBtnEl = document.getElementById('export-human-text-btn');
             const exportPngBtnEl = document.getElementById('export-png-btn');
             const exportModalEl = document.getElementById('export-modal');
             const exportTextOutputEl = document.getElementById('export-text-output');
             const closeExportModalBtnEl = document.getElementById('close-export-modal-btn');
+            const humanExportModalEl = document.getElementById('human-export-modal');
+            const humanExportTextOutputEl = document.getElementById('human-export-text-output');
+            const closeHumanExportModalBtnEl = document.getElementById('close-human-export-modal-btn');
             const importModalEl = document.getElementById('import-modal');
             const importTextInputEl = document.getElementById('import-text-input');
             const confirmImportBtnEl = document.getElementById('confirm-import-btn');
@@ -785,6 +799,108 @@
                 };
             }
 
+            function generateHumanReadableText() {
+                let turnActions = {}; // Object to hold actions for each turn
+                const turnColumns = document.querySelectorAll('.turn-column');
+
+                // Initialize the turnActions object
+                turnColumns.forEach(column => {
+                    const turnNumber = column.querySelector('.turn-number-input').textContent;
+                    if (!turnActions[turnNumber]) {
+                        turnActions[turnNumber] = {
+                            ink: column.querySelector('.ink-number-input').textContent,
+                            plays: [],
+                            sings: [],
+                            shifts: [],
+                            others: [],
+                            shiftedInCardIds: new Set()
+                        };
+                    }
+                });
+
+                // Process all arrows and assign actions to the correct turn
+                lines.forEach(lineInfo => {
+                    const startEl = lineInfo.line.start;
+                    const endEl = lineInfo.line.end;
+                    const startCard = findCardById(parseInt(startEl.dataset.cardId));
+                    const endCard = findCardById(parseInt(endEl.dataset.cardId));
+                    const label = lineInfo.label || '';
+
+                    // Singing: determined by the song's (endEl) turn
+                    if (startCard.type === 'Character' && endCard.type === 'Action' && endCard.subtypes?.includes('Song')) {
+                        const endCardColumn = endEl.closest('.turn-column');
+                        if (endCardColumn) {
+                            const turnNumber = endCardColumn.querySelector('.turn-number-input').textContent;
+                            if (turnActions[turnNumber]) {
+                                turnActions[turnNumber].sings.push(`Sing: ${endCard.fullName} with ${startCard.fullName}`);
+                            }
+                        }
+                    }
+                    // Character Interactions (Shift/Other): determined by the starting character's turn
+                    else if (startCard.type === 'Character' && endCard.type === 'Character') {
+                        const startCardColumn = startEl.closest('.turn-column');
+                        if (startCardColumn) {
+                            const turnNumber = startCardColumn.querySelector('.turn-number-input').textContent;
+                            if (turnActions[turnNumber]) {
+                                if (label.toLowerCase().includes('shift') || !label) {
+                                    turnActions[turnNumber].shifts.push(`Shift: ${endCard.fullName} onto ${startCard.fullName}`);
+                                    const targetCardColumn = endEl.closest('.turn-column');
+                                    if (targetCardColumn) {
+                                        const targetTurnNumber = targetCardColumn.querySelector('.turn-number-input').textContent;
+                                        if (turnActions[targetTurnNumber]) {
+                                            turnActions[targetTurnNumber].shiftedInCardIds.add(endEl.id);
+                                        }
+                                    }
+                                } else {
+                                    turnActions[turnNumber].others.push(`${startCard.fullName} ${label} ${endCard.fullName}`);
+                                }
+                            }
+                        }
+                    }
+                });
+
+                // Process all placed cards to find "Plays"
+                turnColumns.forEach(column => {
+                    const turnNumber = column.querySelector('.turn-number-input').textContent;
+                    const turnData = turnActions[turnNumber];
+
+                    if (turnData) {
+                        column.querySelectorAll('.character-area .card-container').forEach(cardEl => {
+                            if (!turnData.shiftedInCardIds.has(cardEl.id)) {
+                                const cardData = findCardById(parseInt(cardEl.dataset.cardId));
+                                turnData.plays.push(cardData.fullName);
+                            }
+                        });
+                        column.querySelectorAll('.song-area .card-container').forEach(cardEl => {
+                            const isSung = lines.some(l => l.line.end.id === cardEl.id && findCardById(parseInt(l.line.start.dataset.cardId)).type === 'Character' && l.line.end.closest('.turn-column') === column);
+                            if (!isSung) {
+                                const cardData = findCardById(parseInt(cardEl.dataset.cardId));
+                                turnData.plays.push(cardData.fullName);
+                            }
+                        });
+                    }
+                });
+
+                // Format the final output text
+                let output = [];
+                const sortedTurns = Object.keys(turnActions).sort((a, b) => a - b);
+
+                sortedTurns.forEach(turnNumber => {
+                    const turnData = turnActions[turnNumber];
+                    output.push(`Turn ${turnNumber}, Ink ${turnData.ink}`);
+
+                    if (turnData.plays.length > 0) output.push(`Play: ${turnData.plays.join(' or ')}`);
+                    turnData.shifts.forEach(s => output.push(s));
+                    turnData.sings.forEach(s => output.push(s));
+                    if (turnData.others.length > 0) output.push(`Other Interactions: ${turnData.others.join(', ')}`);
+
+                    output.push('');
+                });
+
+                return output.join('\n');
+            }
+
+
             function clearBoard() {
                 lanesWrapperEl.innerHTML = '';
                 lines.forEach(({ line }) => line.remove());
@@ -851,6 +967,12 @@
                 exportModalEl.style.display = 'flex';
             });
 
+            exportHumanTextBtnEl.addEventListener('click', () => {
+                const text = generateHumanReadableText();
+                humanExportTextOutputEl.value = text;
+                humanExportModalEl.style.display = 'flex';
+            });
+
             exportPngBtnEl.addEventListener('click', () => {
                 addTurnBtnEl.style.visibility = 'hidden';
                 document.querySelectorAll('.leader-line').forEach(l => l.style.visibility = 'hidden');
@@ -880,6 +1002,7 @@
 
             importBtnEl.addEventListener('click', () => { importModalEl.style.display = 'flex'; });
             closeExportModalBtnEl.addEventListener('click', () => { exportModalEl.style.display = 'none'; });
+            closeHumanExportModalBtnEl.addEventListener('click', () => { humanExportModalEl.style.display = 'none'; });
             closeImportModalBtnEl.addEventListener('click', () => { importModalEl.style.display = 'none'; });
             confirmImportBtnEl.addEventListener('click', () => {
                 try {
