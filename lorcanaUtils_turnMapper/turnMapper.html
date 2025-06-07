@@ -202,12 +202,24 @@
             gap: 1rem;
         }
 
-        .turn-label {
+        .turn-label-container {
             font-weight: bold;
             font-size: 1.2rem;
             text-align: center;
             padding: 0.5rem;
             margin-top: auto;
+        }
+
+        .turn-label-container span[contenteditable] {
+            outline: none;
+            padding: 0 4px;
+            border-radius: 4px;
+        }
+
+        .turn-label-container span[contenteditable]:hover,
+        .turn-label-container span[contenteditable]:focus {
+            background-color: var(--secondary-color);
+            box-shadow: 0 0 5px var(--accent-color);
         }
 
         .droppable-card-container {
@@ -465,7 +477,6 @@
                     updateLines();
                 });
 
-                // Add delete button
                 const deleteBtn = document.createElement('button');
                 deleteBtn.className = 'delete-card-btn';
                 deleteBtn.innerHTML = '&times;';
@@ -536,13 +547,12 @@
             };
 
             function deleteCard(cardDOMContainer, cardId) {
-                // Remove any lines connected to this card
                 lines = lines.filter(l => {
                     if (l.line.start.id === cardId || l.line.end.id === cardId) {
                         l.line.remove();
-                        return false; // Remove from array
+                        return false;
                     }
-                    return true; // Keep in array
+                    return true;
                 });
                 cardDOMContainer.remove();
             }
@@ -595,10 +605,15 @@
                 const characterArea = document.createElement('div');
                 characterArea.className = 'character-area drop-zone';
                 characterArea.dataset.laneId = `character-${turnCount}`;
-                const label = document.createElement('div');
-                label.className = 'turn-label';
-                label.textContent = `TURN ${turnCount}`;
-                turnColumn.append(songArea, characterArea, label);
+
+                const labelContainer = document.createElement('div');
+                labelContainer.className = 'turn-label-container';
+                labelContainer.innerHTML = `
+                    <div>TURN <span class="turn-number-input" contenteditable="true">${turnCount}</span></div>
+                    <div>INK <span class="ink-number-input" contenteditable="true">${turnCount}</span></div>
+                `;
+
+                turnColumn.append(songArea, characterArea, labelContainer);
                 lanesWrapperEl.appendChild(turnColumn);
                 setupDropZone(songArea);
                 setupDropZone(characterArea);
@@ -633,7 +648,6 @@
                 if (label) lineOptions.middleLabel = LeaderLine.captionLabel(label, { color: 'var(--accent-color)', outlineColor: 'var(--bg-color)', fontSize: 14 });
                 const line = new LeaderLine(lineOptions);
 
-                // Add a unique ID to the line for deletion
                 const lineId = `line-${Date.now()}`;
                 line.setOptions({
                     startSocket: 'auto',
@@ -696,12 +710,20 @@
                     label: label || ''
                 }));
 
+                const turnData = [];
+                document.querySelectorAll('.turn-column').forEach(column => {
+                    const turnNumber = column.querySelector('.turn-number-input').textContent;
+                    const inkNumber = column.querySelector('.ink-number-input').textContent;
+                    turnData.push({ turn: turnNumber, ink: inkNumber });
+                });
+
                 return {
                     turnCount,
                     cards: placedCards,
                     arrows: arrowData,
                     nextCardInstanceId,
-                    decklist: decklistInputEl.value
+                    decklist: decklistInputEl.value,
+                    turnData: turnData
                 };
             }
 
@@ -724,6 +746,16 @@
 
                 nextCardInstanceId = state.nextCardInstanceId || 0;
                 for (let i = 0; i < state.turnCount; i++) addTurnColumn();
+
+                if (state.turnData) {
+                    const turnColumns = document.querySelectorAll('.turn-column');
+                    state.turnData.forEach((data, index) => {
+                        if (turnColumns[index]) {
+                            turnColumns[index].querySelector('.turn-number-input').textContent = data.turn;
+                            turnColumns[index].querySelector('.ink-number-input').textContent = data.ink;
+                        }
+                    });
+                }
 
                 state.cards.forEach(cardState => {
                     const cardData = findCardById(cardState.cardId);
