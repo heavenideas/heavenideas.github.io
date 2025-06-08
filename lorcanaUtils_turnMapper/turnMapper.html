@@ -17,6 +17,7 @@
             --border-color: #666;
             --accent-color: #a855f7;
             --danger-color: #ef4444;
+            --song-bg-color: #3a3a3a;
         }
 
         body {
@@ -215,11 +216,29 @@
 
         .turn-column {
             min-width: 300px;
-            /* Increased min-width */
             border-right: 1px solid var(--border-color);
             display: flex;
             flex-direction: column;
             padding: 0.5rem;
+        }
+
+        .lane-section {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 1rem;
+        }
+
+        .lane-section.board-section {
+            flex-grow: 1;
+            margin-bottom: 0;
+        }
+
+        .lane-section-title {
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--secondary-color);
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
         }
 
         .lane-grid {
@@ -230,8 +249,12 @@
             padding: 0.5rem;
             border: 1px dashed var(--secondary-color);
             border-radius: 8px;
-            min-height: 200px;
-            overflow-y: auto;
+            min-height: 150px;
+        }
+
+        .lane-grid[data-grid-type="song"] {
+            background-color: var(--song-bg-color);
+            border: 1px dashed var(--accent-color);
         }
 
         .lane-row {
@@ -242,7 +265,6 @@
             background-color: rgba(0, 0, 0, 0.2);
             border-radius: 6px;
             min-height: 120px;
-            /* Height for drop zone */
             align-content: flex-start;
             border: 1px solid transparent;
         }
@@ -259,7 +281,6 @@
             text-align: center;
             padding: 0.5rem;
             margin-top: auto;
-            /* Pushes to bottom */
         }
 
         .turn-label-container span[contenteditable] {
@@ -637,7 +658,8 @@
                 cardDOMContainer.remove();
                 // If the row becomes empty, remove it, unless it's the last one
                 if (parentRow && parentRow.classList.contains('lane-row') && parentRow.children.length === 0) {
-                    if (parentRow.parentElement.children.length > 1) {
+                    const grid = parentRow.parentElement;
+                    if (grid && grid.children.length > 1) {
                         parentRow.remove();
                     }
                 }
@@ -689,63 +711,12 @@
                 turnColumn.className = 'turn-column';
                 turnColumn.dataset.turnId = turnCount;
 
-                const laneGrid = document.createElement('div');
-                laneGrid.className = 'lane-grid';
+                // Create Song Area
+                const songSection = createLaneSection('song', turnCount, 'Songs');
 
-                // Add drag listeners to the grid itself for creating new rows on drop
-                laneGrid.addEventListener('dragover', (e) => {
-                    e.preventDefault();
-                    if (e.target === laneGrid) {
-                        laneGrid.style.backgroundColor = 'var(--secondary-color)';
-                    }
-                });
-
-                laneGrid.addEventListener('dragleave', (e) => {
-                    if (e.target === laneGrid) {
-                        laneGrid.style.backgroundColor = '';
-                    }
-                });
-
-                laneGrid.addEventListener('drop', (e) => {
-                    e.preventDefault();
-                    // Only fire if the drop is on the grid itself, not a child row.
-                    if (e.target !== laneGrid) {
-                        return;
-                    }
-
-                    laneGrid.style.backgroundColor = '';
-                    const droppedCardId = e.dataTransfer.getData('text/plain');
-
-                    const currentTurnId = turnColumn.dataset.turnId;
-                    const rowCount = laneGrid.children.length + 1;
-                    const newRow = createLaneRow(currentTurnId, rowCount);
-
-                    if (draggedCardData) { // Card from sidebar
-                        const instanceId = nextCardInstanceId++;
-                        const { cardContainer } = createCardDOM(draggedCardData, instanceId);
-                        newRow.appendChild(cardContainer);
-                    } else if (droppedCardId) { // Card moved from another lane
-                        const cardInstanceContainer = document.getElementById(droppedCardId)?.closest('.droppable-card-container');
-                        if (cardInstanceContainer) {
-                            newRow.appendChild(cardInstanceContainer);
-                            updateLines();
-                        }
-                    }
-
-                    laneGrid.appendChild(newRow);
-                    draggedCardData = null;
-                });
-
-                // Start with one row
-                laneGrid.appendChild(createLaneRow(turnCount, 1));
-
-                const addRowBtn = document.createElement('button');
-                addRowBtn.textContent = "Add 'OR' Condition";
-                addRowBtn.className = 'btn btn-small btn-secondary';
-                addRowBtn.addEventListener('click', () => {
-                    const rowCount = laneGrid.children.length + 1;
-                    laneGrid.appendChild(createLaneRow(turnCount, rowCount));
-                });
+                // Create Character/Board Area
+                const boardSection = createLaneSection('board', turnCount, 'Board');
+                boardSection.classList.add('board-section');
 
                 const labelContainer = document.createElement('div');
                 labelContainer.className = 'turn-label-container';
@@ -754,14 +725,70 @@
                     <div>INK <span class="ink-number-input" contenteditable="true">${turnCount}</span></div>
                 `;
 
-                turnColumn.append(laneGrid, addRowBtn, labelContainer);
+                turnColumn.append(songSection, boardSection, labelContainer);
                 lanesWrapperEl.appendChild(turnColumn);
             };
 
-            function createLaneRow(turnId, rowId) {
+            function createLaneSection(type, turnId, title) {
+                const section = document.createElement('div');
+                section.className = 'lane-section';
+
+                const sectionTitle = document.createElement('div');
+                sectionTitle.className = 'lane-section-title';
+                sectionTitle.textContent = title;
+
+                const laneGrid = document.createElement('div');
+                laneGrid.className = 'lane-grid';
+                laneGrid.dataset.gridType = type;
+
+                laneGrid.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    if (e.target === laneGrid) laneGrid.style.backgroundColor = 'var(--secondary-color)';
+                });
+                laneGrid.addEventListener('dragleave', (e) => {
+                    if (e.target === laneGrid) laneGrid.style.backgroundColor = '';
+                });
+                laneGrid.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    if (e.target !== laneGrid) return;
+
+                    laneGrid.style.backgroundColor = '';
+                    const droppedCardId = e.dataTransfer.getData('text/plain');
+                    const rowCount = laneGrid.children.length + 1;
+                    const newRow = createLaneRow(type, turnId, rowCount);
+
+                    if (draggedCardData) {
+                        const instanceId = nextCardInstanceId++;
+                        const { cardContainer } = createCardDOM(draggedCardData, instanceId);
+                        newRow.appendChild(cardContainer);
+                    } else if (droppedCardId) {
+                        const cardInstanceContainer = document.getElementById(droppedCardId)?.closest('.droppable-card-container');
+                        if (cardInstanceContainer) newRow.appendChild(cardInstanceContainer);
+                    }
+
+                    laneGrid.appendChild(newRow);
+                    updateLines();
+                    draggedCardData = null;
+                });
+
+                laneGrid.appendChild(createLaneRow(type, turnId, 1));
+
+                const addRowBtn = document.createElement('button');
+                addRowBtn.textContent = "Add 'OR' Condition";
+                addRowBtn.className = 'btn btn-small btn-secondary';
+                addRowBtn.addEventListener('click', () => {
+                    const rowCount = laneGrid.children.length + 1;
+                    laneGrid.appendChild(createLaneRow(type, turnId, rowCount));
+                });
+
+                section.append(sectionTitle, laneGrid, addRowBtn);
+                return section;
+            }
+
+            function createLaneRow(type, turnId, rowId) {
                 const row = document.createElement('div');
                 row.className = 'lane-row drop-zone';
-                row.dataset.laneId = `turn-${turnId}-row-${rowId}`;
+                row.dataset.laneId = `${type}-turn-${turnId}-row-${rowId}`;
                 setupDropZone(row);
                 return row;
             }
@@ -784,7 +811,7 @@
                     if (arrowStartElement) arrowStartElement.style.outline = '';
                     arrowStartElement = null;
                     saveArrowBtnEl.removeEventListener('click', saveHandler);
-                    cancelArrowBtnEl.addEventListener('click', cancelHandler);
+                    cancelArrowBtnEl.removeEventListener('click', cancelHandler);
                 }
                 saveArrowBtnEl.addEventListener('click', saveHandler, { once: true });
                 cancelArrowBtnEl.addEventListener('click', cancelHandler, { once: true });
@@ -847,11 +874,12 @@
                 }));
 
                 const turnData = [];
-                document.querySelectorAll('.turn-column').forEach((column, index) => {
+                document.querySelectorAll('.turn-column').forEach((column) => {
                     const turnNumber = column.querySelector('.turn-number-input').textContent;
                     const inkNumber = column.querySelector('.ink-number-input').textContent;
-                    const rowCount = column.querySelectorAll('.lane-row').length;
-                    turnData.push({ id: column.dataset.turnId, turn: turnNumber, ink: inkNumber, rowCount });
+                    const songRowCount = column.querySelector('[data-grid-type="song"]').querySelectorAll('.lane-row').length;
+                    const boardRowCount = column.querySelector('[data-grid-type="board"]').querySelectorAll('.lane-row').length;
+                    turnData.push({ id: column.dataset.turnId, turn: turnNumber, ink: inkNumber, songRowCount, boardRowCount });
                 });
 
                 return {
@@ -869,7 +897,6 @@
                 let output = [];
                 const turnColumns = [...document.querySelectorAll('.turn-column')];
 
-                // Sort columns based on the turn number input
                 turnColumns.sort((a, b) => {
                     const turnA = parseInt(a.querySelector('.turn-number-input').textContent) || 0;
                     const turnB = parseInt(b.querySelector('.turn-number-input').textContent) || 0;
@@ -879,28 +906,53 @@
                 turnColumns.forEach(column => {
                     const turnNumber = column.querySelector('.turn-number-input').textContent;
                     const inkNumber = column.querySelector('.ink-number-input').textContent;
-                    output.push(`Turn ${turnNumber}, Ink ${inkNumber}`);
+                    let turnHasContent = false;
 
-                    const rows = column.querySelectorAll('.lane-row');
-                    const playLines = [];
+                    let turnLines = [];
 
-                    rows.forEach(row => {
+                    // Process Songs
+                    const songRows = column.querySelector('[data-grid-type="song"]').querySelectorAll('.lane-row');
+                    const songPlayLines = [];
+                    songRows.forEach(row => {
                         const cardsInRow = [...row.querySelectorAll('.card-container')];
                         if (cardsInRow.length > 0) {
-                            const cardNames = cardsInRow.map(c => c.dataset.cardName);
-                            playLines.push(cardNames.join(' and '));
+                            turnHasContent = true;
+                            songPlayLines.push(cardsInRow.map(c => c.dataset.cardName).join(' and '));
+                        }
+                    });
+                    if (songPlayLines.length > 0) {
+                        let songsText = `Play Song: ${songPlayLines[0]}`;
+                        if (songPlayLines.length > 1) {
+                            songsText += '\n' + songPlayLines.slice(1).map(line => `or\nPlay Song: ${line}`).join('\n');
+                        }
+                        turnLines.push(songsText);
+                    }
+
+
+                    // Process Board
+                    const boardRows = column.querySelector('[data-grid-type="board"]').querySelectorAll('.lane-row');
+                    const boardPlayLines = [];
+                    boardRows.forEach(row => {
+                        const cardsInRow = [...row.querySelectorAll('.card-container')];
+                        if (cardsInRow.length > 0) {
+                            turnHasContent = true;
+                            boardPlayLines.push(cardsInRow.map(c => c.dataset.cardName).join(' and '));
                         }
                     });
 
-                    if (playLines.length > 0) {
-                        let playsText = `Play: ${playLines[0]}`;
-                        if (playLines.length > 1) {
-                            playsText += '\n' + playLines.slice(1).map(line => `or\nPlay: ${line}`).join('\n');
+                    if (boardPlayLines.length > 0) {
+                        let playsText = `Play: ${boardPlayLines[0]}`;
+                        if (boardPlayLines.length > 1) {
+                            playsText += '\n' + boardPlayLines.slice(1).map(line => `or\nPlay: ${line}`).join('\n');
                         }
-                        output.push(playsText);
+                        turnLines.push(playsText);
                     }
 
-                    output.push(''); // Add a blank line between turns
+                    if (turnHasContent) {
+                        output.push(`Turn ${turnNumber}, Ink ${inkNumber}`);
+                        output.push(...turnLines);
+                        output.push('');
+                    }
                 });
 
                 return output.join('\n');
@@ -923,7 +975,6 @@
                 if (decklistInputEl.value) loadDeck();
                 nextCardInstanceId = state.nextCardInstanceId || 0;
 
-                // Recreate turn columns and rows
                 if (state.turnData) {
                     state.turnData.forEach(data => {
                         addTurnColumn(); // This increments global turnCount
@@ -931,16 +982,23 @@
                         if (newColumn) {
                             newColumn.querySelector('.turn-number-input').textContent = data.turn;
                             newColumn.querySelector('.ink-number-input').textContent = data.ink;
-                            const laneGrid = newColumn.querySelector('.lane-grid');
-                            laneGrid.innerHTML = ''; // Clear default row
-                            for (let i = 1; i <= data.rowCount; i++) {
-                                laneGrid.appendChild(createLaneRow(turnCount, i));
+
+                            // Recreate song rows
+                            const songGrid = newColumn.querySelector('[data-grid-type="song"]');
+                            songGrid.innerHTML = '';
+                            for (let i = 1; i <= data.songRowCount; i++) {
+                                songGrid.appendChild(createLaneRow('song', turnCount, i));
+                            }
+                            // Recreate board rows
+                            const boardGrid = newColumn.querySelector('[data-grid-type="board"]');
+                            boardGrid.innerHTML = '';
+                            for (let i = 1; i <= data.boardRowCount; i++) {
+                                boardGrid.appendChild(createLaneRow('board', turnCount, i));
                             }
                         }
                     });
                 }
 
-                // Place cards
                 state.cards.forEach(cardState => {
                     const cardData = findCardById(cardState.cardId);
                     if (cardData) {
@@ -957,13 +1015,13 @@
                     }
                 });
 
-                // Recreate arrows
                 setTimeout(() => {
                     state.arrows.forEach(arrowState => {
                         const startEl = document.getElementById(arrowState.start);
                         const endEl = document.getElementById(arrowState.end);
                         if (startEl && endEl) createArrow(startEl, endEl, arrowState.label);
                     });
+                    updateLines();
                 }, 100);
             }
 
