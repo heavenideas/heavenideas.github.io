@@ -26,7 +26,6 @@
             margin: 0;
             display: flex;
             flex-direction: column;
-            /* Changed for header/footer layout */
             height: 100vh;
             overflow: hidden;
         }
@@ -53,7 +52,6 @@
             display: flex;
             flex-grow: 1;
             overflow: hidden;
-            /* Important for containing scrolling */
         }
 
         #sidebar {
@@ -65,9 +63,7 @@
             padding: 1rem;
             overflow-y: auto;
             position: relative;
-            /* Establish a stacking context */
             z-index: 1000;
-            /* Ensure sidebar is on top of arrows */
         }
 
         .sidebar-section {
@@ -129,6 +125,13 @@
 
         .btn-secondary:hover {
             background-color: #555;
+        }
+
+        .btn-small {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.8rem;
+            margin-top: 0.5rem;
+            width: auto;
         }
 
         #search-input {
@@ -211,31 +214,44 @@
         }
 
         .turn-column {
-            min-width: 250px;
+            min-width: 300px;
+            /* Increased min-width */
             border-right: 1px solid var(--border-color);
             display: flex;
             flex-direction: column;
+            padding: 0.5rem;
         }
 
-        .song-area {
-            min-height: 220px;
-            border-bottom: 2px dashed var(--accent-color);
-            padding: 1rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-wrap: wrap;
-            gap: 1rem;
-        }
-
-        .character-area {
+        .lane-grid {
             flex-grow: 1;
-            padding: 1rem;
             display: flex;
             flex-direction: column;
-            align-items: center;
-            gap: 1rem;
+            gap: 0.5rem;
+            padding: 0.5rem;
+            border: 1px dashed var(--secondary-color);
+            border-radius: 8px;
+            min-height: 200px;
+            overflow-y: auto;
         }
+
+        .lane-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            padding: 0.5rem;
+            background-color: rgba(0, 0, 0, 0.2);
+            border-radius: 6px;
+            min-height: 120px;
+            /* Height for drop zone */
+            align-content: flex-start;
+            border: 1px solid transparent;
+        }
+
+        .lane-row.drag-over {
+            border: 1px solid var(--accent-color);
+            background-color: var(--secondary-color);
+        }
+
 
         .turn-label-container {
             font-weight: bold;
@@ -243,6 +259,7 @@
             text-align: center;
             padding: 0.5rem;
             margin-top: auto;
+            /* Pushes to bottom */
         }
 
         .turn-label-container span[contenteditable] {
@@ -337,8 +354,7 @@
 <body>
     <header>
         <h1>Lorcana Turn Mapper</h1>
-        <p>Easily map turns of a given deck to get a better insight into your or opponents decks. Export and Share your
-            creation with friends and teammates.</p>
+        <p>Map out your turns with grid-based logic. Horizonal cards are AND, vertical rows are OR.</p>
     </header>
 
     <div id="app-container">
@@ -414,7 +430,8 @@
         <div class="modal-content">
             <h3>Import Map Data</h3>
             <p>Paste your map data below and click Import.</p>
-            <textarea id="import-text-input"></textarea>
+            <textarea id="import-text-input"
+                style="height: 150px; width: 100%; background-color: var(--secondary-color); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.5rem; box-sizing: border-box;"></textarea>
             <div>
                 <button id="confirm-import-btn" class="btn">Import</button>
                 <button id="close-import-modal-btn" class="btn btn-secondary">Cancel</button>
@@ -444,17 +461,17 @@
             const lanesWrapperEl = document.getElementById('lanes-wrapper');
             const addTurnBtnEl = document.getElementById('add-turn-btn');
 
-            // Arrow Modal
-            const arrowModalEl = document.getElementById('arrow-modal');
-            const arrowAnnotationInputEl = document.getElementById('arrow-annotation-input');
-            const saveArrowBtnEl = document.getElementById('save-arrow-btn');
-            const cancelArrowBtnEl = document.getElementById('cancel-arrow-btn');
-
-            // Import/Export
+            // Import/Export Buttons
             const importBtnEl = document.getElementById('import-btn');
             const exportTextBtnEl = document.getElementById('export-text-btn');
             const exportHumanTextBtnEl = document.getElementById('export-human-text-btn');
             const exportPngBtnEl = document.getElementById('export-png-btn');
+
+            // Modals and their buttons
+            const arrowModalEl = document.getElementById('arrow-modal');
+            const arrowAnnotationInputEl = document.getElementById('arrow-annotation-input');
+            const saveArrowBtnEl = document.getElementById('save-arrow-btn');
+            const cancelArrowBtnEl = document.getElementById('cancel-arrow-btn');
             const exportModalEl = document.getElementById('export-modal');
             const exportTextOutputEl = document.getElementById('export-text-output');
             const closeExportModalBtnEl = document.getElementById('close-export-modal-btn');
@@ -481,32 +498,32 @@
                     });
                     allCards = Array.from(uniqueCards.values());
                     fuse = new Fuse(allCards, { keys: ['fullName', 'name', 'version'], includeScore: true, threshold: 0.4 });
+                    displayCardsInSidebar(allCards.slice(0, 50)); // Show some initial cards
                 })
                 .catch(error => {
                     console.error('Error fetching card data:', error);
                     cardListEl.innerHTML = '<p>Error loading card data.</p>';
                 });
 
-            // --- DECKLIST HANDLING ---
-            function parseDecklist(text) {
-                const lines = text.trim().split('\n');
-                const cardEntries = [];
-                const cardNameRegex = /^(\d+)\s+(.+)/;
-
-                for (const line of lines) {
-                    const match = line.match(cardNameRegex);
-                    if (match) {
-                        cardEntries.push({ count: parseInt(match[1], 10), name: match[2].trim() });
-                    }
+            searchInputEl.addEventListener('input', (e) => {
+                const query = e.target.value.trim();
+                if (query.length > 2) {
+                    const results = fuse.search(query).map(r => r.item);
+                    displayCardsInSidebar(results);
+                } else if (query.length === 0) {
+                    displayCardsInSidebar(deckCards.length > 0 ? deckCards : allCards.slice(0, 50));
                 }
-                return cardEntries;
-            };
+            });
 
-            function findCardById(id) {
-                return allCards.find(c => c.id === id);
-            }
+            // --- DECKLIST HANDLING ---
+            const parseDecklist = text => text.trim().split('\n').map(line => {
+                const match = line.match(/^(\d+)\s+(.+)/);
+                return match ? { count: parseInt(match[1], 10), name: match[2].trim() } : null;
+            }).filter(Boolean);
 
-            function findCardByName(name) {
+            const findCardById = id => allCards.find(c => c.id === id);
+
+            const findCardByName = name => {
                 let card = allCards.find(c => c.fullName.toLowerCase() === name.toLowerCase());
                 if (card) return card;
                 const results = fuse.search(name);
@@ -514,9 +531,7 @@
             };
 
             function loadDeck() {
-                const decklistText = decklistInputEl.value;
-                if (!decklistText) return;
-                const parsedDeck = parseDecklist(decklistText);
+                const parsedDeck = parseDecklist(decklistInputEl.value);
                 const uniqueDeckCards = new Map();
                 parsedDeck.forEach(entry => {
                     const cardData = findCardByName(entry.name);
@@ -551,9 +566,7 @@
                 const deleteBtn = document.createElement('button');
                 deleteBtn.className = 'delete-card-btn';
                 deleteBtn.innerHTML = '&times;';
-                deleteBtn.addEventListener('click', () => {
-                    deleteCard(cardContainer, cardEl.id);
-                });
+                deleteBtn.addEventListener('click', () => deleteCard(cardContainer, cardEl.id));
 
                 cardContainer.appendChild(deleteBtn);
                 cardContainer.appendChild(cardEl);
@@ -582,20 +595,15 @@
 
                 cardImage.crossOrigin = 'anonymous';
                 cardImage.src = proxiedUrl;
-
-                cardImage.onerror = () => {
-                    console.warn(`Proxy failed for ${originalUrl}, falling back to direct URL. PNG export for this image may fail.`);
-                    cardImage.src = originalUrl;
-                };
-
+                cardImage.onerror = () => cardImage.src = originalUrl;
                 cardImage.alt = cardData.fullName;
                 cardImage.className = 'card-image';
 
                 const uniqueId = instanceId !== null ? `card-instance-${instanceId}` : `card-lib-${cardData.id}`;
                 cardContainer.id = uniqueId;
                 cardContainer.dataset.cardId = cardData.id;
+                cardContainer.dataset.cardName = cardData.fullName; // For export
                 cardElements[uniqueId] = cardContainer;
-
                 cardContainer.appendChild(cardImage);
 
                 if (isDraggable) {
@@ -612,7 +620,7 @@
                 return cardContainer;
             };
 
-            function displayCardsInSidebar(cards) {
+            const displayCardsInSidebar = (cards) => {
                 cardListEl.innerHTML = cards.length > 0 ? '' : '<p>No cards found.</p>';
                 cards.forEach(card => cardListEl.appendChild(createCardElement(card)));
             };
@@ -625,16 +633,24 @@
                     }
                     return true;
                 });
+                const parentRow = cardDOMContainer.parentElement;
                 cardDOMContainer.remove();
+                // If the row becomes empty, remove it, unless it's the last one
+                if (parentRow && parentRow.classList.contains('lane-row') && parentRow.children.length === 0) {
+                    if (parentRow.parentElement.children.length > 1) {
+                        parentRow.remove();
+                    }
+                }
             }
 
             // --- DRAG & DROP ---
             function setupDropZone(zone) {
-                zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.style.backgroundColor = 'var(--secondary-color)'; });
-                zone.addEventListener('dragleave', (e) => { e.preventDefault(); zone.style.backgroundColor = ''; });
+                zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('drag-over'); });
+                zone.addEventListener('dragleave', (e) => { e.preventDefault(); zone.classList.remove('drag-over'); });
                 zone.addEventListener('drop', (e) => {
                     e.preventDefault();
-                    zone.style.backgroundColor = '';
+                    e.stopPropagation(); // Prevent event from bubbling to parent drop zones
+                    zone.classList.remove('drag-over');
                     const droppedCardId = e.dataTransfer.getData('text/plain');
 
                     if (draggedCardData) {
@@ -642,9 +658,9 @@
                         const { cardContainer } = createCardDOM(draggedCardData, instanceId);
                         zone.appendChild(cardContainer);
                     } else if (droppedCardId) {
-                        const cardInstance = document.getElementById(droppedCardId);
-                        if (cardInstance) {
-                            zone.appendChild(cardInstance.closest('.droppable-card-container'));
+                        const cardInstanceContainer = document.getElementById(droppedCardId)?.closest('.droppable-card-container');
+                        if (cardInstanceContainer) {
+                            zone.appendChild(cardInstanceContainer);
                             updateLines();
                         }
                     }
@@ -655,6 +671,7 @@
             function makeCardMovable(cardEl, container) {
                 cardEl.draggable = true;
                 cardEl.addEventListener('dragstart', (e) => {
+                    e.stopPropagation(); // Prevent lane drag-start
                     e.dataTransfer.setData('text/plain', cardEl.id);
                     setTimeout(() => container.style.opacity = '0.5', 0);
                 });
@@ -670,12 +687,65 @@
                 turnCount++;
                 const turnColumn = document.createElement('div');
                 turnColumn.className = 'turn-column';
-                const songArea = document.createElement('div');
-                songArea.className = 'song-area drop-zone';
-                songArea.dataset.laneId = `song-${turnCount}`;
-                const characterArea = document.createElement('div');
-                characterArea.className = 'character-area drop-zone';
-                characterArea.dataset.laneId = `character-${turnCount}`;
+                turnColumn.dataset.turnId = turnCount;
+
+                const laneGrid = document.createElement('div');
+                laneGrid.className = 'lane-grid';
+
+                // Add drag listeners to the grid itself for creating new rows on drop
+                laneGrid.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    if (e.target === laneGrid) {
+                        laneGrid.style.backgroundColor = 'var(--secondary-color)';
+                    }
+                });
+
+                laneGrid.addEventListener('dragleave', (e) => {
+                    if (e.target === laneGrid) {
+                        laneGrid.style.backgroundColor = '';
+                    }
+                });
+
+                laneGrid.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    // Only fire if the drop is on the grid itself, not a child row.
+                    if (e.target !== laneGrid) {
+                        return;
+                    }
+
+                    laneGrid.style.backgroundColor = '';
+                    const droppedCardId = e.dataTransfer.getData('text/plain');
+
+                    const currentTurnId = turnColumn.dataset.turnId;
+                    const rowCount = laneGrid.children.length + 1;
+                    const newRow = createLaneRow(currentTurnId, rowCount);
+
+                    if (draggedCardData) { // Card from sidebar
+                        const instanceId = nextCardInstanceId++;
+                        const { cardContainer } = createCardDOM(draggedCardData, instanceId);
+                        newRow.appendChild(cardContainer);
+                    } else if (droppedCardId) { // Card moved from another lane
+                        const cardInstanceContainer = document.getElementById(droppedCardId)?.closest('.droppable-card-container');
+                        if (cardInstanceContainer) {
+                            newRow.appendChild(cardInstanceContainer);
+                            updateLines();
+                        }
+                    }
+
+                    laneGrid.appendChild(newRow);
+                    draggedCardData = null;
+                });
+
+                // Start with one row
+                laneGrid.appendChild(createLaneRow(turnCount, 1));
+
+                const addRowBtn = document.createElement('button');
+                addRowBtn.textContent = "Add 'OR' Condition";
+                addRowBtn.className = 'btn btn-small btn-secondary';
+                addRowBtn.addEventListener('click', () => {
+                    const rowCount = laneGrid.children.length + 1;
+                    laneGrid.appendChild(createLaneRow(turnCount, rowCount));
+                });
 
                 const labelContainer = document.createElement('div');
                 labelContainer.className = 'turn-label-container';
@@ -684,15 +754,21 @@
                     <div>INK <span class="ink-number-input" contenteditable="true">${turnCount}</span></div>
                 `;
 
-                turnColumn.append(songArea, characterArea, labelContainer);
+                turnColumn.append(laneGrid, addRowBtn, labelContainer);
                 lanesWrapperEl.appendChild(turnColumn);
-                setupDropZone(songArea);
-                setupDropZone(characterArea);
             };
+
+            function createLaneRow(turnId, rowId) {
+                const row = document.createElement('div');
+                row.className = 'lane-row drop-zone';
+                row.dataset.laneId = `turn-${turnId}-row-${rowId}`;
+                setupDropZone(row);
+                return row;
+            }
 
             addTurnBtnEl.addEventListener('click', addTurnColumn);
 
-            // --- ARROWS ---
+            // --- ARROWS (Optional Connections) ---
             function showArrowModal(startEl, endEl) {
                 arrowModalEl.style.display = 'flex';
                 arrowAnnotationInputEl.value = '';
@@ -708,25 +784,17 @@
                     if (arrowStartElement) arrowStartElement.style.outline = '';
                     arrowStartElement = null;
                     saveArrowBtnEl.removeEventListener('click', saveHandler);
-                    cancelArrowBtnEl.removeEventListener('click', cancelHandler);
+                    cancelArrowBtnEl.addEventListener('click', cancelHandler);
                 }
                 saveArrowBtnEl.addEventListener('click', saveHandler, { once: true });
                 cancelArrowBtnEl.addEventListener('click', cancelHandler, { once: true });
             }
 
             function createArrow(startEl, endEl, label) {
-                const lineOptions = { start: startEl, end: endEl, color: 'rgba(255, 255, 255, 0.7)', size: 3, path: 'fluid', endPlug: 'arrow1' };
+                const lineOptions = { start: startEl, end: endEl, color: 'rgba(255, 255, 255, 0.7)', size: 3, path: 'fluid' };
                 if (label) lineOptions.middleLabel = LeaderLine.captionLabel(label, { color: 'var(--accent-color)', outlineColor: 'var(--bg-color)', fontSize: 14 });
                 const line = new LeaderLine(lineOptions);
-
                 const lineId = `line-${Date.now()}`;
-                line.setOptions({
-                    startSocket: 'auto',
-                    endSocket: 'auto',
-                    startPlug: 'disc',
-                    endPlug: 'arrow1',
-                    startPlugSize: 1,
-                });
                 document.querySelector('.leader-line:last-of-type').id = lineId;
                 lines.push({ id: lineId, line, label });
 
@@ -745,13 +813,7 @@
                 }
             });
 
-
-            function updateLines() {
-                setTimeout(() => {
-                    lines.forEach(l => { try { l.line.position(); } catch (e) { /* ignore error */ } });
-                }, 10);
-            }
-
+            const updateLines = () => setTimeout(() => lines.forEach(l => { try { l.line.position(); } catch (e) { /* ignore */ } }), 10);
             new ResizeObserver(updateLines).observe(document.body);
             lanesWrapperEl.addEventListener('scroll', updateLines);
             document.addEventListener('click', (e) => {
@@ -767,12 +829,15 @@
                 document.querySelectorAll('.droppable-card-container').forEach(container => {
                     const cardEl = container.querySelector('.card-container');
                     const commentEl = container.querySelector('.card-comment');
-                    placedCards.push({
-                        cardId: parseInt(cardEl.dataset.cardId),
-                        instanceId: parseInt(cardEl.id.split('-').pop()),
-                        laneId: container.parentElement.dataset.laneId,
-                        comment: commentEl.value
-                    });
+                    const laneEl = container.closest('.lane-row');
+                    if (cardEl && laneEl) {
+                        placedCards.push({
+                            cardId: parseInt(cardEl.dataset.cardId),
+                            instanceId: parseInt(cardEl.id.split('-').pop()),
+                            laneId: laneEl.dataset.laneId,
+                            comment: commentEl.value
+                        });
+                    }
                 });
 
                 const arrowData = lines.map(({ line, label }) => ({
@@ -782,10 +847,11 @@
                 }));
 
                 const turnData = [];
-                document.querySelectorAll('.turn-column').forEach(column => {
+                document.querySelectorAll('.turn-column').forEach((column, index) => {
                     const turnNumber = column.querySelector('.turn-number-input').textContent;
                     const inkNumber = column.querySelector('.ink-number-input').textContent;
-                    turnData.push({ turn: turnNumber, ink: inkNumber });
+                    const rowCount = column.querySelectorAll('.lane-row').length;
+                    turnData.push({ id: column.dataset.turnId, turn: turnNumber, ink: inkNumber, rowCount });
                 });
 
                 return {
@@ -800,101 +866,41 @@
             }
 
             function generateHumanReadableText() {
-                let turnActions = {}; // Object to hold actions for each turn
-                const turnColumns = document.querySelectorAll('.turn-column');
-
-                // Initialize the turnActions object
-                turnColumns.forEach(column => {
-                    const turnNumber = column.querySelector('.turn-number-input').textContent;
-                    if (!turnActions[turnNumber]) {
-                        turnActions[turnNumber] = {
-                            ink: column.querySelector('.ink-number-input').textContent,
-                            plays: [],
-                            sings: [],
-                            shifts: [],
-                            others: [],
-                            shiftedInCardIds: new Set()
-                        };
-                    }
-                });
-
-                // Process all arrows and assign actions to the correct turn
-                lines.forEach(lineInfo => {
-                    const startEl = lineInfo.line.start;
-                    const endEl = lineInfo.line.end;
-                    const startCard = findCardById(parseInt(startEl.dataset.cardId));
-                    const endCard = findCardById(parseInt(endEl.dataset.cardId));
-                    const label = lineInfo.label || '';
-
-                    // Singing: determined by the song's (endEl) turn
-                    if (startCard.type === 'Character' && endCard.type === 'Action' && endCard.subtypes?.includes('Song')) {
-                        const endCardColumn = endEl.closest('.turn-column');
-                        if (endCardColumn) {
-                            const turnNumber = endCardColumn.querySelector('.turn-number-input').textContent;
-                            if (turnActions[turnNumber]) {
-                                turnActions[turnNumber].sings.push(`Sing: ${endCard.fullName} with ${startCard.fullName}`);
-                            }
-                        }
-                    }
-                    // Character Interactions (Shift/Other): determined by the starting character's turn
-                    else if (startCard.type === 'Character' && endCard.type === 'Character') {
-                        const startCardColumn = startEl.closest('.turn-column');
-                        if (startCardColumn) {
-                            const turnNumber = startCardColumn.querySelector('.turn-number-input').textContent;
-                            if (turnActions[turnNumber]) {
-                                if (label.toLowerCase().includes('shift') || !label) {
-                                    turnActions[turnNumber].shifts.push(`Shift: ${endCard.fullName} onto ${startCard.fullName}`);
-                                    const targetCardColumn = endEl.closest('.turn-column');
-                                    if (targetCardColumn) {
-                                        const targetTurnNumber = targetCardColumn.querySelector('.turn-number-input').textContent;
-                                        if (turnActions[targetTurnNumber]) {
-                                            turnActions[targetTurnNumber].shiftedInCardIds.add(endEl.id);
-                                        }
-                                    }
-                                } else {
-                                    turnActions[turnNumber].others.push(`${startCard.fullName} ${label} ${endCard.fullName}`);
-                                }
-                            }
-                        }
-                    }
-                });
-
-                // Process all placed cards to find "Plays"
-                turnColumns.forEach(column => {
-                    const turnNumber = column.querySelector('.turn-number-input').textContent;
-                    const turnData = turnActions[turnNumber];
-
-                    if (turnData) {
-                        column.querySelectorAll('.character-area .card-container').forEach(cardEl => {
-                            if (!turnData.shiftedInCardIds.has(cardEl.id)) {
-                                const cardData = findCardById(parseInt(cardEl.dataset.cardId));
-                                turnData.plays.push(cardData.fullName);
-                            }
-                        });
-                        column.querySelectorAll('.song-area .card-container').forEach(cardEl => {
-                            const isSung = lines.some(l => l.line.end.id === cardEl.id && findCardById(parseInt(l.line.start.dataset.cardId)).type === 'Character' && l.line.end.closest('.turn-column') === column);
-                            if (!isSung) {
-                                const cardData = findCardById(parseInt(cardEl.dataset.cardId));
-                                turnData.plays.push(cardData.fullName);
-                            }
-                        });
-                    }
-                });
-
-                // Format the final output text
                 let output = [];
-                const sortedTurns = Object.keys(turnActions).sort((a, b) => a - b);
+                const turnColumns = [...document.querySelectorAll('.turn-column')];
 
-                sortedTurns.forEach(turnNumber => {
-                    const turnData = turnActions[turnNumber];
-                    output.push(`Turn ${turnNumber}, Ink ${turnData.ink}`);
+                // Sort columns based on the turn number input
+                turnColumns.sort((a, b) => {
+                    const turnA = parseInt(a.querySelector('.turn-number-input').textContent) || 0;
+                    const turnB = parseInt(b.querySelector('.turn-number-input').textContent) || 0;
+                    return turnA - turnB;
+                });
 
-                    if (turnData.plays.length > 0) output.push(`Play: ${turnData.plays.join(' or ')}`);
-                    turnData.shifts.forEach(s => output.push(s));
-                    turnData.sings.forEach(s => output.push(s));
-                    if (turnData.others.length > 0) output.push(`Other Interactions: ${turnData.others.join(', ')}`);
+                turnColumns.forEach(column => {
+                    const turnNumber = column.querySelector('.turn-number-input').textContent;
+                    const inkNumber = column.querySelector('.ink-number-input').textContent;
+                    output.push(`Turn ${turnNumber}, Ink ${inkNumber}`);
 
-                    output.push('');
+                    const rows = column.querySelectorAll('.lane-row');
+                    const playLines = [];
+
+                    rows.forEach(row => {
+                        const cardsInRow = [...row.querySelectorAll('.card-container')];
+                        if (cardsInRow.length > 0) {
+                            const cardNames = cardsInRow.map(c => c.dataset.cardName);
+                            playLines.push(cardNames.join(' and '));
+                        }
+                    });
+
+                    if (playLines.length > 0) {
+                        let playsText = `Play: ${playLines[0]}`;
+                        if (playLines.length > 1) {
+                            playsText += '\n' + playLines.slice(1).map(line => `or\nPlay: ${line}`).join('\n');
+                        }
+                        output.push(playsText);
+                    }
+
+                    output.push(''); // Add a blank line between turns
                 });
 
                 return output.join('\n');
@@ -912,45 +918,46 @@
 
             function loadState(state) {
                 clearBoard();
-
                 decklistInputEl.value = state.decklist || '';
                 decklistUrlInputEl.value = state.decklistUrl || '';
-
-                if (decklistInputEl.value) {
-                    loadDeck();
-                }
-
+                if (decklistInputEl.value) loadDeck();
                 nextCardInstanceId = state.nextCardInstanceId || 0;
-                for (let i = 0; i < state.turnCount; i++) addTurnColumn();
 
+                // Recreate turn columns and rows
                 if (state.turnData) {
-                    const turnColumns = document.querySelectorAll('.turn-column');
-                    state.turnData.forEach((data, index) => {
-                        if (turnColumns[index]) {
-                            turnColumns[index].querySelector('.turn-number-input').textContent = data.turn;
-                            turnColumns[index].querySelector('.ink-number-input').textContent = data.ink;
+                    state.turnData.forEach(data => {
+                        addTurnColumn(); // This increments global turnCount
+                        const newColumn = document.querySelector(`.turn-column[data-turn-id="${turnCount}"]`);
+                        if (newColumn) {
+                            newColumn.querySelector('.turn-number-input').textContent = data.turn;
+                            newColumn.querySelector('.ink-number-input').textContent = data.ink;
+                            const laneGrid = newColumn.querySelector('.lane-grid');
+                            laneGrid.innerHTML = ''; // Clear default row
+                            for (let i = 1; i <= data.rowCount; i++) {
+                                laneGrid.appendChild(createLaneRow(turnCount, i));
+                            }
                         }
                     });
                 }
 
+                // Place cards
                 state.cards.forEach(cardState => {
                     const cardData = findCardById(cardState.cardId);
                     if (cardData) {
                         const { cardContainer, commentInput } = createCardDOM(cardData, cardState.instanceId);
                         commentInput.value = cardState.comment;
-
                         if (commentInput.value) {
                             setTimeout(() => {
                                 commentInput.style.height = 'auto';
                                 commentInput.style.height = `${commentInput.scrollHeight}px`;
                             }, 0);
                         }
-
                         const targetLane = document.querySelector(`[data-lane-id="${cardState.laneId}"]`);
                         if (targetLane) targetLane.appendChild(cardContainer);
                     }
                 });
 
+                // Recreate arrows
                 setTimeout(() => {
                     state.arrows.forEach(arrowState => {
                         const startEl = document.getElementById(arrowState.start);
@@ -982,12 +989,12 @@
                     useCORS: true,
                     backgroundColor: getComputedStyle(document.body).getPropertyValue('--bg-color'),
                     scrollX: 0,
-                    scrollY: 0,
+                    scrollY: -window.scrollY,
                     windowWidth: lanesWrapperEl.scrollWidth,
-                    windowHeight: lanesWrapperEl.scrollHeight,
+                    windowHeight: lanesWrapperEl.scrollHeight
                 }).then(canvas => {
                     const link = document.createElement('a');
-                    link.download = 'lorcana-map.png';
+                    link.download = 'lorcana-turn-map.png';
                     link.href = canvas.toDataURL('image/png');
                     link.click();
                 }).catch(err => {
@@ -998,7 +1005,6 @@
                     document.querySelectorAll('.leader-line').forEach(l => l.style.visibility = 'visible');
                 });
             });
-
 
             importBtnEl.addEventListener('click', () => { importModalEl.style.display = 'flex'; });
             closeExportModalBtnEl.addEventListener('click', () => { exportModalEl.style.display = 'none'; });
@@ -1016,7 +1022,7 @@
             });
 
             // --- FINAL SETUP ---
-            for (let i = 0; i < 5; i++) addTurnColumn();
+            for (let i = 0; i < 4; i++) addTurnColumn();
         });
     </script>
 </body>
