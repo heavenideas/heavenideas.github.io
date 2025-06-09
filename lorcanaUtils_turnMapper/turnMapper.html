@@ -482,7 +482,7 @@
             <h3>Human-Readable Export</h3>
             <p>Copy the text below to share.</p>
             <textarea id="human-export-text-output" readonly
-                style="height: 250px; width: 100%; background-color: var(--bg-color); color: var(--text-color); border-radius: 8px;"></textarea>
+                style="height: 250px; width: 100%; background-color: var(--bg-color); color: var(--text-color); border-radius: 8px; white-space: pre-wrap;"></textarea>
             <button id="close-human-export-modal-btn" class="btn">Close</button>
         </div>
     </div>
@@ -530,7 +530,7 @@
             function saveSessionToLocalStorage() {
                 try {
                     const state = gatherState();
-                    console.log('Saving session to localStorage:', state);
+                    // console.log('Saving session to localStorage:', state);
                     localStorage.setItem('lorcanaTurnMapperSession', btoa(JSON.stringify(state)));
                 } catch (e) {
                     console.error('Failed to save session:', e);
@@ -542,7 +542,7 @@
                     if (data) {
                         const state = JSON.parse(atob(data));
                         loadState(state);
-                        console.log('Loaded session from localStorage:', state);
+                        // console.log('Loaded session from localStorage:', state);
                         return true;
                     }
                 } catch (e) {
@@ -608,7 +608,7 @@
                         }
                     });
                     allCards = Array.from(uniqueCards.values());
-                    fuse = new Fuse(allCards, { keys: ['fullName', 'name', 'version'], includeScore: true, threshold: 0.4 });
+                    fuse = new Fuse(allCards, { keys: ['fullName', 'name', 'version', 'bodyText'], includeScore: true, threshold: 0.4 });
                     displayCardsInSidebar(allCards.slice(0, 50)); // Show some initial cards
 
                     // --- SESSION RESTORE OR DEFAULT SETUP ---
@@ -702,7 +702,6 @@
                         showArrowModal(arrowStartElement, cardEl);
                     }
                 });
-                saveSessionToLocalStorage();
 
                 return { cardContainer, commentInput: commentEl };
             }
@@ -783,6 +782,7 @@
                         const instanceId = nextCardInstanceId++;
                         const { cardContainer } = createCardDOM(draggedCardData, instanceId);
                         zone.appendChild(cardContainer);
+                        draggedCardData = null; // Clear after use
                     } else if (droppedCardId) {
                         const cardInstanceContainer = document.getElementById(droppedCardId)?.closest('.droppable-card-container');
                         if (cardInstanceContainer) {
@@ -790,10 +790,9 @@
                             updateLines();
                         }
                     }
-                    draggedCardData = null;
                     alignBoardTops(); // Align sections after dropping a card
+                    saveSessionToLocalStorage();
                 });
-                saveSessionToLocalStorage();
             };
 
             function makeCardMovable(cardEl, container) {
@@ -805,7 +804,6 @@
                 });
                 cardEl.addEventListener('dragend', () => {
                     container.style.opacity = '1';
-                    draggedCardData = null;
                     updateLines();
                     saveSessionToLocalStorage();
                 });
@@ -899,6 +897,7 @@
                         const instanceId = nextCardInstanceId++;
                         const { cardContainer } = createCardDOM(draggedCardData, instanceId);
                         newRow.appendChild(cardContainer);
+                        draggedCardData = null; // Clear after use
                     } else if (droppedCardId) {
                         const cardInstanceContainer = document.getElementById(droppedCardId)?.closest('.droppable-card-container');
                         if (cardInstanceContainer) newRow.appendChild(cardInstanceContainer);
@@ -907,14 +906,11 @@
                     laneGrid.appendChild(newRow);
                     updateLines();
                     alignBoardTops(); // Align sections on drop
-                    draggedCardData = null;
                 });
 
                 laneGrid.appendChild(createLaneRow(type, turnId, 1));
-                saveSessionToLocalStorage();
 
                 section.append(sectionTitle, laneGrid);
-                saveSessionToLocalStorage();
                 return section;
             }
 
@@ -983,7 +979,6 @@
                     arrowStartElement.style.outline = '';
                     arrowStartElement = null;
                 }
-                saveSessionToLocalStorage();
             });
 
             // --- IMPORT/EXPORT ---
@@ -1042,68 +1037,195 @@
             }
 
             function generateHumanReadableText() {
-                let output = [];
-                const turnColumns = [...document.querySelectorAll('.turn-column')];
+                // Ensure we have the latest card data available
+                if (!allCards.length) {
+                    console.error("Card data not loaded yet.");
+                    return "Error: Card data not available. Please wait and try again.";
+                }
+                const cardDataMap = new Map(allCards.map(c => [c.id, c]));
 
-                turnColumns.sort((a, b) => {
+                const state = gatherState();
+                let outputLines = [];
+
+                // 1. Overall Comments
+                if (state.overallComment && state.overallComment.trim()) {
+                    outputLines.push("Overall Comments:");
+                    outputLines.push(state.overallComment);
+                }
+
+                // 2. Process all interactions (arrows) and group them by turn number
+                const interactionsByTurn = {};
+                const turnColumns = [...document.querySelectorAll('.turn-column')];
+                turnColumns.forEach(column => {
+                    const turnNumber = column.querySelector('.turn-number-input').textContent;
+                    if (!interactionsByTurn[turnNumber]) {
+                        // Initialize sets for interactions AND a set for card IDs to exclude from 'Play'
+                        interactionsByTurn[turnNumber] = { shifts: [], sings: [], others: [], excludedIds: new Set() };
+                    }
+                });
+
+
+                state.arrows.forEach(arrow => {
+                    const startCardEl = document.getElementById(arrow.start);
+                    const endCardEl = document.getElementById(arrow.end);
+                    if (!startCardEl || !endCardEl) return;
+
+                    const startCardId = parseInt(startCardEl.dataset.cardId);
+                    const endCardId = parseInt(endCardEl.dataset.cardId);
+                    const startCardData = cardDataMap.get(startCardId);
+                    const endCardData = cardDataMap.get(endCardId);
+                    if (!startCardData || !endCardData) return;
+
+                    const startCardName = startCardData.fullName;
+                    const endCardName = endCardData.fullName;
+                    const annotation = (arrow.label || "").toLowerCase();
+
+                    const startTurnColumn = startCardEl.closest('.turn-column');
+                    const endTurnColumn = endCardEl.closest('.turn-column');
+
+                    if (!startTurnColumn || !endTurnColumn) return;
+
+                    const startTurnNumber = startTurnColumn.querySelector('.turn-number-input').textContent;
+                    const endTurnNumber = endTurnColumn.querySelector('.turn-number-input').textContent;
+
+                    // Shift: Character -> Character OR annotation includes "shift"
+                    // Turn determined by the card being played (origin of arrow)
+                    const isShiftInteraction = (startCardData.type === 'Character' && endCardData.type === 'Character') || annotation.includes('shift');
+                    if (isShiftInteraction) {
+                        let costText = "";
+                        // The Shift property on the card object is the most reliable source for cost
+                        if (startCardData.Shift !== undefined) {
+                            costText = `${startCardData.Shift} Ink`;
+                        } else {
+                            // Fallback to parsing abilities text
+                            const shiftAbility = startCardData.Abilities?.find(a => a.toUpperCase().includes('SHIFT'));
+                            if (shiftAbility) {
+                                const costMatch = shiftAbility.match(/SHIFT\s+(\d+)/i);
+                                if (costMatch && costMatch[1]) {
+                                    costText = `${costMatch[1]} Ink`;
+                                } else {
+                                    // Capture text within parentheses for special costs
+                                    const specialCostMatch = shiftAbility.match(/\(([^)]+)\)/);
+                                    costText = specialCostMatch ? specialCostMatch[1] : 'special rules';
+                                }
+                            } else {
+                                costText = 'its cost'; // Final fallback
+                            }
+                        }
+                        const turnToUpdate = interactionsByTurn[startTurnNumber];
+                        if (turnToUpdate) {
+                            turnToUpdate.shifts.push(`Shift: ${startCardName} onto ${endCardName} for ${costText}`);
+                            // Exclude the shifting card from being 'Played' on its turn
+                            turnToUpdate.excludedIds.add(startCardEl.id);
+                        }
+                        return;
+                    }
+
+                    // Sing: Character -> Song
+                    // Turn determined by the Song card's location
+                    if (startCardData.type === 'Character' && endCardData.type === 'Song') {
+                        const turnToUpdate = interactionsByTurn[endTurnNumber];
+                        if (turnToUpdate) {
+                            turnToUpdate.sings.push(`Sing: ${endCardName} with ${startCardName}`);
+                            // Exclude the sung song from being 'Played' on its turn
+                            turnToUpdate.excludedIds.add(endCardEl.id);
+                        }
+                        return;
+                    }
+
+                    // Other Interactions: Any other arrow with an annotation
+                    // Turn determined by origin of arrow
+                    if (arrow.label) {
+                        const turnToUpdate = interactionsByTurn[startTurnNumber];
+                        if (turnToUpdate) turnToUpdate.others.push(`Other Interactions: ${startCardName} ${arrow.label} ${endCardName}`);
+                    }
+                });
+
+                // 3. Process each turn column in sorted order
+                const sortedTurnColumns = turnColumns.sort((a, b) => {
                     const turnA = parseInt(a.querySelector('.turn-number-input').textContent) || 0;
                     const turnB = parseInt(b.querySelector('.turn-number-input').textContent) || 0;
                     return turnA - turnB;
                 });
 
-                turnColumns.forEach(column => {
+                let isFirstSection = outputLines.length === 0;
+
+                sortedTurnColumns.forEach(column => {
                     const turnNumber = column.querySelector('.turn-number-input').textContent;
                     const inkNumber = column.querySelector('.ink-number-input').textContent;
-                    let turnHasContent = false;
+                    const turnComment = column.querySelector('.turn-comment-box').value.trim();
+                    const turnInteractions = interactionsByTurn[turnNumber];
+                    const excludedIds = turnInteractions ? turnInteractions.excludedIds : new Set();
 
-                    let turnLines = [];
+                    let turnContent = [];
 
-                    // Process Songs
-                    const songRows = column.querySelector('[data-grid-type="song"]').querySelectorAll('.lane-row');
-                    const songPlayLines = [];
-                    songRows.forEach(row => {
-                        const cardsInRow = [...row.querySelectorAll('.card-container')];
+                    // Get "Play" lines, excluding shifted/sung cards
+                    const playRows = [...column.querySelectorAll('.lane-row')];
+                    let playLines = [];
+                    playRows.forEach(row => {
+                        const cardsInRow = [...row.querySelectorAll('.card-container')]
+                            .filter(c => !excludedIds.has(c.id)) // Filter out excluded cards
+                            .map(c => c.dataset.cardName);
                         if (cardsInRow.length > 0) {
-                            turnHasContent = true;
-                            songPlayLines.push(cardsInRow.map(c => c.dataset.cardName).join(' and '));
+                            playLines.push(`Play: ${cardsInRow.join(' AND ')}`);
                         }
                     });
-                    if (songPlayLines.length > 0) {
-                        let songsText = `Play Song: ${songPlayLines[0]}`;
-                        if (songPlayLines.length > 1) {
-                            songsText += '\n' + songPlayLines.slice(1).map(line => `or\nPlay Song: ${line}`).join('\n');
-                        }
-                        turnLines.push(songsText);
+                    if (playLines.length > 0) {
+                        turnContent.push(playLines.join('\nor\n'));
                     }
 
-
-                    // Process Board
-                    const boardRows = column.querySelector('[data-grid-type="board"]').querySelectorAll('.lane-row');
-                    const boardPlayLines = [];
-                    boardRows.forEach(row => {
-                        const cardsInRow = [...row.querySelectorAll('.card-container')];
-                        if (cardsInRow.length > 0) {
-                            turnHasContent = true;
-                            boardPlayLines.push(cardsInRow.map(c => c.dataset.cardName).join(' and '));
-                        }
-                    });
-
-                    if (boardPlayLines.length > 0) {
-                        let playsText = `Play: ${boardPlayLines[0]}`;
-                        if (boardPlayLines.length > 1) {
-                            playsText += '\n' + boardPlayLines.slice(1).map(line => `or\nPlay: ${line}`).join('\n');
-                        }
-                        turnLines.push(playsText);
+                    // Get other interaction lines
+                    if (turnInteractions) {
+                        if (turnInteractions.shifts.length > 0) turnContent.push(...turnInteractions.shifts);
+                        if (turnInteractions.sings.length > 0) turnContent.push(...turnInteractions.sings);
+                        if (turnInteractions.others.length > 0) turnContent.push(...turnInteractions.others);
                     }
 
-                    if (turnHasContent) {
-                        output.push(`Turn ${turnNumber}, Ink ${inkNumber}`);
-                        output.push(...turnLines);
-                        output.push('');
+                    const hasComment = turnComment.length > 0;
+
+                    if (turnContent.length > 0 || hasComment) {
+                        if (isFirstSection) {
+                            isFirstSection = false;
+                        } else {
+                            outputLines.push("-----------------------------");
+                        }
+
+                        outputLines.push(`Turn ${turnNumber}, Ink ${inkNumber}\n`);
+
+                        if (turnContent.length > 0) {
+                            outputLines.push(turnContent.join('\n'));
+                        }
+
+                        if (hasComment) {
+                            outputLines.push(`\nTurn ${turnNumber} comments:`);
+                            outputLines.push(turnComment);
+                        }
                     }
                 });
 
-                return output.join('\n');
+                // Add separator before Deck URL/List if there was turn content
+                if (!isFirstSection) {
+                    outputLines.push("-----------------------------");
+                }
+
+                // 4. Deck URL
+                if (state.decklistUrl && state.decklistUrl.trim()) {
+                    outputLines.push("Deck Url:");
+                    outputLines.push(state.decklistUrl);
+                    outputLines.push("\n-----------------------------");
+                }
+
+                // 5. Decklist
+                if (state.decklist && state.decklist.trim()) {
+                    outputLines.push("Decklist:");
+                    outputLines.push(state.decklist);
+                    outputLines.push("\n-----------------------------");
+                }
+
+                // 6. Footer
+                outputLines.push("Generated by Lorcana Turn Mapper");
+
+                return outputLines.join('\n').replace(/\n{2,}/g, '\n\n').trim();
             }
 
 
@@ -1248,16 +1370,21 @@
 
             // --- CLEAR SESSION ---
             clearSessionBtnEl.addEventListener('click', () => {
-                console.log('User clicked to clear session');
-                if (confirm('Are you sure you want to clear your session?')) {
+                if (confirm('Are you sure you want to clear your session? This cannot be undone.')) {
                     localStorage.removeItem('lorcanaTurnMapperSession');
                     clearBoard();
                     for (let i = 0; i < 4; i++) addTurnColumn();
                 }
             });
 
-            // Save overall comment on input
+            // Save on any interaction
             document.getElementById('overall-comments').addEventListener('input', saveSessionToLocalStorage);
+            document.body.addEventListener('change', (e) => {
+                if (e.target.matches('.turn-number-input, .ink-number-input, .turn-comment-box')) {
+                    saveSessionToLocalStorage();
+                }
+            });
+
 
         });
     </script>
