@@ -217,9 +217,18 @@
         .turn-column {
             min-width: 300px;
             border-right: 1px solid var(--border-color);
-            display: flex;
-            flex-direction: column;
+            display: grid;
+            grid-template-rows: auto 1fr auto auto;
             padding: 0.5rem;
+            height: 100%;
+        }
+
+        .turn-column .lane-section.board-section {
+            align-self: start;
+        }
+
+        .turn-column .lane-section {
+            width: 100%;
         }
 
         .lane-section {
@@ -273,7 +282,6 @@
             border: 1px solid var(--accent-color);
             background-color: var(--secondary-color);
         }
-
 
         .turn-label-container {
             font-weight: bold;
@@ -387,7 +395,8 @@
                 <button id="export-text-btn" class="btn">Export as Encoded Text</button>
                 <button id="export-human-text-btn" class="btn">Export Turn By Turn Text</button>
                 <button id="export-png-btn" class="btn">Export as PNG</button>
-                <button id="clear-session-btn" class="btn btn-secondary" style="margin-top:1rem;background-color:var(--danger-color);color:white;">Clear Session</button>
+                <button id="clear-session-btn" class="btn btn-secondary"
+                    style="margin-top:1rem;background-color:var(--danger-color);color:white;">Clear Session</button>
             </div>
 
             <div class="sidebar-section">
@@ -396,7 +405,7 @@
                 <button id="load-deck-btn" class="btn">Load Deck</button>
                 <input type="url" id="decklist-url-input" placeholder="Decklist URL (Reference only)">
             </div>
-            
+
 
             <div class="sidebar-section">
                 <h3>Card Search</h3>
@@ -410,8 +419,10 @@
         </div>
 
         <div id="main-content">
-            <div id="overall-comments-container" style="padding: 1rem; background: var(--primary-color); border-bottom: 1px solid var(--border-color);">
-                <textarea id="overall-comments" placeholder="Overall comments..." style="width:100%; min-height: 60px; background: var(--secondary-color); color: var(--text-color); border-radius: 8px; border: 1px solid var(--border-color); padding: 0.5rem; box-sizing: border-box; font-family: inherit;"></textarea>
+            <div id="overall-comments-container"
+                style="padding: 1rem; background: var(--primary-color); border-bottom: 1px solid var(--border-color);">
+                <textarea id="overall-comments" placeholder="Overall comments..."
+                    style="width:100%; min-height: 60px; background: var(--secondary-color); color: var(--text-color); border-radius: 8px; border: 1px solid var(--border-color); padding: 0.5rem; box-sizing: border-box; font-family: inherit;"></textarea>
             </div>
             <div id="lanes-wrapper">
                 <!-- Turn columns will be added dynamically -->
@@ -469,6 +480,31 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+
+            // --- SECTION ALIGNMENT ---
+            // This function ensures that all "Song" sections have the same height,
+            // which in turn aligns the "Board" sections below them.
+            function alignBoardTops() {
+                const songSections = document.querySelectorAll('.lane-section-song');
+                if (songSections.length < 2) return; // No need to align if there's 0 or 1 column
+
+                // Reset height to allow shrinking before recalculating
+                songSections.forEach(s => s.style.minHeight = 'auto');
+
+                // Use requestAnimationFrame to wait for the DOM to reflow after the reset
+                requestAnimationFrame(() => {
+                    let maxHeight = 0;
+                    songSections.forEach(s => {
+                        if (s.offsetHeight > maxHeight) {
+                            maxHeight = s.offsetHeight;
+                        }
+                    });
+
+                    // Set all song sections to the height of the tallest one
+                    songSections.forEach(s => s.style.minHeight = `${maxHeight}px`);
+                });
+            }
+
             // --- LOCAL STORAGE SESSION HELPERS ---
             function saveSessionToLocalStorage() {
                 try {
@@ -623,6 +659,7 @@
                     commentEl.style.height = 'auto';
                     commentEl.style.height = `${commentEl.scrollHeight}px`;
                     updateLines();
+                    alignBoardTops(); // Align sections on comment change
                     saveSessionToLocalStorage();
                 });
 
@@ -707,6 +744,7 @@
                         parentRow.remove();
                     }
                 }
+                alignBoardTops(); // Align sections after deleting a card
                 saveSessionToLocalStorage();
             }
 
@@ -732,6 +770,7 @@
                         }
                     }
                     draggedCardData = null;
+                    alignBoardTops(); // Align sections after dropping a card
                 });
                 saveSessionToLocalStorage();
             };
@@ -760,19 +799,27 @@
 
                 // Create Song Area
                 const songSection = createLaneSection('song', turnCount, 'Songs');
-
-                // Create Character/Board Area
+                // Create Board Area
                 const boardSection = createLaneSection('board', turnCount, 'Board');
                 boardSection.classList.add('board-section');
 
+                // Explicitly set grid rows for robustness
+                songSection.style.gridRow = '1';
+                boardSection.style.gridRow = '2';
+
+                turnColumn.appendChild(songSection);
+                turnColumn.appendChild(boardSection);
+
+                // Label container
                 const labelContainer = document.createElement('div');
                 labelContainer.className = 'turn-label-container';
                 labelContainer.innerHTML = `
                     <div>TURN <span class="turn-number-input" contenteditable="true">${turnCount}</span></div>
                     <div>INK <span class="ink-number-input" contenteditable="true">${turnCount}</span></div>
                 `;
+                labelContainer.style.gridRow = '3';
+                turnColumn.appendChild(labelContainer);
 
-                turnColumn.append(songSection, boardSection, labelContainer);
                 // Add turn lane comment box
                 const turnCommentContainer = document.createElement('div');
                 turnCommentContainer.style.marginTop = '0.5rem';
@@ -790,14 +837,18 @@
                 turnCommentBox.style.fontFamily = 'inherit';
                 turnCommentBox.addEventListener('input', saveSessionToLocalStorage);
                 turnCommentContainer.appendChild(turnCommentBox);
+                turnCommentContainer.style.gridRow = '4';
                 turnColumn.appendChild(turnCommentContainer);
                 lanesWrapperEl.appendChild(turnColumn);
+
+                alignBoardTops(); // Align sections when a new turn is added
                 saveSessionToLocalStorage();
             };
 
             function createLaneSection(type, turnId, title) {
                 const section = document.createElement('div');
-                section.className = 'lane-section';
+                // Add a specific class for the section type for easier selection
+                section.className = `lane-section lane-section-${type}`;
 
                 const sectionTitle = document.createElement('div');
                 sectionTitle.className = 'lane-section-title';
@@ -834,22 +885,13 @@
 
                     laneGrid.appendChild(newRow);
                     updateLines();
+                    alignBoardTops(); // Align sections on drop
                     draggedCardData = null;
                 });
 
                 laneGrid.appendChild(createLaneRow(type, turnId, 1));
                 saveSessionToLocalStorage();
 
-                /*
-                const addRowBtn = document.createElement('button');
-                addRowBtn.textContent = "Add 'OR' Condition";
-                addRowBtn.className = 'btn btn-small btn-secondary';
-                addRowBtn.addEventListener('click', () => {
-                    const rowCount = laneGrid.children.length + 1;
-                    laneGrid.appendChild(createLaneRow(type, turnId, rowCount));
-                });
-                */
-               
                 section.append(sectionTitle, laneGrid);
                 saveSessionToLocalStorage();
                 return section;
@@ -1110,6 +1152,7 @@
                         if (startEl && endEl) createArrow(startEl, endEl, arrowState.label);
                     });
                     updateLines();
+                    alignBoardTops(); // Align sections after loading state
                 }, 100);
 
                 // Restore turn comments
@@ -1185,7 +1228,7 @@
             // --- CLEAR SESSION ---
             clearSessionBtnEl.addEventListener('click', () => {
                 console.log('User clicked to clear session');
-                if (confirm('Are you sure you want to clear your session?')){
+                if (confirm('Are you sure you want to clear your session?')) {
                     localStorage.removeItem('lorcanaTurnMapperSession');
                     clearBoard();
                     for (let i = 0; i < 4; i++) addTurnColumn();
