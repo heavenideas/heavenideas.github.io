@@ -373,6 +373,7 @@
 </head>
 
 <body>
+
     <header>
         <h1>Lorcana Turn Mapper</h1>
         <p>Map out your turns with grid-based logic. Horizonal cards are AND, vertical rows are OR.</p>
@@ -409,6 +410,9 @@
         </div>
 
         <div id="main-content">
+            <div id="overall-comments-container" style="padding: 1rem; background: var(--primary-color); border-bottom: 1px solid var(--border-color);">
+                <textarea id="overall-comments" placeholder="Overall comments..." style="width:100%; min-height: 60px; background: var(--secondary-color); color: var(--text-color); border-radius: 8px; border: 1px solid var(--border-color); padding: 0.5rem; box-sizing: border-box; font-family: inherit;"></textarea>
+            </div>
             <div id="lanes-wrapper">
                 <!-- Turn columns will be added dynamically -->
             </div>
@@ -769,6 +773,24 @@
                 `;
 
                 turnColumn.append(songSection, boardSection, labelContainer);
+                // Add turn lane comment box
+                const turnCommentContainer = document.createElement('div');
+                turnCommentContainer.style.marginTop = '0.5rem';
+                const turnCommentBox = document.createElement('textarea');
+                turnCommentBox.className = 'turn-comment-box';
+                turnCommentBox.placeholder = 'Comments for this turn...';
+                turnCommentBox.style.width = '100%';
+                turnCommentBox.style.minHeight = '40px';
+                turnCommentBox.style.background = 'var(--secondary-color)';
+                turnCommentBox.style.color = 'var(--text-color)';
+                turnCommentBox.style.borderRadius = '8px';
+                turnCommentBox.style.border = '1px solid var(--border-color)';
+                turnCommentBox.style.padding = '0.5rem';
+                turnCommentBox.style.boxSizing = 'border-box';
+                turnCommentBox.style.fontFamily = 'inherit';
+                turnCommentBox.addEventListener('input', saveSessionToLocalStorage);
+                turnCommentContainer.appendChild(turnCommentBox);
+                turnColumn.appendChild(turnCommentContainer);
                 lanesWrapperEl.appendChild(turnColumn);
                 saveSessionToLocalStorage();
             };
@@ -818,6 +840,7 @@
                 laneGrid.appendChild(createLaneRow(type, turnId, 1));
                 saveSessionToLocalStorage();
 
+                /*
                 const addRowBtn = document.createElement('button');
                 addRowBtn.textContent = "Add 'OR' Condition";
                 addRowBtn.className = 'btn btn-small btn-secondary';
@@ -825,8 +848,9 @@
                     const rowCount = laneGrid.children.length + 1;
                     laneGrid.appendChild(createLaneRow(type, turnId, rowCount));
                 });
-
-                section.append(sectionTitle, laneGrid, addRowBtn);
+                */
+               
+                section.append(sectionTitle, laneGrid);
                 saveSessionToLocalStorage();
                 return section;
             }
@@ -916,6 +940,16 @@
                     }
                 });
 
+                // Gather turn comments
+                const turnComments = [];
+                document.querySelectorAll('.turn-column').forEach((column) => {
+                    const commentBox = column.querySelector('.turn-comment-box');
+                    turnComments.push(commentBox ? commentBox.value : '');
+                });
+
+                // Gather overall comment
+                const overallComment = document.getElementById('overall-comments')?.value || '';
+
                 const arrowData = lines.map(({ line, label }) => ({
                     start: line.start.id,
                     end: line.end.id,
@@ -938,7 +972,9 @@
                     nextCardInstanceId,
                     decklist: decklistInputEl.value,
                     decklistUrl: decklistUrlInputEl.value,
-                    turnData: turnData
+                    turnData: turnData,
+                    turnComments,
+                    overallComment
                 };
             }
 
@@ -1015,6 +1051,9 @@
                 cardElements = {};
                 turnCount = 0;
                 nextCardInstanceId = 0;
+                document.getElementById('overall-comments').value = '';
+                decklistInputEl.value = '';
+                decklistUrlInputEl.value = '';
             }
 
             function loadState(state) {
@@ -1072,6 +1111,19 @@
                     });
                     updateLines();
                 }, 100);
+
+                // Restore turn comments
+                if (state.turnComments) {
+                    document.querySelectorAll('.turn-column').forEach((column, idx) => {
+                        const commentBox = column.querySelector('.turn-comment-box');
+                        if (commentBox) commentBox.value = state.turnComments[idx] || '';
+                    });
+                }
+                // Restore overall comment
+                if (state.overallComment !== undefined) {
+                    const overallBox = document.getElementById('overall-comments');
+                    if (overallBox) overallBox.value = state.overallComment;
+                }
                 saveSessionToLocalStorage();
             }
 
@@ -1139,6 +1191,9 @@
                     for (let i = 0; i < 4; i++) addTurnColumn();
                 }
             });
+
+            // Save overall comment on input
+            document.getElementById('overall-comments').addEventListener('input', saveSessionToLocalStorage);
 
         });
     </script>
