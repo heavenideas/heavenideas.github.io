@@ -381,11 +381,21 @@
     <div id="app-container">
         <div id="sidebar">
             <div class="sidebar-section">
+                <h3>Import / Export</h3>
+                <button id="import-btn" class="btn btn-secondary">Import from Encoded Text</button>
+                <button id="export-text-btn" class="btn">Export as Encoded Text</button>
+                <button id="export-human-text-btn" class="btn">Export Turn By Turn Text</button>
+                <button id="export-png-btn" class="btn">Export as PNG</button>
+                <button id="clear-session-btn" class="btn btn-secondary" style="margin-top:1rem;background-color:var(--danger-color);color:white;">Clear Session</button>
+            </div>
+
+            <div class="sidebar-section">
                 <h3>Decklist</h3>
                 <textarea id="decklist-input" placeholder="Paste decklist here..."></textarea>
                 <button id="load-deck-btn" class="btn">Load Deck</button>
                 <input type="url" id="decklist-url-input" placeholder="Decklist URL (Reference only)">
             </div>
+            
 
             <div class="sidebar-section">
                 <h3>Card Search</h3>
@@ -395,14 +405,6 @@
                 </div>
             </div>
 
-            <div class="sidebar-section">
-                <h3>Import / Export</h3>
-                <button id="import-btn" class="btn btn-secondary">Import from Encoded Text</button>
-                <button id="export-text-btn" class="btn">Export as Encoded Text</button>
-                <button id="export-human-text-btn" class="btn">Export Turn By Turn Text</button>
-                <button id="export-png-btn" class="btn">Export as PNG</button>
-                <button id="clear-session-btn" class="btn btn-secondary" style="margin-top:1rem;background-color:var(--danger-color);color:white;">Clear Session</button>
-            </div>
 
         </div>
 
@@ -1129,14 +1131,14 @@
             });
 
             // --- CLEAR SESSION ---
-            clearSessionBtnEl.addEventListerner('click', () => {
+            clearSessionBtnEl.addEventListener('click', () => {
                 console.log('User clicked to clear session');
                 if (confirm('Are you sure you want to clear your session?')){
                     localStorage.removeItem('lorcanaTurnMapperSession');
                     clearBoard();
                     for (let i = 0; i < 4; i++) addTurnColumn();
                 }
-            })
+            });
 
         });
     </script>
