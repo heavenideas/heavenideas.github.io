@@ -410,6 +410,7 @@
         </div>
 
         <div id="main-content">
+            <div id="tab-bar" style="display: flex; align-items: center; background: var(--primary-color); border-bottom: 1px solid var(--border-color); padding: 0.5rem 1rem 0.5rem 1rem;"></div>
             <div id="overall-comments-container" style="padding: 1rem; background: var(--primary-color); border-bottom: 1px solid var(--border-color);">
                 <textarea id="overall-comments" placeholder="Overall comments..." style="width:100%; min-height: 60px; background: var(--secondary-color); color: var(--text-color); border-radius: 8px; border: 1px solid var(--border-color); padding: 0.5rem; box-sizing: border-box; font-family: inherit;"></textarea>
             </div>
@@ -492,6 +493,125 @@
                     console.error('Failed to load session:', e);
                 }
                 return false;
+            }
+
+            // --- PAGE TABS STATE ---
+            let pages = [];
+            let currentPageIndex = 0;
+
+            function savePagesToLocalStorage() {
+                localStorage.setItem('lorcanaTurnMapperPages', btoa(JSON.stringify(pages)));
+                localStorage.setItem('lorcanaTurnMapperCurrentPage', currentPageIndex);
+            }
+            function loadPagesFromLocalStorage() {
+                try {
+                    const data = localStorage.getItem('lorcanaTurnMapperPages');
+                    const idx = localStorage.getItem('lorcanaTurnMapperCurrentPage');
+                    if (data) {
+                        pages = JSON.parse(atob(data));
+                        currentPageIndex = idx ? parseInt(idx) : 0;
+                        return true;
+                    }
+                } catch (e) { console.error('Failed to load pages:', e); }
+                return false;
+            }
+            function getCurrentPageState() {
+                return gatherState();
+            }
+            function setCurrentPageState(state) {
+                // Clear only the relevant content, not the tab bar
+                const overall = document.getElementById('overall-comments');
+                if (overall) overall.value = '';
+                const lanes = document.getElementById('lanes-wrapper');
+                if (lanes) lanes.innerHTML = '';
+                const addTurnBtn = document.getElementById('add-turn-btn');
+                if (addTurnBtn) addTurnBtn.style.display = '';
+                loadState(state);
+            }
+            function updateTabBar() {
+                const tabBar = document.getElementById('tab-bar');
+                if (!tabBar) return;
+                tabBar.innerHTML = '';
+                pages.forEach((page, idx) => {
+                    const tab = document.createElement('div');
+                    tab.className = 'tab';
+                    tab.style.padding = '0.5rem 1rem';
+                    tab.style.marginRight = '0.5rem';
+                    tab.style.background = idx === currentPageIndex ? 'var(--secondary-color)' : 'transparent';
+                    tab.style.color = 'var(--text-color)';
+                    tab.style.borderRadius = '8px 8px 0 0';
+                    tab.style.cursor = 'pointer';
+                    tab.style.display = 'flex';
+                    tab.style.alignItems = 'center';
+                    // Tab label (editable)
+                    const label = document.createElement('span');
+                    label.textContent = page.name || `Page ${idx+1}`;
+                    label.contentEditable = true;
+                    label.style.outline = 'none';
+                    label.style.minWidth = '60px';
+                    label.style.fontWeight = idx === currentPageIndex ? 'bold' : 'normal';
+                    label.addEventListener('blur', () => {
+                        page.name = label.textContent.trim() || `Page ${idx+1}`;
+                        updateTabBar();
+                        savePagesToLocalStorage();
+                    });
+                    label.addEventListener('keydown', e => { if (e.key === 'Enter') e.preventDefault(); });
+                    tab.appendChild(label);
+                    // Delete button
+                    if (pages.length > 1) {
+                        const delBtn = document.createElement('button');
+                        delBtn.textContent = '×';
+                        delBtn.style.marginLeft = '0.5rem';
+                        delBtn.style.background = 'none';
+                        delBtn.style.color = 'var(--danger-color)';
+                        delBtn.style.border = 'none';
+                        delBtn.style.fontSize = '1.2rem';
+                        delBtn.style.cursor = 'pointer';
+                        delBtn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            if (confirm('Delete this page?')) {
+                                pages.splice(idx, 1);
+                                if (currentPageIndex >= pages.length) currentPageIndex = pages.length-1;
+                                setCurrentPageState(pages[currentPageIndex].state);
+                                updateTabBar();
+                                savePagesToLocalStorage();
+                            }
+                        });
+                        tab.appendChild(delBtn);
+                    }
+                    tab.addEventListener('click', () => {
+                        if (idx !== currentPageIndex) {
+                            // Save current page state
+                            pages[currentPageIndex].state = getCurrentPageState();
+                            currentPageIndex = idx;
+                            setCurrentPageState(pages[currentPageIndex].state);
+                            updateTabBar();
+                            savePagesToLocalStorage();
+                        }
+                    });
+                    tabBar.appendChild(tab);
+                });
+                // Add new page button
+                const addBtn = document.createElement('button');
+                addBtn.textContent = '+';
+                addBtn.style.background = 'var(--accent-color)';
+                addBtn.style.color = 'white';
+                addBtn.style.border = 'none';
+                addBtn.style.borderRadius = '8px';
+                addBtn.style.fontSize = '1.2rem';
+                addBtn.style.padding = '0.25rem 0.75rem';
+                addBtn.style.cursor = 'pointer';
+                addBtn.addEventListener('click', () => {
+                    // Save current page state
+                    pages[currentPageIndex].state = getCurrentPageState();
+                    // Add new page
+                    pages.push({ name: `Page ${pages.length+1}`, state: getCurrentPageState() });
+                    currentPageIndex = pages.length-1;
+                    setCurrentPageState(pages[currentPageIndex].state);
+                    updateTabBar();
+                    savePagesToLocalStorage();
+                });
+                tabBar.appendChild(addBtn);
             }
 
             // --- STATE MANAGEMENT ---
@@ -1051,7 +1171,8 @@
                 cardElements = {};
                 turnCount = 0;
                 nextCardInstanceId = 0;
-                document.getElementById('overall-comments').value = '';
+                const overallComments = document.getElementById('overall-comments');
+                if (overallComments) overallComments.value = '';
                 decklistInputEl.value = '';
                 decklistUrlInputEl.value = '';
             }
@@ -1194,6 +1315,26 @@
 
             // Save overall comment on input
             document.getElementById('overall-comments').addEventListener('input', saveSessionToLocalStorage);
+
+            // --- INITIALIZE PAGES ---
+            if (!loadPagesFromLocalStorage()) {
+                // Default: one page
+                pages = [{ name: 'Page 1', state: gatherState() }];
+                currentPageIndex = 0;
+            }
+            setCurrentPageState(pages[currentPageIndex].state);
+            updateTabBar();
+
+            // --- SAVE PAGE STATE ON CHANGES ---
+            // Patch saveSessionToLocalStorage to also update current page state
+            const origSaveSession = saveSessionToLocalStorage;
+            saveSessionToLocalStorage = function() {
+                origSaveSession();
+                if (pages.length > 0) {
+                    pages[currentPageIndex].state = getCurrentPageState();
+                    savePagesToLocalStorage();
+                }
+            };
 
         });
     </script>
