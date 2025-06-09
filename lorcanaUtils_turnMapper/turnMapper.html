@@ -401,6 +401,7 @@
                 <button id="export-text-btn" class="btn">Export as Encoded Text</button>
                 <button id="export-human-text-btn" class="btn">Export Turn By Turn Text</button>
                 <button id="export-png-btn" class="btn">Export as PNG</button>
+                <button id="clear-session-btn" class="btn btn-secondary" style="margin-top:1rem;background-color:var(--danger-color);color:white;">Clear Session</button>
             </div>
 
         </div>
@@ -512,6 +513,7 @@
             const exportTextBtnEl = document.getElementById('export-text-btn');
             const exportHumanTextBtnEl = document.getElementById('export-human-text-btn');
             const exportPngBtnEl = document.getElementById('export-png-btn');
+            const clearSessionBtnEl = document.getElementById('clear-session-btn');
 
             // Modals and their buttons
             const arrowModalEl = document.getElementById('arrow-modal');
@@ -545,6 +547,11 @@
                     allCards = Array.from(uniqueCards.values());
                     fuse = new Fuse(allCards, { keys: ['fullName', 'name', 'version'], includeScore: true, threshold: 0.4 });
                     displayCardsInSidebar(allCards.slice(0, 50)); // Show some initial cards
+
+                    // --- SESSION RESTORE OR DEFAULT SETUP ---
+                    if (!loadSessionFromLocalStorage()) {
+                        for (let i = 0; i < 4; i++) addTurnColumn();
+                    }
                 })
                 .catch(error => {
                     console.error('Error fetching card data:', error);
@@ -1121,10 +1128,16 @@
                 }
             });
 
-            // --- FINAL SETUP ---
-            if (!loadSessionFromLocalStorage()) {
-                for (let i = 0; i < 4; i++) addTurnColumn();
-            }
+            // --- CLEAR SESSION ---
+            clearSessionBtnEl.addEventListerner('click', () => {
+                console.log('User clicked to clear session');
+                if (confirm('Are you sure you want to clear your session?')){
+                    localStorage.removeItem('lorcanaTurnMapperSession');
+                    clearBoard();
+                    for (let i = 0; i < 4; i++) addTurnColumn();
+                }
+            })
+
         });
     </script>
 </body>
