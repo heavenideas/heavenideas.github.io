@@ -462,6 +462,31 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            // --- LOCAL STORAGE SESSION HELPERS ---
+            function saveSessionToLocalStorage() {
+                try {
+                    const state = gatherState();
+                    console.log('Saving session to localStorage:', state);
+                    localStorage.setItem('lorcanaTurnMapperSession', btoa(JSON.stringify(state)));
+                } catch (e) {
+                    console.error('Failed to save session:', e);
+                }
+            }
+            function loadSessionFromLocalStorage() {
+                try {
+                    const data = localStorage.getItem('lorcanaTurnMapperSession');
+                    if (data) {
+                        const state = JSON.parse(atob(data));
+                        loadState(state);
+                        console.log('Loaded session from localStorage:', state);
+                        return true;
+                    }
+                } catch (e) {
+                    console.error('Failed to load session:', e);
+                }
+                return false;
+            }
+
             // --- STATE MANAGEMENT ---
             let allCards = [];
             let fuse;
@@ -564,7 +589,10 @@
                 displayCardsInSidebar(deckCards);
             };
 
-            loadDeckBtnEl.addEventListener('click', loadDeck);
+            loadDeckBtnEl.addEventListener('click', () => {
+                loadDeck();
+                saveSessionToLocalStorage();
+            });
 
             // --- UI & DISPLAY ---
             function createCardDOM(cardData, instanceId) {
@@ -582,6 +610,7 @@
                     commentEl.style.height = 'auto';
                     commentEl.style.height = `${commentEl.scrollHeight}px`;
                     updateLines();
+                    saveSessionToLocalStorage();
                 });
 
                 const deleteBtn = document.createElement('button');
@@ -602,6 +631,8 @@
                         showArrowModal(arrowStartElement, cardEl);
                     }
                 });
+                saveSessionToLocalStorage();
+
                 return { cardContainer, commentInput: commentEl };
             }
 
@@ -663,6 +694,7 @@
                         parentRow.remove();
                     }
                 }
+                saveSessionToLocalStorage();
             }
 
             // --- DRAG & DROP ---
@@ -688,6 +720,7 @@
                     }
                     draggedCardData = null;
                 });
+                saveSessionToLocalStorage();
             };
 
             function makeCardMovable(cardEl, container) {
@@ -701,6 +734,7 @@
                     container.style.opacity = '1';
                     draggedCardData = null;
                     updateLines();
+                    saveSessionToLocalStorage();
                 });
             }
 
@@ -727,6 +761,7 @@
 
                 turnColumn.append(songSection, boardSection, labelContainer);
                 lanesWrapperEl.appendChild(turnColumn);
+                saveSessionToLocalStorage();
             };
 
             function createLaneSection(type, turnId, title) {
@@ -772,6 +807,7 @@
                 });
 
                 laneGrid.appendChild(createLaneRow(type, turnId, 1));
+                saveSessionToLocalStorage();
 
                 const addRowBtn = document.createElement('button');
                 addRowBtn.textContent = "Add 'OR' Condition";
@@ -782,6 +818,7 @@
                 });
 
                 section.append(sectionTitle, laneGrid, addRowBtn);
+                saveSessionToLocalStorage();
                 return section;
             }
 
@@ -827,6 +864,7 @@
 
                 if (arrowStartElement) arrowStartElement.style.outline = '';
                 arrowStartElement = null;
+                saveSessionToLocalStorage();
             }
 
             document.body.addEventListener('click', (e) => {
@@ -836,6 +874,7 @@
                     if (lineIndex > -1) {
                         lines[lineIndex].line.remove();
                         lines.splice(lineIndex, 1);
+                        saveSessionToLocalStorage();
                     }
                 }
             });
@@ -848,6 +887,7 @@
                     arrowStartElement.style.outline = '';
                     arrowStartElement = null;
                 }
+                saveSessionToLocalStorage();
             });
 
             // --- IMPORT/EXPORT ---
@@ -1023,6 +1063,7 @@
                     });
                     updateLines();
                 }, 100);
+                saveSessionToLocalStorage();
             }
 
             exportTextBtnEl.addEventListener('click', () => {
@@ -1073,6 +1114,7 @@
                     const state = JSON.parse(atob(importTextInputEl.value));
                     loadState(state);
                     importModalEl.style.display = 'none';
+                    saveSessionToLocalStorage();
                 } catch (e) {
                     alert('Invalid map data! Please check the text and try again.');
                     console.error("Import failed:", e);
@@ -1080,7 +1122,9 @@
             });
 
             // --- FINAL SETUP ---
-            for (let i = 0; i < 4; i++) addTurnColumn();
+            if (!loadSessionFromLocalStorage()) {
+                for (let i = 0; i < 4; i++) addTurnColumn();
+            }
         });
     </script>
 </body>
