@@ -1123,12 +1123,20 @@
 
                     // Sing: Character -> Song
                     // Turn determined by the Song card's location
-                    if (startCardData.type === 'Character' && endCardData.type === 'Song') {
+                    if (startCardData.type === 'Character' && endCardData.subtypesText === 'Song') {
                         const turnToUpdate = interactionsByTurn[endTurnNumber];
                         if (turnToUpdate) {
                             turnToUpdate.sings.push(`Sing: ${endCardName} with ${startCardName}`);
                             // Exclude the sung song from being 'Played' on its turn
                             turnToUpdate.excludedIds.add(endCardEl.id);
+                        }
+                        return;
+                    } else if (startCardData.subtypesText === 'Song' && endCardData.type === 'Character') {
+                        const turnToUpdate = interactionsByTurn[startTurnNumber];
+                        if (turnToUpdate) {
+                            turnToUpdate.sings.push(`Sing: ${startCardName} with ${endCardName}`);
+                            // Exclude the sung song from being 'Played' on its turn
+                            turnToUpdate.excludedIds.add(startCardEl.id);
                         }
                         return;
                     }
