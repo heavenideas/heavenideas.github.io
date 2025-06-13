@@ -1431,29 +1431,140 @@
             });
 
             exportPngBtnEl.addEventListener('click', () => {
-                addTurnBtnEl.style.visibility = 'hidden';
-                document.querySelectorAll('.leader-line').forEach(l => l.style.visibility = 'hidden');
+                const originalScrollX = lanesWrapperEl.scrollLeft;
+                const originalScrollY = lanesWrapperEl.scrollTop;
 
-                html2canvas(lanesWrapperEl, {
-                    allowTaint: true,
-                    useCORS: true,
-                    backgroundColor: getComputedStyle(document.body).getPropertyValue('--bg-color'),
-                    scrollX: 0,
-                    scrollY: -window.scrollY,
-                    windowWidth: lanesWrapperEl.scrollWidth,
-                    windowHeight: lanesWrapperEl.scrollHeight
-                }).then(canvas => {
-                    const link = document.createElement('a');
-                    link.download = 'lorcana-turn-map.png';
-                    link.href = canvas.toDataURL('image/png');
-                    link.click();
-                }).catch(err => {
-                    console.error("PNG Export failed:", err);
-                    alert("PNG Export failed. Some images may not be accessible.");
-                }).finally(() => {
-                    addTurnBtnEl.style.visibility = 'visible';
-                    document.querySelectorAll('.leader-line').forEach(l => l.style.visibility = 'visible');
+                // 1. Create a temporary container for printing
+                const printContainer = document.createElement('div');
+                printContainer.style.position = 'absolute';
+                printContainer.style.left = '-9999px'; // Move off-screen
+                printContainer.style.top = '-9999px';
+                printContainer.style.backgroundColor = getComputedStyle(document.body).getPropertyValue('--bg-color');
+                printContainer.style.padding = '20px';
+                printContainer.style.display = 'inline-block'; // Ensure it sizes to content
+
+                // 2. Add Overall Comments if they exist
+                const overallCommentsEl = document.getElementById('overall-comments');
+                if (overallCommentsEl.value.trim()) {
+                    const commentsHeader = document.createElement('h2');
+                    commentsHeader.textContent = 'Overall Comments';
+                    commentsHeader.style.color = 'var(--text-color)';
+                    commentsHeader.style.borderBottom = '1px solid var(--border-color)';
+                    commentsHeader.style.paddingBottom = '10px';
+                    commentsHeader.style.marginBottom = '10px';
+                    printContainer.appendChild(commentsHeader);
+
+                    const commentsDiv = document.createElement('div');
+                    commentsDiv.textContent = overallCommentsEl.value;
+                    commentsDiv.style.color = 'var(--text-color)';
+                    commentsDiv.style.whiteSpace = 'pre-wrap';
+                    commentsDiv.style.wordWrap = 'break-word';
+                    commentsDiv.style.marginBottom = '20px';
+                    printContainer.appendChild(commentsDiv);
+                }
+
+                // 3. Clone the lanes wrapper to process for printing
+                const lanesClone = lanesWrapperEl.cloneNode(true);
+                lanesClone.style.overflow = 'visible';
+                lanesClone.style.display = 'flex';
+                lanesClone.style.width = `${lanesWrapperEl.scrollWidth}px`; // Set explicit width
+
+                // 4. Process the cloned lanes
+                lanesClone.querySelectorAll('.turn-column').forEach(column => {
+                    // Convert turn comment textarea to a div
+                    const turnCommentBox = column.querySelector('.turn-comment-box');
+                    if (turnCommentBox && turnCommentBox.value.trim()) {
+                        const commentDiv = document.createElement('div');
+                        commentDiv.textContent = turnCommentBox.value;
+                        // Copy styles from the textarea for consistency
+                        commentDiv.style.cssText = window.getComputedStyle(turnCommentBox).cssText;
+                        commentDiv.style.height = 'auto';
+                        commentDiv.style.whiteSpace = 'pre-wrap';
+                        commentDiv.style.wordWrap = 'break-word';
+                        turnCommentBox.parentNode.replaceChild(commentDiv, turnCommentBox);
+                    } else if (turnCommentBox) {
+                        turnCommentBox.parentNode.remove(); // Remove empty comment box container
+                    }
+
+                    // Convert card comment textareas to divs
+                    column.querySelectorAll('.card-comment').forEach(commentArea => {
+                        if (commentArea.value && commentArea.value.trim() && commentArea.value !== commentArea.placeholder) {
+                            const commentDiv = document.createElement('div');
+                            commentDiv.textContent = commentArea.value;
+                            commentDiv.className = commentArea.className; // Keep styling
+                            commentDiv.style.height = 'auto';
+                            commentDiv.style.whiteSpace = 'pre-wrap';
+                            commentDiv.style.wordWrap = 'break-word';
+                            commentArea.parentNode.replaceChild(commentDiv, commentArea);
+                        } else {
+                            commentArea.remove(); // Remove empty/default comments
+                        }
+                    });
+
+                    // Remove delete buttons
+                    column.querySelectorAll('.delete-card-btn').forEach(btn => btn.remove());
                 });
+
+                printContainer.appendChild(lanesClone);
+
+                document.body.appendChild(printContainer);
+
+                // 5. Re-create arrows for the cloned content
+                const exportLines = [];
+                // Must wait for the DOM to update with the new container
+                setTimeout(() => {
+                    lines.forEach(l => {
+                        const startEl = printContainer.querySelector('#' + l.line.start.id);
+                        const endEl = printContainer.querySelector('#' + l.line.end.id);
+
+                        if (startEl && endEl) {
+                            const lineOptions = {
+                                start: startEl,
+                                end: endEl,
+                                color: 'rgba(255, 255, 255, 0.7)',
+                                size: 3,
+                                path: 'fluid',
+                                // Append the line to the print container itself
+                                parent: printContainer
+                            };
+                            if (l.label) {
+                                lineOptions.middleLabel = LeaderLine.captionLabel(l.label, {
+                                    color: 'var(--accent-color)',
+                                    outlineColor: 'var(--bg-color)',
+                                    fontSize: 14
+                                });
+                            }
+                            const exportLine = new LeaderLine(lineOptions);
+                            exportLines.push(exportLine);
+                        }
+                    });
+
+                    // 6. Use html2canvas on the prepared container
+                    html2canvas(printContainer, {
+                        allowTaint: true,
+                        useCORS: true,
+                        backgroundColor: getComputedStyle(document.body).getPropertyValue('--bg-color'),
+                        x: 0,
+                        y: 0,
+                        width: printContainer.scrollWidth,
+                        height: printContainer.scrollHeight,
+                        scale: 1.5 // Increase resolution
+                    }).then(canvas => {
+                        const link = document.createElement('a');
+                        link.download = 'lorcana-turn-map.png';
+                        link.href = canvas.toDataURL('image/png');
+                        link.click();
+                    }).catch(err => {
+                        console.error("PNG Export failed:", err);
+                        alert("PNG Export failed. Some images may not be accessible.");
+                    }).finally(() => {
+                        // 7. Cleanup
+                        exportLines.forEach(l => { try { l.remove(); } catch (e) { } });
+                        document.body.removeChild(printContainer);
+                        lanesWrapperEl.scrollLeft = originalScrollX;
+                        lanesWrapperEl.scrollTop = originalScrollY;
+                    });
+                }, 100); // A short timeout to ensure the off-screen element is rendered
             });
 
             importBtnEl.addEventListener('click', () => { importModalEl.style.display = 'flex'; });
