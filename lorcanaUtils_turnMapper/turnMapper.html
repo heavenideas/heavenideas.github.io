@@ -423,6 +423,12 @@
             </div>
 
             <div class="sidebar-section">
+                <h3>Popular Decks</h3>
+                <select id="popular-decks-select" class="btn btn-secondary" style="width:100%; margin-bottom: 0.5rem;"></select>
+                <button id="load-popular-deck-btn" class="btn">Load Selected Deck</button>
+            </div>
+
+            <div class="sidebar-section">
                 <h3>Decklist</h3>
                 <textarea id="decklist-input" placeholder="Paste decklist here..."></textarea>
                 <button id="load-deck-btn" class="btn">Load Deck</button>
@@ -430,11 +436,6 @@
                 <input type="url" id="decklist-url-input" placeholder="Decklist URL (Reference only)">
             </div>
 
-            <div class="sidebar-section">
-                <h3>Popular Decks</h3>
-                <select id="popular-decks-select" class="btn btn-secondary" style="width:100%; margin-bottom: 0.5rem;"></select>
-                <button id="load-popular-deck-btn" class="btn">Load Selected Deck</button>
-            </div>
 
 
             <div class="sidebar-section">
@@ -609,7 +610,7 @@
 
             // --- INITIALIZATION ---
             // Fetch Popular Decks
-            fetch('featuredDecks.json')
+            fetch('https://raw.githubusercontent.com/heavenideas/heavenideas.github.io/refs/heads/main/lorcanaUtils_turnMapper/featuredDecks.json')
                .then(response => response.json())
                .then(data => {
                    popularDecks = data;
