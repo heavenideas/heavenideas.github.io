@@ -718,37 +718,44 @@
                 }
 
 
-                // Place each card
-                deckCards.forEach(cardData => {
-                    const turnNumber = cardData.cost;
-                    if (turnNumber > 0) { // Don't place 0-cost cards automatically
-                        // Find the correct turn column by its visible number, not its internal ID
-                        const allTurnColumns = document.querySelectorAll('.turn-column');
-                        let targetColumn = null;
-                        for (const column of allTurnColumns) {
-                            const turnNumberInput = column.querySelector('.turn-number-input');
-                            if (turnNumberInput && parseInt(turnNumberInput.textContent) === turnNumber) {
-                                targetColumn = column;
-                                break;
-                            }
-                        }
-
-                        if (targetColumn) {
-                            const isSong = cardData.subtypesText && cardData.subtypesText.includes('Song');
-                            const gridType = isSong ? 'song' : 'board';
-                            const laneGrid = targetColumn.querySelector(`.lane-grid[data-grid-type="${gridType}"]`);
-
-                            if (laneGrid) {
-                                const newRow = createLaneRow(gridType, turnNumber, laneGrid.children.length + 1);
-                                const instanceId = nextCardInstanceId++;
-                                const { cardContainer } = createCardDOM(cardData, instanceId);
-                                newRow.appendChild(cardContainer);
-                                laneGrid.appendChild(newRow);
-                            }
+            // Place each card
+            deckCards.forEach(cardData => {
+                const turnNumber = cardData.cost;
+                if (turnNumber > 0) { // Don't place 0-cost cards automatically
+                    // Find the correct turn column by its visible number, not its internal ID
+                    const allTurnColumns = document.querySelectorAll('.turn-column');
+                    let targetColumn = null;
+                    for (const column of allTurnColumns) {
+                        const turnNumberInput = column.querySelector('.turn-number-input');
+                        if (turnNumberInput && parseInt(turnNumberInput.textContent) === turnNumber) {
+                            targetColumn = column;
+                            break;
                         }
                     }
-                });
 
+                    if (targetColumn) {
+                        const isSong = cardData.subtypesText && cardData.subtypesText.includes('Song');
+                        const gridType = isSong ? 'song' : 'board';
+                        const laneGrid = targetColumn.querySelector(`.lane-grid[data-grid-type="${gridType}"]`);
+
+                        if (laneGrid) {
+                            // Find an existing, empty lane row. A row is considered empty if it has no child elements (i.e., no cards).
+                            let targetRow = Array.from(laneGrid.children).find(row => row.children.length === 0);
+
+                            // If no empty row is found, create a new one and append it to the grid.
+                            if (!targetRow) {
+                                targetRow = createLaneRow(gridType, turnNumber, laneGrid.children.length + 1);
+                                laneGrid.appendChild(targetRow);
+                            }
+
+                            // Create the card's DOM element and append it to the target row.
+                            const instanceId = nextCardInstanceId++;
+                            const { cardContainer } = createCardDOM(cardData, instanceId);
+                            targetRow.appendChild(cardContainer);
+                        }
+                    }
+                }
+            });
                 alignBoardTops();
                 saveSessionToLocalStorage();
             }
