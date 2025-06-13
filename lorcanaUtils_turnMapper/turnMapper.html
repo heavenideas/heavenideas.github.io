@@ -426,6 +426,7 @@
                 <h3>Decklist</h3>
                 <textarea id="decklist-input" placeholder="Paste decklist here..."></textarea>
                 <button id="load-deck-btn" class="btn">Load Deck</button>
+                <button id="auto-populate-btn" class="btn btn-secondary">Auto Populate</button>
                 <input type="url" id="decklist-url-input" placeholder="Decklist URL (Reference only)">
             </div>
 
@@ -570,6 +571,7 @@
             const decklistUrlInputEl = document.getElementById('decklist-url-input');
             const lanesWrapperEl = document.getElementById('lanes-wrapper');
             const addTurnBtnEl = document.getElementById('add-turn-btn');
+            const autoPopulateBtnEl = document.getElementById('auto-populate-btn');
 
             // Import/Export Buttons
             const importBtnEl = document.getElementById('import-btn');
@@ -663,6 +665,69 @@
                 loadDeck();
                 saveSessionToLocalStorage();
             });
+
+            autoPopulateBtnEl.addEventListener('click', () => {
+                autoPopulateDeck();
+            });
+
+            function autoPopulateDeck() {
+                if (deckCards.length === 0) {
+                    alert("Please load a deck first.");
+                    return;
+                }
+
+                clearBoard();
+
+                // Find the highest ink cost to determine how many turns we need
+                const maxInkCost = Math.max(...deckCards.map(c => c.cost), 0);
+
+                // Ensure we have enough turn columns by checking the highest existing turn number
+                const existingTurnNumbers = Array.from(document.querySelectorAll('.turn-number-input')).map(el => parseInt(el.textContent) || 0);
+                const maxExistingTurn = Math.max(0, ...existingTurnNumbers);
+
+                let currentMaxTurn = maxExistingTurn;
+                if (maxInkCost > currentMaxTurn) {
+                    while (currentMaxTurn < maxInkCost) {
+                        addTurnColumn();
+                        currentMaxTurn++;
+                    }
+                }
+
+
+                // Place each card
+                deckCards.forEach(cardData => {
+                    const turnNumber = cardData.cost;
+                    if (turnNumber > 0) { // Don't place 0-cost cards automatically
+                        // Find the correct turn column by its visible number, not its internal ID
+                        const allTurnColumns = document.querySelectorAll('.turn-column');
+                        let targetColumn = null;
+                        for (const column of allTurnColumns) {
+                            const turnNumberInput = column.querySelector('.turn-number-input');
+                            if (turnNumberInput && parseInt(turnNumberInput.textContent) === turnNumber) {
+                                targetColumn = column;
+                                break;
+                            }
+                        }
+
+                        if (targetColumn) {
+                            const isSong = cardData.subtypesText && cardData.subtypesText.includes('Song');
+                            const gridType = isSong ? 'song' : 'board';
+                            const laneGrid = targetColumn.querySelector(`.lane-grid[data-grid-type="${gridType}"]`);
+
+                            if (laneGrid) {
+                                const newRow = createLaneRow(gridType, turnNumber, laneGrid.children.length + 1);
+                                const instanceId = nextCardInstanceId++;
+                                const { cardContainer } = createCardDOM(cardData, instanceId);
+                                newRow.appendChild(cardContainer);
+                                laneGrid.appendChild(newRow);
+                            }
+                        }
+                    }
+                });
+
+                alignBoardTops();
+                saveSessionToLocalStorage();
+            }
 
             // --- UI & DISPLAY ---
             function createCardDOM(cardData, instanceId) {
