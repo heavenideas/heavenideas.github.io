@@ -700,7 +700,7 @@
                     return;
                 }
 
-                clearBoard();
+                clearBoard(full = false);
 
                 // Find the highest ink cost to determine how many turns we need
                 const maxInkCost = Math.max(...deckCards.map(c => c.cost), 0);
@@ -1333,7 +1333,7 @@
             }
 
 
-            function clearBoard() {
+            function clearBoard(full = true) {
                 lanesWrapperEl.innerHTML = '';
                 lines.forEach(({ line }) => line.remove());
                 lines = [];
@@ -1341,12 +1341,14 @@
                 turnCount = 0;
                 nextCardInstanceId = 0;
                 document.getElementById('overall-comments').value = '';
-                decklistInputEl.value = '';
-                decklistUrlInputEl.value = '';
+                if (full) {
+                    decklistInputEl.value = '';
+                    decklistUrlInputEl.value = '';
+                }
             }
 
             function loadState(state) {
-                clearBoard();
+                clearBoard(full = true);
                 decklistInputEl.value = state.decklist || '';
                 decklistUrlInputEl.value = state.decklistUrl || '';
                 if (decklistInputEl.value) loadDeck();
