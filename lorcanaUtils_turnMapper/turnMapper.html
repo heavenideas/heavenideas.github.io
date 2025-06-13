@@ -430,6 +430,12 @@
                 <input type="url" id="decklist-url-input" placeholder="Decklist URL (Reference only)">
             </div>
 
+            <div class="sidebar-section">
+                <h3>Popular Decks</h3>
+                <select id="popular-decks-select" class="btn btn-secondary" style="width:100%; margin-bottom: 0.5rem;"></select>
+                <button id="load-popular-deck-btn" class="btn">Load Selected Deck</button>
+            </div>
+
 
             <div class="sidebar-section">
                 <h3>Card Search</h3>
@@ -596,7 +602,24 @@
             const confirmImportBtnEl = document.getElementById('confirm-import-btn');
             const closeImportModalBtnEl = document.getElementById('close-import-modal-btn');
 
+            // --- DOM ELEMENTS (Popular Decks) ---
+            const popularDecksSelectEl = document.getElementById('popular-decks-select');
+            const loadPopularDeckBtnEl = document.getElementById('load-popular-deck-btn');
+            let popularDecks = [];
+
             // --- INITIALIZATION ---
+            // Fetch Popular Decks
+            fetch('featuredDecks.json')
+               .then(response => response.json())
+               .then(data => {
+                   popularDecks = data;
+                   popularDecksSelectEl.innerHTML = popularDecks.map(deck => `<option value="${deck.id}">${deck.name}</option>`).join('');
+               })
+               .catch(error => {
+                   console.error('Error fetching popular decks:', error);
+                   popularDecksSelectEl.innerHTML = '<option>Error loading decks</option>';
+               });
+
             fetch('https://raw.githubusercontent.com/heavenideas/similcana/main/database/allCards.json')
                 .then(response => response.json())
                 .then(data => {
@@ -1458,6 +1481,20 @@
                 }
             });
 
+           loadPopularDeckBtnEl.addEventListener('click', () => {
+               const selectedDeckId = popularDecksSelectEl.value;
+               const selectedDeck = popularDecks.find(d => d.id === selectedDeckId);
+               if (selectedDeck && selectedDeck.encoded) {
+                   try {
+                       const state = JSON.parse(atob(selectedDeck.encoded));
+                       loadState(state);
+                       saveSessionToLocalStorage();
+                   } catch (e) {
+                       alert('Invalid deck data! The encoded string might be corrupted.');
+                       console.error("Popular deck import failed:", e);
+                   }
+               }
+           });
 
         });
     </script>
