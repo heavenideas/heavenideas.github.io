@@ -8,6 +8,11 @@
     <script src="https://cdn.jsdelivr.net/npm/fuse.js@6.6.2"></script>
     <script src="https://cdn.jsdelivr.net/npm/leader-line-new@1.1.9/leader-line.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <!-- Intro.js for the tutorial -->
+    <link rel="stylesheet" href="https://unpkg.com/intro.js/minified/introjs.min.css">
+    <script src="https://unpkg.com/intro.js/minified/intro.min.js"></script>
+
     <style>
         :root {
             --bg-color: #1a1a1a;
@@ -38,6 +43,13 @@
             position: relative;
             z-index: 501;
             background-color: var(--bg-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header .header-content {
+            flex-grow: 1;
         }
 
         header h1 {
@@ -51,6 +63,21 @@
             font-size: 0.9rem;
             color: var(--secondary-color);
         }
+
+        #tutorial-btn {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        #tutorial-btn:hover {
+            background-color: #9333ea;
+        }
+
 
         #app-container {
             display: flex;
@@ -393,6 +420,49 @@
             filter: drop-shadow(0 0 5px var(--danger-color));
         }
 
+        /* Custom styles for intro.js to match the site's theme */
+        .introjs-tooltip {
+            background-color: var(--primary-color);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+        }
+
+        .introjs-arrow.top {
+            border-bottom-color: var(--primary-color);
+        }
+
+        .introjs-arrow.bottom {
+            border-top-color: var(--primary-color);
+        }
+
+        .introjs-arrow.left {
+            border-right-color: var(--primary-color);
+        }
+
+        .introjs-arrow.right {
+            border-left-color: var(--primary-color);
+        }
+
+        .introjs-button {
+            background-color: var(--accent-color);
+            color: white !important;
+            text-shadow: none;
+            border-radius: 4px;
+        }
+
+        .introjs-button:hover {
+            background-color: #9333ea;
+        }
+
+        .introjs-overlay {
+            opacity: 0.8 !important;
+            background-color: rgba(0, 0, 0, 0.8) !important;
+        }
+
+        .introjs-skipbutton {
+            color: var(--text-color) !important;
+        }
+
         footer {
             padding: 0.5rem 1rem;
             text-align: center;
@@ -406,29 +476,37 @@
 <body>
 
     <header>
-        <h1>Lorcana Turn Mapper</h1>
-        <p>Map out your turns with grid-based logic. Horizonal cards are AND, vertical rows are OR.</p>
+        <div class="header-content">
+            <h1>Lorcana Turn Mapper</h1>
+            <p>Map out your turns with grid-based logic. Horizonal cards are AND, vertical rows are OR.</p>
+        </div>
+        <button id="tutorial-btn">Start Tutorial</button>
     </header>
 
     <div id="app-container">
         <div id="sidebar">
-            <div class="sidebar-section">
+            <div id="import-export-section" class="sidebar-section">
                 <h3>Import / Export</h3>
-                <button id="import-btn" class="btn btn-secondary" alt="Paste in the text from the Encoded Text export">Import from Encoded Text</button>
-                <button id="export-text-btn" class="btn" alt="Export as a text string to share with others">Export as Encoded Text</button>
-                <button id="export-human-text-btn" class="btn" alt="Create a Turn By Turn text to share with others">Export Turn By Turn Text</button>
-                <button id="export-png-btn" class="btn" alt="Export full mapping as an image">Export as PNG (WIP)</button>
+                <button id="import-btn" class="btn btn-secondary"
+                    alt="Paste in the text from the Encoded Text export">Import from Encoded Text</button>
+                <button id="export-text-btn" class="btn" alt="Export as a text string to share with others">Export as
+                    Encoded Text</button>
+                <button id="export-human-text-btn" class="btn"
+                    alt="Create a Turn By Turn text to share with others">Export Turn By Turn Text</button>
+                <button id="export-png-btn" class="btn" alt="Export full mapping as an image">Export as PNG
+                    (WIP)</button>
                 <button id="clear-session-btn" class="btn btn-secondary" alt="Erase all cards from canvas"
                     style="margin-top:1rem;background-color:var(--danger-color);color:white;">Clear Session</button>
             </div>
 
             <div class="sidebar-section">
                 <h3>Popular Decks</h3>
-                <select id="popular-decks-select" class="btn btn-secondary" style="width:100%; margin-bottom: 0.5rem;"></select>
+                <select id="popular-decks-select" class="btn btn-secondary"
+                    style="width:100%; margin-bottom: 0.5rem;"></select>
                 <button id="load-popular-deck-btn" class="btn">Load Selected Deck</button>
             </div>
 
-            <div class="sidebar-section">
+            <div id="decklist-section" class="sidebar-section">
                 <h3>Decklist</h3>
                 <textarea id="decklist-input" placeholder="Paste decklist here..."></textarea>
                 <button id="load-deck-btn" class="btn">Load Deck</button>
@@ -438,7 +516,7 @@
 
 
 
-            <div class="sidebar-section">
+            <div id="card-library-section" class="sidebar-section">
                 <h3>Card Search</h3>
                 <input type="text" id="search-input" placeholder="Search for any card...">
                 <div id="card-list">
@@ -506,9 +584,110 @@
             </div>
         </div>
     </div>
+    <div id="confirm-clear-modal" class="modal">
+        <div class="modal-content">
+            <h3>Confirm Clear</h3>
+            <p>Are you sure you want to clear your entire session? This action cannot be undone.</p>
+            <div>
+                <button id="confirm-clear-btn" class="btn"
+                    style="background-color:var(--danger-color);color:white;">Yes, Clear Everything</button>
+                <button id="cancel-clear-btn" class="btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+
+            // --- INTERACTIVE TUTORIAL SETUP ---
+            function startTutorial() {
+                const intro = introJs();
+
+                intro.setOptions({
+                    steps: [
+                        {
+                            title: 'Welcome!',
+                            intro: 'This tool helps you plan your game turns visually. Let\'s walk through the basics.'
+                        },
+                        {
+                            element: document.querySelector('#decklist-section'),
+                            title: 'Start With Your Deck',
+                            intro: 'Let\'s load an example for you. When you click <b>Next</b>, we\'ll automatically add a mini-decklist and load the cards.'
+                        },
+                        {
+                            element: document.querySelector('#card-library-section'),
+                            title: 'Your Card Library',
+                            intro: 'The cards from the decklist are now loaded here! You can also use the search bar to find any card in the Lorcana database.'
+                        },
+                        {
+                            element: document.querySelector('#lanes-wrapper'),
+                            title: 'The Main Canvas',
+                            intro: 'Drag cards from your library and drop them into the turn columns to plan your plays. <br><br><img src="tutorial/drag_01.gif" alt="Drag Example" style="width: 100%; max-width: 300px;"><br> You can add more turns using the "Add Turn" button.'
+                        },
+                        {
+                            element: document.querySelector('.turn-column') || document.querySelector('#lanes-wrapper'), // Fallback to prevent errors
+                            title: 'AND/OR Logic',
+                            intro: 'Plan your options! <br><ul><li>Cards side-by-side in the same row are <b>AND</b> plays.</li><li>Rows stacked vertically are <b>OR</b> plays.</li></ul><br>To create a new "OR" option, just drag a card into the space between rows.',
+                            position: 'left'
+                        },
+                        {
+                            element: document.querySelector('#main-content'),
+                            title: 'Create Connections',
+                            intro: 'Show card interactions! <b>Right-click</b> on a card to select it, then <b>right-click</b> on another card to draw an arrow. You can annotate arrows with text. <br><br><img src="tutorial/arrows_01.gif" alt="Arrow Example" style="width: 100%; max-width: 300px;"><br> This is great for showing shifts or who is singing a song.'
+                        },
+                        {
+                            element: document.querySelector('#overall-comments-container'),
+                            title: 'Leave Notes',
+                            intro: 'Use this area for your general strategy. Each card you place on the board also has its own comment box for specific notes.'
+                        },
+                        {
+                            element: document.querySelector('#import-export-section'),
+                            title: 'Save and Share',
+                            intro: 'When you\'re done, you can export your map as an image (PNG), text for sharing, or a data string to re-import later.'
+                        },
+                        {
+                            element: document.querySelector('#popular-decks-select'),
+                            title: 'Pre-loaded Examples',
+                            intro: 'If you want to see some examples, you can click on the "Popular Decks" dropdown and select one of the pre-loaded decks.'
+                        },
+                        {
+                            title: 'You\'re Ready!',
+                            intro: 'You\'ve learned the basics. Feel free to explore and experiment. You can restart this tutorial any time using the button in the header.'
+                        }
+                    ],
+                    showProgress: true,
+                    showBullets: false,
+                    tooltipClass: 'themed-tooltip' // A class for custom styling
+                });
+
+                intro.onbeforechange(function () {
+                    // `this._currentStep` is the index of the step we are LEAVING.
+                    // The decklist step is the second step, which has an index of 1.
+                    if (this._currentStep === 1) {
+                        const decklistInput = document.getElementById('decklist-input');
+                        const loadDeckBtn = document.getElementById('load-deck-btn');
+
+                        // Check if the elements exist to prevent errors
+                        if (decklistInput && loadDeckBtn) {
+                            decklistInput.value = "2 Diablo - Maleficent's Spy\n3 Diablo - Devoted Herald";
+                            loadDeckBtn.click();
+                        }
+                    }
+                });
+
+                intro.oncomplete(() => {
+                    localStorage.setItem('lorcanaTurnMapperTutorialSeen', 'true');
+                });
+
+                intro.onexit(() => {
+                    localStorage.setItem('lorcanaTurnMapperTutorialSeen', 'true');
+                });
+
+                intro.start();
+            }
+
+            // Bind the tutorial to the button
+            document.getElementById('tutorial-btn').addEventListener('click', startTutorial);
 
             // --- SECTION ALIGNMENT ---
             // This function ensures that all "Song" sections have the same height,
@@ -602,6 +781,7 @@
             const importTextInputEl = document.getElementById('import-text-input');
             const confirmImportBtnEl = document.getElementById('confirm-import-btn');
             const closeImportModalBtnEl = document.getElementById('close-import-modal-btn');
+            const confirmClearModalEl = document.getElementById('confirm-clear-modal');
 
             // --- DOM ELEMENTS (Popular Decks) ---
             const popularDecksSelectEl = document.getElementById('popular-decks-select');
@@ -611,16 +791,17 @@
             // --- INITIALIZATION ---
             // Fetch Popular Decks
             fetch('https://raw.githubusercontent.com/heavenideas/heavenideas.github.io/refs/heads/main/lorcanaUtils_turnMapper/featuredDecks.json')
-               .then(response => response.json())
-               .then(data => {
-                   popularDecks = data;
-                   popularDecksSelectEl.innerHTML = popularDecks.map(deck => `<option value="${deck.id}">${deck.name}</option>`).join('');
-               })
-               .catch(error => {
-                   console.error('Error fetching popular decks:', error);
-                   popularDecksSelectEl.innerHTML = '<option>Error loading decks</option>';
-               });
+                .then(response => response.json())
+                .then(data => {
+                    popularDecks = data;
+                    popularDecksSelectEl.innerHTML = popularDecks.map(deck => `<option value="${deck.id}">${deck.name}</option>`).join('');
+                })
+                .catch(error => {
+                    console.error('Error fetching popular decks:', error);
+                    popularDecksSelectEl.innerHTML = '<option>Error loading decks</option>';
+                });
 
+            // Fetch the main card data, then initialize the app
             fetch('https://raw.githubusercontent.com/heavenideas/similcana/main/database/allCards.json')
                 .then(response => response.json())
                 .then(data => {
@@ -640,6 +821,13 @@
                     // --- SESSION RESTORE OR DEFAULT SETUP ---
                     if (!loadSessionFromLocalStorage()) {
                         for (let i = 0; i < 4; i++) addTurnColumn();
+                    }
+
+                    // --- START TUTORIAL IF FIRST VISIT ---
+                    // This is moved here to ensure the page is fully initialized.
+                    if (!localStorage.getItem('lorcanaTurnMapperTutorialSeen')) {
+                        // Use a small timeout to ensure DOM has fully updated after adding columns
+                        setTimeout(startTutorial, 500);
                     }
                 })
                 .catch(error => {
@@ -718,44 +906,44 @@
                 }
 
 
-            // Place each card
-            deckCards.forEach(cardData => {
-                const turnNumber = cardData.cost;
-                if (turnNumber > 0) { // Don't place 0-cost cards automatically
-                    // Find the correct turn column by its visible number, not its internal ID
-                    const allTurnColumns = document.querySelectorAll('.turn-column');
-                    let targetColumn = null;
-                    for (const column of allTurnColumns) {
-                        const turnNumberInput = column.querySelector('.turn-number-input');
-                        if (turnNumberInput && parseInt(turnNumberInput.textContent) === turnNumber) {
-                            targetColumn = column;
-                            break;
-                        }
-                    }
-
-                    if (targetColumn) {
-                        const isSong = cardData.subtypesText && cardData.subtypesText.includes('Song');
-                        const gridType = isSong ? 'song' : 'board';
-                        const laneGrid = targetColumn.querySelector(`.lane-grid[data-grid-type="${gridType}"]`);
-
-                        if (laneGrid) {
-                            // Find an existing, empty lane row. A row is considered empty if it has no child elements (i.e., no cards).
-                            let targetRow = Array.from(laneGrid.children).find(row => row.children.length === 0);
-
-                            // If no empty row is found, create a new one and append it to the grid.
-                            if (!targetRow) {
-                                targetRow = createLaneRow(gridType, turnNumber, laneGrid.children.length + 1);
-                                laneGrid.appendChild(targetRow);
+                // Place each card
+                deckCards.forEach(cardData => {
+                    const turnNumber = cardData.cost;
+                    if (turnNumber > 0) { // Don't place 0-cost cards automatically
+                        // Find the correct turn column by its visible number, not its internal ID
+                        const allTurnColumns = document.querySelectorAll('.turn-column');
+                        let targetColumn = null;
+                        for (const column of allTurnColumns) {
+                            const turnNumberInput = column.querySelector('.turn-number-input');
+                            if (turnNumberInput && parseInt(turnNumberInput.textContent) === turnNumber) {
+                                targetColumn = column;
+                                break;
                             }
+                        }
 
-                            // Create the card's DOM element and append it to the target row.
-                            const instanceId = nextCardInstanceId++;
-                            const { cardContainer } = createCardDOM(cardData, instanceId);
-                            targetRow.appendChild(cardContainer);
+                        if (targetColumn) {
+                            const isSong = cardData.subtypesText && cardData.subtypesText.includes('Song');
+                            const gridType = isSong ? 'song' : 'board';
+                            const laneGrid = targetColumn.querySelector(`.lane-grid[data-grid-type="${gridType}"]`);
+
+                            if (laneGrid) {
+                                // Find an existing, empty lane row. A row is considered empty if it has no child elements (i.e., no cards).
+                                let targetRow = Array.from(laneGrid.children).find(row => row.children.length === 0);
+
+                                // If no empty row is found, create a new one and append it to the grid.
+                                if (!targetRow) {
+                                    targetRow = createLaneRow(gridType, turnNumber, laneGrid.children.length + 1);
+                                    laneGrid.appendChild(targetRow);
+                                }
+
+                                // Create the card's DOM element and append it to the target row.
+                                const instanceId = nextCardInstanceId++;
+                                const { cardContainer } = createCardDOM(cardData, instanceId);
+                                targetRow.appendChild(cardContainer);
+                            }
                         }
                     }
-                }
-            });
+                });
                 alignBoardTops();
                 saveSessionToLocalStorage();
             }
@@ -1587,12 +1775,21 @@
 
             // --- CLEAR SESSION ---
             clearSessionBtnEl.addEventListener('click', () => {
-                if (confirm('Are you sure you want to clear your session? This cannot be undone.')) {
-                    localStorage.removeItem('lorcanaTurnMapperSession');
-                    clearBoard();
-                    for (let i = 0; i < 4; i++) addTurnColumn();
-                }
+                confirmClearModalEl.style.display = 'flex';
             });
+
+            document.getElementById('cancel-clear-btn').addEventListener('click', () => {
+                confirmClearModalEl.style.display = 'none';
+            });
+
+            document.getElementById('confirm-clear-btn').addEventListener('click', () => {
+                localStorage.removeItem('lorcanaTurnMapperSession');
+                localStorage.removeItem('lorcanaTurnMapperTutorialSeen'); // Also clear tutorial flag
+                clearBoard();
+                for (let i = 0; i < 4; i++) addTurnColumn();
+                confirmClearModalEl.style.display = 'none';
+            });
+
 
             // Save on any interaction
             document.getElementById('overall-comments').addEventListener('input', saveSessionToLocalStorage);
@@ -1602,20 +1799,20 @@
                 }
             });
 
-           loadPopularDeckBtnEl.addEventListener('click', () => {
-               const selectedDeckId = popularDecksSelectEl.value;
-               const selectedDeck = popularDecks.find(d => d.id === selectedDeckId);
-               if (selectedDeck && selectedDeck.encoded) {
-                   try {
-                       const state = JSON.parse(atob(selectedDeck.encoded));
-                       loadState(state);
-                       saveSessionToLocalStorage();
-                   } catch (e) {
-                       alert('Invalid deck data! The encoded string might be corrupted.');
-                       console.error("Popular deck import failed:", e);
-                   }
-               }
-           });
+            loadPopularDeckBtnEl.addEventListener('click', () => {
+                const selectedDeckId = popularDecksSelectEl.value;
+                const selectedDeck = popularDecks.find(d => d.id === selectedDeckId);
+                if (selectedDeck && selectedDeck.encoded) {
+                    try {
+                        const state = JSON.parse(atob(selectedDeck.encoded));
+                        loadState(state);
+                        saveSessionToLocalStorage();
+                    } catch (e) {
+                        alert('Invalid deck data! The encoded string might be corrupted.');
+                        console.error("Popular deck import failed:", e);
+                    }
+                }
+            });
 
         });
     </script>
