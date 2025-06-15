@@ -327,6 +327,10 @@ Pattern Name: Card Effect: Hand to Inkwell
 Regex: /put a card from your hand into your inkwell facedown( and undried)?/gi
 ----------------------------------------
 
+Pattern Name: Bounce: Opposing Character
+Regex: /Return chosen (?:opposing |opponent's )?(character|item|location|character or item|character, item or location)(?: with \\d+ (?:¤|⬡|⛉) or (?:less|more))? to (its|their|the) player's hand/gi
+----------------------------------------
+
 Pattern Name: Banish: Chosen Target
 Regex: /Banish chosen (?:opposing |opponent's )?(character|item|location|character or item|character, item or location)(?: with \\d+ (?:¤|⬡|⛉) or (?:less|more))?/gi
 ----------------------------------------
@@ -890,7 +894,8 @@ Regex: /must challenge if able/gi
                                     }
                                 }
                                 break; // Continue if damage amount is not clear
-
+                            case 'Bounce':
+                                return { classification: "DirectRemoval", details: `Bounces ${pattern.name}.`, card: sourceCardInfo };
                             case 'State':
                                 // These affect the character but don't remove it
                                 return { classification: "AffectsNoRemoval", details: `Matched '${pattern.fullName}'.`, card: sourceCardInfo };
