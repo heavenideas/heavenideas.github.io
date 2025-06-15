@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lorcana Ability Text Analyzer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fuse.js/dist/fuse.basic.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .highlight {
+            padding: 2px 4px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        #search-results::-webkit-scrollbar,
+        #pattern-list::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #search-results::-webkit-scrollbar-track,
+        #pattern-list::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        #search-results::-webkit-scrollbar-thumb,
+        #pattern-list::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        #search-results::-webkit-scrollbar-thumb:hover,
+        #pattern-list::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        .pattern-highlight {
+            background-color: #dbeafe !important;
+            /* blue-200 */
+            border-left-width: 4px;
+            border-color: #3b82f6;
+            /* blue-500 */
+        }
+
+        .regex-input {
+            font-family: monospace;
+            font-size: 0.875rem;
+            color: #db2777;
+            /* pink-600 */
+            background-color: #f1f5f9;
+            /* slate-100 */
+            border: 1px solid #e2e8f0;
+            /* slate-200 */
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.375rem;
+            width: 100%;
+            margin-top: 0.25rem;
+        }
+
+        .regex-input:focus {
+            outline: 2px solid #3b82f6;
+            outline-offset: 2px;
+        }
+
+        .regex-input-error {
+            border: 2px solid #ef4444 !important;
+            /* red-500 */
+        }
+    </style>
+</head>
+
+<body class="bg-slate-100 text-slate-800">
+
+    <div id="app" class="container mx-auto p-4 md:p-8">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl md:text-5xl font-bold text-slate-900">Lorcana Ability Analyzer</h1>
+            <p class="text-slate-600 mt-2">Analyze ability text patterns across all Disney Lorcana cards.</p>
+        </header>
+
+        <div id="loader" class="text-center py-10">
+            <div class="flex justify-center items-center space-x-2">
+                <svg class="animate-spin h-8 w-8 text-slate-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                    viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                    </path>
+                </svg>
+                <span class="text-lg font-medium text-slate-600">Loading and analyzing card database...</span>
+            </div>
+        </div>
+
+        <main id="main-content" class="hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Patterns Column -->
+                <div class="bg-white p-6 rounded-2xl shadow-lg">
+                    <h2 class="text-2xl font-bold mb-4 text-slate-900 border-b pb-2">Identified Ability Patterns</h2>
+                    <div id="pattern-list" class="space-y-4 max-h-[80vh] overflow-y-auto pr-2">
+                        <!-- Patterns will be injected here by JS -->
+                    </div>
+                </div>
+
+                <!-- Search and Display Column -->
+                <div class="bg-white p-6 rounded-2xl shadow-lg">
+                    <h2 class="text-2xl font-bold mb-4 text-slate-900 border-b pb-2">Card Search & Analysis</h2>
+                    <div class="relative">
+                        <input type="text" id="search-input"
+                            placeholder="Search for a card (e.g., 'Elsa', 'Be Prepared')"
+                            class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                        <div id="search-results"
+                            class="absolute z-10 w-full mt-1 bg-white border border-slate-300 rounded-lg shadow-xl max-h-60 overflow-y-auto hidden">
+                            <!-- Search results will be injected here -->
+                        </div>
+                    </div>
+                    <div id="card-display" class="mt-6">
+                        <div id="card-placeholder"
+                            class="text-center text-slate-500 py-10 border-2 border-dashed border-slate-300 rounded-lg">
+                            <p>Select a card to see its ability analysis.</p>
+                            <p class="text-sm mt-1">You can edit the regex on the left to see live updates.</p>
+                        </div>
+                        <div id="card-details" class="hidden">
+                            <!-- Card details will be rendered here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- GLOBAL STATE ---
+            let allCards = [];
+            let fuse;
+            let selectedCard = null; // Store the currently viewed card
+            const DB_URL = 'https://raw.githubusercontent.com/heavenideas/similcana/refs/heads/main/database/allCards.json';
+
+            // --- UI ELEMENTS ---
+            const loader = document.getElementById('loader');
+            const mainContent = document.getElementById('main-content');
+            const patternListContainer = document.getElementById('pattern-list');
+            const searchInput = document.getElementById('search-input');
+            const searchResultsContainer = document.getElementById('search-results');
+            const cardDetailsContainer = document.getElementById('card-details');
+            const cardPlaceholder = document.getElementById('card-placeholder');
+
+            const conditionalClause = '(?: with \\d+ (?:¤|⬡|⛉) or (?:less|more))?';
+            const abilityPatterns = [
+                // LORE
+                { name: "Lore: Gain", regex: new RegExp('Gain (\\d+) ◊', 'gi') },
+                { name: "Lore: Lose", regex: new RegExp('(chosen opponent|each opponent) loses (\\d+) ◊', 'gi') },
+                // CARD & DECK
+                { name: "Card Effect: Draw", regex: new RegExp('Draw (\\d+|a|one|two|three) card(s?)', 'gi') },
+                { name: "Card Effect: Opponent Discards", regex: new RegExp('(chosen opponent|each opponent) discard(s)? (\\d+|a|one) card(s?)( at random)?', 'gi') },
+                { name: "Card Effect: Self Discard", regex: new RegExp('discard (\\d+|a|one|two|three) card(s?)', 'gi') },
+                { name: "Card Effect: Look at Deck", regex: new RegExp('Look at the top (\\d+|one|two|three|four|five) cards of your deck', 'gi') },
+                { name: "Card Effect: Deck to Hand/Bottom", regex: new RegExp('put (?:one of them|a (?:character|item|action|song) card) into your hand and(?: put)? the rest on the bottom of your deck', 'gi') },
+                { name: "Card Effect: Discard to Hand", regex: new RegExp(`return a(nother)? (?:character|item|action|song|card)${conditionalClause} from your discard (?:pile )?to your hand`, 'gi') },
+                { name: "Card Effect: Discard to Deck", regex: new RegExp('shuffle a card from your discard into your deck', 'gi') },
+                { name: "Card Effect: Look at Opponent's Hand", regex: new RegExp("Look at chosen opponent's hand", 'gi') },
+                { name: "Card Effect: Hand to Inkwell", regex: new RegExp('put a card from your hand into your inkwell facedown( and undried)?', 'gi') },
+                // BANISH
+                { name: "Banish: Chosen Target", regex: new RegExp(`Banish chosen (?:opposing |opponent's )?(character|item|location|character or item)${conditionalClause}`, 'gi') },
+                { name: "Banish: All Characters", regex: new RegExp(`Banish all characters${conditionalClause}`, 'gi') },
+                { name: "Banish: This Character", regex: new RegExp('Banish this character', 'gi') },
+                { name: "Banish: Opponent's Choice", regex: new RegExp("((?:An|Each) opponent chooses and banishes one of their characters)", 'gi') },
+                { name: "Banish: As a Cost/Choice", regex: new RegExp('You may banish (?:this character|one of your characters) to', 'gi') },
+                // DAMAGE & HEALING
+                { name: "Damage: Deal to One", regex: new RegExp(`Deal (\\d+) damage to chosen (?:opposing )?(character|location|item)${conditionalClause}`, 'gi') },
+                { name: "Damage: Deal to Many", regex: new RegExp('Deal (\\d+) damage to each opposing character', 'gi') },
+                { name: "Damage: Deal Divided", regex: new RegExp('Deal (\\d+) damage divided as you choose among any number of chosen opposing characters', 'gi') },
+                { name: "Damage: Heal", regex: new RegExp('Remove up to (\\d+) damage from (?:chosen )?(?:one of )?(?:your )?(character|location)', 'gi') },
+                // STATE & MOVEMENT
+                { name: "State: Ready Character", regex: new RegExp('Ready chosen (?:your |another )?(character|item)', 'gi') },
+                { name: "State: Exert Character", regex: new RegExp(`Exert chosen (?:opposing |opponent's )?(character|item)${conditionalClause}`, 'gi') },
+                { name: "State: Prevent Readying", regex: new RegExp("chosen (?:opposing )?character can't ready at the start of (?:their|your) next turn", 'gi') },
+                { name: "Movement: To Location", regex: new RegExp('move (?:one of )?your characters to a location for free', 'gi') },
+                // STATS
+                { name: "Stat: Strength Buff", regex: new RegExp('(?:gets|has|gains) \\+(\\d+) ¤', 'gi') },
+                { name: "Stat: Strength Debuff", regex: new RegExp('(?:gets|has) -(\\d+) ¤', 'gi') },
+                { name: "Stat: Willpower Buff", regex: new RegExp('gains \\+(\\d+) ⛉', 'gi') },
+                { name: "Stat: Cost Reduction", regex: new RegExp('pay (\\d+) ⬡ less', 'gi') },
+                // PLAY
+                { name: "Play: From Discard", regex: new RegExp(`You may play a (character|item) card${conditionalClause} from your discard`, 'gi') },
+                { name: "Play: For Free", regex: new RegExp('You may play a character with cost (\\d+) or less for free', 'gi') },
+                { name: "Play: Cheaper", regex: new RegExp('The next time you play a (?:character|item|action|song) card this turn, pay (\\d+) ⬡ less', 'gi') },
+                // TRIGGERS
+                { name: "Trigger: On Play", regex: new RegExp('When you play this (?:character|item|action)', 'gi') },
+                { name: "Trigger: On Quest", regex: new RegExp('Whenever this character quests', 'gi') },
+                { name: "Trigger: On Banish (Self)", regex: new RegExp('When this character is banished', 'gi') },
+                { name: "Trigger: On Banish (Other)", regex: new RegExp('Whenever (?:another|a|one of your other|an opposing) character is banished', 'gi') },
+                { name: "Trigger: On Banish (in Challenge)", regex: new RegExp('Whenever (?:this character is banished in a challenge|an opposing character is banished in a challenge)', 'gi') },
+                { name: "Trigger: On Being Challenged", regex: new RegExp('Whenever this character is challenged', 'gi') },
+                { name: "Trigger: On Challenging", regex: new RegExp('When this character challenges', 'gi') },
+                { name: "Trigger: Start of Turn", regex: new RegExp('At the start of your turn', 'gi') },
+                { name: "Trigger: End of Turn", regex: new RegExp('At the end of your turn', 'gi') },
+                // KEYWORDS & STATIC
+                { name: "Keyword: Evasive", regex: new RegExp('\\b(Evasive)\\b', 'gi') },
+                { name: "Keyword: Rush", regex: new RegExp('\\b(Rush)\\b', 'gi') },
+                { name: "Keyword: Ward", regex: new RegExp('\\b(Ward)\\b', 'gi') },
+                { name: "Keyword: Bodyguard", regex: new RegExp('\\b(Bodyguard)\\b', 'gi') },
+                { name: "Keyword: Challenger", regex: new RegExp('(Challenger \\+\\d+)', 'gi') },
+                { name: "Keyword: Resist", regex: new RegExp('(Resist \\+\\d+)', 'gi') },
+                { name: "Keyword: Shift", regex: new RegExp('(Shift (?:\\d+|an? .*?|into this character))', 'gi') },
+                { name: "Keyword: Support", regex: new RegExp('\\b(Support)\\b', 'gi') },
+                { name: "Keyword: Singer", regex: new RegExp('\\b(Singer \\d+)\\b', 'gi') },
+                { name: "Keyword: Reckless", regex: new RegExp('\\b(Reckless)\\b', 'gi') },
+                { name: "Static: Cannot Be Challenged", regex: new RegExp("This character can't be challenged( except by characters with (?:Rush|Evasive))?", 'gi') },
+                { name: "Static: Cannot Quest", regex: new RegExp("This character can't quest", 'gi') },
+                { name: "Static: Must Challenge", regex: new RegExp('must challenge if able', 'gi') }
+            ];
+
+            // --- INITIALIZATION ---
+            async function initializeApp() {
+                try {
+                    const response = await fetch(DB_URL);
+                    if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
+                    const data = await response.json();
+                    allCards = data.cards;
+                    setupFuseSearch();
+                    displayPatterns();
+                    loader.classList.add('hidden');
+                    mainContent.classList.remove('hidden');
+                } catch (error) {
+                    loader.innerHTML = `<div class="text-red-500 font-bold">Failed to load card data. Please try refreshing the page.</div><p class="text-sm text-slate-500 mt-2">${error.message}</p>`;
+                }
+            }
+
+            function setupFuseSearch() {
+                const options = { includeScore: true, keys: ['fullName', 'simpleName'], threshold: 0.3 };
+                fuse = new Fuse(allCards, options);
+            }
+
+            function displayPatterns() {
+                const displayedCategories = new Set();
+                abilityPatterns.forEach(pattern => {
+                    const category = pattern.name.split(':')[0].trim();
+                    if (!displayedCategories.has(category)) {
+                        const categoryTitle = document.createElement('h3');
+                        categoryTitle.className = 'text-lg font-bold text-slate-600 mt-6 first:mt-0 border-b-2 border-slate-200 pb-1 mb-3';
+                        categoryTitle.textContent = category;
+                        patternListContainer.appendChild(categoryTitle);
+                        displayedCategories.add(category);
+                    }
+                    const patternEl = document.createElement('div');
+                    patternEl.className = 'p-3 bg-slate-50 rounded-lg border border-slate-200 transition-colors duration-300';
+                    patternEl.setAttribute('data-pattern-name', pattern.name);
+                    patternEl.innerHTML = `
+                        <p class="font-semibold text-slate-800">${pattern.name}</p>
+                        <input type="text" class="regex-input" value="${pattern.regex.source}" data-pattern-name="${pattern.name}" />
+                    `;
+                    patternListContainer.appendChild(patternEl);
+                });
+            }
+
+            // --- EVENT HANDLING ---
+            searchInput.addEventListener('input', (e) => handleSearch(e.target.value));
+            searchInput.addEventListener('focus', (e) => { if (e.target.value) handleSearch(e.target.value); });
+            document.addEventListener('click', (e) => { if (!e.target.closest('#search-input, #search-results')) searchResultsContainer.classList.add('hidden'); });
+
+            // Event delegation for live regex editing
+            patternListContainer.addEventListener('input', (e) => {
+                if (e.target.matches('.regex-input')) {
+                    const patternName = e.target.dataset.patternName;
+                    const newRegexSource = e.target.value;
+                    const patternToUpdate = abilityPatterns.find(p => p.name === patternName);
+
+                    if (patternToUpdate) {
+                        try {
+                            // Update the regex in our pattern list
+                            patternToUpdate.regex = new RegExp(newRegexSource, 'gi');
+                            e.target.classList.remove('regex-input-error');
+
+                            // If a card is selected, re-run the analysis
+                            if (selectedCard) {
+                                displayCardDetails(selectedCard, false); // false to prevent resetting search input
+                            }
+                        } catch (err) {
+                            // Invalid regex syntax
+                            e.target.classList.add('regex-input-error');
+                        }
+                    }
+                }
+            });
+
+            function handleSearch(query) {
+                if (query.trim() === '') {
+                    searchResultsContainer.classList.add('hidden');
+                    return;
+                }
+                const results = fuse.search(query, { limit: 10 });
+                searchResultsContainer.innerHTML = '';
+                if (results.length > 0) {
+                    results.forEach(result => {
+                        const card = result.item;
+                        const resultEl = document.createElement('div');
+                        resultEl.className = 'p-3 hover:bg-blue-100 cursor-pointer border-b border-slate-200 last:border-b-0';
+                        resultEl.textContent = card.fullName;
+                        resultEl.addEventListener('click', () => {
+                            displayCardDetails(card, true); // true to update search input
+                        });
+                        searchResultsContainer.appendChild(resultEl);
+                    });
+                    searchResultsContainer.classList.remove('hidden');
+                } else {
+                    searchResultsContainer.classList.add('hidden');
+                }
+            }
+
+            // --- ANALYSIS & DISPLAY LOGIC ---
+            function displayCardDetails(card, updateSearchInput = true) {
+                selectedCard = card; // Set the currently selected card
+                if (updateSearchInput) {
+                    searchInput.value = card.fullName;
+                    searchResultsContainer.classList.add('hidden');
+                }
+
+                document.querySelectorAll('.pattern-highlight').forEach(el => el.classList.remove('pattern-highlight'));
+                cardPlaceholder.classList.add('hidden');
+                cardDetailsContainer.innerHTML = '';
+
+                const cardHeader = document.createElement('h3');
+                cardHeader.className = 'text-2xl font-bold text-slate-900 mb-4';
+                cardHeader.textContent = card.fullName;
+                cardDetailsContainer.appendChild(cardHeader);
+
+                const abilityContainer = document.createElement('div');
+                abilityContainer.className = 'space-y-6';
+
+                const textsToAnalyze = card.fullTextSections || [];
+                if (textsToAnalyze.length === 0 && card.fullText) { textsToAnalyze.push(card.fullText); }
+
+                const masterFoundPatterns = new Set();
+
+                if (textsToAnalyze.length > 0 && textsToAnalyze.some(t => t && t.trim() !== '')) {
+                    textsToAnalyze.forEach(abilityText => {
+                        const { highlightedHtml, foundPatterns } = analyzeAndHighlightText(abilityText);
+                        foundPatterns.forEach(p => masterFoundPatterns.add(p));
+                        const abilityBlock = document.createElement('div');
+                        abilityBlock.className = 'p-4 bg-slate-50 rounded-lg border border-slate-200';
+                        const originalTextEl = document.createElement('div');
+                        originalTextEl.className = 'mb-3 prose prose-slate max-w-none';
+                        originalTextEl.innerHTML = highlightedHtml;
+                        abilityBlock.appendChild(originalTextEl);
+
+                        if (foundPatterns.size > 0) {
+                            const patternsTitle = document.createElement('h4');
+                            patternsTitle.className = 'font-semibold text-sm text-slate-700 mt-3 border-t pt-3';
+                            patternsTitle.textContent = 'Triggered Patterns:';
+                            abilityBlock.appendChild(patternsTitle);
+                            const patternTags = document.createElement('div');
+                            patternTags.className = 'flex flex-wrap gap-2 mt-2';
+                            foundPatterns.forEach(pName => {
+                                const tag = document.createElement('span');
+                                tag.className = 'text-xs font-medium text-blue-800 bg-blue-100 px-2 py-1 rounded-full';
+                                tag.textContent = pName;
+                                patternTags.appendChild(tag);
+                            });
+                            abilityBlock.appendChild(patternTags);
+                        }
+                        abilityContainer.appendChild(abilityBlock);
+                    });
+                } else {
+                    abilityContainer.innerHTML = '<p class="text-slate-500">This card has no ability text.</p>';
+                }
+
+                cardDetailsContainer.appendChild(abilityContainer);
+                cardDetailsContainer.classList.remove('hidden');
+
+                masterFoundPatterns.forEach(pName => {
+                    const patternEl = document.querySelector(`[data-pattern-name="${pName}"]`);
+                    if (patternEl) patternEl.classList.add('pattern-highlight');
+                });
+            }
+
+            function analyzeAndHighlightText(originalText) {
+                if (!originalText || originalText.trim() === '') {
+                    return { highlightedHtml: '', foundPatterns: new Set() };
+                }
+                const sanitizedText = originalText.replace(/\n/g, ' ');
+                let allMatches = [];
+                abilityPatterns.forEach(pattern => {
+                    pattern.regex.lastIndex = 0;
+                    let match;
+                    while ((match = pattern.regex.exec(sanitizedText)) !== null) {
+                        if (match[0].length === 0) continue;
+                        allMatches.push({ name: pattern.name, text: match[0], start: match.index, end: match.index + match[0].length });
+                    }
+                });
+                allMatches.sort((a, b) => a.start - b.start || b.end - a.end);
+                const filteredMatches = [];
+                let lastEnd = -1;
+                for (const match of allMatches) {
+                    if (match.start >= lastEnd) {
+                        filteredMatches.push(match);
+                        lastEnd = match.end;
+                    }
+                }
+                const foundPatterns = new Set(filteredMatches.map(m => m.name));
+                const patternColors = {};
+                const colorPool = ['#fef9c3', '#dbeafe', '#dcfce7', '#fee2e2', '#e0f2fe', '#f3e8ff', '#ffe4e6', '#d1fae5', '#fae8ff', '#e0e7ff'];
+                let colorIndex = 0;
+                foundPatterns.forEach(name => {
+                    patternColors[name] = colorPool[colorIndex % colorPool.length];
+                    colorIndex++;
+                });
+                let highlightedHtml = "";
+                let lastIndex = 0;
+                filteredMatches.sort((a, b) => a.start - b.start);
+                filteredMatches.forEach(match => {
+                    highlightedHtml += originalText.substring(lastIndex, match.start);
+                    const color = patternColors[match.name];
+                    highlightedHtml += `<span class="highlight" style="background-color: ${color};">${match.text}</span>`;
+                    lastIndex = match.end;
+                });
+                highlightedHtml += originalText.substring(lastIndex);
+                return { highlightedHtml: highlightedHtml.replace(/\n/g, '<br>'), foundPatterns: foundPatterns };
+            }
+
+            // --- START THE APP ---
+            initializeApp();
+        });
+    </script>
+</body>
+
+</html>

@@ -501,12 +501,35 @@
 
         // --- Generic Ability/Effect Interaction Analysis ---
         const TARGETING_PHRASES = {
-            directOpponent: ["an opposing character", "opponent controls a character", "opponent's character"],
-            generic: ["chosen character", "target character", "a character", "choose a character"],
+            directOpponent: ["opposing character", "opponent controls a character", "opponent's character"],
+            generic: ["chosen character", "target character", "a character", "choose a character", "one of their characters", "two of their characters"],
             selfExclusion: ["your character", "a character you control"],
             aoeOpposing: ["each opposing character", "all opposing characters"],
             aoeAll: ["each character", "all characters"],
             wardProtectedSingleTarget: ["chosen character", "target character"]
+        };
+
+        const ABILITY_EFFECT_PATTERNS = {
+            banish: {
+                cost: /banish (?:chosen character|character|all characters|all opposing characters|opposing character|opposing characters) with cost (\d+) or less|banish (?:chosen character|character|all characters|all opposing characters|opposing character|opposing characters) that costs (\d+) or less/,
+                willpower: /banish (?:chosen character|character|all characters|all opposing characters|opposing character|opposing characters) with (\d+)\s*⛉ or less|banish (?:chosen character|character|all characters|all opposing characters|opposing character|opposing characters) with willpower (\d+) or less/,
+                strength: /banish (?:chosen character|character|all characters|all opposing characters|opposing character|opposing characters) with (\d+)\s*¤ or less|banish (?:chosen character|character|all characters|all opposing characters|opposing character|opposing characters) with strength (\d+) or less/,
+                keywordSpecific: /banish (?:chosen|all|all opposing|opposing) (\w+) character(?:s)?/g,
+                keywordGeneric: /banish character(?:s)? with (\w+)/g,
+                returnToHand: ["return chosen character to its player's hand", "return an opposing character to its player's hand", "return target character to its player's hand"],
+                general: ["banish chosen character", "banish an opposing character", "banish target character", "banish all characters"]
+            },
+            damage: {
+                amount: /deal (\d+) damage to (?:chosen character|target character|opposing character|each opposing character|each character)/g,
+                general: ["deal damage to chosen character", "deal damage to an opposing character", "deal damage to target character", "deal damage to each opposing character", "deal damage to each character"]
+            },
+            affects: {
+                exert: ["exert chosen character", "exert an opposing character"],
+                cannotChallenge: ["cannot challenge", "can't challenge"],
+                cannotQuest: ["cannot quest", "can't quest"],
+                reduceStats: ["loses", "strength", "willpower", "⛉", "¤"], // Check for "loses" AND one of the stats
+                ready: ["ready chosen character", "opposing", "opponent controls"] // Check for "ready chosen character" AND one of the targeting phrases
+            }
         };
 
         function classifyAbilityEffectOnTarget(sourceCardInfo, abilityText, targetCharacterCard, sourceIsPlayerPerspective) {
@@ -529,6 +552,7 @@
                     canTargetRelevantChar = true;
                 }
             } else {
+                // For opponent's perspective, "directOpponent" and "aoeOpposing" refer to player's characters
                 if (TARGETING_PHRASES.directOpponent.some(phrase => lowerAbilityText.includes(phrase)) ||
                     TARGETING_PHRASES.aoeOpposing.some(phrase => lowerAbilityText.includes(phrase)) ||
                     TARGETING_PHRASES.aoeAll.some(phrase => lowerAbilityText.includes(phrase))) {
@@ -551,10 +575,9 @@
                 return { classification: "NoInteractionDueToWard", details: "Target character has Ward, likely protected from single target.", card: sourceCardInfo };
             }
 
-            let costMatch = lowerAbilityText.match(/banish (?:chosen character|character|all characters|all opposing characters|opposing character|opposing characters) with cost (\d+) or less/);
-            if (!costMatch) costMatch = lowerAbilityText.match(/banish (?:chosen character|character|all characters|all opposing characters|opposing character|opposing characters) that costs (\d+) or less/);
+            let costMatch = lowerAbilityText.match(ABILITY_EFFECT_PATTERNS.banish.cost);
             if (costMatch) {
-                const costLimit = parseInt(costMatch[1]);
+                const costLimit = parseInt(costMatch[1] || costMatch[2]); // Use [1] or [2] depending on which part of the regex matched
                 if (targetCharCost <= costLimit) {
                     return { classification: "DirectRemoval", details: `Banishes due to cost ≤ ${costLimit} (Target char cost: ${targetCharCost}).`, card: sourceCardInfo };
                 } else {
@@ -562,10 +585,9 @@
                 }
             }
 
-            let wpMatch = lowerAbilityText.match(/banish (?:chosen character|character|all characters|all opposing characters|opposing character|opposing characters) with (\d+)\s*⛉ or less/);
-            if (!wpMatch) wpMatch = lowerAbilityText.match(/banish (?:chosen character|character|all characters|all opposing characters|opposing character|opposing characters) with willpower (\d+) or less/);
+            let wpMatch = lowerAbilityText.match(ABILITY_EFFECT_PATTERNS.banish.willpower);
             if (wpMatch) {
-                const wpLimit = parseInt(wpMatch[1]);
+                const wpLimit = parseInt(wpMatch[1] || wpMatch[2]);
                 if (targetCharWillpower <= wpLimit) {
                     return { classification: "DirectRemoval", details: `Banishes due to willpower ≤ ${wpLimit} (Target char WP: ${targetCharWillpower}).`, card: sourceCardInfo };
                 } else {
@@ -573,10 +595,9 @@
                 }
             }
 
-            let strMatch = lowerAbilityText.match(/banish (?:chosen character|character|all characters|all opposing characters|opposing character|opposing characters) with (\d+)\s*¤ or less/);
-            if (!strMatch) strMatch = lowerAbilityText.match(/banish (?:chosen character|character|all characters|all opposing characters|opposing character|opposing characters) with strength (\d+) or less/);
+            let strMatch = lowerAbilityText.match(ABILITY_EFFECT_PATTERNS.banish.strength);
             if (strMatch) {
-                const strLimit = parseInt(strMatch[1]);
+                const strLimit = parseInt(strMatch[1] || strMatch[2]);
                 if (targetCharStrength <= strLimit) {
                     return { classification: "DirectRemoval", details: `Banishes due to strength ≤ ${strLimit} (Target char Str: ${targetCharStrength}).`, card: sourceCardInfo };
                 } else {
@@ -584,9 +605,8 @@
                 }
             }
 
-            const keywordBanishRegex = /banish (?:chosen|all|all opposing|opposing) (\w+) character(?:s)?/g;
             let keywordMatch;
-            let tempRegex = new RegExp(keywordBanishRegex);
+            let tempRegex = new RegExp(ABILITY_EFFECT_PATTERNS.banish.keywordSpecific);
             while ((keywordMatch = tempRegex.exec(lowerAbilityText)) !== null) {
                 const targetKeyword = keywordMatch[1];
                 if (targetCharKeywords[targetKeyword]) {
@@ -595,8 +615,7 @@
                     details += `Keyword condition (${targetKeyword}) not met. `;
                 }
             }
-            const keywordBanishGenericRegex = /banish character(?:s)? with (\w+)/g;
-            tempRegex = new RegExp(keywordBanishGenericRegex);
+            tempRegex = new RegExp(ABILITY_EFFECT_PATTERNS.banish.keywordGeneric);
             while ((keywordMatch = tempRegex.exec(lowerAbilityText)) !== null) {
                 const targetKeyword = keywordMatch[1];
                 if (targetCharKeywords[targetKeyword]) {
@@ -606,25 +625,18 @@
                 }
             }
 
-            if (lowerAbilityText.includes("return chosen character to its player's hand") ||
-                lowerAbilityText.includes("return an opposing character to its player's hand") ||
-                lowerAbilityText.includes("return target character to its player's hand")) {
+            if (ABILITY_EFFECT_PATTERNS.banish.returnToHand.some(phrase => lowerAbilityText.includes(phrase))) {
                 details = "Returns character to hand (Direct Removal)." + (details ? " Other conditions: " + details.trim() : "");
                 return { classification: "DirectRemoval", details: details, card: sourceCardInfo };
             }
 
-            if (lowerAbilityText.includes("banish chosen character") ||
-                lowerAbilityText.includes("banish an opposing character") ||
-                lowerAbilityText.includes("banish target character") ||
-                lowerAbilityText.includes("banish all characters")
-            ) {
+            if (ABILITY_EFFECT_PATTERNS.banish.general.some(phrase => lowerAbilityText.includes(phrase))) {
                 return { classification: "DirectRemoval", details: "Directly banishes (general effect)." + (details ? " Other conditions: " + details.trim() : ""), card: sourceCardInfo };
             }
 
-            const damageRegex = /deal (\d+) damage to (?:chosen character|target character|an opposing character|each opposing character|each character)/g;
             let damageAmountMatch;
             let dealtDamage = 0;
-            tempRegex = new RegExp(damageRegex);
+            tempRegex = new RegExp(ABILITY_EFFECT_PATTERNS.damage.amount);
             while ((damageAmountMatch = tempRegex.exec(lowerAbilityText)) !== null) {
                 if (damageAmountMatch[1]) {
                     dealtDamage = Math.max(dealtDamage, parseInt(damageAmountMatch[1]));
@@ -640,23 +652,23 @@
                     return { classification: "PotentialRemoval", details: details, card: sourceCardInfo };
                 }
             }
-            if (dealtDamage === 0 &&
-                (lowerAbilityText.includes("deal damage to chosen character") ||
-                    lowerAbilityText.includes("deal damage to an opposing character") ||
-                    lowerAbilityText.includes("deal damage to target character") ||
-                    lowerAbilityText.includes("deal damage to each opposing character") ||
-                    lowerAbilityText.includes("deal damage to each character")
-                )) {
+            if (dealtDamage === 0 && ABILITY_EFFECT_PATTERNS.damage.general.some(phrase => lowerAbilityText.includes(phrase))) {
                 details = "Deals damage (amount varies/conditional)." + (details ? " Other conditions: " + details.trim() : "");
                 return { classification: "PotentialRemoval", details: details, card: sourceCardInfo };
             }
 
             let affectsReason = details;
-            if (lowerAbilityText.includes("exert chosen character") || lowerAbilityText.includes("exert an opposing character")) affectsReason += "Exerts character. ";
-            if (lowerAbilityText.includes("cannot challenge") || lowerAbilityText.includes("can't challenge")) affectsReason += "Prevents challenging. ";
-            if (lowerAbilityText.includes("cannot quest") || lowerAbilityText.includes("can't quest")) affectsReason += "Prevents questing. ";
-            if (lowerAbilityText.includes("loses") && (lowerAbilityText.includes("strength") || lowerAbilityText.includes("willpower") || lowerAbilityText.includes("⛉") || lowerAbilityText.includes("¤"))) affectsReason += "Reduces stats. ";
-            if (lowerAbilityText.includes("ready chosen character") && (lowerAbilityText.includes("opposing") || lowerAbilityText.includes("opponent controls"))) affectsReason += "Readies character (check context). ";
+            if (ABILITY_EFFECT_PATTERNS.affects.exert.some(phrase => lowerAbilityText.includes(phrase))) affectsReason += "Exerts character. ";
+            if (ABILITY_EFFECT_PATTERNS.affects.cannotChallenge.some(phrase => lowerAbilityText.includes(phrase))) affectsReason += "Prevents challenging. ";
+            if (ABILITY_EFFECT_PATTERNS.affects.cannotQuest.some(phrase => lowerAbilityText.includes(phrase))) affectsReason += "Prevents questing. ";
+            if (lowerAbilityText.includes(ABILITY_EFFECT_PATTERNS.affects.reduceStats[0]) &&
+                (lowerAbilityText.includes(ABILITY_EFFECT_PATTERNS.affects.reduceStats[1]) ||
+                    lowerAbilityText.includes(ABILITY_EFFECT_PATTERNS.affects.reduceStats[2]) ||
+                    lowerAbilityText.includes(ABILITY_EFFECT_PATTERNS.affects.reduceStats[3]) ||
+                    lowerAbilityText.includes(ABILITY_EFFECT_PATTERNS.affects.reduceStats[4]))) affectsReason += "Reduces stats. ";
+            if (lowerAbilityText.includes(ABILITY_EFFECT_PATTERNS.affects.ready[0]) &&
+                (lowerAbilityText.includes(ABILITY_EFFECT_PATTERNS.affects.ready[1]) ||
+                    lowerAbilityText.includes(ABILITY_EFFECT_PATTERNS.affects.ready[2]))) affectsReason += "Readies character (check context). ";
 
             if (affectsReason.trim() !== details.trim() && affectsReason.trim() !== "") {
                 return { classification: "AffectsNoRemoval", details: affectsReason.trim(), card: sourceCardInfo };
