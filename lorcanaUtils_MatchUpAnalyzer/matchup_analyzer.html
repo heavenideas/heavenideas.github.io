@@ -210,7 +210,7 @@
 
     <div id="loadingIndicator" class="text-center my-4">
         <div class="loading-spinner"></div>
-        <p>Loading Card Data...</p>
+        <p>Loading Card Data & Patterns...</p>
     </div>
 
     <main id="appContent" class="hidden">
@@ -267,6 +267,7 @@
         // --- Globals ---
         let ALL_CARDS_DATA = null;
         let ALL_CARDS_MAP = new Map();
+        let LORCANA_PATTERNS = {};
         let PLAYER_DECK_CHARS = [];
         let OPPONENT_DECK_CHARS = [];
         let PLAYER_DECK_SONGS = [];
@@ -276,6 +277,225 @@
 
 
         const CARD_DATA_URL = 'https://raw.githubusercontent.com/heavenideas/similcana/refs/heads/main/database/allCards.json';
+
+        // Inlined patterns to prevent network errors
+        const LORCANA_PATTERNS_TEXT = `
+Lorcana Ability Patterns Export
+============================
+
+Pattern Name: Lore: Gain
+Regex: /Gain (\\d+) ◊/gi
+----------------------------------------
+
+Pattern Name: Lore: Lose
+Regex: /(chosen opponent(s?)|each opponent) loses (\\d+) ◊/gi
+----------------------------------------
+
+Pattern Name: Card Effect: Draw
+Regex: /Draw (\\d+|a|one|two|three) card(s?)/gi
+----------------------------------------
+
+Pattern Name: Card Effect: Opponent Discards
+Regex: /(chosen opponent|each opponent) discard(s)? (\\d+|a|one) card(s?)( at random)?/gi
+----------------------------------------
+
+Pattern Name: Card Effect: Self Discard
+Regex: /discard (\\d+|a|one|two|three) card(s?)/gi
+----------------------------------------
+
+Pattern Name: Card Effect: Look at Deck
+Regex: /Look at the top (\\d+|one|two|three|four|five) cards of your deck/gi
+----------------------------------------
+
+Pattern Name: Card Effect: Deck to Hand/Bottom
+Regex: /put (?:one of them|a (?:character|item|action|song) card) into your hand and(?: put)? the rest on the bottom of your deck/gi
+----------------------------------------
+
+Pattern Name: Card Effect: Discard to Hand
+Regex: /return a(nother)? (?:character|item|action|song|card)(?: with \\d+ (?:¤|⬡|⛉) or (?:less|more))? from your discard (?:pile )?to your hand/gi
+----------------------------------------
+
+Pattern Name: Card Effect: Discard to Deck
+Regex: /shuffle a card from your discard into your deck/gi
+----------------------------------------
+
+Pattern Name: Card Effect: Look at Opponent's Hand
+Regex: /Look at chosen opponent's hand/gi
+----------------------------------------
+
+Pattern Name: Card Effect: Hand to Inkwell
+Regex: /put a card from your hand into your inkwell facedown( and undried)?/gi
+----------------------------------------
+
+Pattern Name: Banish: Chosen Target
+Regex: /Banish chosen (?:opposing |opponent's )?(character|item|location|character or item|character, item or location)(?: with \\d+ (?:¤|⬡|⛉) or (?:less|more))?/gi
+----------------------------------------
+
+Pattern Name: Banish: All Characters
+Regex: /Banish all (opposing )?characters(?: with \\d+ (?:¤|⬡|⛉) or (?:less|more))?/gi
+----------------------------------------
+
+Pattern Name: Banish: This Character
+Regex: /Banish (this |them )?character (?:of your)/gi
+----------------------------------------
+
+Pattern Name: Banish: Opponent's Choice
+Regex: /((?:An|Each) opponent chooses and banishes one of their characters)/gi
+----------------------------------------
+
+Pattern Name: Banish: As a Cost/Choice
+Regex: /You may banish (?:this character|one of your characters) to/gi
+----------------------------------------
+
+Pattern Name: Damage: Deal to One
+Regex: /Deal (\\d+) damage to chosen (?:opposing )?(character|location|item)(?: with \\d+ (?:¤|⬡|⛉) or (?:less|more))?/gi
+----------------------------------------
+
+Pattern Name: Damage: Deal to Many
+Regex: /Deal (\\d+) damage to each opposing character/gi
+----------------------------------------
+
+Pattern Name: Damage: Deal Divided
+Regex: /Deal (\\d+) damage divided as you choose among any number of chosen opposing characters/gi
+----------------------------------------
+
+Pattern Name: Damage: Heal
+Regex: /Remove up to (\\d+) damage from (?:chosen )?(?:one of )?(?:your )?(character|location)/gi
+----------------------------------------
+
+Pattern Name: State: Ready Character
+Regex: /Ready chosen (?:your |another )?(character|item)/gi
+----------------------------------------
+
+Pattern Name: State: Exert Character
+Regex: /Exert chosen (?:opposing |opponent's )?(character|item)(?: with \\d+ (?:¤|⬡|⛉) or (?:less|more))?/gi
+----------------------------------------
+
+Pattern Name: State: Prevent Readying
+Regex: /chosen (?:opposing )?character can't ready at the start of (?:their|your) next turn/gi
+----------------------------------------
+
+Pattern Name: Movement: To Location
+Regex: /move (?:one of )?your characters to a location for free/gi
+----------------------------------------
+
+Pattern Name: Stat: Strength Buff
+Regex: /(?:gets|has|gains) \\+(\\d+) ¤/gi
+----------------------------------------
+
+Pattern Name: Stat: Strength Debuff
+Regex: /(?:gets|has) -(\\d+) ¤/gi
+----------------------------------------
+
+Pattern Name: Stat: Willpower Buff
+Regex: /gains \\+(\\d+) ⛉/gi
+----------------------------------------
+
+Pattern Name: Stat: Cost Reduction
+Regex: /pay (\\d+) ⬡ less/gi
+----------------------------------------
+
+Pattern Name: Play: From Discard
+Regex: /You may play a (character|item) card(?: with \\d+ (?:¤|⬡|⛉) or (?:less|more))? from your discard/gi
+----------------------------------------
+
+Pattern Name: Play: For Free
+Regex: /You may play a character with cost (\\d+) or less for free/gi
+----------------------------------------
+
+Pattern Name: Play: Cheaper
+Regex: /The next time you play a (?:character|item|action|song) card this turn, pay (\\d+) ⬡ less/gi
+----------------------------------------
+
+Pattern Name: Trigger: On Play
+Regex: /When you play this (?:character|item|action)/gi
+----------------------------------------
+
+Pattern Name: Trigger: On Quest
+Regex: /Whenever this character quests/gi
+----------------------------------------
+
+Pattern Name: Trigger: On Banish (Self)
+Regex: /When this character is banished/gi
+----------------------------------------
+
+Pattern Name: Trigger: On Banish (Other)
+Regex: /Whenever (?:another|a|one of your other|an opposing) character is banished/gi
+----------------------------------------
+
+Pattern Name: Trigger: On Banish (in Challenge)
+Regex: /Whenever (?:this character is banished in a challenge|an opposing character is banished in a challenge)/gi
+----------------------------------------
+
+Pattern Name: Trigger: On Being Challenged
+Regex: /Whenever this character is challenged/gi
+----------------------------------------
+
+Pattern Name: Trigger: On Challenging
+Regex: /When this character challenges/gi
+----------------------------------------
+
+Pattern Name: Trigger: Start of Turn
+Regex: /At the start of your turn/gi
+----------------------------------------
+
+Pattern Name: Trigger: End of Turn
+Regex: /At the end of your turn/gi
+----------------------------------------
+
+Pattern Name: Keyword: Evasive
+Regex: /\\b(Evasive)\\b/gi
+----------------------------------------
+
+Pattern Name: Keyword: Rush
+Regex: /\\b(Rush)\\b/gi
+----------------------------------------
+
+Pattern Name: Keyword: Ward
+Regex: /\\b(Ward)\\b/gi
+----------------------------------------
+
+Pattern Name: Keyword: Bodyguard
+Regex: /\\b(Bodyguard)\\b/gi
+----------------------------------------
+
+Pattern Name: Keyword: Challenger
+Regex: /(Challenger \\+\\d+)/gi
+----------------------------------------
+
+Pattern Name: Keyword: Resist
+Regex: /(Resist \\+\\d+)/gi
+----------------------------------------
+
+Pattern Name: Keyword: Shift
+Regex: /(Shift (?:\\d+|an? .*?|into this character))/gi
+----------------------------------------
+
+Pattern Name: Keyword: Support
+Regex: /\\b(Support)\\b/gi
+----------------------------------------
+
+Pattern Name: Keyword: Singer
+Regex: /\\b(Singer \\d+)\\b/gi
+----------------------------------------
+
+Pattern Name: Keyword: Reckless
+Regex: /\\b(Reckless)\\b/gi
+----------------------------------------
+
+Pattern Name: Static: Cannot Be Challenged
+Regex: /This character can't be challenged( except by characters with (?:Rush|Evasive))?/gi
+----------------------------------------
+
+Pattern Name: Static: Cannot Quest
+Regex: /This character can't quest/gi
+----------------------------------------
+
+Pattern Name: Static: Must Challenge
+Regex: /must challenge if able/gi
+----------------------------------------
+`;
+
 
         const DEFAULT_PLAYER_DECK = `4 Diablo - Obedient Raven
 4 Fairy Ship - Royal Vessel
@@ -339,9 +559,11 @@
         async function initializeApp() {
             console.log("Initializing app...");
             try {
-                const response = await fetch(CARD_DATA_URL);
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                ALL_CARDS_DATA = await response.json();
+                // Fetch card data
+                const cardsResponse = await fetch(CARD_DATA_URL);
+
+                if (!cardsResponse.ok) throw new Error(`HTTP error! status: ${cardsResponse.status}`);
+                ALL_CARDS_DATA = await cardsResponse.json();
                 console.log("Card data fetched successfully:", ALL_CARDS_DATA.cards.length, "cards loaded.");
 
                 ALL_CARDS_DATA.cards.forEach(card => {
@@ -351,6 +573,9 @@
                     }
                 });
                 console.log("ALL_CARDS_MAP populated with", ALL_CARDS_MAP.size, "entries.");
+
+                // Parse the inline patterns, removing the failing network request
+                parseAndStorePatterns(LORCANA_PATTERNS_TEXT);
 
                 loadingIndicator.classList.add('hidden');
                 appContent.classList.remove('hidden');
@@ -371,8 +596,35 @@
 
             } catch (error) {
                 console.error("Error during app initialization:", error);
-                loadingIndicator.innerHTML = `<p class="text-red-500">Error loading card data. Please try refreshing. Details: ${error.message}</p>`;
+                loadingIndicator.innerHTML = `<p class="text-red-500">Error loading data. Please try refreshing. Details: ${error.message}</p>`;
             }
+        }
+
+        // --- Pattern Parsing ---
+        function parseAndStorePatterns(text) {
+            const patternBlocks = text.split('----------------------------------------').map(s => s.trim()).filter(Boolean);
+            patternBlocks.forEach(block => {
+                const nameMatch = block.match(/Pattern Name: (.*)/);
+                const regexMatch = block.match(/Regex: \/(.*)\/(.*)/);
+
+                if (nameMatch && regexMatch) {
+                    const fullName = nameMatch[1].trim();
+                    const [category, name] = fullName.split(': ');
+                    const regexString = regexMatch[1];
+                    const flags = regexMatch[2]; // Includes 'g' and 'i'
+
+                    if (!LORCANA_PATTERNS[category]) {
+                        LORCANA_PATTERNS[category] = [];
+                    }
+
+                    LORCANA_PATTERNS[category].push({
+                        name: name,
+                        fullName: fullName,
+                        regex: new RegExp(regexString, flags) // The 'i' flag makes it case-insensitive
+                    });
+                }
+            });
+            console.log("Lorcana patterns parsed and stored:", LORCANA_PATTERNS);
         }
 
         // --- Deck Parsing ---
@@ -457,6 +709,103 @@
             return keywords;
         }
 
+        // --- Banish Condition Checker ---
+        function checkBanishConditions(pattern, match, targetCharacterCard, abilityText) {
+            console.log(`Checking banish conditions for pattern: ${pattern.name}, target: ${targetCharacterCard.fullName}, ability: ${abilityText.substring(0, 50)}...`);
+            
+            // Handle special cases that don't target opponent characters
+            if (pattern.name === 'This Character') {
+                return { 
+                    canBanish: false, 
+                    details: `'${pattern.name}' only affects the source character, not opponent characters.` 
+                };
+            }
+            
+            if (pattern.name === 'As a Cost/Choice') {
+                return { 
+                    canBanish: false, 
+                    details: `'${pattern.name}' is a cost/choice effect, not targeting opponent characters.` 
+                };
+            }
+            
+            if (pattern.name === "Opponent's Choice") {
+                return { 
+                    canBanish: false, 
+                    details: `'${pattern.name}' lets opponent choose their own character to banish.` 
+                };
+            }
+            
+            const targetCharStrength = targetCharacterCard.strength || 0;
+            const targetCharWillpower = targetCharacterCard.willpower || 0;
+            const targetCharCost = targetCharacterCard.cost || 0;
+            
+            // Extract the condition part from the ability text
+            const conditionMatch = abilityText.match(/with (\d+) (¤|⬡|⛉) or (less|more)/i);
+            
+            if (!conditionMatch) {
+                // No specific condition - can banish any character
+                console.log(`No condition found, can banish any character`);
+                return { 
+                    canBanish: true, 
+                    details: `Can banish any character via '${pattern.name}'.` 
+                };
+            }
+            
+            const conditionValue = parseInt(conditionMatch[1], 10);
+            const statType = conditionMatch[2]; // ¤ (strength), ⬡ (cost), ⛉ (willpower)
+            const comparison = conditionMatch[3]; // "less" or "more"
+            
+            console.log(`Condition found: ${conditionValue} ${statType} or ${comparison}`);
+            
+            let targetStat;
+            let statName;
+            
+            switch (statType) {
+                case '¤': // Strength
+                    targetStat = targetCharStrength;
+                    statName = 'strength';
+                    break;
+                case '⬡': // Cost
+                    targetStat = targetCharCost;
+                    statName = 'cost';
+                    break;
+                case '⛉': // Willpower
+                    targetStat = targetCharWillpower;
+                    statName = 'willpower';
+                    break;
+                default:
+                    // Unknown stat type, assume it can banish
+                    return { 
+                        canBanish: true, 
+                        details: `Can banish via '${pattern.name}' (unknown stat condition).` 
+                    };
+            }
+            
+            let canBanish;
+            if (comparison === 'less') {
+                canBanish = targetStat <= conditionValue;
+            } else if (comparison === 'more') {
+                canBanish = targetStat >= conditionValue;
+            } else {
+                // Unknown comparison, assume it can banish
+                canBanish = true;
+            }
+            
+            console.log(`Target has ${statName} ${targetStat}, condition: ${comparison} than ${conditionValue}, canBanish: ${canBanish}`);
+            
+            if (canBanish) {
+                return { 
+                    canBanish: true, 
+                    details: `Can banish character with ${statName} ${comparison} than or equal to ${conditionValue} (target has ${targetStat}).` 
+                };
+            } else {
+                return { 
+                    canBanish: false, 
+                    details: `Cannot banish character with ${statName} ${comparison} than or equal to ${conditionValue} (target has ${targetStat}).` 
+                };
+            }
+        }
+
         // --- Matchup Calculation (Characters) ---
         function calculateSingleMatchup(playerCharData, opponentCharData, turnType) {
             const pKeywords = extractCharacterKeywords(playerCharData);
@@ -499,186 +848,99 @@
             return result;
         }
 
-        // --- Generic Ability/Effect Interaction Analysis ---
-        const TARGETING_PHRASES = {
-            directOpponent: ["opposing character", "opponent controls a character", "opponent's character"],
-            generic: ["chosen character", "target character", "a character", "choose a character", "one of their characters", "two of their characters"],
-            selfExclusion: ["your character", "a character you control"],
-            aoeOpposing: ["each opposing character", "all opposing characters"],
-            aoeAll: ["each character", "all characters"],
-            wardProtectedSingleTarget: ["chosen character", "target character"]
-        };
-
-        const ABILITY_EFFECT_PATTERNS = {
-            banish: {
-                cost: /banish (?:chosen character|character|all characters|all opposing characters|opposing character|opposing characters) with cost (\d+) or less|banish (?:chosen character|character|all characters|all opposing characters|opposing character|opposing characters) that costs (\d+) or less/,
-                willpower: /banish (?:chosen character|character|all characters|all opposing characters|opposing character|opposing characters) with (\d+)\s*⛉ or less|banish (?:chosen character|character|all characters|all opposing characters|opposing character|opposing characters) with willpower (\d+) or less/,
-                strength: /banish (?:chosen character|character|all characters|all opposing characters|opposing character|opposing characters) with (\d+)\s*¤ or less|banish (?:chosen character|character|all characters|all opposing characters|opposing character|opposing characters) with strength (\d+) or less/,
-                keywordSpecific: /banish (?:chosen|all|all opposing|opposing) (\w+) character(?:s)?/g,
-                keywordGeneric: /banish character(?:s)? with (\w+)/g,
-                returnToHand: ["return chosen character to its player's hand", "return an opposing character to its player's hand", "return target character to its player's hand"],
-                general: ["banish chosen character", "banish an opposing character", "banish target character", "banish all characters"]
-            },
-            damage: {
-                amount: /deal (\d+) damage to (?:chosen character|target character|opposing character|each opposing character|each character)/g,
-                general: ["deal damage to chosen character", "deal damage to an opposing character", "deal damage to target character", "deal damage to each opposing character", "deal damage to each character"]
-            },
-            affects: {
-                exert: ["exert chosen character", "exert an opposing character"],
-                cannotChallenge: ["cannot challenge", "can't challenge"],
-                cannotQuest: ["cannot quest", "can't quest"],
-                reduceStats: ["loses", "strength", "willpower", "⛉", "¤"], // Check for "loses" AND one of the stats
-                ready: ["ready chosen character", "opposing", "opponent controls"] // Check for "ready chosen character" AND one of the targeting phrases
-            }
-        };
-
+        // --- Generic Ability/Effect Interaction Analysis (Refactored) ---
         function classifyAbilityEffectOnTarget(sourceCardInfo, abilityText, targetCharacterCard, sourceIsPlayerPerspective) {
-            const cleanedAbilityText = (abilityText || "").replace(/\n/g, ' ');
-            const lowerAbilityText = cleanedAbilityText.toLowerCase();
+            const cleanedAbilityText = (abilityText || "").replace(/\n/g, ' ').trim();
+            if (!cleanedAbilityText) {
+                return { classification: "NoInteraction", details: "No ability text.", card: sourceCardInfo };
+            }
+
             const targetCharKeywords = extractCharacterKeywords(targetCharacterCard);
             const targetCharWillpower = targetCharacterCard.willpower || 0;
-            const targetCharCost = targetCharacterCard.cost || 0;
-            const targetCharStrength = targetCharacterCard.strength || 0;
-            let details = "";
 
-            let canTargetRelevantChar = false;
-            if (sourceIsPlayerPerspective) {
-                if (TARGETING_PHRASES.directOpponent.some(phrase => lowerAbilityText.includes(phrase)) ||
-                    TARGETING_PHRASES.aoeOpposing.some(phrase => lowerAbilityText.includes(phrase)) ||
-                    TARGETING_PHRASES.aoeAll.some(phrase => lowerAbilityText.includes(phrase))) {
-                    canTargetRelevantChar = true;
-                } else if (TARGETING_PHRASES.generic.some(phrase => lowerAbilityText.includes(phrase)) &&
-                    !TARGETING_PHRASES.selfExclusion.some(phrase => lowerAbilityText.includes(phrase))) {
-                    canTargetRelevantChar = true;
-                }
-            } else {
-                // For opponent's perspective, "directOpponent" and "aoeOpposing" refer to player's characters
-                if (TARGETING_PHRASES.directOpponent.some(phrase => lowerAbilityText.includes(phrase)) ||
-                    TARGETING_PHRASES.aoeOpposing.some(phrase => lowerAbilityText.includes(phrase)) ||
-                    TARGETING_PHRASES.aoeAll.some(phrase => lowerAbilityText.includes(phrase))) {
-                    canTargetRelevantChar = true;
-                } else if (TARGETING_PHRASES.generic.some(phrase => lowerAbilityText.includes(phrase)) &&
-                    !TARGETING_PHRASES.selfExclusion.some(phrase => lowerAbilityText.includes(phrase))) {
-                    canTargetRelevantChar = true;
-                }
+            // Ward Check: Ward protects from being CHOSEN, except by effects that say "each" or "all".
+            const isSingleTarget = cleanedAbilityText.toLowerCase().includes('chosen');
+            if (targetCharKeywords.Ward && isSingleTarget) {
+                return { classification: "NoInteractionDueToWard", details: "Target character has Ward, protected from 'chosen' effects.", card: sourceCardInfo };
             }
 
-            if (!canTargetRelevantChar) {
-                return { classification: "NoInteraction", details: "Effect does not target relevant characters.", card: sourceCardInfo };
-            }
+            for (const category in LORCANA_PATTERNS) {
+                for (const pattern of LORCANA_PATTERNS[category]) {
+                    const match = cleanedAbilityText.match(pattern.regex);
+                    if (match) {
+                        // We have a match, now we interpret it based on the category and name
+                        switch (category) {
+                            case 'Banish':
+                                // Check specific banish conditions against target character
+                                const banishResult = checkBanishConditions(pattern, match, targetCharacterCard, cleanedAbilityText);
+                                if (banishResult.canBanish) {
+                                    console.log(`Banish result: ${banishResult.details}`);
+                                    return { classification: "DirectRemoval", details: banishResult.details, card: sourceCardInfo };
+                                } else {
+                                    return { classification: "NoInteraction", details: banishResult.details, card: sourceCardInfo };
+                                }
 
-            if (targetCharKeywords.Ward &&
-                TARGETING_PHRASES.wardProtectedSingleTarget.some(phrase => lowerAbilityText.includes(phrase)) &&
-                !TARGETING_PHRASES.aoeOpposing.some(phrase => lowerAbilityText.includes(phrase)) &&
-                !TARGETING_PHRASES.aoeAll.some(phrase => lowerAbilityText.includes(phrase))
-            ) {
-                return { classification: "NoInteractionDueToWard", details: "Target character has Ward, likely protected from single target.", card: sourceCardInfo };
-            }
+                            case 'Damage':
+                                const damageAmount = parseInt(match[1], 10) || 0;
+                                if (damageAmount > 0) {
+                                    if (damageAmount >= targetCharWillpower) {
+                                        return { classification: "DirectRemoval", details: `Deals ${damageAmount} damage (lethal).`, card: sourceCardInfo };
+                                    } else {
+                                        return { classification: "PotentialRemoval", details: `Deals ${damageAmount} damage.`, card: sourceCardInfo };
+                                    }
+                                }
+                                break; // Continue if damage amount is not clear
 
-            let costMatch = lowerAbilityText.match(ABILITY_EFFECT_PATTERNS.banish.cost);
-            if (costMatch) {
-                const costLimit = parseInt(costMatch[1] || costMatch[2]); // Use [1] or [2] depending on which part of the regex matched
-                if (targetCharCost <= costLimit) {
-                    return { classification: "DirectRemoval", details: `Banishes due to cost ≤ ${costLimit} (Target char cost: ${targetCharCost}).`, card: sourceCardInfo };
-                } else {
-                    details += `Cost condition (≤ ${costLimit}) not met. `;
-                }
-            }
+                            case 'State':
+                                // These affect the character but don't remove it
+                                return { classification: "AffectsNoRemoval", details: `Matched '${pattern.fullName}'.`, card: sourceCardInfo };
 
-            let wpMatch = lowerAbilityText.match(ABILITY_EFFECT_PATTERNS.banish.willpower);
-            if (wpMatch) {
-                const wpLimit = parseInt(wpMatch[1] || wpMatch[2]);
-                if (targetCharWillpower <= wpLimit) {
-                    return { classification: "DirectRemoval", details: `Banishes due to willpower ≤ ${wpLimit} (Target char WP: ${targetCharWillpower}).`, card: sourceCardInfo };
-                } else {
-                    details += `Willpower condition (≤ ${wpLimit}) not met. `;
+                            case 'Static':
+                                if (pattern.name.includes('Cannot Be Challenged')) {
+                                    return { classification: "AffectsNoRemoval", details: `Cannot be challenged.`, card: sourceCardInfo };
+                                }
+                                break;
+                        }
+                    }
                 }
             }
 
-            let strMatch = lowerAbilityText.match(ABILITY_EFFECT_PATTERNS.banish.strength);
-            if (strMatch) {
-                const strLimit = parseInt(strMatch[1] || strMatch[2]);
-                if (targetCharStrength <= strLimit) {
-                    return { classification: "DirectRemoval", details: `Banishes due to strength ≤ ${strLimit} (Target char Str: ${targetCharStrength}).`, card: sourceCardInfo };
-                } else {
-                    details += `Strength condition (≤ ${strLimit}) not met. `;
-                }
-            }
+            // Fallback for text that doesn't match a specific pattern but might still be relevant
+            // const genericTargeting = /character|item|location/i;
+            // if (genericTargeting.test(cleanedAbilityText)) {
+            //     return { classification: "PotentialRemoval", details: "Targets character with an unclassified effect.", card: sourceCardInfo };
+            // }
 
-            let keywordMatch;
-            let tempRegex = new RegExp(ABILITY_EFFECT_PATTERNS.banish.keywordSpecific);
-            while ((keywordMatch = tempRegex.exec(lowerAbilityText)) !== null) {
-                const targetKeyword = keywordMatch[1];
-                if (targetCharKeywords[targetKeyword]) {
-                    return { classification: "DirectRemoval", details: `Banishes due to having keyword: ${targetKeyword}.`, card: sourceCardInfo };
-                } else {
-                    details += `Keyword condition (${targetKeyword}) not met. `;
-                }
-            }
-            tempRegex = new RegExp(ABILITY_EFFECT_PATTERNS.banish.keywordGeneric);
-            while ((keywordMatch = tempRegex.exec(lowerAbilityText)) !== null) {
-                const targetKeyword = keywordMatch[1];
-                if (targetCharKeywords[targetKeyword]) {
-                    return { classification: "DirectRemoval", details: `Banishes due to having keyword: ${targetKeyword}.`, card: sourceCardInfo };
-                } else {
-                    details += `Keyword condition (${targetKeyword}) not met. `;
-                }
-            }
-
-            if (ABILITY_EFFECT_PATTERNS.banish.returnToHand.some(phrase => lowerAbilityText.includes(phrase))) {
-                details = "Returns character to hand (Direct Removal)." + (details ? " Other conditions: " + details.trim() : "");
-                return { classification: "DirectRemoval", details: details, card: sourceCardInfo };
-            }
-
-            if (ABILITY_EFFECT_PATTERNS.banish.general.some(phrase => lowerAbilityText.includes(phrase))) {
-                return { classification: "DirectRemoval", details: "Directly banishes (general effect)." + (details ? " Other conditions: " + details.trim() : ""), card: sourceCardInfo };
-            }
-
-            let damageAmountMatch;
-            let dealtDamage = 0;
-            tempRegex = new RegExp(ABILITY_EFFECT_PATTERNS.damage.amount);
-            while ((damageAmountMatch = tempRegex.exec(lowerAbilityText)) !== null) {
-                if (damageAmountMatch[1]) {
-                    dealtDamage = Math.max(dealtDamage, parseInt(damageAmountMatch[1]));
-                }
-            }
-
-            if (dealtDamage > 0) {
-                if (dealtDamage >= targetCharWillpower) {
-                    details = `Deals ${dealtDamage} damage (lethal).` + (details ? " Other conditions: " + details.trim() : "");
-                    return { classification: "DirectRemoval", details: details, card: sourceCardInfo };
-                } else {
-                    details = `Deals ${dealtDamage} damage.` + (details ? " Other conditions: " + details.trim() : "");
-                    return { classification: "PotentialRemoval", details: details, card: sourceCardInfo };
-                }
-            }
-            if (dealtDamage === 0 && ABILITY_EFFECT_PATTERNS.damage.general.some(phrase => lowerAbilityText.includes(phrase))) {
-                details = "Deals damage (amount varies/conditional)." + (details ? " Other conditions: " + details.trim() : "");
-                return { classification: "PotentialRemoval", details: details, card: sourceCardInfo };
-            }
-
-            let affectsReason = details;
-            if (ABILITY_EFFECT_PATTERNS.affects.exert.some(phrase => lowerAbilityText.includes(phrase))) affectsReason += "Exerts character. ";
-            if (ABILITY_EFFECT_PATTERNS.affects.cannotChallenge.some(phrase => lowerAbilityText.includes(phrase))) affectsReason += "Prevents challenging. ";
-            if (ABILITY_EFFECT_PATTERNS.affects.cannotQuest.some(phrase => lowerAbilityText.includes(phrase))) affectsReason += "Prevents questing. ";
-            if (lowerAbilityText.includes(ABILITY_EFFECT_PATTERNS.affects.reduceStats[0]) &&
-                (lowerAbilityText.includes(ABILITY_EFFECT_PATTERNS.affects.reduceStats[1]) ||
-                    lowerAbilityText.includes(ABILITY_EFFECT_PATTERNS.affects.reduceStats[2]) ||
-                    lowerAbilityText.includes(ABILITY_EFFECT_PATTERNS.affects.reduceStats[3]) ||
-                    lowerAbilityText.includes(ABILITY_EFFECT_PATTERNS.affects.reduceStats[4]))) affectsReason += "Reduces stats. ";
-            if (lowerAbilityText.includes(ABILITY_EFFECT_PATTERNS.affects.ready[0]) &&
-                (lowerAbilityText.includes(ABILITY_EFFECT_PATTERNS.affects.ready[1]) ||
-                    lowerAbilityText.includes(ABILITY_EFFECT_PATTERNS.affects.ready[2]))) affectsReason += "Readies character (check context). ";
-
-            if (affectsReason.trim() !== details.trim() && affectsReason.trim() !== "") {
-                return { classification: "AffectsNoRemoval", details: affectsReason.trim(), card: sourceCardInfo };
-            }
-            else if (details.trim() !== "") {
-                return { classification: "PotentialRemoval", details: "Targets, but specific removal conditions not met: " + details.trim(), card: sourceCardInfo };
-            }
-
-            return { classification: "PotentialRemoval", details: "Targets character with an effect not specifically classified.", card: sourceCardInfo };
+            return { classification: "NoInteraction", details: "Effect does not appear to target characters.", card: sourceCardInfo };
         }
+
+        // --- Location Interaction Analysis (Refactored) ---
+        function classifyLocationInteraction(sourceCardInfo, abilityText, sourceIsPlayerPerspective) {
+            const cleanedAbilityText = (abilityText || "").replace(/\n/g, ' ').trim();
+            if (!cleanedAbilityText) return null;
+
+            const banishPatterns = LORCANA_PATTERNS['Banish'] || [];
+            const damagePatterns = LORCANA_PATTERNS['Damage'] || [];
+
+            for (const pattern of banishPatterns) {
+                if (pattern.regex.test(cleanedAbilityText) && cleanedAbilityText.toLowerCase().includes('location')) {
+                    return { canInteract: true, interactionType: "Banish", details: `Can banish a location via '${pattern.name}'.`, card: sourceCardInfo };
+                }
+            }
+            for (const pattern of damagePatterns) {
+                if (pattern.regex.test(cleanedAbilityText) && cleanedAbilityText.toLowerCase().includes('location')) {
+                    return { canInteract: true, interactionType: "Damage", details: `Can damage a location via '${pattern.name}'.`, card: sourceCardInfo };
+                }
+            }
+
+            // Generic fallback
+            if (cleanedAbilityText.toLowerCase().includes('chosen location')) {
+                return { canInteract: true, interactionType: "Target", details: "Can target a location.", card: sourceCardInfo };
+            }
+
+            return null;
+        }
+
 
         function getActiveAbilitiesForCharacter(characterCard, analysisContext) {
             const activeAbilities = [];
@@ -691,28 +953,32 @@
                 const abilityTextLower = cleanedFullText.toLowerCase();
                 let isRelevant = false;
 
-                if (ability.type === 'static') {
-                    isRelevant = true;
-                } else if (analysisContext.perspective === "playerTurn") {
-                    if (ability.type === 'activated') {
-                        isRelevant = true;
-                    } else if (ability.type === 'triggered') {
-                        if (analysisContext.action === "onPlayOrChallenge") {
-                            if (abilityTextLower.includes("when you play this character") ||
-                                abilityTextLower.includes("whenever this character challenges") ||
-                                abilityTextLower.includes("after this character challenges") ||
-                                abilityTextLower.includes("when this character is played")) {
+                // For this tool, we consider most abilities potentially active to analyze their text.
+                // A more sophisticated logic could be added here based on triggers.
+                // We will use the trigger patterns to refine this.
+                const triggerPatterns = LORCANA_PATTERNS['Trigger'] || [];
+                let hasTrigger = false;
+
+                for (const pattern of triggerPatterns) {
+                    if (pattern.regex.test(cleanedFullText)) {
+                        hasTrigger = true;
+                        if (analysisContext.perspective === "playerTurn") {
+                            if (pattern.name.includes('On Play') || pattern.name.includes('On Challenging') || pattern.name.includes('On Quest') || pattern.name.includes('Start of Turn')) {
                                 isRelevant = true;
+                                break;
+                            }
+                        } else { // Opponent's turn
+                            if (pattern.name.includes('On Being Challenged') || pattern.name.includes('Start of Turn')) { // Opponent's start of turn
+                                isRelevant = true;
+                                break;
                             }
                         }
-                        if (abilityTextLower.includes("during your turn") ||
-                            abilityTextLower.includes("at the start of your turn")) {
-                            isRelevant = true;
-                        }
-                        if (abilityTextLower.includes("whenever this character quests")) {
-                            isRelevant = true;
-                        }
                     }
+                }
+
+                // If it's a static ability or has no specific trigger, we assume it's always active for analysis.
+                if (ability.type === 'static' || !hasTrigger) {
+                    isRelevant = true;
                 }
 
                 if (isRelevant && ability.fullText) {
@@ -720,42 +986,6 @@
                 }
             });
             return activeAbilities;
-        }
-
-        // --- Location Interaction Analysis ---
-        function classifyLocationInteraction(sourceCardInfo, abilityText, sourceIsPlayerPerspective) {
-            const cleanedAbilityText = (abilityText || "").replace(/\n/g, ' ');
-            const lowerAbilityText = cleanedAbilityText.toLowerCase();
-            let interaction = null;
-
-            const banishPhrases = ["banish chosen location", "banish a location", "banish target location", "banish an opposing location"];
-            const targetPhrases = ["target location", "choose a location", "chosen location"]; // "chosen location" can be for banish or other effects
-
-            let targetsOpposingLocation = lowerAbilityText.includes("opposing location");
-            let targetsYourLocation = lowerAbilityText.includes("your location"); // Less common for removal from opponent
-            let targetsGenericLocation = targetPhrases.some(phrase => lowerAbilityText.includes(phrase)) || banishPhrases.some(phrase => lowerAbilityText.includes(phrase));
-
-            let canInteractWithRelevantLocation = false;
-            if (sourceIsPlayerPerspective) { // Player's card affecting opponent's location
-                if (targetsOpposingLocation || (targetsGenericLocation && !targetsYourLocation)) {
-                    canInteractWithRelevantLocation = true;
-                }
-            } else { // Opponent's card affecting player's location
-                if (targetsOpposingLocation || (targetsGenericLocation && !targetsYourLocation)) { // "Opposing" from opp's view is player's
-                    canInteractWithRelevantLocation = true;
-                }
-            }
-
-            if (canInteractWithRelevantLocation) {
-                if (banishPhrases.some(phrase => lowerAbilityText.includes(phrase))) {
-                    interaction = { canInteract: true, interactionType: "Banish", details: "Can banish a location.", card: sourceCardInfo };
-                } else if (targetPhrases.some(phrase => lowerAbilityText.includes(phrase))) {
-                    // If it targets but doesn't explicitly say banish, classify as "Target" (could be other effects)
-                    interaction = { canInteract: true, interactionType: "Target", details: "Can target a location.", card: sourceCardInfo };
-                }
-                // Add more specific checks if needed, e.g., for damage to locations, though less common.
-            }
-            return interaction;
         }
 
         // --- Event Handlers & UI Updates ---
