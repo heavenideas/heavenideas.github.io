@@ -28,6 +28,37 @@
             transform: scale(1.1);
         }
 
+        .selectable-card {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 8px;
+            border-radius: 8px;
+            transition: all 0.2s ease-in-out;
+            cursor: pointer;
+        }
+
+        .selectable-card:hover {
+            background-color: #4a5568;
+        }
+
+        .selectable-card.selected {
+            background-color: #667eea;
+            box-shadow: 0 0 0 2px #a0aec0;
+        }
+
+        .selectable-card .card-name {
+            font-size: 0.75rem;
+            text-align: center;
+            margin-top: 4px;
+            color: #e2e8f0;
+            max-width: 100px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
         .card-container {
             display: flex;
             flex-wrap: wrap;
@@ -240,15 +271,6 @@
                     <label class="radio-label"><input type="radio" name="analysisMode" value="song"> My Song</label>
                 </div>
 
-                <div id="characterSelectionContainer">
-                    <label for="playerCharacterSelect" class="mr-2 font-semibold">Analyze My Character:</label>
-                    <select id="playerCharacterSelect" class="min-w-[200px]"></select>
-                </div>
-                <div id="songSelectionContainer" class="hidden">
-                    <label for="playerSongSelect" class="mr-2 font-semibold">Analyze My Song:</label>
-                    <select id="playerSongSelect" class="min-w-[200px]"></select>
-                </div>
-
                 <div id="challengePerspectiveContainer">
                     <label for="turnContextSelect" class="mr-2 font-semibold">Challenge Perspective:</label>
                     <select id="turnContextSelect">
@@ -256,6 +278,13 @@
                         <option value="opponent">Opponent's Turn (They Challenge)</option>
                     </select>
                 </div>
+            </div>
+        </section>
+
+        <section id="cardSelectionGrid" class="hidden mt-6">
+            <h3 class="text-xl font-semibold mb-4 text-center" id="cardSelectionTitle">Select a Character to Analyze</h3>
+            <div id="playerCardsGrid" class="grid grid-cols-6 md:grid-cols-8 lg:grid-cols-15 xl:grid-cols-20 gap-1 p-1 bg-gray-800 rounded-lg">
+                <!-- Cards will be populated here -->
             </div>
         </section>
 
@@ -548,16 +577,19 @@ Regex: /must challenge if able/gi
         const opponentDeckInput = document.getElementById('opponentDeckInput');
         const analyzeButton = document.getElementById('analyzeButton');
         const analysisControls = document.getElementById('analysisControls');
+        const cardSelectionGrid = document.getElementById('cardSelectionGrid');
+        const cardSelectionTitle = document.getElementById('cardSelectionTitle');
+        const playerCardsGrid = document.getElementById('playerCardsGrid');
 
         const analysisModeRadios = document.querySelectorAll('input[name="analysisMode"]');
-        const characterSelectionContainer = document.getElementById('characterSelectionContainer');
-        const songSelectionContainer = document.getElementById('songSelectionContainer');
         const challengePerspectiveContainer = document.getElementById('challengePerspectiveContainer');
 
-        const playerCharacterSelect = document.getElementById('playerCharacterSelect');
-        const playerSongSelect = document.getElementById('playerSongSelect');
         const turnContextSelect = document.getElementById('turnContextSelect');
         const resultsDisplay = document.getElementById('resultsDisplay');
+
+        // --- Selection State ---
+        let selectedCardIndex = -1;
+        let selectedCardType = null; // 'character' or 'song'
 
         // --- Initialization ---
         async function initializeApp() {
@@ -589,8 +621,6 @@ Regex: /must challenge if able/gi
                 console.log("Default decklists set.");
 
                 analyzeButton.addEventListener('click', handleAnalyzeButtonClick);
-                playerCharacterSelect.addEventListener('change', displayAnalysisResults);
-                playerSongSelect.addEventListener('change', displayAnalysisResults);
                 turnContextSelect.addEventListener('change', displayAnalysisResults);
 
                 analysisModeRadios.forEach(radio => {
@@ -994,19 +1024,87 @@ Regex: /must challenge if able/gi
         }
 
         // --- Event Handlers & UI Updates ---
+        function populateCardGrid() {
+            playerCardsGrid.innerHTML = '';
+            const selectedMode = document.querySelector('input[name="analysisMode"]:checked').value;
+            
+            let cardsToShow = [];
+            if (selectedMode === 'character') {
+                cardsToShow = PLAYER_DECK_CHARS;
+                cardSelectionTitle.textContent = 'Select a Character to Analyze';
+            } else {
+                cardsToShow = PLAYER_DECK_SONGS;
+                cardSelectionTitle.textContent = 'Select a Song to Analyze';
+            }
+
+            if (cardsToShow.length === 0) {
+                playerCardsGrid.innerHTML = `<p class="text-center text-gray-400 italic col-span-full">No ${selectedMode}s in your deck.</p>`;
+                return;
+            }
+
+            cardsToShow.forEach((cardEntry, index) => {
+                const card = cardEntry.cardInfo;
+                const cardElement = document.createElement('div');
+                cardElement.className = 'selectable-card';
+                cardElement.dataset.index = index;
+                cardElement.dataset.type = selectedMode;
+
+                const img = document.createElement('img');
+                img.src = card.images?.thumbnail || `https://placehold.co/100x140/2d3748/e2e8f0?text=${card.name.substring(0, 10)}`;
+                img.alt = card.fullName;
+                img.className = 'card-image';
+                img.onerror = () => { img.src = `https://placehold.co/100x140/2d3748/e2e8f0?text=Error`; };
+
+                const nameElement = document.createElement('div');
+                nameElement.className = 'card-name';
+                nameElement.textContent = card.name;
+
+                cardElement.appendChild(img);
+                cardElement.appendChild(nameElement);
+
+                // Add click handler
+                cardElement.addEventListener('click', () => {
+                    // Remove previous selection
+                    const previouslySelected = playerCardsGrid.querySelector('.selectable-card.selected');
+                    if (previouslySelected) {
+                        previouslySelected.classList.remove('selected');
+                    }
+
+                    // Select this card
+                    cardElement.classList.add('selected');
+                    selectedCardIndex = index;
+                    selectedCardType = selectedMode;
+
+                    // Trigger analysis
+                    displayAnalysisResults();
+                });
+
+                playerCardsGrid.appendChild(cardElement);
+            });
+        }
+
         function handleAnalysisModeChange() {
             const selectedMode = document.querySelector('input[name="analysisMode"]:checked').value;
             console.log("Analysis mode changed to:", selectedMode);
+            
+            // Reset selection when mode changes
+            selectedCardIndex = -1;
+            selectedCardType = null;
+            
+            // Update challenge perspective visibility
             if (selectedMode === 'character') {
-                characterSelectionContainer.classList.remove('hidden');
-                songSelectionContainer.classList.add('hidden');
                 challengePerspectiveContainer.classList.remove('hidden');
             } else { // song mode
-                characterSelectionContainer.classList.add('hidden');
-                songSelectionContainer.classList.remove('hidden');
                 challengePerspectiveContainer.classList.add('hidden');
             }
-            displayAnalysisResults();
+            
+            // Repopulate grid with new card type
+            if (cardSelectionGrid.classList.contains('hidden') === false) {
+                populateCardGrid();
+            }
+            
+            // Clear results
+            resultsDisplay.innerHTML = '';
         }
 
         function handleAnalyzeButtonClick() {
@@ -1025,38 +1123,28 @@ Regex: /must challenge if able/gi
             console.log("Decks loaded. Player Chars:", PLAYER_DECK_CHARS.length, "Player Songs:", PLAYER_DECK_SONGS.length, "Player Locations:", PLAYER_DECK_LOCATIONS.length);
             console.log("Opponent Chars:", OPPONENT_DECK_CHARS.length, "Opponent Songs:", OPPONENT_DECK_SONGS.length, "Opponent Locations:", OPPONENT_DECK_LOCATIONS.length);
 
+            // Reset selection state
+            selectedCardIndex = -1;
+            selectedCardType = null;
 
-            playerCharacterSelect.innerHTML = '<option value="">-- Select Character --</option>';
-            if (PLAYER_DECK_CHARS.length > 0) {
-                PLAYER_DECK_CHARS.forEach((pCharData, index) => {
-                    const option = document.createElement('option');
-                    option.value = index;
-                    option.textContent = pCharData.cardInfo.fullName;
-                    playerCharacterSelect.appendChild(option);
-                });
-            } else {
-                playerCharacterSelect.innerHTML = '<option value="">No characters in your deck</option>';
-            }
-
-            playerSongSelect.innerHTML = '<option value="">-- Select Song --</option>';
-            if (PLAYER_DECK_SONGS.length > 0) {
-                PLAYER_DECK_SONGS.forEach((pSongData, index) => {
-                    const option = document.createElement('option');
-                    option.value = index;
-                    option.textContent = pSongData.cardInfo.fullName;
-                    playerSongSelect.appendChild(option);
-                });
-            } else {
-                playerSongSelect.innerHTML = '<option value="">No songs in your deck</option>';
-            }
+            // Populate the card grid
+            populateCardGrid();
 
             analysisControls.classList.remove('hidden');
+            cardSelectionGrid.classList.remove('hidden');
             handleAnalysisModeChange();
         }
 
         function displayAnalysisResults() {
             console.log("Displaying analysis results...");
             resultsDisplay.innerHTML = '';
+            
+            // Check if a card is selected
+            if (selectedCardIndex === -1 || selectedCardType === null) {
+                resultsDisplay.innerHTML = `<p class="text-center text-gray-400 italic">Please select a card from the grid above to analyze.</p>`;
+                return;
+            }
+            
             const selectedMode = document.querySelector('input[name="analysisMode"]:checked').value;
             console.log("Current analysis mode for display:", selectedMode);
 
@@ -1073,16 +1161,15 @@ Regex: /must challenge if able/gi
 
         function displayCharacterAnalysis() {
             console.log("Displaying Character Analysis.");
-            if (PLAYER_DECK_CHARS.length === 0 || playerCharacterSelect.value === "") {
+            if (PLAYER_DECK_CHARS.length === 0 || selectedCardIndex === -1 || selectedCardType !== 'character') {
                 resultsDisplay.innerHTML += `<p class="text-center text-gray-400 italic">Please load decks and select a character to analyze.</p>`;
                 return;
             }
 
-            const selectedPlayerCharIndex = parseInt(playerCharacterSelect.value);
-            const playerCharEntry = PLAYER_DECK_CHARS[selectedPlayerCharIndex];
+            const playerCharEntry = PLAYER_DECK_CHARS[selectedCardIndex];
             if (!playerCharEntry) {
                 resultsDisplay.innerHTML += `<p class="text-yellow-400 text-center">Invalid character selection.</p>`;
-                console.warn("Invalid player character selection index:", selectedPlayerCharIndex);
+                console.warn("Invalid player character selection index:", selectedCardIndex);
                 return;
             }
             const playerChar = playerCharEntry.cardInfo;
@@ -1228,15 +1315,14 @@ Regex: /must challenge if able/gi
 
         function displayPlayerSongAnalysis() {
             console.log("Displaying Player Song Analysis.");
-            if (PLAYER_DECK_SONGS.length === 0 || playerSongSelect.value === "") {
+            if (PLAYER_DECK_SONGS.length === 0 || selectedCardIndex === -1 || selectedCardType !== 'song') {
                 resultsDisplay.innerHTML += `<p class="text-center text-gray-400 italic">Please load decks and select a song to analyze.</p>`;
                 return;
             }
-            const selectedPlayerSongIndex = parseInt(playerSongSelect.value);
-            const playerSongEntry = PLAYER_DECK_SONGS[selectedPlayerSongIndex];
+            const playerSongEntry = PLAYER_DECK_SONGS[selectedCardIndex];
             if (!playerSongEntry) {
                 resultsDisplay.innerHTML += `<p class="text-yellow-400 text-center">Invalid song selection.</p>`;
-                console.warn("Invalid player song selection index:", selectedPlayerSongIndex);
+                console.warn("Invalid player song selection index:", selectedCardIndex);
                 return;
             }
             const playerSongToAnalyze = playerSongEntry.cardInfo;
