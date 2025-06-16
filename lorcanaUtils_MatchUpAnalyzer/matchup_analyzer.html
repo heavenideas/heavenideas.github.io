@@ -282,8 +282,10 @@
         </section>
 
         <section id="cardSelectionGrid" class="hidden mt-6">
-            <h3 class="text-xl font-semibold mb-4 text-center" id="cardSelectionTitle">Select a Character to Analyze</h3>
-            <div id="playerCardsGrid" class="grid grid-cols-6 md:grid-cols-8 lg:grid-cols-15 xl:grid-cols-20 gap-1 p-1 bg-gray-800 rounded-lg">
+            <h3 class="text-xl font-semibold mb-4 text-center" id="cardSelectionTitle">Select a Character to Analyze
+            </h3>
+            <div id="playerCardsGrid"
+                class="grid grid-cols-12 md:grid-cols-20 lg:grid-cols-25 xl:grid-cols-20 gap-1 p-1 bg-gray-800 rounded-lg">
                 <!-- Cards will be populated here -->
             </div>
         </section>
@@ -360,6 +362,10 @@ Pattern Name: Bounce: Opposing Character
 Regex: /Return chosen (?:opposing |opponent's )?(character|item|location|character or item|character, item or location)(?: with \\d+ (?:¤|⬡|⛉) or (?:less|more))? to (its|their|the) player's hand/gi
 ----------------------------------------
 
+Pattern Name: Add to Inkwell: Opposing Character
+Regex: /put chosen (?:opposing |opponent's )?(character|item|location|character or item|character, item or location)(?: with \\d+ (?:¤|⬡|⛉) or (?:less|more))? into (its|their|the) player's inkwell/gi
+----------------------------------------
+
 Pattern Name: Banish: Chosen Target
 Regex: /Banish chosen (?:opposing |opponent's )?(character|item|location|character or item|character, item or location)(?: with \\d+ (?:¤|⬡|⛉) or (?:less|more))?/gi
 ----------------------------------------
@@ -381,15 +387,15 @@ Regex: /You may banish (?:this character|one of your characters) to/gi
 ----------------------------------------
 
 Pattern Name: Damage: Deal to One
-Regex: /Deal (\\d+) damage to chosen (?:opposing )?(character|location|item)(?: with \\d+ (?:¤|⬡|⛉) or (?:less|more))?/gi
+Regex: /(Deal|move) (\\d+) damage to (chosen|another|another chosen) (?:opposing )?(character|location|item)(?: with \\d+ (?:¤|⬡|⛉) or (?:less|more))?/gi
 ----------------------------------------
 
 Pattern Name: Damage: Deal to Many
-Regex: /Deal (\\d+) damage to each opposing character/gi
+Regex: /(Deal|move) (\\d+) damage to each opposing character/gi
 ----------------------------------------
 
 Pattern Name: Damage: Deal Divided
-Regex: /Deal (\\d+) damage divided as you choose among any number of chosen opposing characters/gi
+Regex: /(Deal|move) (\\d+) damage divided as you choose among any number of chosen opposing characters/gi
 ----------------------------------------
 
 Pattern Name: Damage: Heal
@@ -746,54 +752,54 @@ Regex: /must challenge if able/gi
         // --- Banish Condition Checker ---
         function checkBanishConditions(pattern, match, targetCharacterCard, abilityText) {
             console.log(`Checking banish conditions for pattern: ${pattern.name}, target: ${targetCharacterCard.fullName}, ability: ${abilityText.substring(0, 50)}...`);
-            
+
             // Handle special cases that don't target opponent characters
             if (pattern.name === 'This Character') {
-                return { 
-                    canBanish: false, 
-                    details: `'${pattern.name}' only affects the source character, not opponent characters.` 
+                return {
+                    canBanish: false,
+                    details: `'${pattern.name}' only affects the source character, not opponent characters.`
                 };
             }
-            
+
             if (pattern.name === 'As a Cost/Choice') {
-                return { 
-                    canBanish: false, 
-                    details: `'${pattern.name}' is a cost/choice effect, not targeting opponent characters.` 
+                return {
+                    canBanish: false,
+                    details: `'${pattern.name}' is a cost/choice effect, not targeting opponent characters.`
                 };
             }
-            
+
             if (pattern.name === "Opponent's Choice") {
-                return { 
-                    canBanish: false, 
-                    details: `'${pattern.name}' lets opponent choose their own character to banish.` 
+                return {
+                    canBanish: false,
+                    details: `'${pattern.name}' lets opponent choose their own character to banish.`
                 };
             }
-            
+
             const targetCharStrength = targetCharacterCard.strength || 0;
             const targetCharWillpower = targetCharacterCard.willpower || 0;
             const targetCharCost = targetCharacterCard.cost || 0;
-            
+
             // Extract the condition part from the ability text
             const conditionMatch = abilityText.match(/with (\d+) (¤|⬡|⛉) or (less|more)/i);
-            
+
             if (!conditionMatch) {
                 // No specific condition - can banish any character
                 console.log(`No condition found, can banish any character`);
-                return { 
-                    canBanish: true, 
-                    details: `Can banish any character via '${pattern.name}'.` 
+                return {
+                    canBanish: true,
+                    details: `Can banish any character via '${pattern.name}'.`
                 };
             }
-            
+
             const conditionValue = parseInt(conditionMatch[1], 10);
             const statType = conditionMatch[2]; // ¤ (strength), ⬡ (cost), ⛉ (willpower)
             const comparison = conditionMatch[3]; // "less" or "more"
-            
+
             console.log(`Condition found: ${conditionValue} ${statType} or ${comparison}`);
-            
+
             let targetStat;
             let statName;
-            
+
             switch (statType) {
                 case '¤': // Strength
                     targetStat = targetCharStrength;
@@ -809,12 +815,12 @@ Regex: /must challenge if able/gi
                     break;
                 default:
                     // Unknown stat type, assume it can banish
-                    return { 
-                        canBanish: true, 
-                        details: `Can banish via '${pattern.name}' (unknown stat condition).` 
+                    return {
+                        canBanish: true,
+                        details: `Can banish via '${pattern.name}' (unknown stat condition).`
                     };
             }
-            
+
             let canBanish;
             if (comparison === 'less') {
                 canBanish = targetStat <= conditionValue;
@@ -824,18 +830,18 @@ Regex: /must challenge if able/gi
                 // Unknown comparison, assume it can banish
                 canBanish = true;
             }
-            
+
             console.log(`Target has ${statName} ${targetStat}, condition: ${comparison} than ${conditionValue}, canBanish: ${canBanish}`);
-            
+
             if (canBanish) {
-                return { 
-                    canBanish: true, 
-                    details: `Can banish character with ${statName} ${comparison} than or equal to ${conditionValue} (target has ${targetStat}).` 
+                return {
+                    canBanish: true,
+                    details: `Can banish character with ${statName} ${comparison} than or equal to ${conditionValue} (target has ${targetStat}).`
                 };
             } else {
-                return { 
-                    canBanish: false, 
-                    details: `Cannot banish character with ${statName} ${comparison} than or equal to ${conditionValue} (target has ${targetStat}).` 
+                return {
+                    canBanish: false,
+                    details: `Cannot banish character with ${statName} ${comparison} than or equal to ${conditionValue} (target has ${targetStat}).`
                 };
             }
         }
@@ -905,6 +911,7 @@ Regex: /must challenge if able/gi
                         // We have a match, now we interpret it based on the category and name
                         switch (category) {
                             case 'Banish':
+                                console.log(`Banish match: ${match} ${sourceCardInfo.fullName}, ${targetCharacterCard.fullName}`);
                                 // Check specific banish conditions against target character
                                 const banishResult = checkBanishConditions(pattern, match, targetCharacterCard, cleanedAbilityText);
                                 if (banishResult.canBanish) {
@@ -915,7 +922,9 @@ Regex: /must challenge if able/gi
                                 }
 
                             case 'Damage':
+                                console.log(`Damage match: ${match} ${sourceCardInfo.fullName}, ${targetCharacterCard.fullName}`);
                                 const damageAmount = parseInt(match[1], 10) || 0;
+                                console.log(`Damage amount: ${damageAmount}`);
                                 if (damageAmount > 0) {
                                     if (damageAmount >= targetCharWillpower) {
                                         return { classification: "DirectRemoval", details: `Deals ${damageAmount} damage (lethal).`, card: sourceCardInfo };
@@ -925,7 +934,11 @@ Regex: /must challenge if able/gi
                                 }
                                 break; // Continue if damage amount is not clear
                             case 'Bounce':
+                                console.log(`Bounce match: ${match} ${sourceCardInfo.fullName}, ${targetCharacterCard.fullName}`);
                                 return { classification: "DirectRemoval", details: `Bounces ${pattern.name}.`, card: sourceCardInfo };
+                            case 'Add to Inkwell':
+                                console.log(`Add to Inkwell match: ${match} ${sourceCardInfo.fullName}, ${targetCharacterCard.fullName} `);
+                                return { classification: "DirectRemoval", details: `Adds to Inkwell ${pattern.name}.`, card: sourceCardInfo };
                             case 'State':
                                 // These affect the character but don't remove it
                                 return { classification: "AffectsNoRemoval", details: `Matched '${pattern.fullName}'.`, card: sourceCardInfo };
@@ -1027,7 +1040,7 @@ Regex: /must challenge if able/gi
         function populateCardGrid() {
             playerCardsGrid.innerHTML = '';
             const selectedMode = document.querySelector('input[name="analysisMode"]:checked').value;
-            
+
             let cardsToShow = [];
             if (selectedMode === 'character') {
                 cardsToShow = PLAYER_DECK_CHARS;
@@ -1086,23 +1099,23 @@ Regex: /must challenge if able/gi
         function handleAnalysisModeChange() {
             const selectedMode = document.querySelector('input[name="analysisMode"]:checked').value;
             console.log("Analysis mode changed to:", selectedMode);
-            
+
             // Reset selection when mode changes
             selectedCardIndex = -1;
             selectedCardType = null;
-            
+
             // Update challenge perspective visibility
             if (selectedMode === 'character') {
                 challengePerspectiveContainer.classList.remove('hidden');
             } else { // song mode
                 challengePerspectiveContainer.classList.add('hidden');
             }
-            
+
             // Repopulate grid with new card type
             if (cardSelectionGrid.classList.contains('hidden') === false) {
                 populateCardGrid();
             }
-            
+
             // Clear results
             resultsDisplay.innerHTML = '';
         }
@@ -1138,13 +1151,13 @@ Regex: /must challenge if able/gi
         function displayAnalysisResults() {
             console.log("Displaying analysis results...");
             resultsDisplay.innerHTML = '';
-            
+
             // Check if a card is selected
             if (selectedCardIndex === -1 || selectedCardType === null) {
                 resultsDisplay.innerHTML = `<p class="text-center text-gray-400 italic">Please select a card from the grid above to analyze.</p>`;
                 return;
             }
-            
+
             const selectedMode = document.querySelector('input[name="analysisMode"]:checked').value;
             console.log("Current analysis mode for display:", selectedMode);
 
