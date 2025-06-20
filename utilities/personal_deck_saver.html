@@ -60,7 +60,14 @@
         .chart-container {
             position: relative;
             height: 250px;
-            width: 100%;
+            width: 100%; /* Default to full width on small screens */
+            min-width: 300px; /* Minimum width for charts */
+        }
+
+        @media (min-width: 768px) { /* md breakpoint */
+            .chart-container {
+                width: calc(50% - 1rem); /* Two charts per row with gap */
+            }
         }
 
         .card-stack {
@@ -193,12 +200,12 @@
         <!-- Bottom Section: Visualizer and Charts -->
         <div class="visuals-grid">
             <!-- Center: Visual Deck Display -->
-            <main id="visualDeckContainer" class="bg-gray-800 p-4 rounded-lg shadow-lg overflow-y-auto h-[85vh]">
+            <main id="visualDeckContainer" class="bg-gray-800 p-4 rounded-lg shadow-lg overflow-y-auto h-[60vh]">
                 <div class="text-center text-gray-500 italic mt-8">Enter a decklist to see the cards here.</div>
             </main>
             <!-- Right: Charts -->
             <aside id="chartsContainer"
-                class="bg-gray-800 p-4 rounded-lg shadow-lg flex flex-col gap-4 overflow-y-auto h-[85vh]">
+                class="bg-gray-800 p-4 rounded-lg shadow-lg flex flex-row flex-wrap justify-center items-center gap-4 overflow-y-auto h-[60vh]">
                 <div class="text-center text-gray-400">Total Cards: <span id="total-cards" class="font-bold">0</span>
                 </div>
                 <div>
