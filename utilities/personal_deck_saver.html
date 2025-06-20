@@ -60,13 +60,18 @@
         .chart-container {
             position: relative;
             height: 250px;
-            width: 100%; /* Default to full width on small screens */
-            min-width: 300px; /* Minimum width for charts */
+            width: 100%;
+            /* Default to full width on small screens */
+            min-width: 300px;
+            /* Minimum width for charts */
         }
 
-        @media (min-width: 768px) { /* md breakpoint */
+        @media (min-width: 768px) {
+
+            /* md breakpoint */
             .chart-container {
-                width: calc(50% - 1rem); /* Two charts per row with gap */
+                width: calc(50% - 1rem);
+                /* Two charts per row with gap */
             }
         }
 
@@ -75,6 +80,17 @@
             width: 150px;
             height: 210px;
             transition: transform 0.2s ease-in-out;
+            cursor: pointer;
+            border-radius: 9px;
+            /* Slightly larger than image for border visibility */
+            border: 3px solid transparent;
+            transition: border-color 0.2s ease;
+        }
+
+        .card-stack.selected {
+            border-color: #a855f7;
+            /* purple-500 */
+            box-shadow: 0 0 15px #a855f7;
         }
 
         .card-stack:hover {
@@ -109,7 +125,24 @@
             font-size: 0.9rem;
             border: 2px solid #111827;
             box-shadow: 0 0 0 3px #9333ea;
-            z-index: 1;
+            z-index: 2;
+        }
+
+        .card-prob-overlay {
+            position: absolute;
+            bottom: 4px;
+            right: 4px;
+            background-color: rgba(17, 24, 39, 0.8);
+            /* bg-gray-900 with opacity */
+            color: #d1d5db;
+            /* gray-300 */
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 4px;
+            z-index: 2;
+            pointer-events: none;
+            /* So it doesn't interfere with clicks */
         }
     </style>
 </head>
@@ -205,24 +238,36 @@
             </main>
             <!-- Right: Charts -->
             <aside id="chartsContainer"
-                class="bg-gray-800 p-4 rounded-lg shadow-lg flex flex-row flex-wrap justify-center items-center gap-4 overflow-y-auto h-[60vh]">
-                <div class="text-center text-gray-400">Total Cards: <span id="total-cards" class="font-bold">0</span>
+                class="bg-gray-800 p-4 rounded-lg shadow-lg flex flex-row flex-wrap justify-center items-start gap-4 overflow-y-auto h-[60vh]">
+                <div class="text-center text-gray-400 w-full">Total Cards: <span id="total-cards"
+                        class="font-bold">0</span>
                 </div>
-                <div>
+                <!-- Mulligan Probability -->
+                <div id="mulliganCalculator" class="bg-gray-700 p-4 rounded-lg shadow-inner w-full">
+                    <h3 class="text-lg font-semibold text-center mb-2">Mulligan Helper</h3>
+                    <p id="mulliganInstructions" class="text-center text-sm text-gray-400 mb-3">Click cards in the deck
+                        to calculate combined draw probability.</p>
+                    <div id="mulliganResultContainer" class="mt-2 text-center hidden">
+                        <p class="text-gray-300">Prob. to find all selected cards:</p>
+                        <p id="mulliganResult" class="text-3xl font-bold text-purple-400 mt-1">0%</p>
+                        <p id="mulliganDetails" class="text-xs text-gray-400"></p>
+                    </div>
+                </div>
+                <div class="chart-container">
                     <h3 class="text-lg font-semibold text-center mb-2">Ink Curve</h3>
-                    <div class="chart-container"><canvas id="inkCurveChart"></canvas></div>
+                    <canvas id="inkCurveChart"></canvas>
                 </div>
-                <div>
+                <div class="chart-container">
                     <h3 class="text-lg font-semibold text-center mb-2">Color Split</h3>
-                    <div class="chart-container"><canvas id="colorSplitChart"></canvas></div>
+                    <canvas id="colorSplitChart"></canvas>
                 </div>
-                <div>
+                <div class="chart-container">
                     <h3 class="text-lg font-semibold text-center mb-2">Inkable vs. Uninkable</h3>
-                    <div class="chart-container"><canvas id="inkableChart"></canvas></div>
+                    <canvas id="inkableChart"></canvas>
                 </div>
-                <div>
+                <div class="chart-container">
                     <h3 class="text-lg font-semibold text-center mb-2">Card Types</h3>
-                    <div class="chart-container"><canvas id="cardTypeChart"></canvas></div>
+                    <canvas id="cardTypeChart"></canvas>
                 </div>
             </aside>
         </div>
@@ -259,6 +304,9 @@
             let allCards = [];
             let fuse;
             let charts = {};
+            let selectedForMulligan = [];
+            let currentDeck = [];
+
 
             // --- UI ELEMENTS ---
             const loadingOverlay = document.getElementById('loadingOverlay');
@@ -275,6 +323,101 @@
             const confirmationModal = document.getElementById('confirmationModal');
             const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
             const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+            const mulliganResultContainer = document.getElementById('mulliganResultContainer');
+            const mulliganResultEl = document.getElementById('mulliganResult');
+            const mulliganDetailsEl = document.getElementById('mulliganDetails');
+            const mulliganInstructions = document.getElementById('mulliganInstructions');
+
+            // --- PROBABILITY FUNCTIONS ---
+
+            /**
+             * Calculates the probability of drawing zero successes (k=0) in a sample.
+             * This is numerically stable and avoids large number overflow from direct combination calculations.
+             * @param {number} N - Total population size (deck size).
+             * @param {number} K - Total number of successes in the population (copies of a card).
+             * @param {number} n - Sample size (cards drawn).
+             * @returns {number} The probability of drawing zero successes.
+             */
+            function probMiss(N, K, n) {
+                if (K > N || n > N || K < 0 || n < 0 || N <= 0) return 1.0; // Invalid input
+                if (N - K < n) return 0.0; // Not enough non-successes to fill the hand
+
+                let prob = 1.0;
+                for (let i = 0; i < n; i++) {
+                    prob *= (N - K - i) / (N - i);
+                }
+                return prob;
+            }
+
+            function updateCombinedProbability() {
+                mulliganInstructions.classList.toggle('hidden', selectedForMulligan.length > 0);
+                mulliganResultContainer.classList.toggle('hidden', selectedForMulligan.length === 0);
+
+                if (selectedForMulligan.length === 0) {
+                    return;
+                }
+
+                const N = currentDeck.reduce((sum, item) => sum + item.count, 0);
+                const selection = selectedForMulligan;
+                const numSelected = selection.length;
+                // n is the number of cards we get to see. 7 in opening hand, plus a mulligan for cards we didn't keep.
+                const n = 7 + (7 - numSelected);
+
+                let probUnionOfMissing = 0;
+
+                // Use the Principle of Inclusion-Exclusion to find P(A ∪ B ∪ C...).
+                // Iterate through all non-empty subsets of the selection.
+                for (let i = 1; i < (1 << numSelected); i++) {
+                    let K_sum = 0;
+                    let subsetSize = 0;
+
+                    for (let j = 0; j < numSelected; j++) {
+                        // Check if the j-th item is in the current subset
+                        if ((i >> j) & 1) {
+                            K_sum += selection[j].count;
+                            subsetSize++;
+                        }
+                    }
+
+                    const termProb = probMiss(N, K_sum, n);
+
+                    // Add or subtract based on the size of the subset.
+                    if (subsetSize % 2 === 1) {
+                        probUnionOfMissing += termProb; // Add for subsets of size 1, 3, 5...
+                    } else {
+                        probUnionOfMissing -= termProb; // Subtract for subsets of size 2, 4, 6...
+                    }
+                }
+
+                // The probability of finding ALL selected cards is 1 - P(missing at least one).
+                const finalProb = 1 - probUnionOfMissing;
+
+                mulliganResultEl.textContent = `${(finalProb * 100).toFixed(2)}%`;
+                mulliganDetailsEl.textContent = `(Hand of 7 + Mulligan of ${7 - numSelected} = ${n} cards seen)`;
+            }
+
+            function handleCardSelection(cardName, cardCount) {
+                const existingIndex = selectedForMulligan.findIndex(item => item.name === cardName);
+
+                if (existingIndex > -1) {
+                    // Card is already selected, de-select it
+                    selectedForMulligan.splice(existingIndex, 1);
+                    document.querySelector(`.card-stack[data-card-name="${CSS.escape(cardName)}"]`).classList.remove('selected');
+                } else {
+                    // Card is not selected, add it if we have space
+                    if (selectedForMulligan.length < 7) {
+                        selectedForMulligan.push({ name: cardName, count: cardCount });
+                        document.querySelector(`.card-stack[data-card-name="${CSS.escape(cardName)}"]`).classList.add('selected');
+                    } else {
+                        // Optional: Add feedback that the selection is full
+                        console.log("Maximum of 7 cards for mulligan calculation reached.");
+                        return; // Exit without making changes
+                    }
+                }
+
+                updateCombinedProbability();
+            }
+
 
             // --- SUPABASE & DATA ---
             const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -311,9 +454,13 @@
                         }
                     }
                 }
+                currentDeck = deck;
                 renderVisualDeck(deck);
                 updateCharts(deck);
                 updateTotalCards(deck);
+                // When deck changes, clear the mulligan selection
+                selectedForMulligan = [];
+                updateCombinedProbability();
             }
 
             function renderVisualDeck(deck) {
@@ -322,6 +469,8 @@
                     visualDeckContainer.innerHTML = `<div class="text-center text-gray-500 italic mt-8">Enter a decklist to see the cards here.</div>`;
                     return;
                 }
+                const totalDeckSize = deck.reduce((sum, item) => sum + item.count, 0);
+
                 const grouped = deck.reduce((acc, { count, card }) => {
                     const type = card.type || 'Unknown';
                     if (!acc[type]) acc[type] = [];
@@ -340,7 +489,21 @@
                         grouped[type].sort((a, b) => a.card.cost - b.card.cost || a.card.name.localeCompare(b.card.name)).forEach(({ count, card }) => {
                             const stackDiv = document.createElement('div');
                             stackDiv.className = 'card-stack';
-                            stackDiv.innerHTML = `<div class="card-count-badge">${count}</div><img src="${card.images.full}" alt="${card.fullName}" loading="lazy" onerror="this.onerror=null;this.src='https://placehold.co/150x210/1f2937/9ca3af?text=${encodeURIComponent(card.name)}';">`;
+                            stackDiv.dataset.cardName = card.fullName;
+
+                            // Calculate and add individual probability
+                            const probOfMissing = probMiss(totalDeckSize, count, 14);
+                            const probOfFinding = 1 - probOfMissing;
+                            const probText = (probOfFinding * 100).toFixed(1) + '%';
+
+                            stackDiv.innerHTML = `
+                                <div class="card-count-badge">${count}</div>
+                                <img src="${card.images.full}" alt="${card.fullName}" loading="lazy" onerror="this.onerror=null;this.src='https://placehold.co/150x210/1f2937/9ca3af?text=${encodeURIComponent(card.name)}';">
+                                <div class="card-prob-overlay">${probText}</div>
+                            `;
+
+                            stackDiv.addEventListener('click', () => handleCardSelection(card.fullName, count));
+
                             grid.appendChild(stackDiv);
                         });
                         section.appendChild(grid);
@@ -350,7 +513,9 @@
             }
 
             function updateTotalCards(deck) {
-                totalCardsSpan.textContent = deck.reduce((sum, item) => sum + item.count, 0);
+                const total = deck.reduce((sum, item) => sum + item.count, 0);
+                totalCardsSpan.textContent = total;
+
             }
 
             function updateCharts(deck) {
