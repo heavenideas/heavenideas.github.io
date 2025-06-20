@@ -144,6 +144,11 @@
             pointer-events: none;
             /* So it doesn't interfere with clicks */
         }
+
+        .scenario-btn.active {
+            background-color: #9333ea;
+            color: white;
+        }
     </style>
 </head>
 
@@ -258,6 +263,14 @@
                 <!-- Mulligan Probability -->
                 <div id="mulliganCalculator" class="bg-gray-700 p-4 rounded-lg shadow-inner w-full">
                     <h3 class="text-lg font-semibold text-center mb-2">Mulligan Helper</h3>
+                    <div class="grid grid-cols-2 gap-2 mb-3">
+                        <button id="onThePlayBtn"
+                            class="scenario-btn w-full px-3 py-1.5 bg-gray-600 hover:bg-gray-500 rounded-md font-semibold text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-700 focus:ring-purple-500 active">On
+                            the Play</button>
+                        <button id="onTheDrawBtn"
+                            class="scenario-btn w-full px-3 py-1.5 bg-gray-600 hover:bg-gray-500 rounded-md font-semibold text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-700 focus:ring-purple-500">On
+                            the Draw</button>
+                    </div>
                     <p id="mulliganInstructions" class="text-center text-sm text-gray-400 mb-3">Click cards in the deck
                         to calculate combined draw probability.</p>
                     <div id="mulliganResultContainer" class="mt-2 text-center hidden">
@@ -321,6 +334,7 @@
             let currentDeck = [];
             let allDecks = [];
             let deckFuse;
+            let mulliganScenario = 'OnThePlay'; // 'OnThePlay' or 'OnTheDraw'
 
 
             // --- UI ELEMENTS ---
@@ -343,6 +357,9 @@
             const mulliganDetailsEl = document.getElementById('mulliganDetails');
             const mulliganInstructions = document.getElementById('mulliganInstructions');
             const deckSearchInput = document.getElementById('deckSearch');
+            const onThePlayBtn = document.getElementById('onThePlayBtn');
+            const onTheDrawBtn = document.getElementById('onTheDrawBtn');
+
 
             // --- PROBABILITY FUNCTIONS ---
             function probMiss(N, K, n) {
@@ -363,7 +380,10 @@
                 const N = currentDeck.reduce((sum, item) => sum + item.count, 0);
                 const selection = selectedForMulligan;
                 const numSelected = selection.length;
-                const n = 7 + (7 - numSelected);
+
+                const drawBonus = mulliganScenario === 'OnTheDraw' ? 1 : 0;
+                const n = 7 + (7 - numSelected) + drawBonus;
+
                 let probUnionOfMissing = 0;
 
                 for (let i = 1; i < (1 << numSelected); i++) {
@@ -381,7 +401,7 @@
 
                 const finalProb = 1 - probUnionOfMissing;
                 mulliganResultEl.textContent = `${(finalProb * 100).toFixed(2)}%`;
-                mulliganDetailsEl.textContent = `(Hand of 7 + Mulligan of ${7 - numSelected} = ${n} cards seen)`;
+                mulliganDetailsEl.textContent = `(Hand of 7 + Mulligan of ${7 - numSelected} + ${drawBonus} draw = ${n} cards seen)`;
             }
 
             function handleCardSelection(cardName, cardCount) {
@@ -449,6 +469,9 @@
                     return;
                 }
                 const totalDeckSize = deck.reduce((sum, item) => sum + item.count, 0);
+                const drawBonus = mulliganScenario === 'OnTheDraw' ? 1 : 0;
+                const cardsSeen = 14 + drawBonus;
+
                 const grouped = deck.reduce((acc, { count, card }) => {
                     const type = card.type || 'Unknown';
                     if (!acc[type]) acc[type] = [];
@@ -467,7 +490,7 @@
                             const stackDiv = document.createElement('div');
                             stackDiv.className = 'card-stack';
                             stackDiv.dataset.cardName = card.fullName;
-                            const probOfFinding = 1 - probMiss(totalDeckSize, count, 14);
+                            const probOfFinding = 1 - probMiss(totalDeckSize, count, cardsSeen);
                             const probText = (probOfFinding * 100).toFixed(1) + '%';
                             stackDiv.innerHTML = `<div class="card-count-badge">${count}</div><img src="${card.images.full}" alt="${card.fullName}" loading="lazy" onerror="this.onerror=null;this.src='https://placehold.co/150x210/1f2937/9ca3af?text=${encodeURIComponent(card.name)}';"><div class="card-prob-overlay">${probText}</div>`;
                             stackDiv.addEventListener('click', () => handleCardSelection(card.fullName, count));
@@ -477,6 +500,11 @@
                         visualDeckContainer.appendChild(section);
                     }
                 }
+                // Re-apply selection visuals
+                selectedForMulligan.forEach(sel => {
+                    const el = document.querySelector(`.card-stack[data-card-name="${CSS.escape(sel.name)}"]`);
+                    if (el) el.classList.add('selected');
+                });
             }
 
             function updateTotalCards(deck) {
@@ -616,6 +644,22 @@
                 const results = deckFuse.search(searchTerm);
                 const filteredDecks = results.map(result => result.item);
                 renderDeckList(filteredDecks);
+            });
+
+            onThePlayBtn.addEventListener('click', () => {
+                mulliganScenario = 'OnThePlay';
+                onThePlayBtn.classList.add('active');
+                onTheDrawBtn.classList.remove('active');
+                renderVisualDeck(currentDeck);
+                updateCombinedProbability();
+            });
+
+            onTheDrawBtn.addEventListener('click', () => {
+                mulliganScenario = 'OnTheDraw';
+                onTheDrawBtn.classList.add('active');
+                onThePlayBtn.classList.remove('active');
+                renderVisualDeck(currentDeck);
+                updateCombinedProbability();
             });
 
             const showConfirmationModal = () => confirmationModal.classList.remove('opacity-0', 'pointer-events-none');
