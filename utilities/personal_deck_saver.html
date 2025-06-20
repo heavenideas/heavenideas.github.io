@@ -4,17 +4,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lorcana Deck Manager</title>
+    <title>Lorcana Deck Visualizer</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Add Supabase client library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Inter', sans-serif;
+            background-color: #111827;
+            /* bg-gray-900 */
         }
 
-        /* Custom scrollbar for webkit browsers */
+        /* Custom scrollbar */
         ::-webkit-scrollbar {
             width: 8px;
         }
@@ -23,34 +26,111 @@
             background: #1f2937;
         }
 
+        /* bg-gray-800 */
         ::-webkit-scrollbar-thumb {
             background: #4b5563;
             border-radius: 4px;
         }
 
+        /* bg-gray-600 */
         ::-webkit-scrollbar-thumb:hover {
             background: #6b7280;
         }
 
-        /* Styles for the confirmation modal */
-        #confirmationModal {
+        /* bg-gray-500 */
+
+        #confirmationModal,
+        #loadingOverlay {
             transition: opacity 0.3s ease;
+        }
+
+        .visuals-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+            min-height: 0;
+        }
+
+        @media (max-width: 1024px) {
+            .visuals-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .chart-container {
+            position: relative;
+            height: 250px;
+            width: 100%;
+        }
+
+        .card-stack {
+            position: relative;
+            width: 150px;
+            height: 210px;
+            transition: transform 0.2s ease-in-out;
+        }
+
+        .card-stack:hover {
+            transform: scale(1.05);
+            z-index: 10;
+        }
+
+        .card-stack img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
+            border: 1px solid #374151;
+            /* gray-700 */
+        }
+
+        .card-count-badge {
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            background-color: #9333ea;
+            /* purple-600 */
+            color: white;
+            border-radius: 9999px;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.9rem;
+            border: 2px solid #111827;
+            box-shadow: 0 0 0 3px #9333ea;
+            z-index: 1;
         }
     </style>
 </head>
 
-<body class="bg-gray-900 text-gray-200">
+<body class="text-gray-200">
 
-    <div class="container mx-auto p-4 md:p-8 max-w-7xl">
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-80">
+        <div class="text-center">
+            <svg class="animate-spin h-10 w-10 text-purple-400 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none"
+                viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                </path>
+            </svg>
+            <p class="mt-4 text-lg font-semibold">Loading Card Database...</p>
+        </div>
+    </div>
+
+    <div class="container mx-auto p-4 md:p-8 max-w-screen-2xl">
         <header class="text-center mb-8">
-            <h1 class="text-4xl font-bold text-purple-400">Lorcana Deck Manager</h1>
-            <p class="text-gray-400 mt-2">Create, manage, and store your Lorcana decks in the cloud.</p>
+            <h1 class="text-4xl font-bold text-purple-400">Lorcana Deck Manager & Visualizer</h1>
+            <p class="text-gray-400 mt-2">Create, manage, and visualize your Lorcana decks.</p>
         </header>
 
-        <!-- The old warning box has been removed as we are now connected to a database -->
-
-        <div class="flex flex-col md:flex-row gap-8">
-
+        <!-- Top Section: Management and Editor -->
+        <div class="flex flex-col md:flex-row gap-8 mb-8">
             <!-- Deck List Panel -->
             <div class="w-full md:w-1/3 bg-gray-800 p-6 rounded-lg shadow-lg">
                 <h2 class="text-2xl font-semibold mb-4 border-b border-gray-700 pb-2">My Decks</h2>
@@ -59,40 +139,35 @@
                 </div>
             </div>
 
-            <!-- Deck Editor Panel -->
+            <!-- Deck Editor Panel (Original Detailed Form) -->
             <div class="w-full md:w-2/3 bg-gray-800 p-6 rounded-lg shadow-lg">
                 <h2 id="editorTitle" class="text-2xl font-semibold mb-4">Create New Deck</h2>
                 <form id="deckForm" class="space-y-6">
                     <input type="hidden" id="deckId">
-
                     <div>
                         <label for="deckName" class="block text-sm font-medium text-gray-300 mb-1">Deck Name</label>
                         <input type="text" id="deckName" required
                             class="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:outline-none"
                             placeholder="e.g., Amber/Steel Steelsong">
                     </div>
-
                     <div>
                         <label for="decklist" class="block text-sm font-medium text-gray-300 mb-1">Decklist</label>
                         <textarea id="decklist" rows="10" required
-                            class="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:outline-none"
-                            placeholder="4x Captain Hook, Forceful Duelist&#10;4x Simba, Future King&#10;..."></textarea>
+                            class="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:outline-none font-mono text-sm"
+                            placeholder="4x Captain Hook, Forceful Duelist..."></textarea>
                     </div>
-
                     <div>
                         <label class="block text-sm font-medium text-gray-300 mb-2">Ink Types</label>
                         <div id="inkTypes" class="grid grid-cols-2 sm:grid-cols-3 gap-2">
                             <!-- Ink type checkboxes will be injected here -->
                         </div>
                     </div>
-
                     <div>
                         <label for="deckUrl" class="block text-sm font-medium text-gray-300 mb-1">URL (Optional)</label>
                         <input type="url" id="deckUrl"
                             class="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:outline-none"
                             placeholder="https://lorcania.com/decks/...">
                     </div>
-
                     <div>
                         <label for="comments" class="block text-sm font-medium text-gray-300 mb-1">Comments
                             (Optional)</label>
@@ -100,7 +175,6 @@
                             class="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:outline-none"
                             placeholder="Mulligan strategy, card combos, etc."></textarea>
                     </div>
-
                     <div class="flex items-center justify-between pt-4 border-t border-gray-700">
                         <div class="flex gap-2">
                             <button type="submit"
@@ -114,179 +188,221 @@
                     </div>
                 </form>
             </div>
+        </div>
 
+        <!-- Bottom Section: Visualizer and Charts -->
+        <div class="visuals-grid">
+            <!-- Center: Visual Deck Display -->
+            <main id="visualDeckContainer" class="bg-gray-800 p-4 rounded-lg shadow-lg overflow-y-auto h-[85vh]">
+                <div class="text-center text-gray-500 italic mt-8">Enter a decklist to see the cards here.</div>
+            </main>
+            <!-- Right: Charts -->
+            <aside id="chartsContainer"
+                class="bg-gray-800 p-4 rounded-lg shadow-lg flex flex-col gap-4 overflow-y-auto h-[85vh]">
+                <div class="text-center text-gray-400">Total Cards: <span id="total-cards" class="font-bold">0</span>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-center mb-2">Ink Curve</h3>
+                    <div class="chart-container"><canvas id="inkCurveChart"></canvas></div>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-center mb-2">Color Split</h3>
+                    <div class="chart-container"><canvas id="colorSplitChart"></canvas></div>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-center mb-2">Inkable vs. Uninkable</h3>
+                    <div class="chart-container"><canvas id="inkableChart"></canvas></div>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-center mb-2">Card Types</h3>
+                    <div class="chart-container"><canvas id="cardTypeChart"></canvas></div>
+                </div>
+            </aside>
         </div>
     </div>
 
-    <!-- Confirmation Modal for Deleting -->
+    <!-- Confirmation Modal -->
     <div id="confirmationModal"
         class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 p-4 opacity-0 pointer-events-none">
         <div class="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-sm">
             <h3 class="text-lg font-bold text-white mb-4">Confirm Deletion</h3>
             <p class="text-gray-300 mb-6">Are you sure you want to delete this deck? This action cannot be undone.</p>
-            <div class="flex justify-end gap-4">
-                <button id="cancelDeleteBtn"
-                    class="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-md font-semibold transition-colors">Cancel</button>
-                <button id="confirmDeleteBtn"
+            <div class="flex justify-end gap-4"><button id="cancelDeleteBtn"
+                    class="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-md font-semibold transition-colors">Cancel</button><button
+                    id="confirmDeleteBtn"
                     class="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-md font-semibold transition-colors">Delete</button>
             </div>
         </div>
     </div>
 
-
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // --- SUPABASE SETUP ---
+            // --- GLOBAL STATE & CONFIG ---
             const SUPABASE_URL = 'https://cjlhrfhximjldqrfblkj.supabase.co';
             const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNqbGhyZmh4aW1qbGRxcmZibGtqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA0MTcxNzQsImV4cCI6MjA2NTk5MzE3NH0.zLiQcPnKt2SnNfQIkUnOG7bOo6F7MPMh8MsasdFF6lw';
-
-            // Initialize the Supabase client.
-            // The `supabase` global object is provided by the imported script.
-            const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            const CARD_DATA_URL = 'https://raw.githubusercontent.com/heavenideas/similcana/refs/heads/main/database/allCards.json';
 
             const INK_COLORS = {
-                Amber: { hex: '#FCD34D', name: 'Amber' },
-                Amethyst: { hex: '#C084FC', name: 'Amethyst' },
-                Emerald: { hex: '#34D399', name: 'Emerald' },
-                Ruby: { hex: '#F87171', name: 'Ruby' },
-                Sapphire: { hex: '#60A5FA', name: 'Sapphire' },
-                Steel: { hex: '#9CA3AF', name: 'Steel' }
+                Amber: { hex: '#FCD34D', name: 'Amber' }, Amethyst: { hex: '#C084FC', name: 'Amethyst' },
+                Emerald: { hex: '#34D399', name: 'Emerald' }, Ruby: { hex: '#F87171', name: 'Ruby' },
+                Sapphire: { hex: '#60A5FA', name: 'Sapphire' }, Steel: { hex: '#9CA3AF', name: 'Steel' }
             };
+            const TYPE_COLORS = { Character: '#2563eb', Item: '#db2777', Location: '#d97706', Action: '#16a34a', Song: '#8b5cf6' };
 
-            // UI Elements
+            let allCards = [];
+            let fuse;
+            let charts = {};
+
+            // --- UI ELEMENTS ---
+            const loadingOverlay = document.getElementById('loadingOverlay');
             const deckForm = document.getElementById('deckForm');
             const deckListContainer = document.getElementById('deckListContainer');
             const newDeckBtn = document.getElementById('newDeckBtn');
             const deleteDeckBtn = document.getElementById('deleteDeckBtn');
             const editorTitle = document.getElementById('editorTitle');
             const deckIdInput = document.getElementById('deckId');
+            const decklistTextarea = document.getElementById('decklist');
             const inkTypesContainer = document.getElementById('inkTypes');
+            const visualDeckContainer = document.getElementById('visualDeckContainer');
+            const totalCardsSpan = document.getElementById('total-cards');
             const confirmationModal = document.getElementById('confirmationModal');
             const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
             const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
 
-            // --- DATABASE FUNCTIONS (using Supabase) ---
+            // --- SUPABASE & DATA ---
+            const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-            /**
-             * Fetches all decks from the Supabase 'decks' table.
-             * @returns {Promise<Array<Object>>} A promise that resolves with an array of deck objects.
-             */
-            const getDecks = async () => {
-                const { data: decks, error } = await supabaseClient
-                    .from('decks')
-                    .select('*')
-                    .order('created_at', { ascending: true });
+            // --- CHART & VISUALIZATION ---
+            function initializeCharts() {
+                Chart.defaults.color = '#9ca3af';
+                Chart.defaults.borderColor = '#374151';
+                const commonOptions = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } };
+                const pieOptions = { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } } };
 
-                if (error) {
-                    console.error('Error fetching decks:', error.message);
-                    alert(`Error fetching decks: ${error.message}`); // Basic error feedback
-                    return [];
+                charts.inkCurve = new Chart(document.getElementById('inkCurveChart'), { type: 'bar', data: { labels: ['0', '1', '2', '3', '4', '5', '6', '7+'], datasets: [{ data: [], backgroundColor: '#a855f7' }] }, options: { ...commonOptions, scales: { y: { beginAtZero: true, grid: { color: '#374151' } } } } });
+                charts.colorSplit = new Chart(document.getElementById('colorSplitChart'), { type: 'pie', data: { labels: [], datasets: [{ data: [] }] }, options: pieOptions });
+                charts.inkable = new Chart(document.getElementById('inkableChart'), { type: 'pie', data: { labels: ['Inkable', 'Uninkable'], datasets: [{ data: [], backgroundColor: ['#10b981', '#ef4444'] }] }, options: pieOptions });
+                charts.cardType = new Chart(document.getElementById('cardTypeChart'), { type: 'pie', data: { labels: [], datasets: [{ data: [] }] }, options: pieOptions });
+            }
+
+            function parseAndRenderDeck() {
+                const text = decklistTextarea.value;
+                const lines = text.split('\n').filter(line => line.trim() !== '');
+                const deck = [];
+                const lineRegex = /^(?:(\d+)x?\s)?(.*)/;
+
+                for (const line of lines) {
+                    const match = line.trim().match(lineRegex);
+                    if (match) {
+                        const count = parseInt(match[1] || '1', 10);
+                        const cardName = match[2].trim();
+                        if (cardName) {
+                            const results = fuse.search(cardName);
+                            if (results.length > 0) {
+                                deck.push({ count, card: results[0].item });
+                            }
+                        }
+                    }
                 }
-                return decks;
+                renderVisualDeck(deck);
+                updateCharts(deck);
+                updateTotalCards(deck);
+            }
+
+            function renderVisualDeck(deck) {
+                visualDeckContainer.innerHTML = '';
+                if (deck.length === 0) {
+                    visualDeckContainer.innerHTML = `<div class="text-center text-gray-500 italic mt-8">Enter a decklist to see the cards here.</div>`;
+                    return;
+                }
+                const grouped = deck.reduce((acc, { count, card }) => {
+                    const type = card.type || 'Unknown';
+                    if (!acc[type]) acc[type] = [];
+                    acc[type].push({ count, card });
+                    return acc;
+                }, {});
+
+                const typeOrder = ['Character', 'Action', 'Item', 'Location'];
+                for (const type of typeOrder) {
+                    if (grouped[type]) {
+                        const section = document.createElement('div');
+                        section.className = 'mb-6';
+                        section.innerHTML = `<h2 class="text-xl font-bold text-purple-300 mb-3 border-b-2 border-gray-700 pb-1">${type}s</h2>`;
+                        const grid = document.createElement('div');
+                        grid.className = 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4';
+                        grouped[type].sort((a, b) => a.card.cost - b.card.cost || a.card.name.localeCompare(b.card.name)).forEach(({ count, card }) => {
+                            const stackDiv = document.createElement('div');
+                            stackDiv.className = 'card-stack';
+                            stackDiv.innerHTML = `<div class="card-count-badge">${count}</div><img src="${card.images.full}" alt="${card.fullName}" loading="lazy" onerror="this.onerror=null;this.src='https://placehold.co/150x210/1f2937/9ca3af?text=${encodeURIComponent(card.name)}';">`;
+                            grid.appendChild(stackDiv);
+                        });
+                        section.appendChild(grid);
+                        visualDeckContainer.appendChild(section);
+                    }
+                }
+            }
+
+            function updateTotalCards(deck) {
+                totalCardsSpan.textContent = deck.reduce((sum, item) => sum + item.count, 0);
+            }
+
+            function updateCharts(deck) {
+                const inkCurveData = Array(8).fill(0), colorSplitData = {}, inkableData = { inkable: 0, uninkable: 0 }, cardTypeData = {};
+                deck.forEach(({ count, card }) => {
+                    inkCurveData[Math.min(card.cost, 7)] += count;
+                    (card.colors || [card.color]).forEach(color => { if (color) colorSplitData[color] = (colorSplitData[color] || 0) + count; });
+                    if (card.inkwell) inkableData.inkable += count; else inkableData.uninkable += count;
+                    let mainType = card.type === 'Action' && (card.subtypes || []).includes('Song') ? 'Song' : card.type;
+                    cardTypeData[mainType] = (cardTypeData[mainType] || 0) + count;
+                });
+                charts.inkCurve.data.datasets[0].data = inkCurveData;
+                charts.colorSplit.data.labels = Object.keys(colorSplitData);
+                charts.colorSplit.data.datasets[0].data = Object.values(colorSplitData);
+                charts.colorSplit.data.datasets[0].backgroundColor = Object.keys(colorSplitData).map(c => INK_COLORS[c]?.hex || '#fff');
+                charts.inkable.data.datasets[0].data = [inkableData.inkable, inkableData.uninkable];
+                charts.cardType.data.labels = Object.keys(cardTypeData);
+                charts.cardType.data.datasets[0].data = Object.values(cardTypeData);
+                charts.cardType.data.datasets[0].backgroundColor = Object.keys(cardTypeData).map(t => TYPE_COLORS[t] || '#fff');
+                Object.values(charts).forEach(chart => chart.update());
+            }
+
+            // --- DATABASE & FORM LOGIC ---
+            const getDecks = async () => {
+                const { data, error } = await supabaseClient.from('decks').select('*').order('created_at', { ascending: true });
+                if (error) { console.error('Error fetching decks:', error); return []; }
+                return data;
             };
 
-            /**
-             * Saves a deck (creates or updates) to the Supabase database.
-             * @param {Object} deckData - The deck object to save.
-             * @returns {Promise<Object|null>} A promise that resolves with the saved deck object or null on error.
-             */
             const saveDeck = async (deckData) => {
-                const dataToSave = {
-                    id: deckData.id || undefined, // Let Supabase handle ID generation on insert
-                    name: deckData.name,
-                    decklist: deckData.decklist,
-                    inks: deckData.inks,
-                    url: deckData.url,
-                    comments: deckData.comments,
-                };
-
-                // Use upsert to either insert a new row or update one if 'id' matches
-                const { data, error } = await supabaseClient
-                    .from('decks')
-                    .upsert(dataToSave)
-                    .select(); // .select() returns the data that was saved
-
-                if (error) {
-                    console.error('Error saving deck:', error.message);
-                    alert(`Error saving deck: ${error.message}`);
-                    return null;
-                }
-
-                // The result from Supabase is an array, so we return the first (and only) item.
+                const { data, error } = await supabaseClient.from('decks').upsert(deckData).select();
+                if (error) { console.error('Error saving deck:', error); return null; }
                 return data ? data[0] : null;
             };
 
-            /**
-             * Deletes a deck from the Supabase database.
-             * @param {string} deckId - The ID of the deck to delete.
-             * @returns {Promise<void>}
-             */
             const deleteDeck = async (deckId) => {
-                const { error } = await supabaseClient
-                    .from('decks')
-                    .delete()
-                    .eq('id', deckId); // match the row where the 'id' column equals deckId
-
-                if (error) {
-                    console.error('Error deleting deck:', error.message);
-                    alert(`Error deleting deck: ${error.message}`);
-                }
+                const { error } = await supabaseClient.from('decks').delete().eq('id', deckId);
+                if (error) console.error('Error deleting deck:', error);
             };
 
-            // --- UI LOGIC ---
-
-            /**
-             * Renders the list of ink type checkboxes.
-             */
             const renderInkTypes = () => {
                 inkTypesContainer.innerHTML = '';
                 for (const [name, { hex }] of Object.entries(INK_COLORS)) {
                     const div = document.createElement('div');
                     div.className = 'flex items-center';
-                    const checkbox = document.createElement('input');
-                    checkbox.id = `ink-${name.toLowerCase()}`;
-                    checkbox.type = 'checkbox';
-                    checkbox.name = 'ink';
-                    checkbox.value = name;
-                    checkbox.className = 'h-4 w-4 rounded border-gray-500 bg-gray-700 focus:ring-purple-500';
-                    checkbox.style.accentColor = hex;
-
-                    const label = document.createElement('label');
-                    label.htmlFor = `ink-${name.toLowerCase()}`;
-                    label.className = 'ml-2 block text-sm text-gray-300';
-                    label.textContent = name;
-
-                    div.appendChild(checkbox);
-                    div.appendChild(label);
+                    div.innerHTML = `<input type="checkbox" id="ink-${name.toLowerCase()}" name="ink" value="${name}" class="h-4 w-4 rounded border-gray-500 bg-gray-700 focus:ring-purple-500" style="accent-color: ${hex};"><label for="ink-${name.toLowerCase()}" class="ml-2 block text-sm text-gray-300">${name}</label>`;
                     inkTypesContainer.appendChild(div);
                 }
             };
 
-            /**
-             * Renders the list of decks in the sidebar.
-             */
             const renderDeckList = async () => {
                 const decks = await getDecks();
-                deckListContainer.innerHTML = '';
-                if (decks.length === 0) {
-                    deckListContainer.innerHTML = `<p class="text-gray-500">No decks saved yet. Create one!</p>`;
-                    return;
-                }
+                deckListContainer.innerHTML = !decks.length ? `<p class="text-gray-500">No decks saved yet. Create one!</p>` : '';
                 decks.forEach(deck => {
                     const button = document.createElement('button');
                     button.className = 'w-full text-left p-3 rounded-md hover:bg-gray-700 focus:bg-purple-900/50 focus:outline-none transition-colors';
                     button.dataset.deckId = deck.id;
-
-                    const inkBadges = (deck.inks || []).map(ink =>
-                        `<span class="inline-block w-3 h-3 rounded-full" style="background-color: ${INK_COLORS[ink]?.hex || '#fff'}" title="${INK_COLORS[ink]?.name || 'Unknown'}"></span>`
-                    ).join('');
-
-                    button.innerHTML = `
-                        <h3 class="font-semibold text-gray-100">${deck.name}</h3>
-                        <div class="flex items-center gap-2 mt-1">
-                           ${inkBadges}
-                        </div>
-                    `;
+                    const inkBadges = (deck.inks || []).map(ink => `<span class="inline-block w-3 h-3 rounded-full" style="background-color: ${INK_COLORS[ink]?.hex || '#fff'}" title="${INK_COLORS[ink]?.name || 'Unknown'}"></span>`).join('');
+                    button.innerHTML = `<h3 class="font-semibold text-gray-100">${deck.name}</h3><div class="flex items-center gap-2 mt-1">${inkBadges}</div>`;
                     button.addEventListener('click', () => {
                         populateForm(deck.id);
                         document.querySelectorAll('#deckListContainer button').forEach(btn => btn.classList.remove('bg-purple-900/50'));
@@ -296,89 +412,61 @@
                 });
             };
 
-            /**
-             * Populates the form with data from a specific deck.
-             * @param {string} deckId - The ID of the deck to load.
-             */
             const populateForm = async (deckId) => {
-                const decks = await getDecks(); // In a larger app, you might fetch a single deck by ID
-                const deck = decks.find(d => d.id === deckId);
+                const { data: deck, error } = await supabaseClient.from('decks').select('*').eq('id', deckId).single();
+                if (error) { console.error('Error fetching single deck:', error); return; }
                 if (deck) {
                     editorTitle.textContent = `Editing: ${deck.name}`;
                     deckIdInput.value = deck.id;
                     document.getElementById('deckName').value = deck.name;
-                    document.getElementById('decklist').value = deck.decklist;
+                    decklistTextarea.value = deck.decklist || '';
                     document.getElementById('deckUrl').value = deck.url || '';
                     document.getElementById('comments').value = deck.comments || '';
-
-                    document.querySelectorAll('#inkTypes input[type="checkbox"]').forEach(cb => {
-                        cb.checked = (deck.inks || []).includes(cb.value);
-                    });
-
+                    document.querySelectorAll('#inkTypes input[type="checkbox"]').forEach(cb => { cb.checked = (deck.inks || []).includes(cb.value); });
                     deleteDeckBtn.classList.remove('hidden');
+                    parseAndRenderDeck();
                 }
             };
 
-            /**
-             * Resets the form to its default state for creating a new deck.
-             */
             const resetForm = () => {
                 editorTitle.textContent = 'Create New Deck';
                 deckForm.reset();
                 deckIdInput.value = '';
                 deleteDeckBtn.classList.add('hidden');
                 document.querySelectorAll('#deckListContainer button').forEach(btn => btn.classList.remove('bg-purple-900/50'));
+                parseAndRenderDeck();
             };
 
-            // --- Event Listeners ---
-
+            // --- EVENT LISTENERS ---
             deckForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
-
-                const selectedInks = Array.from(document.querySelectorAll('#inkTypes input:checked')).map(cb => cb.value);
-
                 const deckData = {
-                    id: deckIdInput.value || null,
+                    id: deckIdInput.value || undefined,
                     name: document.getElementById('deckName').value,
-                    decklist: document.getElementById('decklist').value,
-                    inks: selectedInks,
+                    decklist: decklistTextarea.value,
+                    inks: Array.from(document.querySelectorAll('#inkTypes input:checked')).map(cb => cb.value),
                     url: document.getElementById('deckUrl').value,
                     comments: document.getElementById('comments').value
                 };
-
                 const savedDeck = await saveDeck(deckData);
                 if (savedDeck) {
                     await renderDeckList();
-                    resetForm();
-                    // Re-select the just-saved deck for a better UX
                     const savedDeckButton = document.querySelector(`button[data-deck-id="${savedDeck.id}"]`);
-                    if (savedDeckButton) {
-                        savedDeckButton.click();
-                        savedDeckButton.focus();
-                    }
+                    if (savedDeckButton) { savedDeckButton.click(); savedDeckButton.focus(); }
                 }
             });
 
             newDeckBtn.addEventListener('click', resetForm);
 
-            // --- Delete Confirmation Modal Logic ---
-            const showConfirmationModal = () => {
-                confirmationModal.classList.remove('opacity-0', 'pointer-events-none');
-            };
-
-            const hideConfirmationModal = () => {
-                confirmationModal.classList.add('opacity-0', 'pointer-events-none');
-            };
-
-            deleteDeckBtn.addEventListener('click', () => {
-                const deckId = deckIdInput.value;
-                if (deckId) {
-                    showConfirmationModal();
-                }
+            decklistTextarea.addEventListener('input', () => {
+                clearTimeout(window.deckRenderTimeout);
+                window.deckRenderTimeout = setTimeout(parseAndRenderDeck, 250);
             });
 
+            const showConfirmationModal = () => confirmationModal.classList.remove('opacity-0', 'pointer-events-none');
+            const hideConfirmationModal = () => confirmationModal.classList.add('opacity-0', 'pointer-events-none');
+            deleteDeckBtn.addEventListener('click', () => { if (deckIdInput.value) showConfirmationModal(); });
             cancelDeleteBtn.addEventListener('click', hideConfirmationModal);
-
             confirmDeleteBtn.addEventListener('click', async () => {
                 const deckId = deckIdInput.value;
                 if (deckId) {
@@ -389,14 +477,26 @@
                 }
             });
 
-            // --- Initial Load ---
-            const initialize = async () => {
-                renderInkTypes();
-                await renderDeckList();
-                resetForm();
+            // --- INITIALIZATION ---
+            const initializeApp = async () => {
+                try {
+                    initializeCharts();
+                    renderInkTypes();
+                    const response = await fetch(CARD_DATA_URL);
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    allCards = (await response.json()).cards;
+                    fuse = new Fuse(allCards, { keys: ['fullName', 'simpleName'], includeScore: true, threshold: 0.3 });
+                    await renderDeckList();
+                    resetForm();
+                } catch (error) {
+                    console.error("Failed to initialize app:", error);
+                    loadingOverlay.innerHTML = `<p class="text-red-400">Failed to load card database. Please try refreshing.</p>`;
+                } finally {
+                    loadingOverlay.classList.add('opacity-0', 'pointer-events-none');
+                }
             };
 
-            initialize();
+            initializeApp();
         });
     </script>
 
