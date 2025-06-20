@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lorcana AI Decision Tree</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fuse.js/dist/fuse.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a202c;
+            color: #e2e8f0;
+        }
+
+        .zone-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 1rem;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            min-height: 150px;
+        }
+
+        .card {
+            transition: transform 0.2s;
+            position: relative;
+        }
+
+        .card:hover {
+            transform: scale(1.05);
+        }
+
+        .tree-node {
+            padding-left: 20px;
+            border-left: 1px solid #4a5568;
+            position: relative;
+        }
+
+        .tree-node::before {
+            content: '';
+            position: absolute;
+            top: 10px;
+            left: -10px;
+            width: 10px;
+            height: 1px;
+            background-color: #4a5568;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-900 text-white p-4">
+    <div class="flex h-screen">
+        <!-- Main Content -->
+        <div class="flex-grow p-4 overflow-y-auto">
+            <h1 class="text-3xl font-bold mb-4 text-center">Lorcana AI Decision Tree</h1>
+
+            <!-- Player 1 -->
+            <div class="bg-gray-800 p-4 rounded-lg mb-4">
+                <h2 class="text-2xl font-bold mb-2">Player 1</h2>
+                <div class="flex space-x-4 mb-2">
+                    <div>
+                        <label for="p1-ink">Ink:</label>
+                        <input type="number" id="p1-ink" class="bg-gray-700 rounded p-1 w-20" value="0">
+                    </div>
+                    <div>
+                        <label for="p1-lore">Lore:</label>
+                        <input type="number" id="p1-lore" class="bg-gray-700 rounded p-1 w-20" value="0">
+                    </div>
+                </div>
+                <h3 class="text-xl font-semibold mt-4 mb-2">Hand</h3>
+                <div id="p1-hand" class="zone-grid bg-gray-600"></div>
+                <h3 class="text-xl font-semibold mt-4 mb-2">Board</h3>
+                <div id="p1-board" class="zone-grid bg-gray-700"></div>
+            </div>
+
+            <!-- Player 2 -->
+            <div class="bg-gray-800 p-4 rounded-lg">
+                <h2 class="text-2xl font-bold mb-2">Player 2</h2>
+                <div class="flex space-x-4 mb-2">
+                    <div>
+                        <label for="p2-ink">Ink:</label>
+                        <input type="number" id="p2-ink" class="bg-gray-700 rounded p-1 w-20" value="0">
+                    </div>
+                    <div>
+                        <label for="p2-lore">Lore:</label>
+                        <input type="number" id="p2-lore" class="bg-gray-700 rounded p-1 w-20" value="0">
+                    </div>
+                </div>
+                <h3 class="text-xl font-semibold mt-4 mb-2">Hand</h3>
+                <div id="p2-hand" class="zone-grid bg-gray-600"></div>
+                <h3 class="text-xl font-semibold mt-4 mb-2">Board</h3>
+                <div id="p2-board" class="zone-grid bg-gray-700"></div>
+            </div>
+
+            <!-- Card Search -->
+            <div class="mt-4">
+                <input type="text" id="search-bar" placeholder="Search for cards..."
+                    class="w-full p-2 bg-gray-700 rounded">
+                <div id="search-results"
+                    class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mt-2 h-64 overflow-y-auto"></div>
+            </div>
+        </div>
+
+        <!-- Tree Sidebar -->
+        <div class="w-1/3 bg-gray-800 p-4 overflow-y-auto rounded-lg ml-4">
+            <h2 class="text-2xl font-bold mb-4">Decision Tree</h2>
+            <div id="tree-container"></div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const searchBar = document.getElementById('search-bar');
+            const searchResults = document.getElementById('search-results');
+            const p1Board = document.getElementById('p1-board');
+            const p2Board = document.getElementById('p2-board');
+            const p1Hand = document.getElementById('p1-hand');
+            const p2Hand = document.getElementById('p2-hand');
+            const p1Ink = document.getElementById('p1-ink');
+            const p1Lore = document.getElementById('p1-lore');
+            const p2Ink = document.getElementById('p2-ink');
+            const p2Lore = document.getElementById('p2-lore');
+            const treeContainer = document.getElementById('tree-container');
+
+            let allCards = [];
+            let fuse;
+
+            // Fetch card data
+            fetch('https://raw.githubusercontent.com/heavenideas/similcana/refs/heads/main/database/allCards.json')
+                .then(response => response.json())
+                .then(data => {
+                    allCards = data.cards;
+                    fuse = new Fuse(allCards, { keys: ['fullName', 'simpleName'], threshold: 0.3 });
+                    displayInitialCards();
+                });
+
+            function displayInitialCards() {
+                searchResults.innerHTML = '';
+                allCards.slice(0, 50).forEach(card => { // Display first 50 cards initially
+                    const cardElement = createCardElement(card);
+                    searchResults.appendChild(cardElement);
+                });
+            }
+
+            function createCardElement(card) {
+                const cardDiv = document.createElement('div');
+                cardDiv.className = 'card cursor-pointer';
+                cardDiv.draggable = true;
+                cardDiv.dataset.cardId = card.id;
+
+                const img = document.createElement('img');
+                img.src = card.images.thumbnail;
+                img.alt = card.fullName;
+                img.onerror = () => img.src = 'https://via.placeholder.com/100x140?text=No+Image';
+                cardDiv.appendChild(img);
+
+                cardDiv.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.setData('text/plain', card.id);
+                });
+
+                cardDiv.addEventListener('dblclick', () => {
+                    cardDiv.remove();
+                    updateGameState();
+                });
+
+                return cardDiv;
+            }
+
+            searchBar.addEventListener('input', (e) => {
+                const query = e.target.value;
+                if (query.length > 2) {
+                    const results = fuse.search(query);
+                    searchResults.innerHTML = '';
+                    results.forEach(result => {
+                        const cardElement = createCardElement(result.item);
+                        searchResults.appendChild(cardElement);
+                    });
+                } else if (query.length === 0) {
+                    displayInitialCards();
+                }
+            });
+
+            [p1Board, p2Board, p1Hand, p2Hand].forEach(zone => {
+                zone.addEventListener('dragover', (e) => e.preventDefault());
+                zone.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    const cardId = e.dataTransfer.getData('text/plain');
+                    const card = allCards.find(c => c.id == cardId);
+                    if (card) {
+                        const cardElement = createCardElement(card);
+                        zone.appendChild(cardElement);
+                        updateGameState();
+                    }
+                });
+            });
+
+            [p1Ink, p1Lore, p2Ink, p2Lore].forEach(input => {
+                input.addEventListener('change', updateGameState);
+            });
+
+            function getZoneCards(zone) {
+                return Array.from(zone.children).map(cardEl => {
+                    return allCards.find(c => c.id == cardEl.dataset.cardId);
+                });
+            }
+
+            function updateGameState() {
+                const gameState = {
+                    player1: {
+                        ink: parseInt(p1Ink.value),
+                        lore: parseInt(p1Lore.value),
+                        board: getZoneCards(p1Board),
+                        hand: getZoneCards(p1Hand)
+                    },
+                    player2: {
+                        ink: parseInt(p2Ink.value),
+                        lore: parseInt(p2Lore.value),
+                        board: getZoneCards(p2Board),
+                        hand: getZoneCards(p2Hand)
+                    }
+                };
+
+                generateDecisionTree(gameState);
+            }
+
+            const SCORE_CONFIG = {
+                LORE: 2.0,
+                BOARD_STRENGTH: 0.5,
+                BOARD_WILLPOWER: 0.5,
+                CARD_IN_HAND: 0.2,
+            };
+
+            function calculateScore(state) {
+                let score = 0;
+                // Player 1 score
+                score += state.player1.lore * SCORE_CONFIG.LORE;
+                score += state.player1.board.reduce((acc, c) => acc + (c.strength || 0), 0) * SCORE_CONFIG.BOARD_STRENGTH;
+                score += state.player1.board.reduce((acc, c) => acc + (c.willpower || 0), 0) * SCORE_CONFIG.BOARD_WILLPOWER;
+                score += state.player1.hand.length * SCORE_CONFIG.CARD_IN_HAND;
+
+                // Player 2 score (subtracted)
+                score -= state.player2.lore * SCORE_CONFIG.LORE;
+                score -= state.player2.board.reduce((acc, c) => acc + (c.strength || 0), 0) * SCORE_CONFIG.BOARD_STRENGTH;
+                score -= state.player2.board.reduce((acc, c) => acc + (c.willpower || 0), 0) * SCORE_CONFIG.BOARD_WILLPOWER;
+                score -= state.player2.hand.length * SCORE_CONFIG.CARD_IN_HAND;
+
+                return parseFloat(score.toFixed(1));
+            }
+
+            function generateDecisionTree(gameState) {
+                treeContainer.innerHTML = '';
+                const rootNode = new Node(gameState, "Initial State", calculateScore(gameState));
+
+                const possibleMoves = getPossibleMoves(gameState.player1, gameState);
+
+                const scoredMoves = possibleMoves.map(move => {
+                    const childState = applyMove(gameState, move);
+                    const score = calculateScore(childState);
+                    return { move, childState, score };
+                });
+
+                scoredMoves.sort((a, b) => b.score - a.score);
+
+                scoredMoves.forEach(({ move, childState, score }) => {
+                    const childNode = new Node(childState, move.description, score);
+                    rootNode.addChild(childNode);
+                });
+
+                treeContainer.appendChild(rootNode.render());
+            }
+
+            function getPossibleMoves(player, state) {
+                const moves = [];
+                // 1. Play a card from hand
+                player.hand.forEach(card => {
+                    if (player.ink >= card.cost) {
+                        moves.push({ type: 'play', card: card, description: `Play ${card.fullName}` });
+                    }
+                });
+
+                // 2. Quest with ready characters
+                player.board.forEach(char => {
+                    if (char.type === 'Character' && char.lore) {
+                        moves.push({ type: 'quest', card: char, description: `Quest with ${char.fullName}` });
+                    }
+                });
+
+                // 3. Challenge an opponent's character
+                player.board.forEach(attacker => {
+                    if (attacker.type === 'Character' && attacker.strength) {
+                        state.player2.board.forEach(defender => {
+                            if (defender.type === 'Character') {
+                                moves.push({ type: 'challenge', attacker, defender, description: `Challenge ${defender.fullName} with ${attacker.fullName}` });
+                            }
+                        });
+                    }
+                });
+
+                return moves.slice(0, 15);
+            }
+
+            function applyMove(state, move) {
+                const newState = JSON.parse(JSON.stringify(state));
+                const player1 = newState.player1;
+
+                if (move.type === 'play') {
+                    player1.ink -= move.card.cost;
+                    const cardIndex = player1.hand.findIndex(c => c.id === move.card.id);
+                    if (cardIndex > -1) {
+                        const [playedCard] = player1.hand.splice(cardIndex, 1);
+                        player1.board.push(playedCard);
+                    }
+                } else if (move.type === 'quest') {
+                    player1.lore += move.card.lore;
+                } else if (move.type === 'challenge') {
+                    const attacker = player1.board.find(c => c.id === move.attacker.id);
+                    const defender = newState.player2.board.find(c => c.id === move.defender.id);
+                    if (attacker && defender) {
+                        const attackerWillpower = attacker.willpower || 0;
+                        const defenderWillpower = defender.willpower || 0;
+                        const attackerStrength = attacker.strength || 0;
+                        const defenderStrength = defender.strength || 0;
+
+                        attacker.currentWillpower = (attacker.currentWillpower || attackerWillpower) - defenderStrength;
+                        defender.currentWillpower = (defender.currentWillpower || defenderWillpower) - attackerStrength;
+                    }
+                    newState.player1.board = newState.player1.board.filter(c => !c.currentWillpower || c.currentWillpower > 0);
+                    newState.player2.board = newState.player2.board.filter(c => !c.currentWillpower || c.currentWillpower > 0);
+                }
+                return newState;
+            }
+
+
+            class Node {
+                constructor(state, moveDescription, score) {
+                    this.state = state;
+                    this.moveDescription = moveDescription;
+                    this.score = score;
+                    this.children = [];
+                }
+
+                addChild(node) {
+                    this.children.push(node);
+                }
+
+                render() {
+                    const el = document.createElement('div');
+                    el.className = 'tree-node mb-2';
+
+                    const desc = document.createElement('div');
+                    desc.className = 'bg-gray-700 p-2 rounded';
+                    const scoreText = this.score !== undefined ? `(Score: ${this.score}) ` : '';
+                    desc.textContent = scoreText + this.moveDescription;
+                    el.appendChild(desc);
+
+                    const childrenContainer = document.createElement('div');
+                    childrenContainer.className = 'pl-4'; // Tree is now always unfolded
+
+                    this.children.forEach(child => {
+                        childrenContainer.appendChild(child.render());
+                    });
+
+                    el.appendChild(childrenContainer);
+
+                    return el;
+                }
+            }
+
+            updateGameState();
+        });
+    </script>
+</body>
+
+</html>
