@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lorcana Deck Analyzer</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <header>
+        <h1>Lorcana Deck Analyzer</h1>
+    </header>
+    <main>
+        <section class="deck-input-section">
+            <div class="deck-input-group">
+                <h2>Your Deck</h2>
+                <textarea id="playerDeckInput" placeholder="Enter your decklist here (e.g., 4 Mickey Mouse - Brave Little Tailor)"></textarea>
+                <div id="playerDeckValidation" class="validation-messages"></div>
+            </div>
+            <div class="deck-input-group">
+                <h2>Opponent Deck</h2>
+                <textarea id="opponentDeckInput" placeholder="Enter opponent's decklist here (e.g., 4 Elsa - Spirit of Winter)"></textarea>
+                <div id="opponentDeckValidation" class="validation-messages"></div>
+            </div>
+            
+            <button id="analyzeDeckBtn" class="analyze-button">Analyze Matchup</button>
+        </section>
+
+        <section class="batch-mode-section">
+            <h2>Batch Mode: Compare Against Meta Decks</h2>
+            <div class="batch-controls">
+                <button id="toggleBatchMode" class="batch-toggle-button">Enable Batch Mode</button>
+                <button id="addMetaDeck" class="meta-deck-button" style="display: none;">Add Meta Deck</button>
+                <button id="clearMetaDecks" class="meta-deck-button" style="display: none;">Clear All Meta Decks</button>
+                <button id="runBatchAnalysis" class="batch-analyze-button" style="display: none;">Run Batch Analysis</button>
+            </div>
+            
+            <div id="metaDeckInput" class="meta-deck-input" style="display: none;">
+                <h3>Add Meta Deck</h3>
+                <input type="text" id="metaDeckName" placeholder="Deck name (e.g., Amber Steel Steelsong)" />
+                <textarea id="metaDeckList" placeholder="Enter meta decklist (format: 4 Madam Mim - Fox)"></textarea>
+                <div class="meta-deck-buttons">
+                    <button id="saveMetaDeck">Save Meta Deck</button>
+                    <button id="cancelMetaDeck">Cancel</button>
+                </div>
+            </div>
+            
+            <div id="metaDecksList" class="meta-decks-list" style="display: none;">
+                <h3>Meta Decks Added:</h3>
+                <ul id="metaDecksListItems"></ul>
+            </div>
+        </section>
+
+        <section class="analysis-dashboard">
+            <div class="tab-navigation">
+                <button class="tab-button active" data-tab="overview">Overview</button>
+                <button class="tab-button" data-tab="statistics">Statistics</button>
+                <button class="tab-button" data-tab="interactions">Interactions</button>
+                <button class="tab-button" data-tab="probabilities">Probabilities</button>
+                <button class="tab-button" data-tab="batch-results" style="display: none;">Batch Results</button>
+            </div>
+            
+            <div class="tab-content">
+                <div id="overview-tab" class="tab-panel active">
+                    <h2>Overview</h2>
+                    <p>Summary of the matchup analysis.</p>
+                </div>
+                <div id="statistics-tab" class="tab-panel">
+                    <h2>Statistical Analysis</h2>
+                    <div class="chart-container">
+                        <h3>Your Deck Ink Curve</h3>
+                        <canvas id="playerInkCurveChart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <h3>Opponent Deck Ink Curve</h3>
+                        <canvas id="opponentInkCurveChart"></canvas>
+                    </div>
+                    <div id="statistical-explanations" class="explanation-section"></div>
+                </div>
+                <div id="interactions-tab" class="tab-panel">
+                    <h2>Interactions</h2>
+                    <h3>Character vs. Character Matchup Matrix</h3>
+                    <div id="matchupMatrixContainer"></div>
+                    <div id="interaction-explanations" class="explanation-section"></div>
+                </div>
+                <div id="probabilities-tab" class="tab-panel">
+                    <h2>Probabilities</h2>
+                    <div class="chart-container">
+                        <h3>Your Deck Opening Hand Probabilities</h3>
+                        <canvas id="playerOpeningHandProbabilitiesChart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <h3>Opponent Deck Opening Hand Probabilities</h3>
+                        <canvas id="opponentOpeningHandProbabilitiesChart"></canvas>
+                    </div>
+                    <div id="probability-explanations" class="explanation-section"></div>
+                </div>
+                <div id="batch-results-tab" class="tab-panel">
+                    <h2>Batch Analysis Results</h2>
+                    <div id="batchSummary" class="batch-summary"></div>
+                    <div id="batchMatchupsTable" class="batch-matchups-table"></div>
+                    <div class="batch-export">
+                        <button id="exportBatchResults">Export Results (CSV)</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 Lorcana Deck Analyzer. Powered by Manus AI.</p>
+    </footer>
+
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
+
