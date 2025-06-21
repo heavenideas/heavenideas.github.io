@@ -58,7 +58,7 @@ class VisualizationEngine {
         this.destroyChart(containerId);
 
         const labels = Object.keys(probabilities);
-        const data = labels.map(label => probabilities[label].atLeast1 * 100);
+        const data = labels.map(label => probabilities[label] * 100);
         
         const chart = new Chart(ctx, {
             type: "bar", // Changed to bar for better display of individual card probabilities
@@ -181,130 +181,6 @@ class VisualizationEngine {
     destroyAllCharts() {
         this.chartInstances.forEach(chart => chart.destroy());
         this.chartInstances.clear();
-    }
-}
-
-export default VisualizationEngine;
-
-
-class VisualizationEngine {
-    renderInkCurveChart(deck, elementId) {
-        const ctx = document.getElementById(elementId).getContext("2d");
-        new Chart(ctx, {
-            type: "bar",
-            data: {
-                labels: Array.from({ length: 11 }, (_, i) => (i === 10 ? "10+" : i.toString())),
-                datasets: [{
-                    label: "Card Count",
-                    data: deck.inkCurve,
-                    backgroundColor: "rgba(75, 192, 192, 0.6)",
-                    borderColor: "rgba(75, 192, 192, 1)",
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        title: {
-                            display: true,
-                            text: "Number of Cards"
-                        }
-                    },
-                    x: {
-                        title: {
-                            display: true,
-                            text: "Ink Cost"
-                        }
-                    }
-                },
-                plugins: {
-                    legend: {
-                        display: false
-                    },
-                    title: {
-                        display: true,
-                        text: `Ink Curve for ${deck.totalCards} cards`
-                    }
-                }
-            }
-        });
-    }
-
-    renderProbabilityChart(probabilities, elementId) {
-        const ctx = document.getElementById(elementId).getContext("2d");
-        new Chart(ctx, {
-            type: "bar",
-            data: {
-                labels: ["Characters", "Actions", "Items"],
-                datasets: [{
-                    label: "Probability of at least one in opening hand",
-                    data: [probabilities.characters, probabilities.actions, probabilities.items],
-                    backgroundColor: ["rgba(255, 99, 132, 0.6)", "rgba(54, 162, 235, 0.6)", "rgba(255, 206, 86, 0.6)"],
-                    borderColor: ["rgba(255, 99, 132, 1)", "rgba(54, 162, 235, 1)", "rgba(255, 206, 86, 1)"],
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        max: 1,
-                        title: {
-                            display: true,
-                            text: "Probability"
-                        }
-                    }
-                },
-                plugins: {
-                    legend: {
-                        display: false
-                    },
-                    title: {
-                        display: true,
-                        text: "Opening Hand Probabilities"
-                    }
-                }
-            }
-        });
-    }
-
-    renderMatchupMatrix(playerDeck, opponentDeck, interactions, elementId) {
-        const container = document.getElementById(elementId);
-        container.innerHTML = ""; // Clear previous content
-
-        const table = document.createElement("table");
-        const thead = document.createElement("thead");
-        const tbody = document.createElement("tbody");
-
-        // Header row
-        const headerRow = document.createElement("tr");
-        headerRow.innerHTML = `<th>Player Card \ Opponent Card</th>` + 
-                              opponentDeck.cards.filter(c => c.type === "Character").map(c => `<th>${c.name}</th>`).join("");
-        thead.appendChild(headerRow);
-
-        // Body rows
-        playerDeck.cards.filter(c => c.type === "Character").forEach(pChar => {
-            const row = document.createElement("tr");
-            row.innerHTML = `<td>${pChar.name}</td>` + 
-                            opponentDeck.cards.filter(c => c.type === "Character").map(oChar => {
-                                const interaction = interactions[`${pChar.name}_vs_${oChar.name}`];
-                                let outcomeClass = "";
-                                if (interaction) {
-                                    if (interaction.outcome === "PLAYER_WINS") outcomeClass = "favorable";
-                                    else if (interaction.outcome === "OPPONENT_WINS") outcomeClass = "unfavorable";
-                                    else outcomeClass = "even";
-                                }
-                                return `<td class="${outcomeClass}">${interaction ? interaction.outcome.replace(/_/g, " ") : "N/A"}</td>`;
-                            }).join("");
-            tbody.appendChild(row);
-        });
-
-        table.appendChild(thead);
-        table.appendChild(tbody);
-        container.appendChild(table);
     }
 }
 

@@ -324,10 +324,18 @@ function updateMetaDecksList() {
     metaDecksListItems.innerHTML = "";
     metaDeckNames.forEach(name => {
         const li = document.createElement("li");
-        li.innerHTML = `
-            <span class=\"meta-deck-name\">${name}</span>
-            <button class=\"remove-meta-deck\" onclick=\"removeMetaDeck(\'${name}\')\">Remove</button>
-        `;
+
+        const nameSpan = document.createElement("span");
+        nameSpan.className = "meta-deck-name";
+        nameSpan.textContent = name;
+
+        const removeButton = document.createElement("button");
+        removeButton.className = "remove-meta-deck";
+        removeButton.textContent = "Remove";
+        removeButton.addEventListener("click", () => removeMetaDeck(name));
+
+        li.appendChild(nameSpan);
+        li.appendChild(removeButton);
         metaDecksListItems.appendChild(li);
     });
 }
@@ -440,8 +448,7 @@ function exportBatchResults() {
     window.URL.revokeObjectURL(url);
 }
 
-// Make removeMetaDeck available globally for onclick handlers
-window.removeMetaDeck = removeMetaDeck;
+// window.removeMetaDeck = removeMetaDeck; // No longer needed
 
 init();
 
