@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Illumineer: True Analysis Engine</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #1a202c; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #2d3748; }
+        ::-webkit-scrollbar-thumb { background: #4a5568; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #718096; }
+        .symbol { font-weight: bold; color: #ecc94b; vertical-align: -0.1em; }
+        .highlight { color: #63b3ed; font-weight: 600; } /* Blue highlight */
+        .card-name-highlight { color: #a78bfa; font-weight: 600; } /* Purple highlight */
+        .mechanic-highlight { color: #f6ad55; font-weight: 600; } /* Orange highlight */
+    </style>
+</head>
+<body class="text-gray-200">
+
+    <div class="container mx-auto p-4 md:p-8">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl md:text-5xl font-bold text-white mb-2">Project Illumineer</h1>
+            <p class="text-lg text-gray-400">A True Engine for Lorcana Interaction Analysis</p>
+        </header>
+
+        <div id="loader" class="text-center py-16">
+            <svg class="animate-spin h-10 w-10 text-indigo-400 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p id="loader-text" class="mt-4 text-gray-400">Engine Starting... Awaiting Card Data...</p>
+        </div>
+
+        <main id="main-content" class="hidden">
+            <div class="mb-8 relative max-w-2xl mx-auto">
+                <input type="text" id="search-input" placeholder="Search for a card..."
+                       class="w-full p-4 bg-gray-800 border-2 border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all">
+                <div id="search-results" class="absolute z-20 w-full mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-lg hidden max-h-80 overflow-y-auto"></div>
+            </div>
+
+            <div id="interaction-display" class="hidden grid grid-cols-1 lg:grid-cols-5 gap-8">
+                <div class="lg:col-span-2">
+                    <div id="selected-card-art" class="sticky top-8"></div>
+                </div>
+                <div id="analysis-column" class="lg:col-span-3 space-y-6">
+                     <!-- This will be populated with analysis -->
+                </div>
+            </div>
+             <div id="welcome-message" class="text-center text-gray-400 py-16">
+                <p>Search for a card to begin the analysis.</p>
+            </div>
+        </main>
+    </div>
+    
+    <script>
+        // --- CORE ANALYSIS ENGINE ---
+        class LorcanaAnalysisEngine {
+            constructor(updateLoaderCallback) {
+                this.cards = new Map();
+                this.keywords = new Map();
+                this.subtypes = new Map();
+                this.cardNameToIds = new Map();
+                this.updateLoader = updateLoaderCallback;
+            }
+
+            // --- DATA INGESTION AND INDEXING ---
+            ingestAndIndex(allCardsData) {
+                this.updateLoader('Indexing cards, keywords, and subtypes...');
+                allCardsData.forEach(cardData => {
+                    // Create Card Node
+                    const cardNode = {
+                        id: cardData.id,
+                        data: cardData,
+                        parsedAbilities: [],
+                        // Relationships will be derived on the fly
+                    };
+                    this.cards.set(cardData.id, cardNode);
+
+                    // Index by Name
+                    if (!this.cardNameToIds.has(cardData.name)) {
+                        this.cardNameToIds.set(cardData.name, []);
+                    }
+                    this.cardNameToIds.get(cardData.name).push(cardData.id);
+
+                    // Index Keywords
+                    if (cardData.abilities) {
+                        cardData.abilities.forEach(ab => {
+                            if (ab.type === 'keyword' && ab.keyword) {
+                                if (!this.keywords.has(ab.keyword)) this.keywords.set(ab.keyword, new Set());
+                                this.keywords.get(ab.keyword).add(cardData.id);
+                            }
+                        });
+                    }
+                    
+                    // Index Subtypes
+                    if (cardData.subtypes) {
+                        cardData.subtypes.forEach(st => {
+                            if (!this.subtypes.has(st)) this.subtypes.set(st, new Set());
+                            this.subtypes.get(st).add(cardData.id);
+                        });
+                    }
+                });
+
+                // --- DEEP ABILITY PARSING ---
+                this.updateLoader('Performing deep analysis of all card abilities...');
+                for (const cardNode of this.cards.values()) {
+                    if (cardNode.data.abilities) {
+                        cardNode.parsedAbilities = cardNode.data.abilities.map(abilityData => this.parseAbility(abilityData, cardNode));
+                    }
+                }
+            }
+            
+            // --- CONTEXT-AWARE ABILITY PARSING ---
+            parseAbility(abilityData, cardNode) {
+                const text = (abilityData.fullText || '').toLowerCase();
+                const parsed = {
+                    text: abilityData.fullText,
+                    type: abilityData.type,
+                    mechanics: [],
+                    trigger: null,
+                    effect: null,
+                    target: null,
+                };
+                
+                // Keyword-specific logic
+                if (abilityData.type === 'keyword') {
+                    parsed.mechanics.push({ name: 'Keyword', description: `This card has the <span class="highlight">${abilityData.keyword}</span> keyword.` });
+                    if(abilityData.keyword === 'Challenger'){
+                        parsed.mechanics.push({name: 'Self-Buff', description: `Gains a benefit <span class="mechanic-highlight">when challenging</span>.`});
+                    }
+                    if(abilityData.keyword === 'Shift'){
+                         parsed.mechanics.push({name: 'Alternate Cost', description: `Can be played for a different cost on top of another card.`});
+                    }
+                    return parsed;
+                }
+
+                // Triggered/Static Ability Logic
+                // This is a simplified NLP-like approach using regex. A full implementation would be much larger.
+                const triggerMatch = text.match(/^(whenever|when|if) ([^,]+),/);
+                if (triggerMatch) {
+                    parsed.trigger = triggerMatch[0];
+                    parsed.effect = text.substring(triggerMatch[0].length).trim();
+                } else {
+                    parsed.effect = text; // Assume the whole text is the effect for static abilities
+                }
+
+                if (parsed.trigger) {
+                    // "Whenever you play a character with Rush"
+                    const keywordInTrigger = Array.from(this.keywords.keys()).find(k => parsed.trigger.includes(k.toLowerCase()));
+                    if (keywordInTrigger) {
+                        parsed.target = { type: 'Keyword', value: keywordInTrigger, scope: 'Player Action' };
+                    }
+                    // "When this character quests"
+                    if (parsed.trigger.includes('this character quests')) {
+                        parsed.target = { type: 'Self Action', value: 'Questing' };
+                    }
+                }
+
+                if (parsed.effect) {
+                    // "Your other Princess characters get +1"
+                    const subtypeInEffect = Array.from(this.subtypes.keys()).find(s => parsed.effect.includes(`${s.toLowerCase()} characters`));
+                     if(subtypeInEffect) {
+                        parsed.target = { type: 'Subtype', value: subtypeInEffect, scope: 'Board Presence' };
+                     }
+                    // "Draw a card"
+                    if (parsed.effect.includes('draw a card')) {
+                        parsed.mechanics.push({ name: 'Card Draw', description: 'Provides card advantage by drawing from the deck.' });
+                    }
+                     // "Banish chosen character"
+                    if (parsed.effect.includes('banish chosen character')) {
+                        parsed.mechanics.push({ name: 'Targeted Removal', description: 'Removes a specific threat from the board.' });
+                    }
+                }
+
+                return parsed;
+            }
+            
+            // --- ON-THE-FLY INTERACTION ANALYSIS ---
+            analyzeInteractions(cardId) {
+                const mainCardNode = this.cards.get(cardId);
+                const results = {
+                    synergies: [],
+                    triggeredBy: [],
+                    counters: [],
+                };
+
+                // Specific 'Shift' mechanic synergy
+                if (mainCardNode.data.abilities?.some(a => a.keyword === 'Shift')) {
+                    const shiftTargets = this.cardNameToIds.get(mainCardNode.data.name) || [];
+                    shiftTargets.forEach(targetId => {
+                        if (mainCardNode.id !== targetId) {
+                            results.synergies.push({
+                                card: this.cards.get(targetId),
+                                reason: `This card can <span class="highlight">Shift</span> onto <span class="card-name-highlight">${this.cards.get(targetId).data.fullName}</span>, allowing it to be played for a reduced cost.`
+                            });
+                        }
+                    });
+                }
+
+
+                for (const otherCardNode of this.cards.values()) {
+                    if (mainCardNode.id === otherCardNode.id) continue;
+                    
+                    // Check if otherCardNode has a subtype that mainCardNode buffs
+                    mainCardNode.parsedAbilities.forEach(ability => {
+                        if (ability.target?.type === 'Subtype') {
+                            const buffedSubtype = ability.target.value;
+                            if (otherCardNode.data.subtypes?.includes(buffedSubtype)) {
+                                results.synergies.push({
+                                    card: otherCardNode,
+                                    reason: `This card's ability <span class="highlight">'${ability.text.split('.')[0]}'</span> provides a benefit to <span class="mechanic-highlight">${buffedSubtype}</span> characters like <span class="card-name-highlight">${otherCardNode.data.fullName}</span>.`
+                                });
+                            }
+                        }
+                    });
+
+                    // Check if mainCardNode has a keyword that otherCardNode's ability triggers on
+                     otherCardNode.parsedAbilities.forEach(ability => {
+                         if (ability.target?.type === 'Keyword') {
+                            const requiredKeyword = ability.target.value;
+                            if (mainCardNode.data.abilities?.some(a => a.keyword === requiredKeyword)) {
+                                results.triggeredBy.push({
+                                    card: otherCardNode,
+                                    reason: `<span class="card-name-highlight">${otherCardNode.data.fullName}</span>'s ability <span class="highlight">'${ability.text.split('.')[0]}'</span> triggers when you play a character with the <span class="mechanic-highlight">${requiredKeyword}</span> keyword.`
+                                });
+                            }
+                         }
+                     });
+                     
+                     // Check for counter mechanics
+                     mainCardNode.parsedAbilities.forEach(ability => {
+                        if (ability.mechanics.some(m => m.name === 'Targeted Removal')) {
+                            if (otherCardNode.data.type === 'Character' && otherCardNode.data.cost >= 4) {
+                                results.counters.push({
+                                    card: otherCardNode,
+                                    reason: `This card's ability to <span class="mechanic-highlight">Banish</span> characters is an effective counter to high-cost threats like <span class="card-name-highlight">${otherCardNode.data.fullName}</span>.`
+                                });
+                            }
+                        }
+                     });
+                }
+                
+                // De-duplicate results
+                results.synergies = this.uniqueBy(results.synergies, r => r.card.id);
+                results.triggeredBy = this.uniqueBy(results.triggeredBy, r => r.card.id);
+                results.counters = this.uniqueBy(results.counters, r => r.card.id).slice(0, 5); // Limit counters for display
+
+                return results;
+            }
+            
+             uniqueBy(a, key) {
+                let seen = new Set();
+                return a.filter(item => {
+                    let k = key(item);
+                    return seen.has(k) ? false : seen.add(k);
+                });
+            }
+        }
+        
+        // --- UI RENDERER AND APP LOGIC ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const loader = document.getElementById('loader');
+            const loaderText = document.getElementById('loader-text');
+            const mainContent = document.getElementById('main-content');
+            const searchInput = document.getElementById('search-input');
+            const searchResultsContainer = document.getElementById('search-results');
+            const interactionDisplay = document.getElementById('interaction-display');
+            const welcomeMessage = document.getElementById('welcome-message');
+            const selectedCardArt = document.getElementById('selected-card-art');
+            const analysisColumn = document.getElementById('analysis-column');
+
+            let engine;
+            let allCardsRaw = [];
+            
+            const updateLoaderCallback = (text) => {
+                if(loaderText) loaderText.textContent = text;
+            };
+
+            async function init() {
+                try {
+                    engine = new LorcanaAnalysisEngine(updateLoaderCallback);
+                    const response = await fetch('https://raw.githubusercontent.com/heavenideas/similcana/refs/heads/main/database/allCards.json');
+                    const data = await response.json();
+                    allCardsRaw = data.cards.filter(c => c.name && c.images?.full);
+                    
+                    // Use setTimeout to allow the UI to update with loader messages
+                    setTimeout(() => {
+                        engine.ingestAndIndex(allCardsRaw);
+                        loader.classList.add('hidden');
+                        mainContent.classList.remove('hidden');
+                        setupEventListeners();
+                    }, 50);
+
+                } catch (error) {
+                    loader.innerHTML = `<p class="text-red-400">Fatal Error: Could not initialize engine. Please refresh.</p>`;
+                    console.error("Initialization Error:", error);
+                }
+            }
+            
+            function setupEventListeners() {
+                searchInput.addEventListener('input', handleSearch);
+                searchInput.addEventListener('focus', handleSearch);
+                document.addEventListener('click', (e) => {
+                    if (!searchInput.contains(e.target)) searchResultsContainer.classList.add('hidden');
+                });
+            }
+
+            function handleSearch() {
+                const query = searchInput.value.toLowerCase().trim();
+                if (query.length < 3) {
+                    searchResultsContainer.classList.add('hidden');
+                    return;
+                }
+                const results = allCardsRaw
+                    .filter(c => c.simpleName.toLowerCase().includes(query))
+                    .sort((a,b) => a.fullName.length - b.fullName.length)
+                    .slice(0, 10);
+                renderSearchResults(results);
+            }
+            
+            function renderSearchResults(results) {
+                 if (results.length > 0) {
+                    searchResultsContainer.innerHTML = results.map(card => `
+                        <div class="p-3 hover:bg-indigo-600 cursor-pointer flex items-center gap-4" data-id="${card.id}">
+                            <img src="${card.images.thumbnail}" alt="${card.fullName}" class="w-10 h-14 object-cover rounded-sm">
+                            <div><p class="font-semibold">${card.fullName}</p><p class="text-sm text-gray-400">${card.type} - ${card.color}</p></div>
+                        </div>`).join('');
+                    searchResultsContainer.classList.remove('hidden');
+                    searchResultsContainer.querySelectorAll('[data-id]').forEach(el => {
+                        el.addEventListener('click', () => {
+                            displayCardAnalysis(parseInt(el.dataset.id));
+                            searchResultsContainer.classList.add('hidden');
+                            searchInput.value = '';
+                        });
+                    });
+                } else {
+                    searchResultsContainer.classList.add('hidden');
+                }
+            }
+
+            function displayCardAnalysis(cardId) {
+                welcomeMessage.classList.add('hidden');
+                interactionDisplay.classList.remove('hidden', 'grid');
+                interactionDisplay.classList.add('grid');
+                
+                analysisColumn.innerHTML = `<div class="text-center"><svg class="animate-spin h-8 w-8 text-indigo-400 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><p class="mt-2">Analyzing interactions...</p></div>`;
+
+                const cardNode = engine.cards.get(cardId);
+                selectedCardArt.innerHTML = `<img src="${cardNode.data.images.full}" alt="${cardNode.data.fullName}" class="rounded-lg shadow-2xl w-full">`;
+                
+                // Defer heavy analysis to prevent UI blocking
+                setTimeout(() => {
+                    const interactions = engine.analyzeInteractions(cardId);
+                    
+                    let html = `<div class="bg-gray-800 p-6 rounded-lg">
+                        <h2 class="text-3xl font-bold mb-1">${cardNode.data.fullName}</h2>
+                        <p class="text-md text-gray-400 mb-4">${cardNode.data.subtypes?.join(' • ') || cardNode.data.type}</p>
+                    </div>`;
+
+                    html += `<div class="bg-gray-800 p-6 rounded-lg">
+                        <h3 class="text-2xl font-semibold mb-4 border-b-2 border-gray-700 pb-2">Ability Analysis</h3>
+                        ${cardNode.parsedAbilities.length > 0 ? cardNode.parsedAbilities.map(renderParsedAbility).join('') : '<p class="text-gray-400">This card has no abilities.</p>'}
+                    </div>`;
+                    
+                    html += renderInteractionSection('Synergies', interactions.synergies, 'border-green-400');
+                    html += renderInteractionSection('Triggered By', interactions.triggeredBy, 'border-blue-400');
+                    html += renderInteractionSection('Counters', interactions.counters, 'border-red-400');
+
+                    analysisColumn.innerHTML = html;
+                }, 50);
+            }
+            
+            function renderParsedAbility(parsedAbility) {
+                return `<div class="mb-4 p-4 bg-gray-900 rounded-md">
+                    <p class="text-gray-300 mb-3">${parsedAbility.text}</p>
+                    <div class="text-xs space-y-2">
+                        ${parsedAbility.mechanics.map(m => `<div><strong class="text-orange-400">${m.name}:</strong> ${m.description}</div>`).join('')}
+                        ${parsedAbility.trigger ? `<div><strong class="text-blue-400">Trigger:</strong> ${parsedAbility.trigger}</div>` : ''}
+                    </div>
+                </div>`;
+            }
+            
+            function renderInteractionSection(title, interactions, borderColor) {
+                if (interactions.length === 0) return '';
+                let content = interactions.map(item => `
+                    <div class="p-3 bg-gray-900 rounded-md">
+                        <div class="flex items-center gap-4 mb-2">
+                            <img src="${item.card.data.images.thumbnail}" class="w-12 h-auto rounded-sm flex-shrink-0">
+                            <div>
+                                <p class="font-semibold text-lg">${item.card.data.fullName}</p>
+                                <p class="text-sm text-gray-400">${item.card.data.type}</p>
+                            </div>
+                        </div>
+                        <p class="text-sm text-gray-300 pl-16"><strong>Reason:</strong> ${item.reason}</p>
+                    </div>
+                `).join('');
+
+                return `<div class="bg-gray-800 p-6 rounded-lg">
+                    <h3 class="text-2xl font-semibold mb-4 border-l-4 ${borderColor} pl-3">${title}</h3>
+                    <div class="space-y-4">${content}</div>
+                </div>`;
+            }
+
+            init();
+        });
+    </script>
+</body>
+</html>
