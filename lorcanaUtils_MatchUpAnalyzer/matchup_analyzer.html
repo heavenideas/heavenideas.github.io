@@ -563,11 +563,13 @@
                     if (ability.fullText) allText += ability.fullText + '\n';
                 });
             }
+
+            allText = (allText).replace(/\n/g, ' ').trim();
             // For each pattern in all categories, if it matches, add its name
             for (const category in LORCANA_PATTERNS) {
                 for (const pattern of LORCANA_PATTERNS[category]) {
                     if (pattern.regex && pattern.name && pattern.regex.test(allText)) {
-                        features.abilityPatterns.add(pattern.name);
+                        features.abilityPatterns.add(pattern.fullName);
                     }
                 }
             }

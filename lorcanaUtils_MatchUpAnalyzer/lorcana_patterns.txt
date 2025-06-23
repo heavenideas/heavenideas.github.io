@@ -10,7 +10,7 @@ Regex: /(chosen opponent(s?)|each opponent) loses (\d+) ◊/gi
 ----------------------------------------
 
 Pattern Name: Card Effect: Draw
-Regex: /Draw (\d+|a|one|two|three) card(s?)/gi
+Regex: Draw (\d+|a|one|two|three) card(s?)|put (\d+|a|one|two|three)( card)?s? into your hand
 ----------------------------------------
 
 Pattern Name: Card Effect: Opponent Discards
