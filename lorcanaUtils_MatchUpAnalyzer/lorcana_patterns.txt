@@ -26,7 +26,7 @@ Regex: /Look at the top (\d+|one|two|three|four|five) cards of your deck/gi
 ----------------------------------------
 
 Pattern Name: Card Effect: Deck to Hand/Bottom
-Regex: /put (?:one of them|a (?:character|item|action|song) card) into your hand and(?: put)? the rest on the bottom of your deck/gi
+Regex: /put (?:one of them|a (?:character|item|action|song) card|one) into your hand(.)? (and )?(?:put)? the rest on the bottom of your deck/gi
 ----------------------------------------
 
 Pattern Name: Card Effect: Filter to Bottom

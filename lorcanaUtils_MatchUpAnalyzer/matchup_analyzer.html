@@ -577,17 +577,41 @@
              // Add new logic here:
             features.scryEffect = { lookCount: 0, canFilterToBottom: false, canTutorToHand: false };
 
-            const lookMatch = (allText || '').match(LORCANA_PATTERNS['Card Effect: Look at Deck'].regex);
-            if (lookMatch) {
-                // You'll need a helper to convert words like "two" to the number 2.
-                features.scryEffect.lookCount = parseInt(lookMatch[1], 10) || convertWordToNumber(lookMatch[1]);
 
-                if (LORCANA_PATTERNS['Card Effect: Filter to Bottom'].regex.test(allText)) {
+            // Look at Deck
+
+            //const lookMatch = (allText || '').match(LORCANA_PATTERNS['Card Effect']['Look at Deck'].regex);
+            
+            const lookAtDeckPattern = LORCANA_PATTERNS['Card Effect']?.find(p => p.fullName === 'Card Effect: Look at Deck');
+            const lookMatch = lookAtDeckPattern ? (allText || '').match(lookAtDeckPattern.regex) : null;
+
+            let lookCount = 0;
+            
+            if (lookMatch) {
+    
+                if (lookMatch[1] === 'a') {
+                    lookCount = 1;
+                } else if (lookMatch[1] === 'one') {
+                    lookCount = 1;
+                } else if (lookMatch[1] === 'two') {
+                    lookCount = 2;
+                } else if (lookMatch[1] === 'three') {
+                    lookCount = 3;
+                } else {
+                    lookCount = parseInt(lookMatch[1], 10);
+                }
+
+                features.scryEffect.lookCount = lookCount;
+
+                const filterToBottomPattern = LORCANA_PATTERNS['Card Effect']?.find(p => p.fullName === 'Card Effect: Filter to Bottom');
+                if (filterToBottomPattern && filterToBottomPattern.regex.test(allText)) {
                     features.scryEffect.canFilterToBottom = true;
                 }
-                if (LORCANA_PATTERNS['Card Effect: Deck to Hand/Bottom'].regex.test(allText)) {
+                const deckToHandBottomPattern = LORCANA_PATTERNS['Card Effect']?.find(p => p.fullName === 'Card Effect: Deck to Hand/Bottom');
+                if (deckToHandBottomPattern && deckToHandBottomPattern.regex.test(allText)) {
                     features.scryEffect.canTutorToHand = true;
                 }
+
             }
 
             return features;
