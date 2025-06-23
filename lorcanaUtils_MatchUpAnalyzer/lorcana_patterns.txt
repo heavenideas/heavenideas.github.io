@@ -146,7 +146,7 @@ Regex: /When this character is banished/gi
 ----------------------------------------
 
 Pattern Name: Trigger: On Banish (Other)
-Regex: /Whenever (?:another|a|one of your other|an opposing) character is banished/gi
+Regex: /(Whenever (?:another|a|one of your other|an opposing) character is banished(?: in a challenge)?)/gi
 ----------------------------------------
 
 Pattern Name: Trigger: On Banish (in Challenge)
@@ -158,7 +158,7 @@ Regex: /Whenever this character is challenged/gi
 ----------------------------------------
 
 Pattern Name: Trigger: On Challenging
-Regex: /When this character challenges/gi
+Regex: /(When(?:ever)? this character challenges)/gi
 ----------------------------------------
 
 Pattern Name: Trigger: Start of Turn
@@ -194,7 +194,7 @@ Regex: /(Resist \+\d+)/gi
 ----------------------------------------
 
 Pattern Name: Keyword: Shift
-Regex: /(Shift (?:\\d+|an? .*?|into this character))/gi
+Regex: /(Shift(?: \d+|: .*?))/gi
 ----------------------------------------
 
 Pattern Name: Keyword: Support
@@ -219,4 +219,101 @@ Regex: /This character can't quest/gi
 
 Pattern Name: Static: Must Challenge
 Regex: /must challenge if able/gi
----------------------------------------- 
+----------------------------------------
+
+Pattern Name: Keyword: Sing Together
+Regex: /(Sing Together \d+)/gi
+----------------------------------------
+
+Pattern Name: Keyword: Puppy Shift
+Regex: /(Puppy Shift \d+)/gi
+----------------------------------------
+
+Pattern Name: Keyword: Universal Shift
+Regex: /(Universal Shift \d+)/gi
+----------------------------------------
+
+Pattern Name: Keyword: Vanish
+Regex: /\b(Vanish)\b/gi
+----------------------------------------
+
+Pattern Name: Play: Song
+Regex: /\(A character with cost (\d+) or more can ⟳ to sing this song for free\.\)/gi
+----------------------------------------
+
+Pattern Name: Static: Grant Keyword (Aura)
+Regex: /Your other characters gain (Ward|Evasive|Rush|Bodyguard|Support|Reckless|Resist \+\d+)/gi
+----------------------------------------
+
+Pattern Name: Static: Grant Keyword (Named Character)
+Regex: /Your characters named (.*?) gain (Rush|Evasive|Ward|Bodyguard|Support|Reckless|Resist \+\d+|Challenger \+\d+)/gi
+----------------------------------------
+
+Pattern Name: Static: Grant Keyword (Own Turn)
+Regex: /During your turn, this character (?:gains|has) (Rush|Evasive|Ward|Bodyguard|Support|Reckless|Resist \+\d+|Challenger \+\d+)/gi
+----------------------------------------
+
+Pattern Name: Static: Cost Reduction (Character Type)
+Regex: /You pay (\d+) ⬡ less to play (.*?) characters/gi
+----------------------------------------
+
+Pattern Name: Static: Stat Buff (Conditional)
+Regex: /gets \+(\d+) (¤|◊) for each/gi
+----------------------------------------
+
+Pattern Name: Static: Extra Ink
+Regex: /put (an|one|two) additional card(?:s) from your (hand|discard) into your inkwell/gi
+----------------------------------------
+
+Pattern Name: Static: Cannot Sing
+Regex: /This character can't ⟳ to sing songs/gi
+----------------------------------------
+
+Pattern Name: Trigger: On Playing Other Character
+Regex: /(Whenever you play a character)/gi
+----------------------------------------
+
+Pattern Name: Trigger: On Playing Song
+Regex: /(Whenever you play a song)/gi
+----------------------------------------
+
+Pattern Name: Trigger: On Banishing Other
+Regex: /(whenever this character banishes another character)/gi
+----------------------------------------
+
+Pattern Name: Trigger: On Readying
+Regex: /(Whenever you ready this character)/gi
+----------------------------------------
+
+Pattern Name: Trigger: On Healing
+Regex: /(Whenever you remove .*? damage)/gi
+----------------------------------------
+
+Pattern Name: Trigger: On Opponent Damaged
+Regex: /(Whenever an opposing character is damaged)/gi
+----------------------------------------
+
+Pattern Name: Trigger: On Any Character Challenging
+Regex: /(Whenever one of your characters challenges another character)/gi
+----------------------------------------
+
+Pattern Name: Trigger: On Drawing Card
+Regex: /(whenever you draw a card)/gi
+----------------------------------------
+
+Pattern Name: Trigger: On Inking
+Regex: /(whenever a card is put into your inkwell)/gi
+----------------------------------------
+
+Pattern Name: Trigger: On Moving to Location
+Regex: /(Whenever this character moves to a location)/gi
+----------------------------------------
+
+Pattern Name: Trigger: On Being Challenged and Banished
+Regex: /(When this character is challenged and banished)/gi
+----------------------------------------
+
+Pattern Name: Activated: Cost-Effect
+Regex: /(.*? — .*)/gi 
+
+
