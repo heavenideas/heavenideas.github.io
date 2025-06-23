@@ -1430,9 +1430,25 @@
                     }
                 });
             });
+            // --- NEW LOGIC: Check for strength-based removal of locations ---
+            if (PLAYER_DECK_LOCATIONS.length > 0) {
+                PLAYER_DECK_LOCATIONS.forEach(locationEntry => {
+                    const location = locationEntry.cardInfo;
+                    const locationWillpower = location.willpower || 0;
+                    OPPONENT_DECK_CHARS.forEach(oppChar => {
+                        const oppStrength = oppChar.cardInfo.strength || 0;
+                        if (oppStrength >= locationWillpower && locationWillpower > 0) {
+                            oppCharsThreateningLocations.push({
+                                card: oppChar.cardInfo,
+                                details: `Can remove your location '${location.fullName}' by strength (${oppStrength} ≥ ${locationWillpower})`
+                            });
+                        }
+                    });
+                });
+            }
             // Remove duplicates by card name if a char has multiple abilities affecting locations
-            oppCharsThreateningLocations = Array.from(new Set(oppCharsThreateningLocations.map(item => item.card.fullName)))
-                .map(name => oppCharsThreateningLocations.find(item => item.card.fullName === name));
+            oppCharsThreateningLocations = Array.from(new Set(oppCharsThreateningLocations.map(item => item.card.fullName + (item.details || '')))
+                ).map(key => oppCharsThreateningLocations.find(item => (item.card.fullName + (item.details || '')) === key));
             oppThreatsContainer.appendChild(createLocationInteractorsDOM("Opponent Characters That Can Remove/Target Your Locations", oppCharsThreateningLocations, 'bg-red-800'));
 
             let oppSongsThreateningLocations = [];
