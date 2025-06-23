@@ -443,188 +443,39 @@
         // Patterns will be loaded from external file
         const PATTERNS_URL = 'https://raw.githubusercontent.com/heavenideas/heavenideas.github.io/refs/heads/main/lorcanaUtils_MatchUpAnalyzer/lorcana_patterns.txt';
 
-        const DEFAULT_PLAYER_DECK = `1 Be Prepared
-1 Prince Eric - Expert Helmsman
-1 Vinnie - Green Pigeon
-1 Calhoun - Marine Sergeant
-1 Mother Gothel - Knows What's Best
-1 Ludwig Von Drake - All-Around Expert
-1 Kuzco - Wanted Llama
-1 Tramp - Dapper Rascal
-1 Belle - Apprentice Inventor
-1 Tinker Bell - Giant Fairy
-1 Pawpsicle
-1 Croquet Mallet
-1 Chernabog's Followers - Creatures of Evil
-1 Madam Mim - Snake
-1 Ring the Bell
-1 Lyle Tiberius Rourke - Cunning Mercenary
-1 Magic Broom - Illuminary Keeper
-1 Prince Phillip - Vanquisher of Foes
-1 Palace Guard - Spectral Sentry
-1 Magic Carpet - Phantom Rug
-1 The Sultan - Royal Apparition
-1 Abu - Illusory Pachyderm
-1 Jafar - Newly Crowned
-1 Jafar - Dreadnought
-1 The Lamp
-1 Madam Mim - Elephant
-1 Ratigan - Greedy Genius
-1 Mickey Mouse - Giant Mouse
-1 Mickey Mouse - Inspirational Warrior
-1 Clarabelle - Clumsy Guest
-1 Hades - Double Dealer
-1 Stitch - Alien Troublemaker
-1 Bagheera - Guardian Jaguar
-1 Sisu - Empowered Sibling
-1 I Find 'Em, I Flatten 'Em
-1 Pete - Pirate Scoundrel
-1 Mushu - Majestic Dragon
-1 King Candy - Royal Racer
-1 King Candy - Sugar Rush Nightmare
-1 Candy Drift
-1 Sisu - Daring Visitor
-1 Glimmer vs Glimmer
-1 Candlehead - Dedicated Racer
-1 Sisu - Empowered Sibling
-1 Brawl
-1 Vitalisphere
-1 Robin Hood - Champion of Sherwood
-1 Simba - Fighting Prince
-1 Emerald Chromicon
-1 Mr. Snoops - Betrayed Partner
-1 Dragon Fire
-1 Bolt - Superdog
-1 Chief Bogo - Commanding Officer
-1 Robin Hood - Champion of Sherwood
-1 Fred - Major Science Enthusiast
-1 Cheshire Cat - From the Shadows
-1 Cheshire Cat - Not All There
-1 Most Everyone's Mad Here
-1 Pua - Protective Pig
-1 Mufasa - Betrayed Leader
-1 Lady Tremaine - Imperious Queen
-1 Lumiere - Fired Up
-1 Get Out!
-1 Belle's Favorite Book
-1 Beast - Frustrated Designer
-1 Maurice's Machine
-1 Royal Tantrum
-1 Maurice - Unconventional Inventor
-1 Unconventional Tool
-1 Camilo Madrigal - Center Stage
-1 Helga Sinclair - Vengeful Partner
-1 Madame Medusa - The Boss
-1 Anna - Diplomatic Queen
-1 Fortisphere
-1 Hiram Flaversham - Toymaker
-1 Last Cannon
-1 Naveen's Ukulele
-1 Scar - Vicious Cheater
-1 Calhoun - Hard-Nosed Leader
-1 Walk the Plank!
-1 Donald Duck - Buccaneer
-1 Maui - Stubborn Trickster
-1 Benja - Guardian of the Dragon Gem
-1 Maleficent - Monstrous Dragon
-1 Launch
-1 Potion of Might
-1 Gold Coin
-1 Sumerian Talisman
-1 Tinker Bell - Very Clever Fairy
-1 Gale - Wind Spirit
-1 Bruni - Fire Salamander
-1 Miracle Candle
-1 HeiHei - Persistent Presence
-1 Shield of Arendelle
-1 Ratigan's Marvelous Trap
-1 Galactic Communicator
-1 Retrosphere
-1 Billy Bones - Space Sailor
-1 Mickey Mouse - Wayward Sorcerer
-1 Be King Undisputed
-1 Razoul - Menacing Guard
-1 Aladdin - Brave Rescuer
-1 Beast - Hardheaded
-1 Simba - Rightful Heir
-1 Frying Pan
-1 Iago - Reappearing Parrot
-1 Dr. Facilier - Agent Provocateur
-1 Monsieur D'Arque - Despicable Proprietor
-1 Mrs. Potts - Head Housekeeper
-1 Glean
-1 Avalanche
-1 Wasabi - Methodical Engineer
-1 Jumbo Pop
-1 Magic Golden Flower`;
+        const DEFAULT_PLAYER_DECK = `4 Be Prepared
+4 Vision of the Future
+4 How Far I'll Go
+4 Tipo - Growing Son
+4 Develop Your Brain
+4 Pawpsicle
+4 Sail The Azurite Sea
+4 Maui - Half-Shark
+4 A Pirate's Life
+4 McDuck Manor - Scrooge's Mansion
+4 Maui - Hero to All
+4 Gramma Tala - Keeper of Ancient Stories
+4 Tamatoa - Happy as a Clam
+2 Sisu - Empowered Sibling
+4 Goofy - Super Goof
+2 Hades - Infernal Schemer`;
 
-        const DEFAULT_OPPONENT_DECK = `1 Cinderella - Ballroom Sensation
-1 Daisy Duck - Donald's Date
-1 Lady - Family Dog
-1 Penny - Bolt's Person
-1 Piglet - Pooh Pirate Captain
-1 Rapunzel - Gifted with Healing
-1 Goofy - Groundbreaking Chef
-1 Rhino - Power Hamster
-1 Rhino - One-Sixteenth Wolf
-1 Rapunzel's Tower - Secluded Prison
-1 Perdita - Playful Mother
-1 Thunderbolt - Wonder Dog
-1 Pongo - Dear Old Dad
-1 Stitch - New Dog
-1 Stitch - Rock Star
-1 99 Puppies
-1 Perdita - Determined Mother
-1 Patch - Playful Pup
-1 Ludwig Von Drake - All-Around Expert
-1 Lilo - Escape Artist
-1 Minnie Mouse - Storyteller
-1 Lady - Miss Park Avenue
-1 Tramp - Dapper Rascal
-1 Lady - Decisive Dog
-1 Tramp - Street-Smart Dog
-1 Sven - Reindeer Steed
-1 Nala - Mischievous Cub
-1 The Colonel - Old Sheepdog
-1 Dalmatian Puppy - Tail Wagger
-1 Perdita - On the Lookout
-1 Roger Radcliffe - Dog Lover
-1 Dalmatian Puppy - Tail Wagger
-1 Ariel - Spectacular Singer
-1 The Troubadour - Musical Narrator
-1 Ursula - Vanessa
-1 World's Greatest Criminal Mind
-1 Prince Naveen - Ukulele Player
-1 Chernabog - Evildoer
-1 Antonio Madrigal - Friend to All
-1 Mirabel Madrigal - Curious Child
-1 Bruno Madrigal - Singing Seer
-1 Mirabel Madrigal - Hopeful Dreamer
-1 The Bare Necessities
-1 Be Our Guest
-1 Pepa Madrigal - Sensitive Sister
-1 Bolt - Down but Not Out
-1 Darling Dear - Beloved Wife
-1 Alan-a-Dale - Rockin' Rooster
-1 Donald Duck - Musketeer Soldier
-1 Calhoun - Battle-Tested
-1 The Prince - Vigilant Suitor
-1 Donald Duck - Coin Collector
-1 Gaston - Despicable Dealer
-1 The Queen - Regal Monarch
-1 The Queen - Commanding Presence
-1 Tiana - Restaurant Owner
-1 Lilo - Making a Wish
-1 Baloo - von Bruinwald XIII
-1 Pascal - Garden Chameleon
-1 Jim Dear - Beloved Husband
-1 She's Your Person
-1 So Much To Give
-1 Bolt - Superdog
-1 Chief Bogo - Commanding Officer
-1 Bolt - Dependable Friend
-1 Painting the Roses Red
-1 Rhino - Motivational Speaker`;
+        const DEFAULT_OPPONENT_DECK = `4 Calhoun - Marine Sergeant
+4 Cinderella - Ballroom Sensation
+3 Daisy Duck - Donald's Date
+4 Doc - Bold Knight
+3 Happy - Lively Knight
+4 Lady - Family Dog
+4 Let the Storm Rage On
+4 Mr. Smee - Bumbling Mate
+4 Pete - Games Referee
+4 Piglet - Pooh Pirate Captain
+4 Rapunzel - Gifted with Healing
+2 Rapunzel's Tower - Secluded Prison
+4 Rhino - One-Sixteenth Wolf
+4 Rhino - Power Hamster
+4 Seven Dwarfs' Mine - Secure Fortress
+4 Strength of a Raging Fire`;
 
         // --- DOM Elements ---
         const loadingIndicator = document.getElementById('loadingIndicator');
@@ -1521,42 +1372,48 @@
                             </thead>
                             <tbody>
                                 <tr>
-                                    <td class=\"py-1 px-2\">RDS ${infoIcon('Resource Dominance Score: Measures card advantage, ink acceleration, and uninkable burden.')}</td>
+                                    <td class=\"py-1 px-2\">RDS Resource Dominance Score ${infoIcon('Resource Dominance Score: Measures card advantage, ink acceleration, and uninkable burden.')}
+                                        <button id=\"toggle-detail-rds\" class=\"ml-2 text-xs text-blue-400 underline\">Details</button>
+                                    </td>
                                     <td class=\"py-1 px-2 text-blue-300\">${playerRDS.toFixed(2)}</td>
                                     <td class=\"py-1 px-2 text-pink-300\">${opponentRDS.toFixed(2)}</td>
                                     <td class=\"py-1 px-2\"><input id=\"uwpm-weight-rds\" type=\"number\" step=\"0.01\" min=\"-2\" max=\"2\" value=\"${weights.rds}\" class=\"w-16 bg-gray-800 border border-gray-600 rounded px-1 text-center\"></td>
                                     <td class=\"py-1 px-2\"><span id=\"uwpm-contrib-rds\">${contribRDS.toFixed(3)}</span></td>
                                 </tr>
                                 <tr>
-                                    <td class=\"py-1 px-2\">LVI ${infoIcon('Lore Velocity Index: Measures lore gain potential, survivability, and quest safety.')}</td>
+                                    <td class=\"py-1 px-2\">LVI Lore Velocity Index ${infoIcon('Lore Velocity Index: Measures lore gain potential, survivability, and quest safety.')}
+                                        <button id=\"toggle-detail-lvi\" class=\"ml-2 text-xs text-blue-400 underline\">Details</button>
+                                    </td>
                                     <td class=\"py-1 px-2 text-blue-300\">${playerLVI.toFixed(2)}</td>
                                     <td class=\"py-1 px-2 text-pink-300\">${opponentLVI.toFixed(2)}</td>
                                     <td class=\"py-1 px-2\"><input id=\"uwpm-weight-lvi\" type=\"number\" step=\"0.01\" min=\"-2\" max=\"2\" value=\"${weights.lvi}\" class=\"w-16 bg-gray-800 border border-gray-600 rounded px-1 text-center\"></td>
                                     <td class=\"py-1 px-2\"><span id=\"uwpm-contrib-lvi\">${contribLVI.toFixed(3)}</span></td>
                                 </tr>
                                 <tr>
-                                    <td class=\"py-1 px-2\">BCR ${infoIcon('Board Control Rating: Measures removal, versatility, and proactive board presence.')}</td>
+                                    <td class=\"py-1 px-2\">BCR Board Control Rating ${infoIcon('Board Control Rating: Measures removal, versatility, and proactive board presence.')}
+                                        <button id=\"toggle-detail-bcr\" class=\"ml-2 text-xs text-blue-400 underline\">Details</button>
+                                    </td>
                                     <td class=\"py-1 px-2 text-blue-300\">${playerBCR.toFixed(2)}</td>
                                     <td class=\"py-1 px-2 text-pink-300\">${opponentBCR.toFixed(2)}</td>
                                     <td class=\"py-1 px-2\"><input id=\"uwpm-weight-bcr\" type=\"number\" step=\"0.01\" min=\"-2\" max=\"2\" value=\"${weights.bcr}\" class=\"w-16 bg-gray-800 border border-gray-600 rounded px-1 text-center\"></td>
                                     <td class=\"py-1 px-2\"><span id=\"uwpm-contrib-bcr\">${contribBCR.toFixed(3)}</span></td>
                                 </tr>
                                 <tr>
-                                    <td class=\"py-1 px-2\">AIM ${infoIcon('Archetype Interaction Modifier: Placeholder for matchup-specific archetype effects.')}</td>
+                                    <td class=\"py-1 px-2\">AIM Archetype Interaction Modifier ${infoIcon('Archetype Interaction Modifier: Placeholder for matchup-specific archetype effects.')}</td>
                                     <td class=\"py-1 px-2 text-blue-300\">0</td>
                                     <td class=\"py-1 px-2 text-pink-300\">0</td>
                                     <td class=\"py-1 px-2\"><input id=\"uwpm-weight-aim\" type=\"number\" step=\"0.01\" min=\"-2\" max=\"2\" value=\"${weights.aim}\" class=\"w-16 bg-gray-800 border border-gray-600 rounded px-1 text-center\"></td>
                                     <td class=\"py-1 px-2\"><span id=\"uwpm-contrib-aim\">${contribAIM.toFixed(3)}</span></td>
                                 </tr>
                                 <tr>
-                                    <td class=\"py-1 px-2\">TFA ${infoIcon('Tempo Flow Analysis: Placeholder for tempo-based matchup effects.')}</td>
+                                    <td class=\"py-1 px-2\">TFA Tempo Flow Analysis ${infoIcon('Tempo Flow Analysis: Placeholder for tempo-based matchup effects.')}</td>
                                     <td class=\"py-1 px-2 text-blue-300\">0</td>
                                     <td class=\"py-1 px-2 text-pink-300\">0</td>
                                     <td class=\"py-1 px-2\"><input id=\"uwpm-weight-tfa\" type=\"number\" step=\"0.01\" min=\"-2\" max=\"2\" value=\"${weights.tfa}\" class=\"w-16 bg-gray-800 border border-gray-600 rounded px-1 text-center\"></td>
                                     <td class=\"py-1 px-2\"><span id=\"uwpm-contrib-tfa\">${contribTFA.toFixed(3)}</span></td>
                                 </tr>
                                 <tr>
-                                    <td class=\"py-1 px-2\">TAES ${infoIcon('Threat-Answer Efficiency Score: Placeholder for threat/answer matchup effects.')}</td>
+                                    <td class=\"py-1 px-2\">TAES Threat-Answer Efficiency Score ${infoIcon('Threat-Answer Efficiency Score: Placeholder for threat/answer matchup effects.')}</td>
                                     <td class=\"py-1 px-2 text-blue-300\">0</td>
                                     <td class=\"py-1 px-2 text-pink-300\">0</td>
                                     <td class=\"py-1 px-2\"><input id=\"uwpm-weight-taes\" type=\"number\" step=\"0.01\" min=\"-2\" max=\"2\" value=\"${weights.taes}\" class=\"w-16 bg-gray-800 border border-gray-600 rounded px-1 text-center\"></td>
@@ -1568,6 +1425,11 @@
                         <div class=\"mt-4 mb-2\"><b>Matchup Score:</b> <span id=\"uwpm-matchup-score\" class=\"text-yellow-200\">${matchupScore.toFixed(3)}</span></div>
                         <div class=\"mb-2\"><b>Logistic Function:</b> <span id=\"uwpm-logistic\" class=\"text-gray-300\">1 / (1 + exp(-k × Matchup Score)), k = ${k}</span></div>
                         <div class=\"mb-2\"><b>Final Win Probability:</b> <span id=\"uwpm-final-prob\" class=\"text-green-400\">${winPercent}%</span></div>
+
+                        <!-- Detailed per-card breakdowns (hidden by default) -->
+                        <div id=\"uwpm-detail-rds\" class=\"hidden mt-4\"></div>
+                        <div id=\"uwpm-detail-lvi\" class=\"hidden mt-4\"></div>
+                        <div id=\"uwpm-detail-bcr\" class=\"hidden mt-4\"></div>
                     </div>
                 `;
 
@@ -1588,6 +1450,45 @@
 
                 // Tooltips are handled via the title attribute for now
 
+                // Attach expand/collapse logic for details buttons after DOM is ready
+                setTimeout(() => {
+                    const rdsBtn = document.getElementById('toggle-detail-rds');
+                    if (rdsBtn) {
+                        rdsBtn.addEventListener('click', function() {
+                            const el = document.getElementById('uwpm-detail-rds');
+                            if (el.classList.contains('hidden')) {
+                                el.innerHTML = renderCardMetricTable('Resource Dominance Score (RDS)', cardRDSBreakdown(playerUWPCards), cardRDSBreakdown(opponentUWPCards));
+                                el.classList.remove('hidden');
+                            } else {
+                                el.classList.add('hidden');
+                            }
+                        });
+                    }
+                    const lviBtn = document.getElementById('toggle-detail-lvi');
+                    if (lviBtn) {
+                        lviBtn.addEventListener('click', function() {
+                            const el = document.getElementById('uwpm-detail-lvi');
+                            if (el.classList.contains('hidden')) {
+                                el.innerHTML = renderCardMetricTable('Lore Velocity Index (LVI)', cardLVIBreakdown(playerUWPCards), cardLVIBreakdown(opponentUWPCards));
+                                el.classList.remove('hidden');
+                            } else {
+                                el.classList.add('hidden');
+                            }
+                        });
+                    }
+                    const bcrBtn = document.getElementById('toggle-detail-bcr');
+                    if (bcrBtn) {
+                        bcrBtn.addEventListener('click', function() {
+                            const el = document.getElementById('uwpm-detail-bcr');
+                            if (el.classList.contains('hidden')) {
+                                el.innerHTML = renderCardMetricTable('Board Control Rating (BCR)', cardBCRBreakdown(playerUWPCards), cardBCRBreakdown(opponentUWPCards));
+                                el.classList.remove('hidden');
+                            } else {
+                                el.classList.add('hidden');
+                            }
+                        });
+                    }
+                }, 0);
             } else {
                 winProbDisplay.innerHTML = `<p class=\"text-lg text-gray-400\">Load both decks to calculate win probability.</p>`;
             }
@@ -2232,6 +2133,106 @@
                 }
             }
             return songCardInfo.cost; // Fallback to the song's main cost if pattern fails
+        }
+
+        // --- Per-card breakdown logic ---
+        function cardRDSBreakdown(deck) {
+            return deck.map(card => {
+                let explanation = [];
+                let value = 0;
+                // Card Advantage Generation
+                if (card.abilityPatterns.has('Card Effect: Draw')) {
+                    let drawCount = 1;
+                    const drawMatch = (card.rawData.fullText || '').match(/draw (\d+) cards?/i);
+                    if (drawMatch) drawCount = parseInt(drawMatch[1], 10);
+                    value += drawCount * (2 / (card.cost || 1));
+                    explanation.push(`Draw (${drawCount})`);
+                }
+                if (card.abilityPatterns.has('Play: From Discard')) {
+                    value += 1.5;
+                    explanation.push('Play: From Discard');
+                }
+                if (card.abilityPatterns.has('Card Effect: Opponent Discards')) {
+                    value += 1.5;
+                    explanation.push('Opponent Discards');
+                }
+                if (card.abilityPatterns.has('Card Effect: Hand to Inkwell')) {
+                    value += 2.0;
+                    explanation.push('Hand to Inkwell');
+                }
+                if (card.abilityPatterns.has('Stat: Cost Reduction')) {
+                    value += 1.0;
+                    explanation.push('Cost Reduction');
+                }
+                if (card.isUninkable) {
+                    value -= (card.cost || 1) * 0.25;
+                    explanation.push('Uninkable Burden');
+                }
+                return { name: card.name, value, explanation: explanation.join(', ') };
+            });
+        }
+        function cardLVIBreakdown(deck) {
+            return deck.map(card => {
+                let value = 0;
+                let explanation = [];
+                if (card.lore > 0) {
+                    let baseLorePotential = card.lore / (card.cost || 1);
+                    let loreSurvivabilityModifier = 1.0;
+                    let questSafetyModifier = 1.0;
+                    if (card.keywords.has('Ward')) { loreSurvivabilityModifier *= 1.4; explanation.push('Ward'); }
+                    if (card.keywords.has('Resist')) { loreSurvivabilityModifier *= 1.2; explanation.push('Resist'); }
+                    if ((card.willpower || 0) >= 5) { loreSurvivabilityModifier *= 1.1; explanation.push('High Willpower'); }
+                    if (card.keywords.has('Evasive')) { questSafetyModifier *= 1.5; explanation.push('Evasive'); }
+                    value += baseLorePotential * loreSurvivabilityModifier * questSafetyModifier;
+                    explanation.unshift(`Lore: ${card.lore}`);
+                }
+                if (card.abilityPatterns.has('Lore: Gain')) {
+                    value += 1.5;
+                    explanation.push('Lore: Gain');
+                }
+                return { name: card.name, value, explanation: explanation.join(', ') };
+            });
+        }
+        function cardBCRBreakdown(deck) {
+            return deck.map(card => {
+                let value = 0;
+                let explanation = [];
+                if (card.abilityPatterns.has('Banish: Chosen Target') || card.abilityPatterns.has('Banish: Any')) {
+                    value += 7 / (card.cost || 1);
+                    explanation.push('Banish');
+                }
+                if (card.abilityPatterns.has('Damage: Deal to One')) {
+                    value += 4 / (card.cost || 1);
+                    explanation.push('Damage');
+                }
+                if (card.abilityPatterns.has('Banish: All Characters')) {
+                    value += 5.0;
+                    explanation.push('Banish All');
+                }
+                if (card.keywords.has('Rush')) {
+                    value += (card.strength || 0) * 0.5;
+                    explanation.push('Rush');
+                }
+                return { name: card.name, value, explanation: explanation.join(', ') };
+            });
+        }
+        function renderCardMetricTable(title, playerBreakdown, oppBreakdown) {
+            return `
+                <div class=\"mb-4\"><b>${title} - Player Deck</b></div>
+                <table class=\"w-full text-xs mb-4 border-collapse\">
+                    <thead><tr class=\"border-b border-gray-700\"><th class=\"py-1 px-2\">Card</th><th class=\"py-1 px-2\">Value</th><th class=\"py-1 px-2\">Explanation</th></tr></thead>
+                    <tbody>
+                        ${playerBreakdown.map(row => `<tr><td class=\"py-1 px-2\">${row.name}</td><td class=\"py-1 px-2\">${row.value.toFixed(2)}</td><td class=\"py-1 px-2\">${row.explanation}</td></tr>`).join('')}
+                    </tbody>
+                </table>
+                <div class=\"mb-4\"><b>${title} - Opponent Deck</b></div>
+                <table class=\"w-full text-xs border-collapse\">
+                    <thead><tr class=\"border-b border-gray-700\"><th class=\"py-1 px-2\">Card</th><th class=\"py-1 px-2\">Value</th><th class=\"py-1 px-2\">Explanation</th></tr></thead>
+                    <tbody>
+                        ${oppBreakdown.map(row => `<tr><td class=\"py-1 px-2\">${row.name}</td><td class=\"py-1 px-2\">${row.value.toFixed(2)}</td><td class=\"py-1 px-2\">${row.explanation}</td></tr>`).join('')}
+                    </tbody>
+                </table>
+            `;
         }
 
         // --- Start the app ---
