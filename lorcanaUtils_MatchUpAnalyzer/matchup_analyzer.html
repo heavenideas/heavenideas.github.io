@@ -598,7 +598,8 @@
                 } else if (lookMatch[1] === 'three') {
                     lookCount = 3;
                 } else {
-                    lookCount = parseInt(lookMatch[1], 10);
+                    const [match] = lookMatch[1].match(/(\d+)/) || []; // "12345"
+                    lookCount = match;
                 }
 
                 features.scryEffect.lookCount = lookCount;
@@ -2210,6 +2211,12 @@
 
         // --- Per-card breakdown logic ---
         function cardRDSBreakdown(deck) {
+            // DQI weights as in calculateRDS
+            const dqiWeights = {
+                perCardLookedAt: 0.15, // Value of just seeing a card
+                filterToBottom: 1.0,   // Flat bonus for the ability to remove bad cards
+                tutorToHand: 2.5       // High value for getting a card to hand (almost as good as drawing)
+            };
             return deck.map(card => {
                 let explanation = [];
                 let value = 0;
@@ -2236,6 +2243,27 @@
                 if (card.abilityPatterns.has('Stat: Cost Reduction')) {
                     value += 1.0;
                     explanation.push('Cost Reduction');
+                }
+                // DQI (Deck Quality Improvement) for scry effects
+                if (card.scryEffect && card.scryEffect.lookCount > 0) {
+                    let cardDQI = 0;
+                    cardDQI += card.scryEffect.lookCount * dqiWeights.perCardLookedAt;
+                    let dqiParts = [`Scry: Look at ${card.scryEffect.lookCount}`];
+                    if (card.scryEffect.canFilterToBottom) {
+                        cardDQI += dqiWeights.filterToBottom;
+                        dqiParts.push('Filter to Bottom');
+                    }
+                    if (card.scryEffect.canTutorToHand) {
+                        cardDQI += dqiWeights.tutorToHand;
+                        dqiParts.push('Tutor to Hand');
+                        // Also add to Card Advantage Generation (as in calculateRDS)
+                        value += 0.8;
+                        explanation.push('Tutor to Hand (Card Draw Adj)');
+                    }
+                    // Add the card's total DQI score, weighted by its ink efficiency
+                    let dqiValue = cardDQI / (card.cost || 1);
+                    value += dqiValue;
+                    explanation.push(`DQI: ${dqiParts.join(', ')} (+${dqiValue.toFixed(2)})`);
                 }
                 if (card.isUninkable) {
                     value -= (card.cost || 1) * 0.25;
