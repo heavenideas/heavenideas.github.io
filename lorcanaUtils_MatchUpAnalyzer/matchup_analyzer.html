@@ -619,136 +619,138 @@
         }
 
         /**
-         * Calculates the Resource Dominance Score (RDS) for a given deck.
+         * Calculates the Resource Dominance Score (RDS) for a given deck and provides a breakdown.
          * @param {UWPCard[]} deck
-         * @returns {number}
+         * @returns {{ total: number, breakdown: Array<{ name: string, value: number, explanation: string }> }}
          */
-        function calculateRDS(deck) {
-            let cardAdvantageGeneration = 0;
-            let cardAdvantageDenial = 0;
-            let inkAcceleration = 0;
-            let uninkableBurden = 0;
-            let deckQualityImprovement = 0;  // NEW
-
-
-            // Define weights for DQI calculation. These can be tuned for balance.
+        function getRDS(deck) {
+            let total = 0;
+            let breakdown = [];
+            // DQI weights as in original
             const dqiWeights = {
-                perCardLookedAt: 0.15, // Value of just seeing a card
-                filterToBottom: 1.0,   // Flat bonus for the ability to remove bad cards
-                tutorToHand: 2.5       // High value for getting a card to hand (almost as good as drawing)
+                perCardLookedAt: 0.15,
+                filterToBottom: 1.0,
+                tutorToHand: 2.5
             };
-
-
             deck.forEach(card => {
-                // Card Advantage Generation (CAG)
+                let explanation = [];
+                let value = 0;
+                // Card Advantage Generation
                 if (card.abilityPatterns.has('Card Effect: Draw')) {
-                    // Estimate draw count from text if possible, else +1
                     let drawCount = 1;
                     const drawMatch = (card.rawData.fullText || '').match(/draw (\d+) cards?/i);
                     if (drawMatch) drawCount = parseInt(drawMatch[1], 10);
-                    cardAdvantageGeneration += drawCount * (2 / (card.cost || 1));
+                    value += drawCount * (2 / (card.cost || 1));
+                    explanation.push(`Draw (${drawCount})`);
                 }
                 if (card.abilityPatterns.has('Play: From Discard')) {
-                    cardAdvantageGeneration += 1.5;
+                    value += 1.5;
+                    explanation.push('Play: From Discard');
                 }
-
-                // Card Advantage Denial (CAD)
                 if (card.abilityPatterns.has('Card Effect: Opponent Discards')) {
-                    cardAdvantageDenial += 1.5;
+                    value += 1.5;
+                    explanation.push('Opponent Discards');
                 }
-
-                // Ink Acceleration (IA)
                 if (card.abilityPatterns.has('Card Effect: Hand to Inkwell')) {
-                    inkAcceleration += 2.0;
+                    value += 2.0;
+                    explanation.push('Hand to Inkwell');
                 }
                 if (card.abilityPatterns.has('Stat: Cost Reduction')) {
-                    inkAcceleration += 1.0;
+                    value += 1.0;
+                    explanation.push('Cost Reduction');
                 }
-
-                // Uninkable Burden (UB)
-                if (card.isUninkable) {
-                    uninkableBurden += (card.cost || 1) * 0.25;
-                }
-
-                // NEW: Calculate Deck Quality Improvement (DQI) score for the card
+                // DQI (Deck Quality Improvement) for scry effects
                 if (card.scryEffect && card.scryEffect.lookCount > 0) {
                     let cardDQI = 0;
                     cardDQI += card.scryEffect.lookCount * dqiWeights.perCardLookedAt;
-
+                    let dqiParts = [`Scry: Look at ${card.scryEffect.lookCount}`];
                     if (card.scryEffect.canFilterToBottom) {
                         cardDQI += dqiWeights.filterToBottom;
+                        dqiParts.push('Filter to Bottom');
                     }
-
                     if (card.scryEffect.canTutorToHand) {
                         cardDQI += dqiWeights.tutorToHand;
-                        // Important: If it tutors to hand, it's also card draw.
-                        // We should add to Card Advantage Generation as well, but perhaps a slightly
-                        // lower value than a simple "Draw a card" since it costs an action.
-                        cardAdvantageGeneration += 0.8; // Example value
+                        dqiParts.push('Tutor to Hand');
+                        value += 0.8;
+                        explanation.push('Tutor to Hand (Card Draw Adj)');
                     }
-
-                    // Add the card's total DQI score, weighted by its ink efficiency
-                    deckQualityImprovement += cardDQI / (card.cost || 1);
+                    let dqiValue = cardDQI / (card.cost || 1);
+                    value += dqiValue;
+                    explanation.push(`DQI: ${dqiParts.join(', ')} (+${dqiValue.toFixed(2)})`);
                 }
+                if (card.isUninkable) {
+                    value -= (card.cost || 1) * 0.25;
+                    explanation.push('Uninkable Burden');
+                }
+                breakdown.push({ name: card.name, value, explanation: explanation.join(', ') });
+                total += value;
             });
-
-            const rds = cardAdvantageGeneration + cardAdvantageDenial + inkAcceleration - uninkableBurden + deckQualityImprovement;
-            return rds;
+            return { total, breakdown };
         }
 
         /**
-         * Calculates the Lore Velocity Index (LVI) for a given deck.
+         * Calculates the Lore Velocity Index (LVI) for a given deck and provides a breakdown.
          * @param {UWPCard[]} deck
-         * @returns {number}
+         * @returns {{ total: number, breakdown: Array<{ name: string, value: number, explanation: string }> }}
          */
-        function calculateLVI(deck) {
-            let loreVelocityIndex = 0;
+        function getLVI(deck) {
+            let total = 0;
+            let breakdown = [];
             deck.forEach(card => {
+                let value = 0;
+                let explanation = [];
                 if (card.lore > 0) {
                     let baseLorePotential = card.lore / (card.cost || 1);
                     let loreSurvivabilityModifier = 1.0;
                     let questSafetyModifier = 1.0;
-                    // Lore Survivability Modifier (LSM)
-                    if (card.keywords.has('Ward')) loreSurvivabilityModifier *= 1.4;
-                    if (card.keywords.has('Resist')) loreSurvivabilityModifier *= 1.2;
-                    if ((card.willpower || 0) >= 5) loreSurvivabilityModifier *= 1.1;
-                    // Quest Safety Modifier (QSM)
-                    if (card.keywords.has('Evasive')) questSafetyModifier *= 1.5;
-                    loreVelocityIndex += baseLorePotential * loreSurvivabilityModifier * questSafetyModifier;
+                    if (card.keywords.has('Ward')) { loreSurvivabilityModifier *= 1.4; explanation.push('Ward'); }
+                    if (card.keywords.has('Resist')) { loreSurvivabilityModifier *= 1.2; explanation.push('Resist'); }
+                    if ((card.willpower || 0) >= 5) { loreSurvivabilityModifier *= 1.1; explanation.push('High Willpower'); }
+                    if (card.keywords.has('Evasive')) { questSafetyModifier *= 1.5; explanation.push('Evasive'); }
+                    value += baseLorePotential * loreSurvivabilityModifier * questSafetyModifier;
+                    explanation.unshift(`Lore: ${card.lore}`);
                 }
-                // Direct Lore Manipulation (DLM)
                 if (card.abilityPatterns.has('Lore: Gain')) {
-                    loreVelocityIndex += 1.5;
+                    value += 1.5;
+                    explanation.push('Lore: Gain');
                 }
+                breakdown.push({ name: card.name, value, explanation: explanation.join(', ') });
+                total += value;
             });
-            return loreVelocityIndex;
+            return { total, breakdown };
         }
 
         /**
-         * Calculates the Board Control Rating (BCR) for a given deck.
+         * Calculates the Board Control Rating (BCR) for a given deck and provides a breakdown.
          * @param {UWPCard[]} deck
-         * @returns {number}
+         * @returns {{ total: number, breakdown: Array<{ name: string, value: number, explanation: string }> }}
          */
-        function calculateBCR(deck) {
-            let boardControlRating = 0;
+        function getBCR(deck) {
+            let total = 0;
+            let breakdown = [];
             deck.forEach(card => {
-                // Removal Efficiency (RE)
+                let value = 0;
+                let explanation = [];
                 if (card.abilityPatterns.has('Banish: Chosen Target') || card.abilityPatterns.has('Banish: Any')) {
-                    boardControlRating += 7 / (card.cost || 1);
+                    value += 7 / (card.cost || 1);
+                    explanation.push('Banish');
                 }
                 if (card.abilityPatterns.has('Damage: Deal to One')) {
-                    boardControlRating += 4 / (card.cost || 1);
+                    value += 4 / (card.cost || 1);
+                    explanation.push('Damage');
                 }
-                // Removal Versatility (RV)
                 if (card.abilityPatterns.has('Banish: All Characters')) {
-                    boardControlRating += 5.0;
+                    value += 5.0;
+                    explanation.push('Banish All');
                 }
-                // Proactive Control (PC)
                 if (card.keywords.has('Rush')) {
-                    boardControlRating += (card.strength || 0) * 0.5;
+                    value += (card.strength || 0) * 0.5;
+                    explanation.push('Rush');
                 }
+                breakdown.push({ name: card.name, value, explanation: explanation.join(', ') });
+                total += value;
             });
-            return boardControlRating;
+            return { total, breakdown };
         }
 
         /**
@@ -759,13 +761,13 @@
          */
         function calculateWinProbability(deckA, deckB) {
             // 1. Calculate Intrinsic Scores for both decks
-            const rdsA = calculateRDS(deckA);
-            const lviA = calculateLVI(deckA);
-            const bcrA = calculateBCR(deckA);
+            const rdsA = getRDS(deckA);
+            const lviA = getLVI(deckA);
+            const bcrA = getBCR(deckA);
 
-            const rdsB = calculateRDS(deckB);
-            const lviB = calculateLVI(deckB);
-            const bcrB = calculateBCR(deckB);
+            const rdsB = getRDS(deckB);
+            const lviB = getLVI(deckB);
+            const bcrB = getBCR(deckB);
 
             // 2. Calculate Matchup-Specific Modifiers (placeholders for now)
             const aim = 0; // Archetype Interaction Modifier
@@ -777,9 +779,9 @@
 
             // 4. Calculate the final Matchup Score using the Master Equation
             const matchupScore =
-                weights.rds * (rdsA - rdsB) +
-                weights.lvi * (lviA - lviB) +
-                weights.bcr * (bcrA - bcrB) +
+                weights.rds * (rdsA.total - rdsB.total) +
+                weights.lvi * (lviA.total - lviB.total) +
+                weights.bcr * (bcrA.total - bcrB.total) +
                 weights.aim * aim +
                 weights.tfa * tfa +
                 weights.taes * taes;
@@ -1340,12 +1342,18 @@
             console.log('UWPM Opponent UWPCard objects:', opponentUWPCards);
 
             // --- UWPM Phase 2: Calculate intrinsic deck scores ---
-            const playerRDS = calculateRDS(playerUWPCards);
-            const playerLVI = calculateLVI(playerUWPCards);
-            const playerBCR = calculateBCR(playerUWPCards);
-            const opponentRDS = calculateRDS(opponentUWPCards);
-            const opponentLVI = calculateLVI(opponentUWPCards);
-            const opponentBCR = calculateBCR(opponentUWPCards);
+            const playerRDSObj = getRDS(playerUWPCards);
+            const playerLVIObj = getLVI(playerUWPCards);
+            const playerBCRObj = getBCR(playerUWPCards);
+            const opponentRDSObj = getRDS(opponentUWPCards);
+            const opponentLVIObj = getLVI(opponentUWPCards);
+            const opponentBCRObj = getBCR(opponentUWPCards);
+            const playerRDS = playerRDSObj.total;
+            const playerLVI = playerLVIObj.total;
+            const playerBCR = playerBCRObj.total;
+            const opponentRDS = opponentRDSObj.total;
+            const opponentLVI = opponentLVIObj.total;
+            const opponentBCR = opponentBCRObj.total;
             console.log('UWPM Player RDS:', playerRDS, 'LVI:', playerLVI, 'BCR:', playerBCR);
             console.log('UWPM Opponent RDS:', opponentRDS, 'LVI:', opponentLVI, 'BCR:', opponentBCR);
 
@@ -1531,7 +1539,7 @@
                         rdsBtn.addEventListener('click', function() {
                             const el = document.getElementById('uwpm-detail-rds');
                             if (el.classList.contains('hidden')) {
-                                el.innerHTML = renderCardMetricTable('Resource Dominance Score (RDS)', cardRDSBreakdown(playerUWPCards), cardRDSBreakdown(opponentUWPCards));
+                                el.innerHTML = renderCardMetricTable('Resource Dominance Score (RDS)', playerRDSObj.breakdown, opponentRDSObj.breakdown);
                                 el.classList.remove('hidden');
                             } else {
                                 el.classList.add('hidden');
@@ -1543,7 +1551,7 @@
                         lviBtn.addEventListener('click', function() {
                             const el = document.getElementById('uwpm-detail-lvi');
                             if (el.classList.contains('hidden')) {
-                                el.innerHTML = renderCardMetricTable('Lore Velocity Index (LVI)', cardLVIBreakdown(playerUWPCards), cardLVIBreakdown(opponentUWPCards));
+                                el.innerHTML = renderCardMetricTable('Lore Velocity Index (LVI)', playerLVIObj.breakdown, opponentLVIObj.breakdown);
                                 el.classList.remove('hidden');
                             } else {
                                 el.classList.add('hidden');
@@ -1555,7 +1563,7 @@
                         bcrBtn.addEventListener('click', function() {
                             const el = document.getElementById('uwpm-detail-bcr');
                             if (el.classList.contains('hidden')) {
-                                el.innerHTML = renderCardMetricTable('Board Control Rating (BCR)', cardBCRBreakdown(playerUWPCards), cardBCRBreakdown(opponentUWPCards));
+                                el.innerHTML = renderCardMetricTable('Board Control Rating (BCR)', playerBCRObj.breakdown, opponentBCRObj.breakdown);
                                 el.classList.remove('hidden');
                             } else {
                                 el.classList.add('hidden');
@@ -2210,113 +2218,6 @@
         }
 
         // --- Per-card breakdown logic ---
-        function cardRDSBreakdown(deck) {
-            // DQI weights as in calculateRDS
-            const dqiWeights = {
-                perCardLookedAt: 0.15, // Value of just seeing a card
-                filterToBottom: 1.0,   // Flat bonus for the ability to remove bad cards
-                tutorToHand: 2.5       // High value for getting a card to hand (almost as good as drawing)
-            };
-            return deck.map(card => {
-                let explanation = [];
-                let value = 0;
-                // Card Advantage Generation
-                if (card.abilityPatterns.has('Card Effect: Draw')) {
-                    let drawCount = 1;
-                    const drawMatch = (card.rawData.fullText || '').match(/draw (\d+) cards?/i);
-                    if (drawMatch) drawCount = parseInt(drawMatch[1], 10);
-                    value += drawCount * (2 / (card.cost || 1));
-                    explanation.push(`Draw (${drawCount})`);
-                }
-                if (card.abilityPatterns.has('Play: From Discard')) {
-                    value += 1.5;
-                    explanation.push('Play: From Discard');
-                }
-                if (card.abilityPatterns.has('Card Effect: Opponent Discards')) {
-                    value += 1.5;
-                    explanation.push('Opponent Discards');
-                }
-                if (card.abilityPatterns.has('Card Effect: Hand to Inkwell')) {
-                    value += 2.0;
-                    explanation.push('Hand to Inkwell');
-                }
-                if (card.abilityPatterns.has('Stat: Cost Reduction')) {
-                    value += 1.0;
-                    explanation.push('Cost Reduction');
-                }
-                // DQI (Deck Quality Improvement) for scry effects
-                if (card.scryEffect && card.scryEffect.lookCount > 0) {
-                    let cardDQI = 0;
-                    cardDQI += card.scryEffect.lookCount * dqiWeights.perCardLookedAt;
-                    let dqiParts = [`Scry: Look at ${card.scryEffect.lookCount}`];
-                    if (card.scryEffect.canFilterToBottom) {
-                        cardDQI += dqiWeights.filterToBottom;
-                        dqiParts.push('Filter to Bottom');
-                    }
-                    if (card.scryEffect.canTutorToHand) {
-                        cardDQI += dqiWeights.tutorToHand;
-                        dqiParts.push('Tutor to Hand');
-                        // Also add to Card Advantage Generation (as in calculateRDS)
-                        value += 0.8;
-                        explanation.push('Tutor to Hand (Card Draw Adj)');
-                    }
-                    // Add the card's total DQI score, weighted by its ink efficiency
-                    let dqiValue = cardDQI / (card.cost || 1);
-                    value += dqiValue;
-                    explanation.push(`DQI: ${dqiParts.join(', ')} (+${dqiValue.toFixed(2)})`);
-                }
-                if (card.isUninkable) {
-                    value -= (card.cost || 1) * 0.25;
-                    explanation.push('Uninkable Burden');
-                }
-                return { name: card.name, value, explanation: explanation.join(', ') };
-            });
-        }
-        function cardLVIBreakdown(deck) {
-            return deck.map(card => {
-                let value = 0;
-                let explanation = [];
-                if (card.lore > 0) {
-                    let baseLorePotential = card.lore / (card.cost || 1);
-                    let loreSurvivabilityModifier = 1.0;
-                    let questSafetyModifier = 1.0;
-                    if (card.keywords.has('Ward')) { loreSurvivabilityModifier *= 1.4; explanation.push('Ward'); }
-                    if (card.keywords.has('Resist')) { loreSurvivabilityModifier *= 1.2; explanation.push('Resist'); }
-                    if ((card.willpower || 0) >= 5) { loreSurvivabilityModifier *= 1.1; explanation.push('High Willpower'); }
-                    if (card.keywords.has('Evasive')) { questSafetyModifier *= 1.5; explanation.push('Evasive'); }
-                    value += baseLorePotential * loreSurvivabilityModifier * questSafetyModifier;
-                    explanation.unshift(`Lore: ${card.lore}`);
-                }
-                if (card.abilityPatterns.has('Lore: Gain')) {
-                    value += 1.5;
-                    explanation.push('Lore: Gain');
-                }
-                return { name: card.name, value, explanation: explanation.join(', ') };
-            });
-        }
-        function cardBCRBreakdown(deck) {
-            return deck.map(card => {
-                let value = 0;
-                let explanation = [];
-                if (card.abilityPatterns.has('Banish: Chosen Target') || card.abilityPatterns.has('Banish: Any')) {
-                    value += 7 / (card.cost || 1);
-                    explanation.push('Banish');
-                }
-                if (card.abilityPatterns.has('Damage: Deal to One')) {
-                    value += 4 / (card.cost || 1);
-                    explanation.push('Damage');
-                }
-                if (card.abilityPatterns.has('Banish: All Characters')) {
-                    value += 5.0;
-                    explanation.push('Banish All');
-                }
-                if (card.keywords.has('Rush')) {
-                    value += (card.strength || 0) * 0.5;
-                    explanation.push('Rush');
-                }
-                return { name: card.name, value, explanation: explanation.join(', ') };
-            });
-        }
         function renderCardMetricTable(title, playerBreakdown, oppBreakdown) {
             return `
                 <div class=\"mb-4\"><b>${title} - Player Deck</b></div>
