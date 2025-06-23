@@ -1313,6 +1313,7 @@
                 const activePlayerAbilities = getActiveAbilitiesForCharacter(playerChar, { perspective: "playerTurn", action: "onPlayOrChallenge" });
                 if (activePlayerAbilities.length > 0 && OPPONENT_DECK_CHARS.length > 0) {
                     activePlayerAbilities.forEach(ability => {
+                        if (ability.name === "Unnamed Ability") return;
                         console.log(`Processing ability: ${ability.name}`);
                         const abilityImpactTitle = document.createElement('h4');
                         abilityImpactTitle.className = 'ability-title';
