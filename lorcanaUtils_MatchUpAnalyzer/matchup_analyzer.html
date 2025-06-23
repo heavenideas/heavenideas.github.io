@@ -574,6 +574,22 @@
                 }
             }
 
+             // Add new logic here:
+            features.scryEffect = { lookCount: 0, canFilterToBottom: false, canTutorToHand: false };
+
+            const lookMatch = (allText || '').match(LORCANA_PATTERNS['Card Effect: Look at Deck'].regex);
+            if (lookMatch) {
+                // You'll need a helper to convert words like "two" to the number 2.
+                features.scryEffect.lookCount = parseInt(lookMatch[1], 10) || convertWordToNumber(lookMatch[1]);
+
+                if (LORCANA_PATTERNS['Card Effect: Filter to Bottom'].regex.test(allText)) {
+                    features.scryEffect.canFilterToBottom = true;
+                }
+                if (LORCANA_PATTERNS['Card Effect: Deck to Hand/Bottom'].regex.test(allText)) {
+                    features.scryEffect.canTutorToHand = true;
+                }
+            }
+
             return features;
         }
 
@@ -587,6 +603,16 @@
             let cardAdvantageDenial = 0;
             let inkAcceleration = 0;
             let uninkableBurden = 0;
+            let deckQualityImprovement = 0;  // NEW
+
+
+            // Define weights for DQI calculation. These can be tuned for balance.
+            const dqiWeights = {
+                perCardLookedAt: 0.15, // Value of just seeing a card
+                filterToBottom: 1.0,   // Flat bonus for the ability to remove bad cards
+                tutorToHand: 2.5       // High value for getting a card to hand (almost as good as drawing)
+            };
+
 
             deck.forEach(card => {
                 // Card Advantage Generation (CAG)
@@ -618,9 +644,30 @@
                 if (card.isUninkable) {
                     uninkableBurden += (card.cost || 1) * 0.25;
                 }
+
+                // NEW: Calculate Deck Quality Improvement (DQI) score for the card
+                if (card.scryEffect && card.scryEffect.lookCount > 0) {
+                    let cardDQI = 0;
+                    cardDQI += card.scryEffect.lookCount * dqiWeights.perCardLookedAt;
+
+                    if (card.scryEffect.canFilterToBottom) {
+                        cardDQI += dqiWeights.filterToBottom;
+                    }
+
+                    if (card.scryEffect.canTutorToHand) {
+                        cardDQI += dqiWeights.tutorToHand;
+                        // Important: If it tutors to hand, it's also card draw.
+                        // We should add to Card Advantage Generation as well, but perhaps a slightly
+                        // lower value than a simple "Draw a card" since it costs an action.
+                        cardAdvantageGeneration += 0.8; // Example value
+                    }
+
+                    // Add the card's total DQI score, weighted by its ink efficiency
+                    deckQualityImprovement += cardDQI / (card.cost || 1);
+                }
             });
 
-            const rds = cardAdvantageGeneration + cardAdvantageDenial + inkAcceleration - uninkableBurden;
+            const rds = cardAdvantageGeneration + cardAdvantageDenial + inkAcceleration - uninkableBurden + deckQualityImprovement;
             return rds;
         }
 
