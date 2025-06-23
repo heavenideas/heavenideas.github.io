@@ -248,11 +248,17 @@
         <section class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div>
                 <h2 class="text-xl font-semibold mb-2">Your Deck</h2>
+                <div class="flex items-center gap-2 mb-2">
+                  <button id="loadPlayerDeckBtn" class="px-3 py-1.5 bg-purple-700 hover:bg-purple-800 rounded text-sm font-semibold">Load from Database</button>
+                </div>
                 <textarea id="playerDeckInput" rows="10" class="w-full p-2"
                     placeholder="4 Card Name&#10;2 Another Card Name..."></textarea>
             </div>
             <div>
                 <h2 class="text-xl font-semibold mb-2">Opponent's Deck</h2>
+                <div class="flex items-center gap-2 mb-2">
+                  <button id="loadOpponentDeckBtn" class="px-3 py-1.5 bg-purple-700 hover:bg-purple-800 rounded text-sm font-semibold">Load from Database</button>
+                </div>
                 <textarea id="opponentDeckInput" rows="10" class="w-full p-2"
                     placeholder="4 Card Name&#10;2 Another Card Name..."></textarea>
             </div>
@@ -294,6 +300,23 @@
         </section>
     </main>
 
+    <!-- Deck Load Modal -->
+    <div id="deckLoadModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 p-4 opacity-0 pointer-events-none transition-opacity duration-200">
+      <div class="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md">
+        <h3 class="text-lg font-bold text-white mb-4">Select a Deck</h3>
+        <input type="text" id="deckSearchInput" placeholder="Search decks by name..." class="w-full mb-4 px-3 py-2 rounded bg-gray-700 border border-gray-600 text-gray-200 focus:ring-2 focus:ring-purple-500 focus:outline-none">
+        <div id="deckListContainer" class="max-h-64 overflow-y-auto space-y-2">
+          <!-- Decks will be injected here -->
+        </div>
+        <div class="flex justify-end mt-6">
+          <button id="closeDeckModalBtn" class="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded font-semibold">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0"></script>
+
     <script>
         // --- Globals ---
         let ALL_CARDS_DATA = null;
@@ -306,6 +329,106 @@
         let PLAYER_DECK_LOCATIONS = [];
         let OPPONENT_DECK_LOCATIONS = [];
 
+        // --- Supabase Deck Loading ---
+        const SUPABASE_URL = 'https://cjlhrfhximjldqrfblkj.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNqbGhyZmh4aW1qbGRxcmZibGtqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA0MTcxNzQsImV4cCI6MjA2NTk5MzE3NH0.zLiQcPnKt2SnNfQIkUnOG7bOo6F7MPMh8MsasdFF6lw';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        let allDecks = [];
+        let deckFuse;
+        let deckLoadTarget = null; // 'player' or 'opponent'
+
+        // Modal elements
+        const deckLoadModal = document.createElement('div');
+        // (But we already inject it above, so just get by id)
+        // --- DOM Elements ---
+        // ... existing code ...
+        // Add after DOMContentLoaded or in initializeApp
+        document.addEventListener('DOMContentLoaded', () => {
+          // ... existing code ...
+          // Modal DOM
+          const deckLoadModal = document.getElementById('deckLoadModal');
+          const deckListContainer = document.getElementById('deckListContainer');
+          const deckSearchInput = document.getElementById('deckSearchInput');
+          const closeDeckModalBtn = document.getElementById('closeDeckModalBtn');
+          const loadPlayerDeckBtn = document.getElementById('loadPlayerDeckBtn');
+          const loadOpponentDeckBtn = document.getElementById('loadOpponentDeckBtn');
+          const playerDeckInput = document.getElementById('playerDeckInput');
+          const opponentDeckInput = document.getElementById('opponentDeckInput');
+
+          // Modal show/hide helpers
+          function showDeckModal(target) {
+            deckLoadTarget = target;
+            deckLoadModal.classList.remove('opacity-0', 'pointer-events-none');
+            deckSearchInput.value = '';
+            renderDeckList(allDecks);
+            deckSearchInput.focus();
+          }
+          function hideDeckModal() {
+            deckLoadModal.classList.add('opacity-0', 'pointer-events-none');
+            deckLoadTarget = null;
+          }
+
+          // Fetch decks from Supabase
+          async function fetchDecksFromDatabase() {
+            const { data, error } = await supabaseClient.from('decks').select('*').order('created_at', { ascending: true });
+            if (error) {
+              console.error('Error fetching decks:', error);
+              allDecks = [];
+            } else {
+              allDecks = data;
+            }
+            deckFuse = new Fuse(allDecks, { keys: ['name'], includeScore: true, threshold: 0.4 });
+          }
+
+          // Render deck list in modal
+          function renderDeckList(decksToRender) {
+            deckListContainer.innerHTML = '';
+            if (!decksToRender.length) {
+              deckListContainer.innerHTML = '<p class="text-gray-400 italic text-center">No decks found.</p>';
+              return;
+            }
+            decksToRender.forEach(deck => {
+              const btn = document.createElement('button');
+              btn.className = 'w-full text-left p-3 rounded-md hover:bg-purple-700 focus:bg-purple-800 focus:outline-none transition-colors font-semibold text-gray-100';
+              btn.textContent = deck.name;
+              btn.addEventListener('click', () => {
+                if (deckLoadTarget === 'player') {
+                  playerDeckInput.value = deck.decklist || '';
+                } else if (deckLoadTarget === 'opponent') {
+                  opponentDeckInput.value = deck.decklist || '';
+                }
+                hideDeckModal();
+              });
+              deckListContainer.appendChild(btn);
+            });
+          }
+
+          // Modal search
+          deckSearchInput.addEventListener('input', () => {
+            const searchTerm = deckSearchInput.value.trim();
+            if (!searchTerm) {
+              renderDeckList(allDecks);
+              return;
+            }
+            const results = deckFuse.search(searchTerm);
+            const filteredDecks = results.map(r => r.item);
+            renderDeckList(filteredDecks);
+          });
+
+          // Modal close
+          closeDeckModalBtn.addEventListener('click', hideDeckModal);
+
+          // Open modal for player deck
+          loadPlayerDeckBtn.addEventListener('click', async () => {
+            await fetchDecksFromDatabase();
+            showDeckModal('player');
+          });
+          // Open modal for opponent deck
+          loadOpponentDeckBtn.addEventListener('click', async () => {
+            await fetchDecksFromDatabase();
+            showDeckModal('opponent');
+          });
+        });
 
         const CARD_DATA_URL = 'https://raw.githubusercontent.com/heavenideas/similcana/refs/heads/main/database/allCards.json';
 
