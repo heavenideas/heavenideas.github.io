@@ -298,6 +298,14 @@
 
         <section id="resultsDisplay" class="mt-8">
         </section>
+
+        <!-- UWPM Win Probability Display -->
+        <div class="mt-8 p-6 bg-gray-800 rounded-lg shadow-xl">
+            <h2 class="text-2xl font-bold text-center text-purple-400 mb-4">Unified Win Probability Model (UWPM)</h2>
+            <div id="win-probability-display" class="text-center">
+                <p class="text-lg text-gray-400">Load both decks to calculate win probability.</p>
+            </div>
+        </div>
     </main>
 
     <!-- Deck Load Modal -->
@@ -638,6 +646,225 @@
         // --- Selection State ---
         let selectedCardIndex = -1;
         let selectedCardType = null; // 'character' or 'song'
+
+        /**
+         * @typedef {object} UWPCard - An enriched card object with features for the UWPM.
+         * @property {string} name - The card's name.
+         * @property {number} cost - The ink cost.
+         * @property {number} strength - The strength value.
+         * @property {number} willpower - The willpower value.
+         * @property {number} lore - The lore value.
+         * @property {boolean} isUninkable - True if the card cannot be put in the inkwell.
+         * @property {Set<string>} keywords - A set of keywords (e.g., 'Rush', 'Ward', 'Evasive').
+         * @property {Set<string>} abilityPatterns - A set of identified ability patterns from lorcana_patterns.txt.
+         * @property {object} rawData - The original card data.
+         */
+
+        /**
+         * Processes a raw card object and extracts features required for UWPM calculations.
+         * @param {object} rawCard - The card object from allCards.json.
+         * @param {object} LORCANA_PATTERNS - The parsed regex patterns.
+         * @returns {UWPCard} - The enriched card object.
+         */
+        function extractCardFeatures(rawCard, LORCANA_PATTERNS) {
+            // 1. Initialize the UWPCard object with basic stats.
+            const features = {
+                name: rawCard.name,
+                cost: rawCard.cost,
+                strength: rawCard.strength || 0,
+                willpower: rawCard.willpower || 0,
+                lore: rawCard.lore || 0,
+                isUninkable: rawCard.inkable === false,
+                keywords: new Set(),
+                abilityPatterns: new Set(),
+                rawData: rawCard,
+            };
+
+            // 2. Extract keywords from both the keywords field and ability text
+            // (a) From keywords field
+            if (Array.isArray(rawCard.keywords)) {
+                rawCard.keywords.forEach(kw => features.keywords.add(kw));
+            }
+            // (b) From abilities (look for keyword type or parse text)
+            if (Array.isArray(rawCard.abilities)) {
+                rawCard.abilities.forEach(ability => {
+                    if (ability.type === 'keyword' && ability.keyword) {
+                        features.keywords.add(ability.keyword);
+                    }
+                    // Also parse for common keywords in text (e.g., 'Rush', 'Ward', etc.)
+                    const text = (ability.fullText || '').toLowerCase();
+                    ['rush', 'ward', 'evasive', 'resist', 'challenger', 'support', 'bodyguard', 'reckless', 'singer'].forEach(kw => {
+                        if (text.includes(kw)) features.keywords.add(kw.charAt(0).toUpperCase() + kw.slice(1));
+                    });
+                });
+            }
+            // (c) From subtypes (sometimes subtypes are used as keywords)
+            if (Array.isArray(rawCard.subtypes)) {
+                rawCard.subtypes.forEach(subtype => features.keywords.add(subtype));
+            }
+
+            // 3. Use the regex from LORCANA_PATTERNS to identify all matching ability patterns
+            // in the card's `fullText` or `abilities` field.
+            let allText = '';
+            if (rawCard.fullText) allText += rawCard.fullText + '\n';
+            if (Array.isArray(rawCard.abilities)) {
+                rawCard.abilities.forEach(ability => {
+                    if (ability.fullText) allText += ability.fullText + '\n';
+                });
+            }
+            // For each pattern in all categories, if it matches, add its name
+            for (const category in LORCANA_PATTERNS) {
+                for (const pattern of LORCANA_PATTERNS[category]) {
+                    if (pattern.regex && pattern.name && pattern.regex.test(allText)) {
+                        features.abilityPatterns.add(pattern.name);
+                    }
+                }
+            }
+
+            return features;
+        }
+
+        /**
+         * Calculates the Resource Dominance Score (RDS) for a given deck.
+         * @param {UWPCard[]} deck
+         * @returns {number}
+         */
+        function calculateRDS(deck) {
+            let cardAdvantageGeneration = 0;
+            let cardAdvantageDenial = 0;
+            let inkAcceleration = 0;
+            let uninkableBurden = 0;
+
+            deck.forEach(card => {
+                // Card Advantage Generation (CAG)
+                if (card.abilityPatterns.has('Card Effect: Draw')) {
+                    // Estimate draw count from text if possible, else +1
+                    let drawCount = 1;
+                    const drawMatch = (card.rawData.fullText || '').match(/draw (\d+) cards?/i);
+                    if (drawMatch) drawCount = parseInt(drawMatch[1], 10);
+                    cardAdvantageGeneration += drawCount * (2 / (card.cost || 1));
+                }
+                if (card.abilityPatterns.has('Play: From Discard')) {
+                    cardAdvantageGeneration += 1.5;
+                }
+
+                // Card Advantage Denial (CAD)
+                if (card.abilityPatterns.has('Card Effect: Opponent Discards')) {
+                    cardAdvantageDenial += 1.5;
+                }
+
+                // Ink Acceleration (IA)
+                if (card.abilityPatterns.has('Card Effect: Hand to Inkwell')) {
+                    inkAcceleration += 2.0;
+                }
+                if (card.abilityPatterns.has('Stat: Cost Reduction')) {
+                    inkAcceleration += 1.0;
+                }
+
+                // Uninkable Burden (UB)
+                if (card.isUninkable) {
+                    uninkableBurden += (card.cost || 1) * 0.25;
+                }
+            });
+
+            const rds = cardAdvantageGeneration + cardAdvantageDenial + inkAcceleration - uninkableBurden;
+            return rds;
+        }
+
+        /**
+         * Calculates the Lore Velocity Index (LVI) for a given deck.
+         * @param {UWPCard[]} deck
+         * @returns {number}
+         */
+        function calculateLVI(deck) {
+            let loreVelocityIndex = 0;
+            deck.forEach(card => {
+                if (card.lore > 0) {
+                    let baseLorePotential = card.lore / (card.cost || 1);
+                    let loreSurvivabilityModifier = 1.0;
+                    let questSafetyModifier = 1.0;
+                    // Lore Survivability Modifier (LSM)
+                    if (card.keywords.has('Ward')) loreSurvivabilityModifier *= 1.4;
+                    if (card.keywords.has('Resist')) loreSurvivabilityModifier *= 1.2;
+                    if ((card.willpower || 0) >= 5) loreSurvivabilityModifier *= 1.1;
+                    // Quest Safety Modifier (QSM)
+                    if (card.keywords.has('Evasive')) questSafetyModifier *= 1.5;
+                    loreVelocityIndex += baseLorePotential * loreSurvivabilityModifier * questSafetyModifier;
+                }
+                // Direct Lore Manipulation (DLM)
+                if (card.abilityPatterns.has('Lore: Gain')) {
+                    loreVelocityIndex += 1.5;
+                }
+            });
+            return loreVelocityIndex;
+        }
+
+        /**
+         * Calculates the Board Control Rating (BCR) for a given deck.
+         * @param {UWPCard[]} deck
+         * @returns {number}
+         */
+        function calculateBCR(deck) {
+            let boardControlRating = 0;
+            deck.forEach(card => {
+                // Removal Efficiency (RE)
+                if (card.abilityPatterns.has('Banish: Chosen Target') || card.abilityPatterns.has('Banish: Any')) {
+                    boardControlRating += 7 / (card.cost || 1);
+                }
+                if (card.abilityPatterns.has('Damage: Deal to One')) {
+                    boardControlRating += 4 / (card.cost || 1);
+                }
+                // Removal Versatility (RV)
+                if (card.abilityPatterns.has('Banish: All Characters')) {
+                    boardControlRating += 5.0;
+                }
+                // Proactive Control (PC)
+                if (card.keywords.has('Rush')) {
+                    boardControlRating += (card.strength || 0) * 0.5;
+                }
+            });
+            return boardControlRating;
+        }
+
+        /**
+         * Calculates the final win probability for Deck A against Deck B.
+         * @param {UWPCard[]} deckA - The player's deck.
+         * @param {UWPCard[]} deckB - The opponent's deck.
+         * @returns {number} - The win probability for Deck A (e.g., 0.55 for 55%).
+         */
+        function calculateWinProbability(deckA, deckB) {
+            // 1. Calculate Intrinsic Scores for both decks
+            const rdsA = calculateRDS(deckA);
+            const lviA = calculateLVI(deckA);
+            const bcrA = calculateBCR(deckA);
+
+            const rdsB = calculateRDS(deckB);
+            const lviB = calculateLVI(deckB);
+            const bcrB = calculateBCR(deckB);
+
+            // 2. Calculate Matchup-Specific Modifiers (placeholders for now)
+            const aim = 0; // Archetype Interaction Modifier
+            const tfa = 0; // Tempo Flow Analysis
+            const taes = 0; // Threat-Answer Efficiency Score
+
+            // 3. Define weights (tunable)
+            const weights = { rds: 0.15, lvi: 0.25, bcr: 0.25, aim: 1.0, tfa: 1.0, taes: 1.0 };
+
+            // 4. Calculate the final Matchup Score using the Master Equation
+            const matchupScore =
+                weights.rds * (rdsA - rdsB) +
+                weights.lvi * (lviA - lviB) +
+                weights.bcr * (bcrA - bcrB) +
+                weights.aim * aim +
+                weights.tfa * tfa +
+                weights.taes * taes;
+
+            // 5. Convert the score to a probability using the Logistic Function
+            const k = 1; // Scaling factor, tunable
+            const winProbability = 1 / (1 + Math.exp(-k * matchupScore));
+
+            return winProbability;
+        }
 
         // --- Initialization ---
         async function initializeApp() {
@@ -1176,11 +1403,30 @@
             PLAYER_DECK_SONGS = playerData.songs;
             PLAYER_DECK_LOCATIONS = playerData.locations;
 
-
             const opponentData = parseDeckString(opponentDeckInput.value);
             OPPONENT_DECK_CHARS = opponentData.characters;
             OPPONENT_DECK_SONGS = opponentData.songs;
             OPPONENT_DECK_LOCATIONS = opponentData.locations;
+
+            // --- UWPM Phase 1: Enrich cards with features ---
+            const playerUWPCards = PLAYER_DECK_CHARS.map(entry => extractCardFeatures(entry.cardInfo, LORCANA_PATTERNS));
+            const opponentUWPCards = OPPONENT_DECK_CHARS.map(entry => extractCardFeatures(entry.cardInfo, LORCANA_PATTERNS));
+            console.log('UWPM Player UWPCard objects:', playerUWPCards);
+            console.log('UWPM Opponent UWPCard objects:', opponentUWPCards);
+
+            // --- UWPM Phase 2: Calculate intrinsic deck scores ---
+            const playerRDS = calculateRDS(playerUWPCards);
+            const playerLVI = calculateLVI(playerUWPCards);
+            const playerBCR = calculateBCR(playerUWPCards);
+            const opponentRDS = calculateRDS(opponentUWPCards);
+            const opponentLVI = calculateLVI(opponentUWPCards);
+            const opponentBCR = calculateBCR(opponentUWPCards);
+            console.log('UWPM Player RDS:', playerRDS, 'LVI:', playerLVI, 'BCR:', playerBCR);
+            console.log('UWPM Opponent RDS:', opponentRDS, 'LVI:', opponentLVI, 'BCR:', opponentBCR);
+
+            // --- UWPM Phase 3: Calculate win probability ---
+            const winProb = calculateWinProbability(playerUWPCards, opponentUWPCards);
+            console.log('UWPM Win Probability (Player Deck):', winProb, '(', (winProb * 100).toFixed(1) + '% )');
 
             console.log("Decks loaded. Player Chars:", PLAYER_DECK_CHARS.length, "Player Songs:", PLAYER_DECK_SONGS.length, "Player Locations:", PLAYER_DECK_LOCATIONS.length);
             console.log("Opponent Chars:", OPPONENT_DECK_CHARS.length, "Opponent Songs:", OPPONENT_DECK_SONGS.length, "Opponent Locations:", OPPONENT_DECK_LOCATIONS.length);
@@ -1195,6 +1441,156 @@
             analysisControls.classList.remove('hidden');
             cardSelectionGrid.classList.remove('hidden');
             handleAnalysisModeChange();
+
+            // --- UWPM Phase 4: UI Integration ---
+            const winProbDisplay = document.getElementById('win-probability-display');
+            if (playerUWPCards.length > 0 && opponentUWPCards.length > 0) {
+                // Store weights in a mutable object for live editing
+                const weights = { rds: 0.15, lvi: 0.25, bcr: 0.25, aim: 1.0, tfa: 1.0, taes: 1.0 };
+                const k = 1;
+
+                // Helper for tooltips
+                function infoIcon(text) {
+                    return `<span class=\"ml-1 cursor-pointer text-blue-300\" title=\"${text.replace(/\"/g, '&quot;')}\">&#9432;</span>`;
+                }
+
+                // Function to recalculate and update the table and probability
+                function updateUWPMTable() {
+                    // Parse weights from inputs
+                    weights.rds = parseFloat(document.getElementById('uwpm-weight-rds').value) || 0;
+                    weights.lvi = parseFloat(document.getElementById('uwpm-weight-lvi').value) || 0;
+                    weights.bcr = parseFloat(document.getElementById('uwpm-weight-bcr').value) || 0;
+                    weights.aim = parseFloat(document.getElementById('uwpm-weight-aim').value) || 0;
+                    weights.tfa = parseFloat(document.getElementById('uwpm-weight-tfa').value) || 0;
+                    weights.taes = parseFloat(document.getElementById('uwpm-weight-taes').value) || 0;
+
+                    // Calculate contributions
+                    const contribRDS = weights.rds * (playerRDS - opponentRDS);
+                    const contribLVI = weights.lvi * (playerLVI - opponentLVI);
+                    const contribBCR = weights.bcr * (playerBCR - opponentBCR);
+                    const contribAIM = weights.aim * 0;
+                    const contribTFA = weights.tfa * 0;
+                    const contribTAES = weights.taes * 0;
+                    const matchupScore = contribRDS + contribLVI + contribBCR + contribAIM + contribTFA + contribTAES;
+                    const winProb = 1 / (1 + Math.exp(-k * matchupScore));
+                    const winPercent = (winProb * 100).toFixed(1);
+                    const lossPercent = (100 - winPercent).toFixed(1);
+
+                    // Update the table and probability
+                    document.getElementById('uwpm-win-chance').textContent = `${winPercent}%`;
+                    document.getElementById('uwpm-opp-chance').textContent = `(Opponent's Chance: ${lossPercent}%)`;
+                    document.getElementById('uwpm-matchup-score').textContent = matchupScore.toFixed(3);
+                    document.getElementById('uwpm-logistic').textContent = `1 / (1 + exp(-k × Matchup Score)), k = ${k}`;
+                    document.getElementById('uwpm-final-prob').textContent = `${winPercent}%`;
+                    document.getElementById('uwpm-contrib-rds').textContent = contribRDS.toFixed(3);
+                    document.getElementById('uwpm-contrib-lvi').textContent = contribLVI.toFixed(3);
+                    document.getElementById('uwpm-contrib-bcr').textContent = contribBCR.toFixed(3);
+                    document.getElementById('uwpm-contrib-aim').textContent = contribAIM.toFixed(3);
+                    document.getElementById('uwpm-contrib-tfa').textContent = contribTFA.toFixed(3);
+                    document.getElementById('uwpm-contrib-taes').textContent = contribTAES.toFixed(3);
+                }
+
+                // Initial values
+                const contribRDS = weights.rds * (playerRDS - opponentRDS);
+                const contribLVI = weights.lvi * (playerLVI - opponentLVI);
+                const contribBCR = weights.bcr * (playerBCR - opponentBCR);
+                const contribAIM = weights.aim * 0;
+                const contribTFA = weights.tfa * 0;
+                const contribTAES = weights.taes * 0;
+                const matchupScore = contribRDS + contribLVI + contribBCR + contribAIM + contribTFA + contribTAES;
+                const winProb = 1 / (1 + Math.exp(-k * matchupScore));
+                const winPercent = (winProb * 100).toFixed(1);
+                const lossPercent = (100 - winPercent).toFixed(1);
+
+                winProbDisplay.innerHTML = `
+                    <p class=\"text-xl\">Your Deck's Estimated Win Chance:</p>
+                    <p id=\"uwpm-win-chance\" class=\"text-5xl font-bold text-green-400 my-2\">${winPercent}%</p>
+                    <p id=\"uwpm-opp-chance\" class=\"text-lg text-gray-400\">(Opponent's Chance: ${lossPercent}%)</p>
+                    <div class=\"mt-6 text-left max-w-2xl mx-auto bg-gray-900 rounded-lg p-4 shadow-inner\">
+                        <h3 class=\"text-lg font-semibold text-purple-300 mb-2\">UWPM Calculation Breakdown</h3>
+                        <div class=\"overflow-x-auto\">
+                        <table class=\"w-full text-sm text-left border-collapse\">
+                            <thead>
+                                <tr class=\"border-b border-gray-700\">
+                                    <th class=\"py-1 px-2\">Metric</th>
+                                    <th class=\"py-1 px-2\">Player</th>
+                                    <th class=\"py-1 px-2\">Opponent</th>
+                                    <th class=\"py-1 px-2\">Weight</th>
+                                    <th class=\"py-1 px-2\">Contribution</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class=\"py-1 px-2\">RDS ${infoIcon('Resource Dominance Score: Measures card advantage, ink acceleration, and uninkable burden.')}</td>
+                                    <td class=\"py-1 px-2 text-blue-300\">${playerRDS.toFixed(2)}</td>
+                                    <td class=\"py-1 px-2 text-pink-300\">${opponentRDS.toFixed(2)}</td>
+                                    <td class=\"py-1 px-2\"><input id=\"uwpm-weight-rds\" type=\"number\" step=\"0.01\" min=\"-2\" max=\"2\" value=\"${weights.rds}\" class=\"w-16 bg-gray-800 border border-gray-600 rounded px-1 text-center\"></td>
+                                    <td class=\"py-1 px-2\"><span id=\"uwpm-contrib-rds\">${contribRDS.toFixed(3)}</span></td>
+                                </tr>
+                                <tr>
+                                    <td class=\"py-1 px-2\">LVI ${infoIcon('Lore Velocity Index: Measures lore gain potential, survivability, and quest safety.')}</td>
+                                    <td class=\"py-1 px-2 text-blue-300\">${playerLVI.toFixed(2)}</td>
+                                    <td class=\"py-1 px-2 text-pink-300\">${opponentLVI.toFixed(2)}</td>
+                                    <td class=\"py-1 px-2\"><input id=\"uwpm-weight-lvi\" type=\"number\" step=\"0.01\" min=\"-2\" max=\"2\" value=\"${weights.lvi}\" class=\"w-16 bg-gray-800 border border-gray-600 rounded px-1 text-center\"></td>
+                                    <td class=\"py-1 px-2\"><span id=\"uwpm-contrib-lvi\">${contribLVI.toFixed(3)}</span></td>
+                                </tr>
+                                <tr>
+                                    <td class=\"py-1 px-2\">BCR ${infoIcon('Board Control Rating: Measures removal, versatility, and proactive board presence.')}</td>
+                                    <td class=\"py-1 px-2 text-blue-300\">${playerBCR.toFixed(2)}</td>
+                                    <td class=\"py-1 px-2 text-pink-300\">${opponentBCR.toFixed(2)}</td>
+                                    <td class=\"py-1 px-2\"><input id=\"uwpm-weight-bcr\" type=\"number\" step=\"0.01\" min=\"-2\" max=\"2\" value=\"${weights.bcr}\" class=\"w-16 bg-gray-800 border border-gray-600 rounded px-1 text-center\"></td>
+                                    <td class=\"py-1 px-2\"><span id=\"uwpm-contrib-bcr\">${contribBCR.toFixed(3)}</span></td>
+                                </tr>
+                                <tr>
+                                    <td class=\"py-1 px-2\">AIM ${infoIcon('Archetype Interaction Modifier: Placeholder for matchup-specific archetype effects.')}</td>
+                                    <td class=\"py-1 px-2 text-blue-300\">0</td>
+                                    <td class=\"py-1 px-2 text-pink-300\">0</td>
+                                    <td class=\"py-1 px-2\"><input id=\"uwpm-weight-aim\" type=\"number\" step=\"0.01\" min=\"-2\" max=\"2\" value=\"${weights.aim}\" class=\"w-16 bg-gray-800 border border-gray-600 rounded px-1 text-center\"></td>
+                                    <td class=\"py-1 px-2\"><span id=\"uwpm-contrib-aim\">${contribAIM.toFixed(3)}</span></td>
+                                </tr>
+                                <tr>
+                                    <td class=\"py-1 px-2\">TFA ${infoIcon('Tempo Flow Analysis: Placeholder for tempo-based matchup effects.')}</td>
+                                    <td class=\"py-1 px-2 text-blue-300\">0</td>
+                                    <td class=\"py-1 px-2 text-pink-300\">0</td>
+                                    <td class=\"py-1 px-2\"><input id=\"uwpm-weight-tfa\" type=\"number\" step=\"0.01\" min=\"-2\" max=\"2\" value=\"${weights.tfa}\" class=\"w-16 bg-gray-800 border border-gray-600 rounded px-1 text-center\"></td>
+                                    <td class=\"py-1 px-2\"><span id=\"uwpm-contrib-tfa\">${contribTFA.toFixed(3)}</span></td>
+                                </tr>
+                                <tr>
+                                    <td class=\"py-1 px-2\">TAES ${infoIcon('Threat-Answer Efficiency Score: Placeholder for threat/answer matchup effects.')}</td>
+                                    <td class=\"py-1 px-2 text-blue-300\">0</td>
+                                    <td class=\"py-1 px-2 text-pink-300\">0</td>
+                                    <td class=\"py-1 px-2\"><input id=\"uwpm-weight-taes\" type=\"number\" step=\"0.01\" min=\"-2\" max=\"2\" value=\"${weights.taes}\" class=\"w-16 bg-gray-800 border border-gray-600 rounded px-1 text-center\"></td>
+                                    <td class=\"py-1 px-2\"><span id=\"uwpm-contrib-taes\">${contribTAES.toFixed(3)}</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        </div>
+                        <div class=\"mt-4 mb-2\"><b>Matchup Score:</b> <span id=\"uwpm-matchup-score\" class=\"text-yellow-200\">${matchupScore.toFixed(3)}</span></div>
+                        <div class=\"mb-2\"><b>Logistic Function:</b> <span id=\"uwpm-logistic\" class=\"text-gray-300\">1 / (1 + exp(-k × Matchup Score)), k = ${k}</span></div>
+                        <div class=\"mb-2\"><b>Final Win Probability:</b> <span id=\"uwpm-final-prob\" class=\"text-green-400\">${winPercent}%</span></div>
+                    </div>
+                `;
+
+                // Add event listeners for all weight inputs
+                [
+                    'uwpm-weight-rds',
+                    'uwpm-weight-lvi',
+                    'uwpm-weight-bcr',
+                    'uwpm-weight-aim',
+                    'uwpm-weight-tfa',
+                    'uwpm-weight-taes',
+                ].forEach(id => {
+                    const input = document.getElementById(id);
+                    if (input) {
+                        input.addEventListener('input', updateUWPMTable);
+                    }
+                });
+
+                // Tooltips are handled via the title attribute for now
+
+            } else {
+                winProbDisplay.innerHTML = `<p class=\"text-lg text-gray-400\">Load both decks to calculate win probability.</p>`;
+            }
         }
 
         function displayAnalysisResults() {
