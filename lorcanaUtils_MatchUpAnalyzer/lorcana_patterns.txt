@@ -29,6 +29,10 @@ Pattern Name: Card Effect: Deck to Hand/Bottom
 Regex: /put (?:one of them|a (?:character|item|action|song) card) into your hand and(?: put)? the rest on the bottom of your deck/gi
 ----------------------------------------
 
+Pattern Name: Card Effect: Filter to Bottom
+Regex: /put the rest on the bottom of your deck/gi
+----------------------------------------
+
 Pattern Name: Card Effect: Discard to Hand
 Regex: /return a(nother)? (?:character|item|action|song|card)(?: with \d+ (?:¤|⬡|⛉) or (?:less|more))? from your discard (?:pile )?to your hand/gi
 ----------------------------------------

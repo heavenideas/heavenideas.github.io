@@ -267,3 +267,137 @@ Description: Modify the UI to add a section for the UWPM results and trigger the
    }  
 
 ```
+
+---------------- NEW FEATURES
+
+
+UWPM Enhancement Plan: Card Selection & Deck Filtering
+Objective:
+Quantify the advantage gained from abilities that allow a player to look at, rearrange, and filter the top cards of their deck. This will be integrated as a new sub-metric within the Resource Dominance Score (RDS).
+
+Core Concept: Deck Quality Improvement (DQI)
+We will introduce a new sub-metric to the RDS called Deck Quality Improvement (DQI). The DQI score represents a card's ability to improve the quality of your future draws by ensuring you get the cards you need and avoid the ones you don't.
+
+The value of a "Scry" effect is based on two primary actions:
+
+Information: The number of cards you get to see.
+
+Filtering/Cycling: The ability to remove unwanted cards from the top of your deck (by putting them on the bottom or in the discard).
+
+Tutoring: The ability to take a specific, desired card from the selection and put it into your hand.
+
+Phase 1: Enhanced Pattern Recognition
+Goal: Update the feature extraction process to precisely identify and quantify the different aspects of a Scry effect.
+
+Module 1.1: Update lorcana_patterns.txt
+Add more granular regex patterns to distinguish between looking, filtering, and tutoring.
+
+Existing Pattern: Card Effect: Look at Deck
+
+Regex: /Look at the top (\\d+|one|two|three|four|five) cards of your deck/gi
+
+This pattern is good for capturing the number of cards seen.
+
+New Pattern: Card Effect: Filter to Bottom
+
+Name: Card Effect: Filter to Bottom
+
+Regex: /put the rest on the bottom of your deck/gi
+
+Purpose: Identifies that the non-chosen cards are removed from future draws, which is the filtering action.
+
+Existing Pattern: Card Effect: Deck to Hand/Bottom
+
+Regex: /put (?:one of them|a (?:character|item|action|song) card) into your hand and(?: put)? the rest on the bottom of your deck/gi
+
+Purpose: This is the most powerful version, combining looking, tutoring (to hand), and filtering (to bottom).
+
+Module 1.2: Update extractCardFeatures Function
+The UWPCard object should be augmented to store this new information.
+
+/**
+ * @typedef {object} UWPCard - An enriched card object for the UWPM.
+ * ... (previous properties)
+ * @property {object} scryEffect - Details about the card's deck filtering ability.
+ * @property {number} scryEffect.lookCount - How many cards are looked at.
+ * @property {boolean} scryEffect.canFilterToBottom - True if it can send cards to the bottom.
+ * @property {boolean} scryEffect.canTutorToHand - True if it can put a card into hand.
+ */
+
+function extractCardFeatures(rawCard, LORCANA_PATTERNS) {
+    // ... existing feature extraction ...
+    
+    // Add new logic here:
+    features.scryEffect = { lookCount: 0, canFilterToBottom: false, canTutorToHand: false };
+
+    const lookMatch = (rawCard.fullText || '').match(LORCANA_PATTERNS['Card Effect: Look at Deck'].regex);
+    if (lookMatch) {
+        // You'll need a helper to convert words like "two" to the number 2.
+        features.scryEffect.lookCount = parseInt(lookMatch[1], 10) || convertWordToNumber(lookMatch[1]);
+
+        if (LORCANA_PATTERNS['Card Effect: Filter to Bottom'].regex.test(rawCard.fullText)) {
+            features.scryEffect.canFilterToBottom = true;
+        }
+        if (LORCANA_PATTERNS['Card Effect: Deck to Hand/Bottom'].regex.test(rawCard.fullText)) {
+            features.scryEffect.canTutorToHand = true;
+        }
+    }
+    
+    return features;
+}
+
+Phase 2: Update RDS Calculation
+Goal: Modify the calculateRDS function to include the new DQI score.
+
+Module 2.1: calculateRDS Function Enhancement
+
+```
+/**
+ * Calculates the Resource Dominance Score (RDS) for a given deck.
+ * @param {UWPCard[]} deck - An array of enriched card objects in the deck.
+ * @returns {number} - The calculated RDS for the deck.
+ */
+function calculateRDS(deck) {
+    let cardAdvantageGeneration = 0; // Existing
+    let cardAdvantageDenial = 0;     // Existing
+    let inkAcceleration = 0;         // Existing
+    let deckQualityImprovement = 0;  // NEW
+    let uninkableBurden = 0;         // Existing
+
+    // Define weights for DQI calculation. These can be tuned for balance.
+    const dqiWeights = {
+        perCardLookedAt: 0.15, // Value of just seeing a card
+        filterToBottom: 1.0,   // Flat bonus for the ability to remove bad cards
+        tutorToHand: 2.5       // High value for getting a card to hand (almost as good as drawing)
+    };
+
+    deck.forEach(card => {
+        // ... existing calculations for CAG, CAD, IA, UB ...
+
+        // NEW: Calculate Deck Quality Improvement (DQI) score for the card
+        if (card.scryEffect && card.scryEffect.lookCount > 0) {
+            let cardDQI = 0;
+            cardDQI += card.scryEffect.lookCount * dqiWeights.perCardLookedAt;
+
+            if (card.scryEffect.canFilterToBottom) {
+                cardDQI += dqiWeights.filterToBottom;
+            }
+
+            if (card.scryEffect.canTutorToHand) {
+                cardDQI += dqiWeights.tutorToHand;
+                // Important: If it tutors to hand, it's also card draw.
+                // We should add to Card Advantage Generation as well, but perhaps a slightly
+                // lower value than a simple "Draw a card" since it costs an action.
+                cardAdvantageGeneration += 0.8; // Example value
+            }
+            
+            // Add the card's total DQI score, weighted by its ink efficiency
+            deckQualityImprovement += cardDQI / (card.cost || 1);
+        }
+    });
+
+    // 5. Combine all sub-metrics into the final RDS.
+    const rds = cardAdvantageGeneration + cardAdvantageDenial + inkAcceleration + deckQualityImprovement - uninkableBurden;
+    return rds;
+}
+```
