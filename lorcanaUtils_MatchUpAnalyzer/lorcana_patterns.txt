@@ -42,7 +42,7 @@ Regex: /Look at chosen opponent's hand/gi
 ----------------------------------------
 
 Pattern Name: Card Effect: Hand to Inkwell
-Regex: /put a card from your hand into your inkwell facedown( and undried)?/gi
+Regex: /put a card from your hand into your inkwell facedown( and exherted)?/gi
 ----------------------------------------
 
 Pattern Name: Bounce: Opposing Character

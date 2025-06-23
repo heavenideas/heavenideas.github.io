@@ -100,15 +100,12 @@
 
         <main id="main-content" class="hidden">
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <!-- Patterns Column -->
                 <div class="bg-white p-6 rounded-2xl shadow-lg">
                     <h2 class="text-2xl font-bold mb-4 text-slate-900 border-b pb-2">Identified Ability Patterns</h2>
                     <div id="pattern-list" class="space-y-4 max-h-[80vh] overflow-y-auto pr-2">
-                        <!-- Patterns will be injected here by JS -->
                     </div>
                 </div>
 
-                <!-- Search and Display Column -->
                 <div class="bg-white p-6 rounded-2xl shadow-lg">
                     <h2 class="text-2xl font-bold mb-4 text-slate-900 border-b pb-2">Card Search & Analysis</h2>
                     <div class="relative">
@@ -117,7 +114,6 @@
                             class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
                         <div id="search-results"
                             class="absolute z-10 w-full mt-1 bg-white border border-slate-300 rounded-lg shadow-xl max-h-60 overflow-y-auto hidden">
-                            <!-- Search results will be injected here -->
                         </div>
                     </div>
                     <div id="card-display" class="mt-6">
@@ -127,7 +123,6 @@
                             <p class="text-sm mt-1">You can edit the regex on the left to see live updates.</p>
                         </div>
                         <div id="card-details" class="hidden">
-                            <!-- Card details will be rendered here -->
                         </div>
                     </div>
                 </div>
@@ -139,9 +134,12 @@
         document.addEventListener('DOMContentLoaded', () => {
             // --- GLOBAL STATE ---
             let allCards = [];
+            let abilityPatterns = []; // Will be populated dynamically
             let fuse;
             let selectedCard = null; // Store the currently viewed card
             const DB_URL = 'https://raw.githubusercontent.com/heavenideas/similcana/refs/heads/main/database/allCards.json';
+            const PATTERNS_URL = 'https://raw.githubusercontent.com/heavenideas/heavenideas.github.io/refs/heads/main/lorcanaUtils_MatchUpAnalyzer/lorcana_patterns.txt';
+
 
             // --- UI ELEMENTS ---
             const loader = document.getElementById('loader');
@@ -152,87 +150,59 @@
             const cardDetailsContainer = document.getElementById('card-details');
             const cardPlaceholder = document.getElementById('card-placeholder');
 
-            const conditionalClause = '(?: with \\d+ (?:¤|⬡|⛉) or (?:less|more))?';
-            const abilityPatterns = [
-                // LORE
-                { name: "Lore: Gain", regex: new RegExp('Gain (\\d+) ◊', 'gi') },
-                { name: "Lore: Lose", regex: new RegExp('(chosen opponent|each opponent) loses (\\d+) ◊', 'gi') },
-                // CARD & DECK
-                { name: "Card Effect: Draw", regex: new RegExp('Draw (\\d+|a|one|two|three) card(s?)', 'gi') },
-                { name: "Card Effect: Opponent Discards", regex: new RegExp('(chosen opponent|each opponent) discard(s)? (\\d+|a|one) card(s?)( at random)?', 'gi') },
-                { name: "Card Effect: Self Discard", regex: new RegExp('discard (\\d+|a|one|two|three) card(s?)', 'gi') },
-                { name: "Card Effect: Look at Deck", regex: new RegExp('Look at the top (\\d+|one|two|three|four|five) cards of your deck', 'gi') },
-                { name: "Card Effect: Deck to Hand/Bottom", regex: new RegExp('put (?:one of them|a (?:character|item|action|song) card) into your hand and(?: put)? the rest on the bottom of your deck', 'gi') },
-                { name: "Card Effect: Discard to Hand", regex: new RegExp(`return a(nother)? (?:character|item|action|song|card)${conditionalClause} from your discard (?:pile )?to your hand`, 'gi') },
-                { name: "Card Effect: Discard to Deck", regex: new RegExp('shuffle a card from your discard into your deck', 'gi') },
-                { name: "Card Effect: Look at Opponent's Hand", regex: new RegExp("Look at chosen opponent's hand", 'gi') },
-                { name: "Card Effect: Hand to Inkwell", regex: new RegExp('put a card from your hand into your inkwell facedown( and undried)?', 'gi') },
-                // BANISH
-                { name: "Banish: Chosen Target", regex: new RegExp(`Banish chosen (?:opposing |opponent's )?(character|item|location|character or item)${conditionalClause}`, 'gi') },
-                { name: "Banish: All Characters", regex: new RegExp(`Banish all characters${conditionalClause}`, 'gi') },
-                { name: "Banish: This Character", regex: new RegExp('Banish this character', 'gi') },
-                { name: "Banish: Opponent's Choice", regex: new RegExp("((?:An|Each) opponent chooses and banishes one of their characters)", 'gi') },
-                { name: "Banish: As a Cost/Choice", regex: new RegExp('You may banish (?:this character|one of your characters) to', 'gi') },
-                // DAMAGE & HEALING
-                { name: "Damage: Deal to One", regex: new RegExp(`Deal (\\d+) damage to chosen (?:opposing )?(character|location|item)${conditionalClause}`, 'gi') },
-                { name: "Damage: Deal to Many", regex: new RegExp('Deal (\\d+) damage to each opposing character', 'gi') },
-                { name: "Damage: Deal Divided", regex: new RegExp('Deal (\\d+) damage divided as you choose among any number of chosen opposing characters', 'gi') },
-                { name: "Damage: Heal", regex: new RegExp('Remove up to (\\d+) damage from (?:chosen )?(?:one of )?(?:your )?(character|location)', 'gi') },
-                // STATE & MOVEMENT
-                { name: "State: Ready Character", regex: new RegExp('Ready chosen (?:your |another )?(character|item)', 'gi') },
-                { name: "State: Exert Character", regex: new RegExp(`Exert chosen (?:opposing |opponent's )?(character|item)${conditionalClause}`, 'gi') },
-                { name: "State: Prevent Readying", regex: new RegExp("chosen (?:opposing )?character can't ready at the start of (?:their|your) next turn", 'gi') },
-                { name: "Movement: To Location", regex: new RegExp('move (?:one of )?your characters to a location for free', 'gi') },
-                // STATS
-                { name: "Stat: Strength Buff", regex: new RegExp('(?:gets|has|gains) \\+(\\d+) ¤', 'gi') },
-                { name: "Stat: Strength Debuff", regex: new RegExp('(?:gets|has) -(\\d+) ¤', 'gi') },
-                { name: "Stat: Willpower Buff", regex: new RegExp('gains \\+(\\d+) ⛉', 'gi') },
-                { name: "Stat: Cost Reduction", regex: new RegExp('pay (\\d+) ⬡ less', 'gi') },
-                // PLAY
-                { name: "Play: From Discard", regex: new RegExp(`You may play a (character|item) card${conditionalClause} from your discard`, 'gi') },
-                { name: "Play: For Free", regex: new RegExp('You may play a character with cost (\\d+) or less for free', 'gi') },
-                { name: "Play: Cheaper", regex: new RegExp('The next time you play a (?:character|item|action|song) card this turn, pay (\\d+) ⬡ less', 'gi') },
-                // TRIGGERS
-                { name: "Trigger: On Play", regex: new RegExp('When you play this (?:character|item|action)', 'gi') },
-                { name: "Trigger: On Quest", regex: new RegExp('Whenever this character quests', 'gi') },
-                { name: "Trigger: On Banish (Self)", regex: new RegExp('When this character is banished', 'gi') },
-                { name: "Trigger: On Banish (Other)", regex: new RegExp('Whenever (?:another|a|one of your other|an opposing) character is banished', 'gi') },
-                { name: "Trigger: On Banish (in Challenge)", regex: new RegExp('Whenever (?:this character is banished in a challenge|an opposing character is banished in a challenge)', 'gi') },
-                { name: "Trigger: On Being Challenged", regex: new RegExp('Whenever this character is challenged', 'gi') },
-                { name: "Trigger: On Challenging", regex: new RegExp('When this character challenges', 'gi') },
-                { name: "Trigger: Start of Turn", regex: new RegExp('At the start of your turn', 'gi') },
-                { name: "Trigger: End of Turn", regex: new RegExp('At the end of your turn', 'gi') },
-                // KEYWORDS & STATIC
-                { name: "Keyword: Evasive", regex: new RegExp('\\b(Evasive)\\b', 'gi') },
-                { name: "Keyword: Rush", regex: new RegExp('\\b(Rush)\\b', 'gi') },
-                { name: "Keyword: Ward", regex: new RegExp('\\b(Ward)\\b', 'gi') },
-                { name: "Keyword: Bodyguard", regex: new RegExp('\\b(Bodyguard)\\b', 'gi') },
-                { name: "Keyword: Challenger", regex: new RegExp('(Challenger \\+\\d+)', 'gi') },
-                { name: "Keyword: Resist", regex: new RegExp('(Resist \\+\\d+)', 'gi') },
-                { name: "Keyword: Shift", regex: new RegExp('(Shift (?:\\d+|an? .*?|into this character))', 'gi') },
-                { name: "Keyword: Support", regex: new RegExp('\\b(Support)\\b', 'gi') },
-                { name: "Keyword: Singer", regex: new RegExp('\\b(Singer \\d+)\\b', 'gi') },
-                { name: "Keyword: Reckless", regex: new RegExp('\\b(Reckless)\\b', 'gi') },
-                { name: "Static: Cannot Be Challenged", regex: new RegExp("This character can't be challenged( except by characters with (?:Rush|Evasive))?", 'gi') },
-                { name: "Static: Cannot Quest", regex: new RegExp("This character can't quest", 'gi') },
-                { name: "Static: Must Challenge", regex: new RegExp('must challenge if able', 'gi') }
-            ];
-
             // --- INITIALIZATION ---
             async function initializeApp() {
                 try {
-                    const response = await fetch(DB_URL);
-                    if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
-                    const data = await response.json();
-                    allCards = data.cards;
+                    // Fetch patterns and card data concurrently
+                    const [patternsResponse, cardsResponse] = await Promise.all([
+                        fetch(PATTERNS_URL),
+                        fetch(DB_URL)
+                    ]);
+
+                    if (!patternsResponse.ok) throw new Error(`Network response for patterns was not ok: ${patternsResponse.statusText}`);
+                    if (!cardsResponse.ok) throw new Error(`Network response for cards was not ok: ${cardsResponse.statusText}`);
+
+                    const patternsText = await patternsResponse.text();
+                    const cardsData = await cardsResponse.json();
+
+                    // Parse the patterns text file
+                    parseAndStorePatterns(patternsText);
+
+                    allCards = cardsData.cards;
                     setupFuseSearch();
                     displayPatterns();
                     loader.classList.add('hidden');
                     mainContent.classList.remove('hidden');
+
                 } catch (error) {
-                    loader.innerHTML = `<div class="text-red-500 font-bold">Failed to load card data. Please try refreshing the page.</div><p class="text-sm text-slate-500 mt-2">${error.message}</p>`;
+                    loader.innerHTML = `<div class="text-red-500 font-bold">Failed to load required data. Please try refreshing the page.</div><p class="text-sm text-slate-500 mt-2">${error.message}</p>`;
                 }
             }
+
+            // --- Pattern Parsing ---
+            function parseAndStorePatterns(text) {
+                const parsedPatterns = [];
+                const patternBlocks = text.split('----------------------------------------').map(s => s.trim()).filter(Boolean);
+
+                patternBlocks.forEach(block => {
+                    const nameMatch = block.match(/Pattern Name: (.*)/);
+                    const regexMatch = block.match(/Regex: \/(.*)\/(.*)/);
+
+                    if (nameMatch && regexMatch) {
+                        const fullName = nameMatch[1].trim();
+                        const regexString = regexMatch[1];
+                        const flags = regexMatch[2];
+
+                        parsedPatterns.push({
+                            name: fullName,
+                            regex: new RegExp(regexString, flags)
+                        });
+                    }
+                });
+                abilityPatterns = parsedPatterns;
+                console.log("Lorcana patterns parsed and stored:", abilityPatterns);
+            }
+
 
             function setupFuseSearch() {
                 const options = { includeScore: true, keys: ['fullName', 'simpleName'], threshold: 0.3 };
