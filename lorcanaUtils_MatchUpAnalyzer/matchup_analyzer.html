@@ -918,36 +918,40 @@
                 return activeAbilities;
             }
 
+            // Expanded list of player-turn triggers using new patterns
+            const playerTurnTriggers = [
+                'On Play', 'On Challenging', 'On Quest', 'Start of Turn',
+                'On Playing Other Character', 'On Playing Song', 'On Banishing Other',
+                'On Readying', 'On Healing', 'On Opponent Damaged', 'On Any Character Challenging',
+                'On Inking', 'On Moving to Location', 'On Drawing Card'
+            ];
+
+            // Opponent-turn triggers
+            const opponentTurnTriggers = [
+                'On Being Challenged', 'On Being Challenged and Banished',
+                'Start of Turn'
+            ];
+
             characterCard.abilities.forEach(ability => {
                 const cleanedFullText = (ability.fullText || "").replace(/\n/g, ' ');
-                const abilityTextLower = cleanedFullText.toLowerCase();
                 let isRelevant = false;
+                let hasSpecificTrigger = false;
 
-                // For this tool, we consider most abilities potentially active to analyze their text.
-                // A more sophisticated logic could be added here based on triggers.
-                // We will use the trigger patterns to refine this.
-                const triggerPatterns = LORCANA_PATTERNS['Trigger'] || [];
-                let hasTrigger = false;
+                const relevantPatterns = analysisContext.perspective === "playerTurn" ? playerTurnTriggers : opponentTurnTriggers;
 
-                for (const pattern of triggerPatterns) {
-                    if (pattern.regex.test(cleanedFullText)) {
-                        hasTrigger = true;
-                        if (analysisContext.perspective === "playerTurn") {
-                            if (pattern.name.includes('On Play') || pattern.name.includes('On Challenging') || pattern.name.includes('On Quest') || pattern.name.includes('Start of Turn')) {
-                                isRelevant = true;
-                                break;
-                            }
-                        } else { // Opponent's turn
-                            if (pattern.name.includes('On Being Challenged') || pattern.name.includes('Start of Turn')) { // Opponent's start of turn
-                                isRelevant = true;
-                                break;
-                            }
-                        }
+                for (const patternName of relevantPatterns) {
+                    const patternCategory = LORCANA_PATTERNS['Trigger'] || [];
+                    const pattern = patternCategory.find(p => p.name === patternName);
+                    if (pattern && pattern.regex.test(cleanedFullText)) {
+                        isRelevant = true;
+                        hasSpecificTrigger = true;
+                        break;
                     }
                 }
 
-                // If it's a static ability or has no specific trigger, we assume it's always active for analysis.
-                if (ability.type === 'static' || !hasTrigger) {
+                // If it's a static ability or activated ability (which can be used on your turn),
+                // or if it has no specific, parsed trigger, assume it's potentially active.
+                if (ability.type === 'static' || (cleanedFullText.includes('—') && analysisContext.perspective === "playerTurn") || !hasSpecificTrigger) {
                     isRelevant = true;
                 }
 
@@ -1124,11 +1128,13 @@
                 }).join(', ');
             if (!pKeywordStr) pKeywordStr = 'No notable keywords/subtypes';
 
+            const pAllTraitsStr = extractAllCharacterTraits(playerChar);
+
             playerCharDisplay.innerHTML = `
                 <h2 class="text-2xl font-bold text-purple-300 mb-2">Analysis for Your Character: ${playerChar.fullName}</h2>
                 <img src="${playerChar.images?.thumbnail || 'https://placehold.co/100x140/2d3748/e2e8f0?text=No+Img'}" alt="${playerChar.fullName}" class="card-image mx-auto mb-2">
                 <p class="text-sm text-gray-300">Cost: ${playerChar.cost || 'N/A'} | Str: ${playerChar.strength || 'N/A'} | Wp: ${playerChar.willpower || 'N/A'} | Lore: ${playerChar.lore || '0'}</p>
-                <p class="text-xs text-gray-400">${pKeywordStr}</p>
+                <p class="text-xs text-gray-400"><b>Traits:</b> ${pAllTraitsStr}</p>
             `;
             overallAnalysisContainer.appendChild(playerCharDisplay);
 
@@ -1245,6 +1251,70 @@
                 opponentSongSection.innerHTML += `<p class="text-center text-gray-400 italic">No opponent songs loaded for analysis.</p>`;
             }
             overallAnalysisContainer.appendChild(opponentSongSection);
+
+            // Activated Ability Analysis
+            const activatedAbilitySection = document.createElement('section');
+            activatedAbilitySection.className = 'analysis-section';
+            const activatedAbilityTitle = document.createElement('h3');
+            activatedAbilityTitle.className = 'section-title';
+            activatedAbilityTitle.textContent = `Your "${playerChar.name}" Activated Abilities vs Opponent's Board`;
+            activatedAbilitySection.appendChild(activatedAbilityTitle);
+
+            const activatedPattern = LORCANA_PATTERNS['Activated']?.find(p => p.name === 'Cost-Effect');
+            const allAbilitiesText = (playerChar.abilities || []).map(a => a.fullText).join('\n');
+            const activatedMatches = activatedPattern ? allAbilitiesText.match(activatedPattern.regex) : null;
+
+            if (activatedMatches && activatedMatches.length > 0) {
+                activatedMatches.forEach(abilityText => {
+                    const effectText = abilityText.split('—')[1] || '';
+                    const abilityImpactTitle = document.createElement('h4');
+                    abilityImpactTitle.className = 'ability-title';
+                    abilityImpactTitle.textContent = `Activated Ability: "${abilityText}"`;
+                    activatedAbilitySection.appendChild(abilityImpactTitle);
+
+                    const abilityImpactOnOppChars = { directRemoval: [], potentialRemoval: [], affectsNoRemoval: [], noInteraction: [] };
+                    OPPONENT_DECK_CHARS.forEach(oppCharEntry => {
+                        const classificationResult = classifyAbilityEffectOnTarget(playerChar, effectText, oppCharEntry.cardInfo, true);
+                        const displayItem = { card: oppCharEntry.cardInfo, details: classificationResult.details, classification: classificationResult.classification };
+                        if (classificationResult.classification === "DirectRemoval") abilityImpactOnOppChars.directRemoval.push(displayItem);
+                        else if (classificationResult.classification === "PotentialRemoval") abilityImpactOnOppChars.potentialRemoval.push(displayItem);
+                        else if (classificationResult.classification === "AffectsNoRemoval") abilityImpactOnOppChars.affectsNoRemoval.push(displayItem);
+                        else abilityImpactOnOppChars.noInteraction.push(displayItem);
+                    });
+
+                    activatedAbilitySection.appendChild(createAbilityImpactDOM(`Directly Removes`, abilityImpactOnOppChars.directRemoval, OPPONENT_DECK_CHARS.length, 'bg-green-800', playerChar, abilityText));
+                    activatedAbilitySection.appendChild(createAbilityImpactDOM(`Potentially Affects/Removes`, abilityImpactOnOppChars.potentialRemoval, OPPONENT_DECK_CHARS.length, 'bg-lime-700 text-black', playerChar, abilityText));
+                });
+            } else {
+                activatedAbilitySection.innerHTML += `<p class="text-center text-gray-400 italic">No activated abilities found on this character.</p>`;
+            }
+            overallAnalysisContainer.appendChild(activatedAbilitySection);
+
+            // Song Synergy Section
+            const songSynergySection = document.createElement('section');
+            songSynergySection.className = 'analysis-section';
+            songSynergySection.innerHTML = `<h3 class="section-title">Song Synergies (for Your ${playerChar.name})</h3>`;
+
+            const singerAbility = (playerChar.abilities || []).find(a => a.keyword === 'Singer');
+            const characterSingValue = singerAbility ? singerAbility.keywordValueNumber : playerChar.cost;
+
+            let canSingList = [];
+            let cannotSingList = [];
+
+            PLAYER_DECK_SONGS.forEach(songEntry => {
+                const song = songEntry.cardInfo;
+                const singCost = getSongSingCost(song);
+                if (characterSingValue >= singCost) {
+                    canSingList.push({card: song, details: `Can sing (Value ${characterSingValue} >= Cost ${singCost})`});
+                } else {
+                    cannotSingList.push({card: song, details: `Cannot sing (Value ${characterSingValue} < Cost ${singCost})`});
+                }
+            });
+
+            songSynergySection.appendChild(createLocationInteractorsDOM("Can Sing These Songs", canSingList, 'bg-blue-800'));
+            songSynergySection.appendChild(createLocationInteractorsDOM("Cannot Sing These Songs", cannotSingList, 'bg-gray-700'));
+            overallAnalysisContainer.appendChild(songSynergySection);
+
             resultsDisplay.appendChild(overallAnalysisContainer);
         }
 
@@ -1309,6 +1379,27 @@
                 playerSongImpactSection.innerHTML += `<p class="text-center text-gray-400 italic">No opponent characters loaded to analyze song against.</p>`;
             }
             overallAnalysisContainer.appendChild(playerSongImpactSection);
+
+            // Eligible Singers Section
+            const singersSection = document.createElement('section');
+            singersSection.className = 'analysis-section';
+            singersSection.innerHTML = `<h3 class="section-title">Eligible Singers in Your Deck (for ${playerSongToAnalyze.name})</h3>`;
+
+            const songSingCost = getSongSingCost(playerSongToAnalyze);
+            let eligibleSingers = [];
+
+            PLAYER_DECK_CHARS.forEach(charEntry => {
+                const character = charEntry.cardInfo;
+                const singerAbility = (character.abilities || []).find(a => a.keyword === 'Singer');
+                const singValue = singerAbility ? singerAbility.keywordValueNumber : character.cost;
+                if (singValue >= songSingCost) {
+                    eligibleSingers.push({card: character, details: `Eligible (Value ${singValue} >= Cost ${songSingCost})`});
+                }
+            });
+
+            singersSection.appendChild(createLocationInteractorsDOM("Can Sing This Song", eligibleSingers, 'bg-blue-800'));
+            overallAnalysisContainer.appendChild(singersSection);
+
             resultsDisplay.appendChild(overallAnalysisContainer);
         }
 
@@ -1562,6 +1653,49 @@
             tooltipWrapper.appendChild(tooltipSpan);
 
             return tooltipWrapper;
+        }
+
+        // --- Add this new helper function somewhere in the script ---
+        function extractAllCharacterTraits(characterCard) {
+            const traits = new Set();
+            const abilitiesText = (characterCard.abilities || []).map(a => a.fullText).join(' ');
+
+            // Extract standard keywords first
+            const keywords = extractCharacterKeywords(characterCard);
+            Object.entries(keywords).forEach(([key, value]) => {
+                if (value === true) traits.add(key.charAt(0).toUpperCase() + key.slice(1));
+                else if (typeof value === 'number' && value > 0) traits.add(`${key.charAt(0).toUpperCase() + key.slice(1)} +${value}`);
+            });
+
+            // Use new regex patterns for other static abilities
+            if (LORCANA_PATTERNS['Static']) {
+                LORCANA_PATTERNS['Static'].forEach(pattern => {
+                    if (pattern.regex.test(abilitiesText)) {
+                        traits.add(pattern.name); // Add the descriptive pattern name
+                    }
+                });
+            }
+            // Add new keywords
+            ['Vanish', 'Sing Together', 'Puppy Shift', 'Universal Shift'].forEach(kw => {
+                 if (abilitiesText.includes(kw)) {
+                     // Extract value if present, e.g., "Sing Together 7"
+                     const match = abilitiesText.match(new RegExp(`(${kw}( \\d+)?)`));
+                     if (match) traits.add(match[1]);
+                 }
+            });
+
+            return traits.size > 0 ? Array.from(traits).join(', ') : 'No notable keywords/abilities.';
+        }
+
+        function getSongSingCost(songCardInfo) {
+            const songCostPattern = LORCANA_PATTERNS['Play']?.find(p => p.name === 'Song');
+            if (songCostPattern) {
+                const match = (songCardInfo.fullText || '').match(songCostPattern.regex);
+                if (match && match[1]) {
+                    return parseInt(match[1], 10);
+                }
+            }
+            return songCardInfo.cost; // Fallback to the song's main cost if pattern fails
         }
 
         // --- Start the app ---
