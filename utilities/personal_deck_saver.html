@@ -223,7 +223,12 @@
                     </div>
                     
                     <div>
-                        <label for="decklist" class="block text-sm font-medium text-gray-300 mb-1">Decklist</label>
+                        <div class="flex justify-between items-center mb-1">
+                            <label for="decklist" class="block text-sm font-medium text-gray-300">Decklist</label>
+                            <button type="button" id="copyDecklistBtn" class="px-3 py-1 bg-gray-600 hover:bg-gray-500 text-xs rounded-md font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-purple-500">
+                                Copy Decklist
+                            </button>
+                        </div>
                         <textarea id="decklist" rows="10" required
                             class="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:outline-none font-mono text-sm"
                             placeholder="4 Captain Hook, Forceful Duelist..."></textarea>
@@ -375,6 +380,7 @@
             const onTheDrawBtn = document.getElementById('onTheDrawBtn');
             const cardSearchInput = document.getElementById('cardSearchInput');
             const cardSearchResults = document.getElementById('cardSearchResults');
+            const copyDecklistBtn = document.getElementById('copyDecklistBtn');
 
 
             // --- PROBABILITY FUNCTIONS ---
@@ -829,6 +835,52 @@
                     hideConfirmationModal();
                 }
             });
+
+            // Copy Decklist Button Functionality
+            if (copyDecklistBtn && decklistTextarea) {
+                copyDecklistBtn.addEventListener('click', () => {
+                    const textToCopy = decklistTextarea.value;
+                    if (navigator.clipboard && window.isSecureContext) { // Check for secure context
+                        navigator.clipboard.writeText(textToCopy)
+                            .then(() => {
+                                const originalText = copyDecklistBtn.textContent;
+                                copyDecklistBtn.textContent = 'Copied!';
+                                copyDecklistBtn.classList.add('bg-green-500', 'hover:bg-green-600');
+                                copyDecklistBtn.classList.remove('bg-gray-600', 'hover:bg-gray-500');
+                                setTimeout(() => {
+                                    copyDecklistBtn.textContent = originalText;
+                                    copyDecklistBtn.classList.remove('bg-green-500', 'hover:bg-green-600');
+                                    copyDecklistBtn.classList.add('bg-gray-600', 'hover:bg-gray-500');
+                                }, 2000);
+                            })
+                            .catch(err => {
+                                console.error('Failed to copy decklist: ', err);
+                                alert('Failed to copy decklist. See console for details.');
+                            });
+                    } else {
+                        // Fallback for non-secure contexts or older browsers (less common for localhost/https)
+                        try {
+                            decklistTextarea.select(); // Select the text
+                            document.execCommand('copy'); // Attempt to copy
+                            decklistTextarea.blur(); // Deselect after copying
+
+                            const originalText = copyDecklistBtn.textContent;
+                            copyDecklistBtn.textContent = 'Copied! (fallback)';
+                            copyDecklistBtn.classList.add('bg-green-500', 'hover:bg-green-600');
+                            copyDecklistBtn.classList.remove('bg-gray-600', 'hover:bg-gray-500');
+                            setTimeout(() => {
+                                copyDecklistBtn.textContent = originalText;
+                                copyDecklistBtn.classList.remove('bg-green-500', 'hover:bg-green-600');
+                                copyDecklistBtn.classList.add('bg-gray-600', 'hover:bg-gray-500');
+                            }, 2000);
+                        } catch (err) {
+                            console.error('Fallback copy method failed: ', err);
+                            alert('Failed to copy decklist using fallback method. Please copy manually.');
+                        }
+                    }
+                });
+            }
+
 
             // --- INITIALIZATION ---
             const initializeApp = async () => {
