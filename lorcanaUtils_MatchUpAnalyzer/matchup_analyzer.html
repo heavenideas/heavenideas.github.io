@@ -529,6 +529,13 @@
          * @property {Set<string>} keywords - A set of keywords (e.g., 'Rush', 'Ward', 'Evasive').
          * @property {Set<string>} abilityPatterns - A set of identified ability patterns from lorcana_patterns.txt.
          * @property {object} rawData - The original card data.
+         * @property {object} freePlayEffect - Details about the card's free-play ability.
+         * @property {number} freePlayEffect.maxCost - Max cost of the card that can be played for free.
+         * @property {string} freePlayEffect.trigger - The condition to trigger the effect (e.g., 'OnPlay', 'OnQuest').
+         * @property {object} scryEffect - Details about the card's scry ability.
+         * @property {number} scryEffect.lookCount - The number of cards to look at.
+         * @property {boolean} scryEffect.canFilterToBottom - True if the card can be filtered to the bottom of the deck.
+         * @property {boolean} scryEffect.canTutorToHand - True if the card can be tutored to the hand.
          */
 
         /**
@@ -603,8 +610,7 @@
             //const lookMatch = (allText || '').match(LORCANA_PATTERNS['Card Effect']['Look at Deck'].regex);
             
             const lookAtDeckPattern = LORCANA_PATTERNS['Card Effect']?.find(p => p.fullName === 'Card Effect: Look at Deck');
-            //const lookMatch = lookAtDeckPattern ? (allText || '').match(lookAtDeckPattern.regex) : null;
-            const lookMatch = lookAtDeckPattern ? (allText || '').match(/Look at the top (\d+|one|two|three|four|five)?(?: )?card(?:s?) of your deck/i) : null;
+            const lookMatch = lookAtDeckPattern ? (allText || '').match(lookAtDeckPattern.regex) : null;
             
 
             let lookCount = 0;
@@ -628,6 +634,38 @@
 
             }
 
+
+            /**
+             * Cost Evasion Value (CEV)
+             * We will introduce a new sub-metric to the RDS called Cost Evasion Value (CEV). 
+             * The CEV score represents a card's ability to "cheat" on ink costs, generating a massive tempo swing by 
+             * deploying threats to the board far ahead of the normal game curve.
+             */
+
+            features.freePlayEffect = { maxCost: 0, trigger: 'None' };
+
+            //const freePlayMatch = (allText || '').match(LORCANA_PATTERNS['Play: For Free'].regex);
+            const freePlayPattern = LORCANA_PATTERNS['Play']?.find(p => p.fullName === 'Play: For Free');
+            
+            const freePlayMatch = freePlayPattern ? (allText || '').match(freePlayPattern.regex) : null;
+            
+
+            if (freePlayMatch) {
+                const costMatch = freePlayMatch[0].match(/with cost (\d+)/i);
+                features.freePlayEffect.maxCost = costMatch ? parseInt(costMatch[1], 10) : 1;
+                //features.freePlayEffect.maxCost = parseInt(freePlayMatch[0].match(/with cost (\d+)/i)[1], 10);
+
+                // Determine the trigger condition for reliability scoring
+                if (/(When you play this character)/gi.test(allText)) {
+                    features.freePlayEffect.trigger = 'OnPlay';
+                } else if (/(When this character quests)/gi.test(allText)) {
+                    features.freePlayEffect.trigger = 'OnQuest';
+                } else {
+                    features.freePlayEffect.trigger = 'Other'; // A catch-all for less common triggers
+                }
+            }
+
+
             return features;
         }
 
@@ -639,6 +677,18 @@
         function getRDS(deck) {
             let total = 0;
             let breakdown = [];
+            let costEvasionValue = 0;        // NEW
+
+            // Define weights for CEV calculation.
+            const cevWeights = {
+                baseMultiplier: 1.0, // The core value is the ink you save
+                triggerReliability: {
+                    'OnPlay': 1.0,   // Highest reliability
+                    'OnQuest': 0.65, // Less reliable; character must survive
+                    'Other': 0.5     // Default for other, potentially more complex triggers
+                }
+            };
+
             // DQI weights as in original
             const dqiWeights = {
                 perCardLookedAt: 0.15,
@@ -696,6 +746,19 @@
                     value -= (card.cost || 1) * 0.25;
                     explanation.push('Uninkable Burden');
                 }
+                // NEW: Calculate Cost Evasion Value (CEV) score for the card
+                if (card.freePlayEffect && card.freePlayEffect.maxCost > 0) {
+                    const reliabilityMod = cevWeights.triggerReliability[card.freePlayEffect.trigger] || 0.5;
+
+                    // The value is the ink saved, modified by how reliably you can trigger it.
+                    const cardCEV = card.freePlayEffect.maxCost * cevWeights.baseMultiplier * reliabilityMod;
+
+                    // This is a direct contribution to the deck's resource dominance.
+                    
+                    explanation.push(`Play this or other card for free: ${cardCEV.toFixed(2)}`);
+                    value += cardCEV;
+                }
+
                 breakdown.push({ name: card.rawData.fullName, value, explanation: explanation.join(', ') });
                 total += value;
             });
