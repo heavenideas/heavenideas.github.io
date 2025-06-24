@@ -819,9 +819,9 @@
                     explanation.push('Lore: Gain');
                 }
                 if (card.abilityPatterns.has('Static: Stat Buff')) {
-                    const loreMatch = (card.rawData.fullText.replace(/\n/g, ' ').trim() || '').test(/gets \+(\d+) ◊/gi);
-                    const loreAmount = getNumberFromText(loreMatch[0])
-                    if (loreAmount){
+                    const loreMatch = (card.rawData.fullText.replace(/\n/g, ' ').trim() || '').match(/gets \+(\d+) ◊/gi);
+                    if (loreMatch){
+                        const loreAmount = getNumberFromText(loreMatch[0])
                         loreBuff = 1.5*loreAmount
                         value += loreBuff;
                         explanation.push('Static: Stat Buf: Lore:',loreAmount);
