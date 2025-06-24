@@ -58,7 +58,7 @@ Regex: /put chosen (?:opposing |opponent's )?(character|item|location|character 
 ----------------------------------------
 
 Pattern Name: Banish: Chosen Target
-Regex: /Banish chosen (?:opposing |opponent's )?(character|item|location|character or item|character, item or location)(?: with \d+ (?:¤|⬡|⛉) or (?:less|more))?/gi
+Regex: /banish chosen (?:opposing |opponent's )?(character|item|location|character or item|character, item or location)(?! of yours)(?: with \d+ (?:¤|⬡|⛉) or (?:less|more))?/gi
 ----------------------------------------
 
 Pattern Name: Banish: All Characters
@@ -130,7 +130,7 @@ Regex: /You may play a (character|item) card(?: with \d+ (?:¤|⬡|⛉) or (?:le
 ----------------------------------------
 
 Pattern Name: Play: For Free
-Regex: /You may play a character with cost (\d+) or less for free/gi
+Regex: /(You may)? play (a|this) character (with cost (\d+) or less )?for free/gi
 ----------------------------------------
 
 Pattern Name: Play: Cheaper
