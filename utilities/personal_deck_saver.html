@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lorcana Deck Visualizer</title>
+    <title>Lorcana Deck Manager & Visualizer</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
@@ -208,11 +208,25 @@
                             class="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:outline-none"
                             placeholder="e.g., Amber/Steel Steelsong">
                     </div>
+                    
+                    <!-- Card Search Section -->
+                    <div>
+                        <label for="cardSearchInput" class="block text-sm font-medium text-gray-300 mb-1">Add Cards to Deck</label>
+                        <div class="relative">
+                            <input type="text" id="cardSearchInput"
+                                class="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                                placeholder="Search for a card name to add it..." autocomplete="off">
+                            <div id="cardSearchResults" class="absolute z-20 w-full bg-gray-600 border border-gray-500 rounded-md mt-1 max-h-72 overflow-y-auto hidden">
+                                <!-- Search results will appear here -->
+                            </div>
+                        </div>
+                    </div>
+                    
                     <div>
                         <label for="decklist" class="block text-sm font-medium text-gray-300 mb-1">Decklist</label>
                         <textarea id="decklist" rows="10" required
                             class="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:outline-none font-mono text-sm"
-                            placeholder="4x Captain Hook, Forceful Duelist..."></textarea>
+                            placeholder="4 Captain Hook, Forceful Duelist..."></textarea>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-300 mb-2">Ink Types</label>
@@ -359,6 +373,8 @@
             const deckSearchInput = document.getElementById('deckSearch');
             const onThePlayBtn = document.getElementById('onThePlayBtn');
             const onTheDrawBtn = document.getElementById('onTheDrawBtn');
+            const cardSearchInput = document.getElementById('cardSearchInput');
+            const cardSearchResults = document.getElementById('cardSearchResults');
 
 
             // --- PROBABILITY FUNCTIONS ---
@@ -470,7 +486,8 @@
                 }
                 const totalDeckSize = deck.reduce((sum, item) => sum + item.count, 0);
                 const drawBonus = mulliganScenario === 'OnTheDraw' ? 1 : 0;
-                const cardsSeen = 14 + drawBonus;
+                // Probability to see at least one copy in opening hand + mulligan
+                const cardsSeenForMulligan = 7 + (7) + drawBonus;
 
                 const grouped = deck.reduce((acc, { count, card }) => {
                     const type = card.type || 'Unknown';
@@ -478,7 +495,7 @@
                     acc[type].push({ count, card });
                     return acc;
                 }, {});
-                const typeOrder = ['Character', 'Action', 'Item', 'Location'];
+                const typeOrder = ['Character', 'Action', 'Item', 'Location', 'Song'];
                 for (const type of typeOrder) {
                     if (grouped[type]) {
                         const section = document.createElement('div');
@@ -490,9 +507,9 @@
                             const stackDiv = document.createElement('div');
                             stackDiv.className = 'card-stack';
                             stackDiv.dataset.cardName = card.fullName;
-                            const probOfFinding = 1 - probMiss(totalDeckSize, count, cardsSeen);
+                            const probOfFinding = 1 - probMiss(totalDeckSize, count, cardsSeenForMulligan);
                             const probText = (probOfFinding * 100).toFixed(1) + '%';
-                            stackDiv.innerHTML = `<div class="card-count-badge">${count}</div><img src="${card.images.full}" alt="${card.fullName}" loading="lazy" onerror="this.onerror=null;this.src='https://placehold.co/150x210/1f2937/9ca3af?text=${encodeURIComponent(card.name)}';"><div class="card-prob-overlay">${probText}</div>`;
+                            stackDiv.innerHTML = `<div class="card-count-badge">${count}</div><img src="${card.images.full}" alt="${card.fullName}" loading="lazy" onerror="this.onerror=null;this.src='https://placehold.co/150x210/1f2937/9ca3af?text=${encodeURIComponent(card.name)}';"><div class="card-prob-overlay" title="Prob. in open hand + mulligan">${probText}</div>`;
                             stackDiv.addEventListener('click', () => handleCardSelection(card.fullName, count));
                             grid.appendChild(stackDiv);
                         });
@@ -530,6 +547,117 @@
                 charts.cardType.data.datasets[0].data = Object.values(cardTypeData);
                 charts.cardType.data.datasets[0].backgroundColor = Object.keys(cardTypeData).map(t => TYPE_COLORS[t] || '#fff');
                 Object.values(charts).forEach(chart => chart.update());
+            }
+
+            // --- DECK BUILDING & SEARCH ---
+            function renderSearchResults(results) {
+                cardSearchResults.innerHTML = '';
+                if (results.length === 0) {
+                    cardSearchResults.classList.add('hidden');
+                    return;
+                }
+
+                results.forEach(result => {
+                    const card = result.item;
+                    const resultDiv = document.createElement('div');
+                    resultDiv.className = 'p-2 hover:bg-purple-800 border-b border-gray-500 flex items-center gap-3 cursor-pointer';
+                    
+                    // Card thumbnail image
+                    const thumbnailImg = document.createElement('img');
+                    thumbnailImg.src = card.images.full;
+                    thumbnailImg.alt = card.fullName;
+                    thumbnailImg.className = 'w-10 h-14 object-contain rounded-sm flex-shrink-0';
+                    thumbnailImg.loading = 'lazy';
+                    
+                    // Text container for name
+                    const textContainer = document.createElement('div');
+                    textContainer.className = 'flex-grow min-w-0'; // flex-grow to take space, min-w-0 to allow shrinking
+                    
+                    const nameSpan = document.createElement('span');
+                    nameSpan.className = 'font-semibold block truncate'; // truncate long names
+                    const cardColor = card.colors && card.colors.length > 0 ? card.colors[0] : 'Steel';
+                    nameSpan.textContent = card.fullName; // Use the full name
+                    nameSpan.style.color = INK_COLORS[cardColor]?.hex || '#9CA3AF';
+                    nameSpan.title = card.fullName; // Show full name on hover if truncated
+                    textContainer.appendChild(nameSpan);
+
+                    // Container for add buttons
+                    const addControlsDiv = document.createElement('div');
+                    addControlsDiv.className = 'flex items-center gap-1 flex-shrink-0';
+
+                    [1, 2, 3, 4].forEach(count => {
+                        const btn = document.createElement('button');
+                        btn.type = 'button';
+                        btn.textContent = `+${count}`;
+                        btn.className = 'px-2 py-1 bg-gray-500 hover:bg-purple-600 text-white text-xs font-bold rounded transition-colors';
+                        btn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            addCardToDecklist(card, count);
+                        });
+                        addControlsDiv.appendChild(btn);
+                    });
+                    
+                    resultDiv.addEventListener('click', () => {
+                        addCardToDecklist(card, 1);
+                    });
+                    
+                    resultDiv.appendChild(thumbnailImg);
+                    resultDiv.appendChild(textContainer);
+                    resultDiv.appendChild(addControlsDiv);
+                    cardSearchResults.appendChild(resultDiv);
+                });
+
+                cardSearchResults.classList.remove('hidden');
+            }
+
+
+            function addCardToDecklist(card, count) {
+                const cardFullName = card.fullName;
+                const lines = decklistTextarea.value.split('\n').filter(l => l.trim() !== '');
+                let cardFound = false;
+                const lineRegex = /^(?:(\d+)x?\s)?(.*)/;
+
+                for (let i = 0; i < lines.length; i++) {
+                    const match = lines[i].trim().match(lineRegex);
+                    if (match) {
+                        const nameFromLine = match[2].trim();
+                        // Use a more direct comparison first, then fallback to Fuse for robustness
+                        if (nameFromLine.toLowerCase() === cardFullName.toLowerCase()) {
+                             const newCount = count; // Set to the specific count clicked
+                             lines[i] = `${newCount} ${cardFullName}`;
+                             cardFound = true;
+                             break;
+                        }
+                    }
+                }
+
+                if (!cardFound) {
+                     for (let i = 0; i < lines.length; i++) {
+                        const match = lines[i].trim().match(lineRegex);
+                        if(match) {
+                            const nameFromLine = match[2].trim();
+                            const searchResult = cardFuse.search(nameFromLine);
+                            if (searchResult.length > 0 && searchResult[0].item.fullName === cardFullName) {
+                                const newCount = count; // Set to the specific count clicked
+                                lines[i] = `${newCount} ${cardFullName}`;
+                                cardFound = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+
+                if (!cardFound) {
+                    lines.push(`${count} ${cardFullName}`);
+                }
+
+                decklistTextarea.value = lines.join('\n');
+                decklistTextarea.dispatchEvent(new Event('input', { bubbles: true }));
+
+                cardSearchInput.value = '';
+                cardSearchResults.classList.add('hidden');
+                cardSearchInput.focus();
             }
 
             // --- DATABASE & DECK LIST LOGIC ---
@@ -645,6 +773,32 @@
                 const filteredDecks = results.map(result => result.item);
                 renderDeckList(filteredDecks);
             });
+            
+            // Card Search Listeners
+            cardSearchInput.addEventListener('input', () => {
+                const searchTerm = cardSearchInput.value.trim();
+                if (searchTerm.length < 2) {
+                    cardSearchResults.classList.add('hidden');
+                    return;
+                }
+                const results = cardFuse.search(searchTerm);
+                renderSearchResults(results.slice(0, 8)); // Show top 8
+            });
+
+            cardSearchInput.addEventListener('focus', () => {
+                const searchTerm = cardSearchInput.value.trim();
+                if (searchTerm.length >= 2) {
+                    const results = cardFuse.search(searchTerm);
+                    renderSearchResults(results.slice(0, 8));
+                }
+            });
+
+            document.addEventListener('click', (e) => {
+                const searchContainer = cardSearchInput.parentElement;
+                if (!searchContainer.contains(e.target)) {
+                    cardSearchResults.classList.add('hidden');
+                }
+            });
 
             onThePlayBtn.addEventListener('click', () => {
                 mulliganScenario = 'OnThePlay';
@@ -684,7 +838,7 @@
                     const response = await fetch(CARD_DATA_URL);
                     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                     allCards = (await response.json()).cards;
-                    cardFuse = new Fuse(allCards, { keys: ['fullName', 'simpleName'], includeScore: true, threshold: 0.3 });
+                    cardFuse = new Fuse(allCards, { keys: ['fullName', 'simpleName', 'name', 'title'], includeScore: true, threshold: 0.3 });
                     await loadAndRenderDecks();
                     resetForm();
                 } catch (error) {
