@@ -401,3 +401,39 @@ function calculateRDS(deck) {
     return rds;
 }
 ```
+
+
+---- NEW FEATURES
+
+Summary of Changes Made
+I have successfully updated the UWPM (Unified Win Probability Model) to include all card types in the deck analysis. Here are the key changes made:
+1. Added Support for Items and Actions
+New Global Arrays: Added PLAYER_DECK_ITEMS, OPPONENT_DECK_ITEMS, PLAYER_DECK_ACTIONS, and OPPONENT_DECK_ACTIONS to store items and actions separately from songs.
+2. Updated Deck Parsing Function
+Enhanced parseDeckString(): Now processes all card types:
+Character cards → characters array
+Action cards with Song subtype → songs array
+Action cards without Song subtype → actions array
+Item cards → items array
+Location cards → locations array
+3. Updated UWPM Calculation
+Modified UWPM Phase 1: Now combines ALL card types for the win probability calculation:
+Apply to matchup_anal...
+4. Updated Deck Loading
+Enhanced handleAnalyzeButtonClick(): Now assigns all parsed card types to their respective arrays
+Updated Console Logging: Shows counts for all card types including items and actions
+5. Maintained Backward Compatibility
+UI Analysis: The character and song matchup analysis remains unchanged and focused on those specific card types
+UWPM Integration: The UWPM now uses all card types while the detailed analysis UI continues to work with characters and songs
+What This Achieves
+✅ Complete Deck Analysis: The UWPM now considers every card in the deck, not just characters
+✅ Accurate Win Probability: Items, actions, and locations now contribute to the RDS, LVI, and BCR calculations
+✅ Better Resource Assessment: Items and actions that provide card draw, removal, or other effects are now properly evaluated
+✅ Comprehensive Scoring: All card types contribute to the final win probability calculation
+The UWPM will now provide more accurate win probability estimates because it's considering the full deck composition, including:
+Items that provide ongoing effects or card advantage
+Actions that offer removal, card draw, or other strategic effects
+Locations that provide board presence and effects
+Songs (already included) for their strategic value
+Characters (already included) for their combat and lore potential
+This change ensures that the UWPM lives up to its name as a "Unified" model that considers all aspects of both decks in the matchup analysis.

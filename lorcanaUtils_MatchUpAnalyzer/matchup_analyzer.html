@@ -336,6 +336,10 @@
         let OPPONENT_DECK_SONGS = [];
         let PLAYER_DECK_LOCATIONS = [];
         let OPPONENT_DECK_LOCATIONS = [];
+        let PLAYER_DECK_ITEMS = [];
+        let OPPONENT_DECK_ITEMS = [];
+        let PLAYER_DECK_ACTIONS = [];
+        let OPPONENT_DECK_ACTIONS = [];
 
         // --- Supabase Deck Loading ---
         const SUPABASE_URL = 'https://cjlhrfhximjldqrfblkj.supabase.co';
@@ -877,9 +881,13 @@
             const characters = [];
             const songs = [];
             const locations = []; // Added for locations
+            const items = []; // Added for items
+            const actions = []; // Added for actions
             const uniqueCharNames = new Set();
             const uniqueSongNames = new Set();
             const uniqueLocationNames = new Set(); // Added for locations
+            const uniqueItemNames = new Set(); // Added for items
+            const uniqueActionNames = new Set(); // Added for actions
 
 
             lines.forEach(line => {
@@ -908,6 +916,16 @@
                                 locations.push({ cardInfo: cardData, count: count });
                                 uniqueLocationNames.add(cardData.fullName);
                             }
+                        } else if (cardData.type === 'Item') { // Added item check
+                            if (!uniqueItemNames.has(cardData.fullName)) {
+                                items.push({ cardInfo: cardData, count: count });
+                                uniqueItemNames.add(cardData.fullName);
+                            }
+                        } else if (cardData.type === 'Action') { // Added action check (non-song actions)
+                            if (!uniqueActionNames.has(cardData.fullName)) {
+                                actions.push({ cardInfo: cardData, count: count });
+                                uniqueActionNames.add(cardData.fullName);
+                            }
                         }
                     } else {
                         console.warn(`Card not found during parsing: ${cardName}`);
@@ -919,9 +937,11 @@
             const parsedResult = {
                 characters: Array.from(uniqueCharNames).map(name => ({ cardInfo: ALL_CARDS_MAP.get(name) })),
                 songs: Array.from(uniqueSongNames).map(name => ({ cardInfo: ALL_CARDS_MAP.get(name) })),
-                locations: Array.from(uniqueLocationNames).map(name => ({ cardInfo: ALL_CARDS_MAP.get(name) })) // Added locations
+                locations: Array.from(uniqueLocationNames).map(name => ({ cardInfo: ALL_CARDS_MAP.get(name) })), // Added locations
+                items: Array.from(uniqueItemNames).map(name => ({ cardInfo: ALL_CARDS_MAP.get(name) })), // Added items
+                actions: Array.from(uniqueActionNames).map(name => ({ cardInfo: ALL_CARDS_MAP.get(name) })) // Added actions
             };
-            console.log("Deck parsed. Characters:", parsedResult.characters.length, "Songs:", parsedResult.songs.length, "Locations:", parsedResult.locations.length);
+            console.log("Deck parsed. Characters:", parsedResult.characters.length, "Songs:", parsedResult.songs.length, "Locations:", parsedResult.locations.length, "Items:", parsedResult.items.length, "Actions:", parsedResult.actions.length);
             return parsedResult;
         }
 
@@ -1333,15 +1353,35 @@
             PLAYER_DECK_CHARS = playerData.characters;
             PLAYER_DECK_SONGS = playerData.songs;
             PLAYER_DECK_LOCATIONS = playerData.locations;
+            PLAYER_DECK_ITEMS = playerData.items;
+            PLAYER_DECK_ACTIONS = playerData.actions;
 
             const opponentData = parseDeckString(opponentDeckInput.value);
             OPPONENT_DECK_CHARS = opponentData.characters;
             OPPONENT_DECK_SONGS = opponentData.songs;
             OPPONENT_DECK_LOCATIONS = opponentData.locations;
+            OPPONENT_DECK_ITEMS = opponentData.items;
+            OPPONENT_DECK_ACTIONS = opponentData.actions;
 
             // --- UWPM Phase 1: Enrich cards with features ---
-            const playerUWPCards = PLAYER_DECK_CHARS.map(entry => extractCardFeatures(entry.cardInfo, LORCANA_PATTERNS));
-            const opponentUWPCards = OPPONENT_DECK_CHARS.map(entry => extractCardFeatures(entry.cardInfo, LORCANA_PATTERNS));
+            // Combine all card types for UWPM calculation
+            const allPlayerCards = [
+                ...PLAYER_DECK_CHARS,
+                ...PLAYER_DECK_SONGS,
+                ...PLAYER_DECK_LOCATIONS,
+                ...PLAYER_DECK_ITEMS || [],
+                ...PLAYER_DECK_ACTIONS || []
+            ];
+            const allOpponentCards = [
+                ...OPPONENT_DECK_CHARS,
+                ...OPPONENT_DECK_SONGS,
+                ...OPPONENT_DECK_LOCATIONS,
+                ...OPPONENT_DECK_ITEMS || [],
+                ...OPPONENT_DECK_ACTIONS || []
+            ];
+            
+            const playerUWPCards = allPlayerCards.map(entry => extractCardFeatures(entry.cardInfo, LORCANA_PATTERNS));
+            const opponentUWPCards = allOpponentCards.map(entry => extractCardFeatures(entry.cardInfo, LORCANA_PATTERNS));
             console.log('UWPM Player UWPCard objects:', playerUWPCards);
             console.log('UWPM Opponent UWPCard objects:', opponentUWPCards);
 
@@ -1365,8 +1405,8 @@
             const winProb = calculateWinProbability(playerUWPCards, opponentUWPCards);
             console.log('UWPM Win Probability (Player Deck):', winProb, '(', (winProb * 100).toFixed(1) + '% )');
 
-            console.log("Decks loaded. Player Chars:", PLAYER_DECK_CHARS.length, "Player Songs:", PLAYER_DECK_SONGS.length, "Player Locations:", PLAYER_DECK_LOCATIONS.length);
-            console.log("Opponent Chars:", OPPONENT_DECK_CHARS.length, "Opponent Songs:", OPPONENT_DECK_SONGS.length, "Opponent Locations:", OPPONENT_DECK_LOCATIONS.length);
+            console.log("Decks loaded. Player Chars:", PLAYER_DECK_CHARS.length, "Player Songs:", PLAYER_DECK_SONGS.length, "Player Locations:", PLAYER_DECK_LOCATIONS.length, "Player Items:", PLAYER_DECK_ITEMS.length, "Player Actions:", PLAYER_DECK_ACTIONS.length);
+            console.log("Opponent Chars:", OPPONENT_DECK_CHARS.length, "Opponent Songs:", OPPONENT_DECK_SONGS.length, "Opponent Locations:", OPPONENT_DECK_LOCATIONS.length, "Opponent Items:", OPPONENT_DECK_ITEMS.length, "Opponent Actions:", OPPONENT_DECK_ACTIONS.length);
 
             // Reset selection state
             selectedCardIndex = -1;
