@@ -14,7 +14,7 @@ Regex: /Draw (\d+|a|one|two|three) card(s?)|put (\d+|a|one|two|three)( card)?s? 
 ----------------------------------------
 
 Pattern Name: Card Effect: Opponent Discards
-Regex: /(chosen opponent|each opponent) discard(s)? (\d+|a|one) card(s?)( at random)?/gi
+Regex: /(chosen opponent|each opponent) (chooses and )?discard(s)? (\d+|a|one|two|three) card(s?)( at random)?/gi
 ----------------------------------------
 
 Pattern Name: Card Effect: Self Discard
