@@ -6,15 +6,15 @@ Regex: /Gain (\d+) (◊|lore)/gi
 ----------------------------------------
 
 Pattern Name: Lore: Lose
-Regex: /(chosen opponent(s?)|each opponent) loses (\d+) (◊|lore)/gi
+Regex: /(chosen opponent(?:s?)|each opponent) loses (\d+) (◊|lore)/gi
 ----------------------------------------
 
 Pattern Name: Card Effect: Draw
-Regex: /Draw (\d+|a|one|two|three) card(s?)|put (\d+|a|one|two|three)( card)?s? into your hand/gi
+Regex: /Draw (\d+|a|one|two|three) card(?:s?)|put (\d+|a|one|two|three)(?: card)?s? into your hand/gi
 ----------------------------------------
 
 Pattern Name: Card Effect: Opponent Discards
-Regex: /(chosen opponent|each opponent) (chooses and |reveals their hand and )?discard(s)? (\d+|a|one|two|three) (song|item|character|action|location)?( )?card(s?)( at random)?/gi
+Regex: /(chosen opponent|each opponent) (chooses and |reveals their hand and )?discard(?:s)? (\d+|a|one|two|three) (song|item|character|action|location)?(?: )?card(?:s?)( at random)?/gi
 ----------------------------------------
 
 Pattern Name: Card Effect: Self Discard
@@ -22,7 +22,7 @@ Regex: /discard (\d+|a|one|two|three) card(s?)/gi
 ----------------------------------------
 
 Pattern Name: Card Effect: Look at Deck
-Regex: /Look at the top (\d+|one|two|three|four|five)?( )?card(s?) of your deck/gi
+Regex: /Look at the top (\d+|one|two|three|four|five)?(?: )?card(?:s?) of your deck/gi
 ----------------------------------------
 
 Pattern Name: Card Effect: Deck to Hand/Bottom
