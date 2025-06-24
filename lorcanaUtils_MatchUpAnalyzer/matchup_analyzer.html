@@ -701,7 +701,7 @@
                 // Card Advantage Generation
                 if (card.abilityPatterns.has('Card Effect: Draw')) {
                     let drawCount = 1;
-                    const drawMatch = (card.rawData.fullText.replace(/\n/g, ' ').trim() || '').match(/draw (\d+) cards?/i);
+                    const drawMatch = (card.rawData.fullText.replace(/\n/g, ' ').trim() || '').match(/draw(?:s)? (\d+) cards?/i);
                     //if (drawMatch) drawCount = parseInt(drawMatch[1], 10);
                     if (drawMatch) drawCount = getNumberFromText(drawMatch[1]);
                     value += drawCount * (2 / (card.cost || 1));
