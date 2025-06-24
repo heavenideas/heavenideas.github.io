@@ -498,6 +498,22 @@
         let selectedCardIndex = -1;
         let selectedCardType = null; // 'character' or 'song'
 
+
+        // --- Functions ---
+        function getNumberFromText(textNumber) {
+            let number;
+            if (textNumber === 'a' || textNumber === 'one') {
+                number = 1;
+            } else if (textNumber === 'two') {
+                number = 2;
+            } else if (textNumber === 'three') {
+                number = 3;
+            } else {
+                const [match] = textNumber.match(/(\d+)/) || [];
+                number = parseInt(match, 10); // Ensure the extracted number is parsed as an integer
+            }
+            return number;
+        }
         /**
          * @typedef {object} UWPCard - An enriched card object with features for the UWPM.
          * @property {string} name - The card's name.
@@ -588,21 +604,8 @@
             let lookCount = 0;
             
             if (lookMatch) {
-    
-                if (lookMatch[1] === 'a') {
-                    lookCount = 1;
-                } else if (lookMatch[1] === 'one') {
-                    lookCount = 1;
-                } else if (lookMatch[1] === 'two') {
-                    lookCount = 2;
-                } else if (lookMatch[1] === 'three') {
-                    lookCount = 3;
-                } else {
-                    const [match] = lookMatch[1].match(/(\d+)/) || []; // "12345"
-                    lookCount = match;
-                }
 
-                features.scryEffect.lookCount = lookCount;
+                features.scryEffect.lookCount = getNumberFromText(lookMatch[1]);
 
                 const filterToBottomPattern = LORCANA_PATTERNS['Card Effect']?.find(p => p.fullName === 'Card Effect: Filter to Bottom');
                 if (filterToBottomPattern && filterToBottomPattern.regex.test(allText)) {
@@ -638,8 +641,9 @@
                 // Card Advantage Generation
                 if (card.abilityPatterns.has('Card Effect: Draw')) {
                     let drawCount = 1;
-                    const drawMatch = (card.rawData.fullText || '').match(/draw (\d+) cards?/i);
-                    if (drawMatch) drawCount = parseInt(drawMatch[1], 10);
+                    const drawMatch = (card.rawData.fullText.replace(/\n/g, ' ').trim() || '').match(/draw (\d+) cards?/i);
+                    //if (drawMatch) drawCount = parseInt(drawMatch[1], 10);
+                    if (drawMatch) drawCount = getNumberFromText(drawMatch[1]);
                     value += drawCount * (2 / (card.cost || 1));
                     explanation.push(`Draw (${drawCount})`);
                 }
@@ -682,7 +686,7 @@
                     value -= (card.cost || 1) * 0.25;
                     explanation.push('Uninkable Burden');
                 }
-                breakdown.push({ name: card.name, value, explanation: explanation.join(', ') });
+                breakdown.push({ name: card.rawData.fullName, value, explanation: explanation.join(', ') });
                 total += value;
             });
             return { total, breakdown };
@@ -714,7 +718,7 @@
                     value += 1.5;
                     explanation.push('Lore: Gain');
                 }
-                breakdown.push({ name: card.name, value, explanation: explanation.join(', ') });
+                breakdown.push({ name: card.rawData.fullName, value, explanation: explanation.join(', ') });
                 total += value;
             });
             return { total, breakdown };
@@ -747,7 +751,7 @@
                     value += (card.strength || 0) * 0.5;
                     explanation.push('Rush');
                 }
-                breakdown.push({ name: card.name, value, explanation: explanation.join(', ') });
+                breakdown.push({ name: card.rawData.fullName, value, explanation: explanation.join(', ') });
                 total += value;
             });
             return { total, breakdown };

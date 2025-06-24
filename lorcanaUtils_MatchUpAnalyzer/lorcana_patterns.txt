@@ -2,11 +2,11 @@ Lorcana Ability Patterns Export
 ============================
 
 Pattern Name: Lore: Gain
-Regex: /Gain (\d+) ◊/gi
+Regex: /Gain (\d+) (◊|lore)/gi
 ----------------------------------------
 
 Pattern Name: Lore: Lose
-Regex: /(chosen opponent(s?)|each opponent) loses (\d+) ◊/gi
+Regex: /(chosen opponent(s?)|each opponent) loses (\d+) (◊|lore)/gi
 ----------------------------------------
 
 Pattern Name: Card Effect: Draw
