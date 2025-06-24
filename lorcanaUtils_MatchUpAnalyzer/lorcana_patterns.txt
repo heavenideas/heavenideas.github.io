@@ -78,7 +78,11 @@ Regex: /You may banish (?:this character|one of your characters) to/gi
 ----------------------------------------
 
 Pattern Name: Damage: Deal to One
-Regex: /(Deal|move) (\d+) damage to (chosen|another|another chosen) (?:opposing )?(character|location|item)(?: with \d+ (?:¤|⬡|⛉) or (?:less|more))?/gi
+Regex: /(Deal|move) (\d+)?(:? )?damage to (chosen|another|another chosen) (?:opposing )?(character|location|item)(?: with \d+ (?:¤|⬡|⛉) or (?:less|more))?/gi
+----------------------------------------
+
+Pattern Name: Damage: Put Damage Counters
+Regex: /(put .*? damage counter(s?) on .*? character)/gi
 ----------------------------------------
 
 Pattern Name: Damage: Deal to Many

@@ -812,9 +812,13 @@
                     value += 7 / (card.cost || 1);
                     explanation.push('Banish');
                 }
-                if (card.abilityPatterns.has('Damage: Deal to One')) {
+                if (card.abilityPatterns.has('Damage: Deal to One') || card.abilityPatterns.has('Damage: Deal to Many')) {
                     value += 4 / (card.cost || 1);
-                    explanation.push('Damage');
+                    explanation.push('Deal Damage');
+                }
+                if (card.abilityPatterns.has('Damage: Put Damage Counters')) {
+                    value += 4 / (card.cost || 1);
+                    explanation.push('Put Damage Counters');
                 }
                 if (card.abilityPatterns.has('Banish: All Characters')) {
                     value += 5.0;
