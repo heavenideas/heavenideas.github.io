@@ -603,13 +603,19 @@
             //const lookMatch = (allText || '').match(LORCANA_PATTERNS['Card Effect']['Look at Deck'].regex);
             
             const lookAtDeckPattern = LORCANA_PATTERNS['Card Effect']?.find(p => p.fullName === 'Card Effect: Look at Deck');
-            const lookMatch = lookAtDeckPattern ? (allText || '').match(lookAtDeckPattern.regex) : null;
+            //const lookMatch = lookAtDeckPattern ? (allText || '').match(lookAtDeckPattern.regex) : null;
+            const lookMatch = lookAtDeckPattern ? (allText || '').match(/Look at the top (\d+|one|two|three|four|five)?(?: )?card(?:s?) of your deck/i) : null;
+            
 
             let lookCount = 0;
             
             if (lookMatch) {
-
-                features.scryEffect.lookCount = getNumberFromText(lookMatch[1]);
+                try {
+                    features.scryEffect.lookCount = getNumberFromText(lookMatch[1]);
+                } catch (err) {
+                    console.error("Error extracting lookCount from lookMatch:", err, lookMatch, allText, lookAtDeckPattern.regex);
+                    features.scryEffect.lookCount = 0; // fallback or handle as needed
+                }
 
                 const filterToBottomPattern = LORCANA_PATTERNS['Card Effect']?.find(p => p.fullName === 'Card Effect: Filter to Bottom');
                 if (filterToBottomPattern && filterToBottomPattern.regex.test(allText)) {

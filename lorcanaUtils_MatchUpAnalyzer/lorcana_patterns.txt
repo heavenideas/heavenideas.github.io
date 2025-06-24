@@ -2,322 +2,322 @@ Lorcana Ability Patterns Export
 ============================
 
 Pattern Name: Lore: Gain
-Regex: /Gain (\d+) (◊|lore)/gi
+Regex: /Gain (\d+) (◊|lore)/i
 ----------------------------------------
 
 Pattern Name: Lore: Lose
-Regex: /(chosen opponent(?:s?)|each opponent) loses (\d+) (◊|lore)/gi
+Regex: /(chosen opponent(?:s?)|each opponent) loses (\d+) (◊|lore)/i
 ----------------------------------------
 
 Pattern Name: Card Effect: Draw
-Regex: /Draw (\d+|a|one|two|three) card(?:s?)|put (\d+|a|one|two|three)(?: card)?s? into your hand/gi
+Regex: /Draw (\d+|a|one|two|three) card(?:s?)|put (\d+|a|one|two|three)(?: card)?s? into your hand/i
 ----------------------------------------
 
 Pattern Name: Card Effect: Opponent Discards
-Regex: /(chosen opponent|each opponent) (chooses and |reveals their hand and )?discard(?:s)? (\d+|a|one|two|three) (song|item|character|action|location)?(?: )?card(?:s?)( at random)?/gi
+Regex: /(chosen opponent|each opponent) (chooses and |reveals their hand and )?discard(?:s)? (\d+|a|one|two|three) (song|item|character|action|location)?(?: )?card(?:s?)( at random)?/i
 ----------------------------------------
 
 Pattern Name: Card Effect: Self Discard
-Regex: /discard (\d+|a|one|two|three) card(s?)/gi
+Regex: /discard (\d+|a|one|two|three) card(s?)/i
 ----------------------------------------
 
 Pattern Name: Card Effect: Look at Deck
-Regex: /Look at the top (\d+|one|two|three|four|five)?(?: )?card(?:s?) of your deck/gi
+Regex: /Look at the top (\d+|one|two|three|four|five)?(?: )?card(?:s?) of your deck/i
 ----------------------------------------
 
 Pattern Name: Card Effect: Deck to Hand/Bottom
-Regex: /put (?:one of them|a (?:character|item|action|song) card|one) into your hand(.)? (and )?(?:put)? the rest on the bottom of your deck/gi
+Regex: /put (?:one of them|a (?:character|item|action|song) card|one) into your hand(.)? (and )?(?:put)? the rest on the bottom of your deck/i
 ----------------------------------------
 
 Pattern Name: Card Effect: Filter to Bottom
-Regex: /put the rest on the bottom of your deck/gi
+Regex: /put the rest on the bottom of your deck/i
 ----------------------------------------
 
 Pattern Name: Card Effect: Discard to Hand
-Regex: /return a(nother)? (?:character|item|action|song|card)(?: with \d+ (?:¤|⬡|⛉) or (?:less|more))? from your discard (?:pile )?to your hand/gi
+Regex: /return a(nother)? (?:character|item|action|song|card)(?: with \d+ (?:¤|⬡|⛉) or (?:less|more))? from your discard (?:pile )?to your hand/i
 ----------------------------------------
 
 Pattern Name: Card Effect: Discard to Deck
-Regex: /shuffle (\d+|a|one|two|three) card(s?) from your discard into your deck/gi
+Regex: /shuffle (\d+|a|one|two|three) card(s?) from your discard into your deck/i
 ----------------------------------------
 
 Pattern Name: Card Effect: Look at Opponent's Hand
-Regex: /(look at chosen opponent's hand|chosen opponent reveals their hand)/gi
+Regex: /(look at chosen opponent's hand|chosen opponent reveals their hand)/i
 ----------------------------------------
 
 Pattern Name: Card Effect: Hand to Inkwell
-Regex: /put a card from your hand into your inkwell facedown( and exherted)?/gi
+Regex: /put a card from your hand into your inkwell facedown( and exherted)?/i
 ----------------------------------------
 
 Pattern Name: Bounce: Opposing Character
-Regex: /Return chosen (?:opposing |opponent's )?(character|item|location|character or item|character, item or location)(?: with \d+ (?:¤|⬡|⛉) or (?:less|more))? to (its|their|the) player's hand/gi
+Regex: /Return chosen (?:opposing |opponent's )?(character|item|location|character or item|character, item or location)(?: with \d+ (?:¤|⬡|⛉) or (?:less|more))? to (its|their|the) player's hand/i
 ----------------------------------------
 
 Pattern Name: Add to Inkwell: Opposing Character
-Regex: /put chosen (?:opposing |opponent's )?(character|item|location|character or item|character, item or location)(?: with \d+ (?:¤|⬡|⛉) or (?:less|more))? into (its|their|the) player's inkwell/gi
+Regex: /put chosen (?:opposing |opponent's )?(character|item|location|character or item|character, item or location)(?: with \d+ (?:¤|⬡|⛉) or (?:less|more))? into (its|their|the) player's inkwell/i
 ----------------------------------------
 
 Pattern Name: Banish: Chosen Target
-Regex: /banish chosen (?:opposing |opponent's )?(character|item|location|character or item|character, item or location)(?! of yours)(?: with \d+ (?:¤|⬡|⛉) or (?:less|more))?/gi
+Regex: /banish chosen (?:opposing |opponent's )?(character|item|location|character or item|character, item or location)(?! of yours)(?: with \d+ (?:¤|⬡|⛉) or (?:less|more))?/i
 ----------------------------------------
 
 Pattern Name: Banish: All Characters
-Regex: /Banish all (opposing )?characters(?: with \d+ (?:¤|⬡|⛉) or (?:less|more))?/gi
+Regex: /Banish all (opposing )?characters(?: with \d+ (?:¤|⬡|⛉) or (?:less|more))?/i
 ----------------------------------------
 
 Pattern Name: Banish: This Character
-Regex: /Banish (this |them )?character (?:of your)/gi
+Regex: /Banish (this |them )?character (?:of your)/i
 ----------------------------------------
 
 Pattern Name: Banish: Opponent's Choice
-Regex: /((?:An|Each) opponent chooses and banishes one of their characters)/gi
+Regex: /((?:An|Each) opponent chooses and banishes one of their characters)/i
 ----------------------------------------
 
 Pattern Name: Banish: As a Cost/Choice
-Regex: /You may banish (?:this character|one of your characters) to/gi
+Regex: /You may banish (?:this character|one of your characters) to/i
 ----------------------------------------
 
 Pattern Name: Damage: Deal to One
-Regex: /(Deal|move) (\d+) damage to (chosen|another|another chosen) (?:opposing )?(character|location|item)(?: with \d+ (?:¤|⬡|⛉) or (?:less|more))?/gi
+Regex: /(Deal|move) (\d+) damage to (chosen|another|another chosen) (?:opposing )?(character|location|item)(?: with \d+ (?:¤|⬡|⛉) or (?:less|more))?/i
 ----------------------------------------
 
 Pattern Name: Damage: Deal to Many
-Regex: /(Deal|move) (\d+) damage to each opposing character/gi
+Regex: /(Deal|move) (\d+) damage to each opposing character/i
 ----------------------------------------
 
 Pattern Name: Damage: Deal Divided
-Regex: /(Deal|move) (\d+) damage divided as you choose among any number of chosen opposing characters/gi
+Regex: /(Deal|move) (\d+) damage divided as you choose among any number of chosen opposing characters/i
 ----------------------------------------
 
 Pattern Name: Damage: Heal
-Regex: /Remove up to (\d+) damage from (?:chosen )?(?:one of )?(?:your )?(character|location)/gi
+Regex: /Remove up to (\d+) damage from (?:chosen )?(?:one of )?(?:your )?(character|location)/i
 ----------------------------------------
 
 Pattern Name: State: Ready Character
-Regex: /Ready chosen (?:your |another )?(character|item)/gi
+Regex: /Ready chosen (?:your |another )?(character|item)/i
 ----------------------------------------
 
 Pattern Name: State: Exert Character
-Regex: /Exert chosen (?:opposing |opponent's )?(character|item)(?: with \d+ (?:¤|⬡|⛉) or (?:less|more))?/gi
+Regex: /Exert chosen (?:opposing |opponent's )?(character|item)(?: with \d+ (?:¤|⬡|⛉) or (?:less|more))?/i
 ----------------------------------------
 
 Pattern Name: State: Prevent Readying
-Regex: /chosen (?:opposing )?character can't ready at the start of (?:their|your) next turn/gi
+Regex: /chosen (?:opposing )?character can't ready at the start of (?:their|your) next turn/i
 ----------------------------------------
 
 Pattern Name: Movement: To Location
-Regex: /move (?:one of )?your characters to a location for free/gi
+Regex: /move (?:one of )?your characters to a location for free/i
 ----------------------------------------
 
 Pattern Name: Stat: Strength Buff
-Regex: /(?:gets|has|gains) \+(\d+) ¤/gi
+Regex: /(?:gets|has|gains) \+(\d+) ¤/i
 ----------------------------------------
 
 Pattern Name: Stat: Strength Debuff
-Regex: /(?:gets|has) -(\d+) ¤/gi
+Regex: /(?:gets|has) -(\d+) ¤/i
 ----------------------------------------
 
 Pattern Name: Stat: Willpower Buff
-Regex: /gains \+(\d+) ⛉/gi
+Regex: /gains \+(\d+) ⛉/i
 ----------------------------------------
 
 Pattern Name: Stat: Cost Reduction
-Regex: /pay (\d+) ⬡ less/gi
+Regex: /pay (\d+) ⬡ less/i
 ----------------------------------------
 
 Pattern Name: Play: From Discard
-Regex: /You may play a (character|item) card(?: with \d+ (?:¤|⬡|⛉) or (?:less|more))? from your discard/gi
+Regex: /You may play a (character|item) card(?: with \d+ (?:¤|⬡|⛉) or (?:less|more))? from your discard/i
 ----------------------------------------
 
 Pattern Name: Play: For Free
-Regex: /(You may)? play (a|this) character (with cost (\d+) or less )?for free/gi
+Regex: /(You may)? play (a|this) character (with cost (\d+) or less )?for free/i
 ----------------------------------------
 
 Pattern Name: Play: Cheaper
-Regex: /The next time you play a (?:character|item|action|song) card this turn, pay (\d+) ⬡ less/gi
+Regex: /The next time you play a (?:character|item|action|song) card this turn, pay (\d+) ⬡ less/i
 ----------------------------------------
 
 Pattern Name: Trigger: On Play
-Regex: /When you play this (?:character|item|action)/gi
+Regex: /When you play this (?:character|item|action)/i
 ----------------------------------------
 
 Pattern Name: Trigger: On Quest
-Regex: /Whenever this character quests/gi
+Regex: /Whenever this character quests/i
 ----------------------------------------
 
 Pattern Name: Trigger: On Banish (Self)
-Regex: /When this character is banished/gi
+Regex: /When this character is banished/i
 ----------------------------------------
 
 Pattern Name: Trigger: On Banish (Other)
-Regex: /(Whenever (?:another|a|one of your other|an opposing) character is banished(?: in a challenge)?)/gi
+Regex: /(Whenever (?:another|a|one of your other|an opposing) character is banished(?: in a challenge)?)/i
 ----------------------------------------
 
 Pattern Name: Trigger: On Banish (in Challenge)
-Regex: /Whenever (?:this character is banished in a challenge|an opposing character is banished in a challenge)/gi
+Regex: /Whenever (?:this character is banished in a challenge|an opposing character is banished in a challenge)/i
 ----------------------------------------
 
 Pattern Name: Trigger: On Being Challenged
-Regex: /Whenever this character is challenged/gi
+Regex: /Whenever this character is challenged/i
 ----------------------------------------
 
-Pattern Name: Trigger: On Challenging
-Regex: /(When(?:ever)? this character challenges)/gi
+Pattern Name: Trigger: On Challening
+Regex: /(When(?:ever)? this character challenges)/i
 ----------------------------------------
 
 Pattern Name: Trigger: Start of Turn
-Regex: /At the start of your turn/gi
+Regex: /At the start of your turn/i
 ----------------------------------------
 
 Pattern Name: Trigger: End of Turn
-Regex: /At the end of your turn/gi
+Regex: /At the end of your turn/i
 ----------------------------------------
 
 Pattern Name: Keyword: Evasive
-Regex: /\b(Evasive)\b/gi
+Regex: /\b(Evasive)\b/i
 ----------------------------------------
 
 Pattern Name: Keyword: Rush
-Regex: /\b(Rush)\b/gi
+Regex: /\b(Rush)\b/i
 ----------------------------------------
 
 Pattern Name: Keyword: Ward
-Regex: /\b(Ward)\b/gi
+Regex: /\b(Ward)\b/i
 ----------------------------------------
 
 Pattern Name: Keyword: Bodyguard
-Regex: /\b(Bodyguard)\b/gi
+Regex: /\b(Bodyguard)\b/i
 ----------------------------------------
 
 Pattern Name: Keyword: Challenger
-Regex: /(Challenger \+\d+)/gi
+Regex: /(Challenger \+\d+)/i
 ----------------------------------------
 
 Pattern Name: Keyword: Resist
-Regex: /(Resist \+\d+)/gi
+Regex: /(Resist \+\d+)/i
 ----------------------------------------
 
 Pattern Name: Keyword: Shift
-Regex: /(Shift(?: \d+|: .*?))/gi
+Regex: /(Shift(?: \d+|: .*?))/i
 ----------------------------------------
 
 Pattern Name: Keyword: Support
-Regex: /\b(Support)\b/gi
+Regex: /\b(Support)\b/i
 ----------------------------------------
 
 Pattern Name: Keyword: Singer
-Regex: /\b(Singer \d+)\b/gi
+Regex: /\b(Singer \d+)\b/i
 ----------------------------------------
 
 Pattern Name: Keyword: Reckless
-Regex: /\b(Reckless)\b/gi
+Regex: /\b(Reckless)\b/i
 ----------------------------------------
 
 Pattern Name: Static: Cannot Be Challenged
-Regex: /This character can't be challenged( except by characters with (?:Rush|Evasive))?/gi
+Regex: /This character can't be challenged( except by characters with (?:Rush|Evasive))?/i
 ----------------------------------------
 
 Pattern Name: Static: Cannot Quest
-Regex: /This character can't quest/gi
+Regex: /This character can't quest/i
 ----------------------------------------
 
 Pattern Name: Static: Must Challenge
-Regex: /must challenge if able/gi
+Regex: /must challenge if able/i
 ----------------------------------------
 
 Pattern Name: Keyword: Sing Together
-Regex: /(Sing Together \d+)/gi
+Regex: /(Sing Together \d+)/i
 ----------------------------------------
 
 Pattern Name: Keyword: Puppy Shift
-Regex: /(Puppy Shift \d+)/gi
+Regex: /(Puppy Shift \d+)/i
 ----------------------------------------
 
 Pattern Name: Keyword: Universal Shift
-Regex: /(Universal Shift \d+)/gi
+Regex: /(Universal Shift \d+)/i
 ----------------------------------------
 
 Pattern Name: Keyword: Vanish
-Regex: /\b(Vanish)\b/gi
+Regex: /\b(Vanish)\b/i
 ----------------------------------------
 
 Pattern Name: Play: Song
-Regex: /\(A character with cost (\d+) or more can ⟳ to sing this song for free\.\)/gi
+Regex: /\(A character with cost (\d+) or more can ⟳ to sing this song for free\.\)/i
 ----------------------------------------
 
 Pattern Name: Static: Grant Keyword (Aura)
-Regex: /Your other characters gain (Ward|Evasive|Rush|Bodyguard|Support|Reckless|Resist \+\d+)/gi
+Regex: /Your other characters gain (Ward|Evasive|Rush|Bodyguard|Support|Reckless|Resist \+\d+)/i
 ----------------------------------------
 
 Pattern Name: Static: Grant Keyword (Named Character)
-Regex: /Your characters named (.*?) gain (Rush|Evasive|Ward|Bodyguard|Support|Reckless|Resist \+\d+|Challenger \+\d+)/gi
+Regex: /Your characters named (.*?) gain (Rush|Evasive|Ward|Bodyguard|Support|Reckless|Resist \+\d+|Challenger \+\d+)/i
 ----------------------------------------
 
 Pattern Name: Static: Grant Keyword (Own Turn)
-Regex: /During your turn, this character (?:gains|has) (Rush|Evasive|Ward|Bodyguard|Support|Reckless|Resist \+\d+|Challenger \+\d+)/gi
+Regex: /During your turn, this character (?:gains|has) (Rush|Evasive|Ward|Bodyguard|Support|Reckless|Resist \+\d+|Challenger \+\d+)/i
 ----------------------------------------
 
 Pattern Name: Static: Cost Reduction (Character Type)
-Regex: /You pay (\d+) ⬡ less to play (.*?) characters/gi
+Regex: /You pay (\d+) ⬡ less to play (.*?) characters/i
 ----------------------------------------
 
 Pattern Name: Static: Stat Buff (Conditional)
-Regex: /gets \+(\d+) (¤|◊) for each/gi
+Regex: /gets \+(\d+) (¤|◊) for each/i
 ----------------------------------------
 
 Pattern Name: Static: Extra Ink
-Regex: /put (an|one|two) additional card(?:s) from your (hand|discard) into your inkwell/gi
+Regex: /put (an|one|two) additional card(?:s) from your (hand|discard) into your inkwell/i
 ----------------------------------------
 
 Pattern Name: Static: Cannot Sing
-Regex: /This character can't ⟳ to sing songs/gi
+Regex: /This character can't ⟳ to sing songs/i
 ----------------------------------------
 
 Pattern Name: Trigger: On Playing Other Character
-Regex: /(Whenever you play a character)/gi
+Regex: /(Whenever you play a character)/i
 ----------------------------------------
 
 Pattern Name: Trigger: On Playing Song
-Regex: /(Whenever you play a song)/gi
+Regex: /(Whenever you play a song)/i
 ----------------------------------------
 
 Pattern Name: Trigger: On Banishing Other
-Regex: /(whenever this character banishes another character)/gi
+Regex: /(whenever this character banishes another character)/i
 ----------------------------------------
 
 Pattern Name: Trigger: On Readying
-Regex: /(Whenever you ready this character)/gi
+Regex: /(Whenever you ready this character)/i
 ----------------------------------------
 
 Pattern Name: Trigger: On Healing
-Regex: /(Whenever you remove .*? damage)/gi
+Regex: /(Whenever you remove .*? damage)/i
 ----------------------------------------
 
 Pattern Name: Trigger: On Opponent Damaged
-Regex: /(Whenever an opposing character is damaged)/gi
+Regex: /(Whenever an opposing character is damaged)/i
 ----------------------------------------
 
-Pattern Name: Trigger: On Any Character Challenging
-Regex: /(Whenever one of your characters challenges another character)/gi
+Pattern Name: Trigger: On Any Character Challening
+Regex: /(Whenever one of your characters challenges another character)/i
 ----------------------------------------
 
 Pattern Name: Trigger: On Drawing Card
-Regex: /(whenever you draw a card)/gi
+Regex: /(whenever you draw a card)/i
 ----------------------------------------
 
 Pattern Name: Trigger: On Inking
-Regex: /(whenever a card is put into your inkwell)/gi
+Regex: /(whenever a card is put into your inkwell)/i
 ----------------------------------------
 
 Pattern Name: Trigger: On Moving to Location
-Regex: /(Whenever this character moves to a location)/gi
+Regex: /(Whenever this character moves to a location)/i
 ----------------------------------------
 
 Pattern Name: Trigger: On Being Challenged and Banished
-Regex: /(When this character is challenged and banished)/gi
+Regex: /(When this character is challenged and banished)/i
 ----------------------------------------
 
 Pattern Name: Activated: Cost-Effect
-Regex: /(.*? — .*)/gi 
+Regex: /(.*? — .*)/i 
 
 
