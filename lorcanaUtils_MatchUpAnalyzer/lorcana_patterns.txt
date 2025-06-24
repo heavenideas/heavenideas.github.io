@@ -265,8 +265,8 @@ Pattern Name: Static: Cost Reduction (Character Type)
 Regex: /You pay (\d+) ⬡ less to play (.*?) characters/gi
 ----------------------------------------
 
-Pattern Name: Static: Stat Buff (Conditional)
-Regex: /gets \+(\d+) (¤|◊) for each/gi
+Pattern Name: Static: Stat Buff
+Regex: /gets \+(\d+) (¤|◊)( for each)?/gi
 ----------------------------------------
 
 Pattern Name: Static: Extra Ink
