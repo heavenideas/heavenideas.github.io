@@ -367,6 +367,25 @@
           const playerDeckInput = document.getElementById('playerDeckInput');
           const opponentDeckInput = document.getElementById('opponentDeckInput');
 
+          // --- SESSION STORAGE LOGIC ---
+          // Load from sessionStorage if available
+          const sessionPlayerDeck = sessionStorage.getItem('playerDeckInput');
+          const sessionOpponentDeck = sessionStorage.getItem('opponentDeckInput');
+          if (sessionPlayerDeck !== null) {
+            playerDeckInput.value = sessionPlayerDeck;
+          }
+          if (sessionOpponentDeck !== null) {
+            opponentDeckInput.value = sessionOpponentDeck;
+          }
+
+          // Save to sessionStorage on input
+          playerDeckInput.addEventListener('input', () => {
+            sessionStorage.setItem('playerDeckInput', playerDeckInput.value);
+          });
+          opponentDeckInput.addEventListener('input', () => {
+            sessionStorage.setItem('opponentDeckInput', opponentDeckInput.value);
+          });
+
           // Modal show/hide helpers
           function showDeckModal(target) {
             deckLoadTarget = target;
@@ -406,8 +425,10 @@
               btn.addEventListener('click', () => {
                 if (deckLoadTarget === 'player') {
                   playerDeckInput.value = deck.decklist || '';
+                  sessionStorage.setItem('playerDeckInput', playerDeckInput.value);
                 } else if (deckLoadTarget === 'opponent') {
                   opponentDeckInput.value = deck.decklist || '';
+                  sessionStorage.setItem('opponentDeckInput', opponentDeckInput.value);
                 }
                 hideDeckModal();
               });
@@ -866,7 +887,7 @@
                 if (card.abilityPatterns.has('Banish: All Characters')) {
                     value += 5.0;
                     explanation.push('Banish All');
-                }
+                } 
                 if (card.keywords.has('Rush')) {
                     value += (card.strength || 0) * 0.5;
                     explanation.push('Rush');
@@ -889,10 +910,10 @@
                         explanation.push('Static: Stat Buf: Willpower:+', willpowerAmount);
                     }
                 }
-                if (card.abilityPatterns.has('Static: Grant Keyword(Aura)')) {
+                if (card.abilityPatterns.has('Static: Grant Keyword (Aura)')) {
                     const resistMatch = (card.rawData.fullText.replace(/\n/g, ' ').trim() || '').match(/(?:Your other characters|they|it) gain(?:s)? (Resist \+\d+)/gi);
                     if (resistMatch) {
-                        const resistAmount = getNumberFromText(willpowerMatch[0])
+                        const resistAmount = getNumberFromText(resistMatch[0])
                         resistBuff = (1.5 * resistAmount) / (card.cost || 1)
                         value += resistBuff;
                         explanation.push('Static: Grant Keyword(Resist):+', resistAmount);
@@ -973,8 +994,13 @@
                 loadingIndicator.classList.add('hidden');
                 appContent.classList.remove('hidden');
 
-                playerDeckInput.value = DEFAULT_PLAYER_DECK;
-                opponentDeckInput.value = DEFAULT_OPPONENT_DECK;
+                // Only set defaults if sessionStorage is empty
+                if (sessionStorage.getItem('playerDeckInput') === null) {
+                  playerDeckInput.value = DEFAULT_PLAYER_DECK;
+                }
+                if (sessionStorage.getItem('opponentDeckInput') === null) {
+                  opponentDeckInput.value = DEFAULT_OPPONENT_DECK;
+                }
                 console.log("Default decklists set.");
 
                 analyzeButton.addEventListener('click', handleAnalyzeButtonClick);
