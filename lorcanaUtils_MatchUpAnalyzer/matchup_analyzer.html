@@ -848,31 +848,32 @@
             deck.forEach(card => {
                 let value = 0;
                 let explanation = [];
+                // Oredered from more control rating to less in terms of weight
+                //Banish all characters is the highest as it's the biggest board control
+                if (card.abilityPatterns.has('Banish: All Characters')) {
+                    value += 8.0;
+                    explanation.push('Banish All');
+                } 
                 if (card.abilityPatterns.has('Banish: Chosen Target') || card.abilityPatterns.has('Banish: Any') || card.abilityPatterns.has('Banish: Opponent\'s Choice')) {
                     value += 7 / (card.cost || 1);
                     explanation.push('Banish Other Characters');
+                }
+                if (card.abilityPatterns.has('Add to Inkwell: Opposing Character')) {
+                    value += 5 / (card.cost || 1);
+                    explanation.push('Add opposing character to their inkwell');
+                }
+                if (card.abilityPatterns.has('Damage: Put Damage Counters')) {
+                    value += 4.5 / (card.cost || 1);
+                    explanation.push('Put Damage Counters');
                 }
                 if (card.abilityPatterns.has('Damage: Deal to One') || card.abilityPatterns.has('Damage: Deal to Many')) {
                     value += 4 / (card.cost || 1);
                     explanation.push('Deal Damage');
                 }
-                if (card.abilityPatterns.has('Damage: Put Damage Counters')) {
-                    value += 4 / (card.cost || 1);
-                    explanation.push('Put Damage Counters');
-                }
-                if (card.abilityPatterns.has('Banish: All Characters')) {
-                    value += 5.0;
-                    explanation.push('Banish All');
-                } 
-                if (card.keywords.has('Rush')) {
-                    value += (card.strength || 0) * 0.5;
-                    explanation.push('Rush');
-                }
                 if (card.abilityPatterns.has('Bounce: Opposing Character')) {
                     value += 4 / (card.cost || 1);
                     explanation.push('Bounce Opposing Character');
-                }
-                
+                }             
                 if (card.abilityPatterns.has('Stat: Strength Buff')){
                     const strengthMatch = (card.rawData.fullText.replace(/\n/g, ' ').trim() || '').match(/(?:get(?:s)?|has|gain(?:s)?) \+(\d+) (¤|strength)/gi);
                     if (strengthMatch) {
@@ -900,7 +901,10 @@
                         explanation.push('Static: Grant Keyword(Resist):+', resistAmount);
                     }
                 }
-
+                if (card.keywords.has('Rush')) {
+                    value += (card.strength || 0) * 0.5;
+                    explanation.push('Rush');
+                }
                 breakdown.push({ name: card.rawData.fullName, value, explanation: explanation.join(', ') });
                 total += value;
             });

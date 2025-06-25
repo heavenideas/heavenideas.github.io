@@ -50,11 +50,11 @@ Regex: /put (a|an additional|the top) card (from your hand|of your deck) into yo
 ----------------------------------------
 
 Pattern Name: Bounce: Opposing Character
-Regex: /Return chosen (?:opposing |opponent's )?(character|item|location|character or item|character, item or location)(?: with (?:cost )?\d+ (?:¤|⬡|⛉| )?or (?:less|more))? to (its|their|the) player's hand/gi
+Regex: /Return chosen (?:opposing |opponent's )?(?:exerted )?(character|item|location|character or item|character, item or location)(?: with (?:cost )?\d+ (?:¤|⬡|⛉| )?or (?:less|more))? to (its|their|the) player's hand/gi
 ----------------------------------------
 
 Pattern Name: Add to Inkwell: Opposing Character
-Regex: /put chosen (?:opposing |opponent's )?(character|item|location|character or item|character, item or location)(?: with \d+ (?:¤|⬡|⛉) or (?:less|more))? into (its|their|the) player's inkwell/gi
+Regex: /(put|add|move) chosen (?:opposing |opponent's )?(?:exerted )?(character|item|location|character or item|character, item or location)(?: with \d+ (?:¤|⬡|⛉) or (?:less|more))? into (its|their|the) player's inkwell/gi
 ----------------------------------------
 
 Pattern Name: Banish: Chosen Target
