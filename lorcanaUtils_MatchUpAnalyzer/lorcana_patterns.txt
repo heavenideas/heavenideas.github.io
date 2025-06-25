@@ -34,7 +34,7 @@ Regex: /put the rest on the bottom of your deck/gi
 ----------------------------------------
 
 Pattern Name: Card Effect: Discard to Hand
-Regex: /return (?:a|another|an)? (?:character|item|action|song|card)(?: card)?(?: with \d+ (?:¤|⬡|⛉) or (?:less|more))? from your discard (?:pile )?to your hand/gi
+Regex: /return (?:a|another|an|up to (\d+))? (?:character|item|action|song|card)(?: card(?:s)?)?(?: with \d+ (?:¤|⬡|⛉) or (?:less|more))? from your discard (?:pile )?to your hand/gi
 ----------------------------------------
 
 Pattern Name: Card Effect: Discard to Deck
@@ -134,7 +134,7 @@ Regex: /You may play a (character|item) card(?: with \d+ (?:¤|⬡|⛉) or (?:le
 ----------------------------------------
 
 Pattern Name: Play: For Free
-Regex: /(You may)? play (a|this) character (with cost (\d+) or less )?for free/gi
+Regex: /(You may)? play (a|this|an) (character|item|location|action|song|card)( card)? (with cost (\d+) or less )?for free/gi
 ----------------------------------------
 
 Pattern Name: Play: Cheaper
