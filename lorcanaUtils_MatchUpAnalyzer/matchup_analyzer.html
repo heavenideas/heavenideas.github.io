@@ -932,7 +932,7 @@
          * @param {UWPCard[]} deckB - The opponent's deck.
          * @returns {number} - The win probability for Deck A (e.g., 0.55 for 55%).
          */
-        function calculateWinProbability(deckA, deckB) {
+        function calculateWinProbability(deckA, deckB, tfaA = 0, tfaB = 0) {
             // 1. Calculate Intrinsic Scores for both decks
             const rdsA = getRDS(deckA);
             const lviA = getLVI(deckA);
@@ -942,13 +942,13 @@
             const lviB = getLVI(deckB);
             const bcrB = getBCR(deckB);
 
-            // 2. Calculate Matchup-Specific Modifiers (placeholders for now)
+            // 2. Calculate Matchup-Specific Modifiers (now use provided TFA)
             const aim = 0; // Archetype Interaction Modifier
-            const tfa = 0; // Tempo Flow Analysis
+            const tfa = tfaA - tfaB; // Use provided TFA values
             const taes = 0; // Threat-Answer Efficiency Score
 
             // 3. Define weights (tunable)
-            const weights = { rds: 0.15, lvi: 0.25, bcr: 0.25, aim: 1.0, tfa: 1.0, taes: 1.0 };
+            const weights = { rds: 0.15, lvi: 0.25, bcr: 0.25, aim: 1.0, tfa: 0.5, taes: 1.0 };
 
             // 4. Calculate the final Matchup Score using the Master Equation
             const matchupScore =
@@ -1572,8 +1572,44 @@
             console.log('UWPM Player RDS:', playerRDS, 'LVI:', playerLVI, 'BCR:', playerBCR);
             console.log('UWPM Opponent RDS:', opponentRDS, 'LVI:', opponentLVI, 'BCR:', opponentBCR);
 
+            // --- TFA Phase: Calculate TFA for both decks ---
+            // Default phase weights (user-adjustable in UI)
+            if (!window.tfaPhaseWeights) window.tfaPhaseWeights = { early: 1, mid: 2, late: 1 };
+            const tfaPhaseWeights = window.tfaPhaseWeights;
+            const playerTFAObj = calculateTFA(
+                [
+                    ...PLAYER_DECK_CHARS,
+                    ...PLAYER_DECK_SONGS,
+                    ...PLAYER_DECK_LOCATIONS,
+                    ...PLAYER_DECK_ITEMS,
+                    ...PLAYER_DECK_ACTIONS,
+                ],
+                playerUWPCards,
+                playerRDSObj.breakdown,
+                playerLVIObj.breakdown,
+                playerBCRObj.breakdown,
+                tfaPhaseWeights
+            );
+            const opponentTFAObj = calculateTFA(
+                [
+                    ...OPPONENT_DECK_CHARS,
+                    ...OPPONENT_DECK_SONGS,
+                    ...OPPONENT_DECK_LOCATIONS,
+                    ...OPPONENT_DECK_ITEMS,
+                    ...OPPONENT_DECK_ACTIONS,
+                ],
+                opponentUWPCards,
+                opponentRDSObj.breakdown,
+                opponentLVIObj.breakdown,
+                opponentBCRObj.breakdown,
+                tfaPhaseWeights
+            );
+            const playerTFA = playerTFAObj.total;
+            const opponentTFA = opponentTFAObj.total;
+
             // --- UWPM Phase 3: Calculate win probability ---
-            const winProb = calculateWinProbability(playerUWPCards, opponentUWPCards);
+            // (For now, TFA is not yet included in the win probability calculation, but will be soon)
+            const winProb = calculateWinProbability(playerUWPCards, opponentUWPCards, playerTFA, opponentTFA);
             console.log('UWPM Win Probability (Player Deck):', winProb, '(', (winProb * 100).toFixed(1) + '% )');
 
             console.log("Decks loaded. Player Chars:", PLAYER_DECK_CHARS.length, "Player Songs:", PLAYER_DECK_SONGS.length, "Player Locations:", PLAYER_DECK_LOCATIONS.length, "Player Items:", PLAYER_DECK_ITEMS.length, "Player Actions:", PLAYER_DECK_ACTIONS.length);
@@ -1617,7 +1653,7 @@
                     const contribLVI = weights.lvi * (playerLVI - opponentLVI);
                     const contribBCR = weights.bcr * (playerBCR - opponentBCR);
                     const contribAIM = weights.aim * 0;
-                    const contribTFA = weights.tfa * 0;
+                    const contribTFA = weights.tfa * (playerTFA - opponentTFA);
                     const contribTAES = weights.taes * 0;
                     const matchupScore = contribRDS + contribLVI + contribBCR + contribAIM + contribTFA + contribTAES;
                     const winProb = 1 / (1 + Math.exp(-k * matchupScore));
@@ -1643,7 +1679,7 @@
                 const contribLVI = weights.lvi * (playerLVI - opponentLVI);
                 const contribBCR = weights.bcr * (playerBCR - opponentBCR);
                 const contribAIM = weights.aim * 0;
-                const contribTFA = weights.tfa * 0;
+                const contribTFA = weights.tfa * (playerTFA - opponentTFA);
                 const contribTAES = weights.taes * 0;
                 const matchupScore = contribRDS + contribLVI + contribBCR + contribAIM + contribTFA + contribTAES;
                 const winProb = 1 / (1 + Math.exp(-k * matchupScore));
@@ -1703,9 +1739,11 @@
                                     <td class=\"py-1 px-2\"><span id=\"uwpm-contrib-aim\">${contribAIM.toFixed(3)}</span></td>
                                 </tr>
                                 <tr>
-                                    <td class=\"py-1 px-2\">TFA Tempo Flow Analysis ${infoIcon('Tempo Flow Analysis: Placeholder for tempo-based matchup effects.')}</td>
-                                    <td class=\"py-1 px-2 text-blue-300\">0</td>
-                                    <td class=\"py-1 px-2 text-pink-300\">0</td>
+                                    <td class=\"py-1 px-2\">TFA Tempo Flow Analysis ${infoIcon('Tempo Flow Analysis: Compares phase-by-phase threat deployment and consistency.')}
+                                        <button id=\"toggle-detail-tfa\" class=\"ml-2 text-xs text-blue-400 underline\">Details</button>
+                                    </td>
+                                    <td class=\"py-1 px-2 text-blue-300\">${playerTFA.toFixed(2)}</td>
+                                    <td class=\"py-1 px-2 text-pink-300\">${opponentTFA.toFixed(2)}</td>
                                     <td class=\"py-1 px-2\"><input id=\"uwpm-weight-tfa\" type=\"number\" step=\"0.01\" min=\"-2\" max=\"2\" value=\"${weights.tfa}\" class=\"w-16 bg-gray-800 border border-gray-600 rounded px-1 text-center\"></td>
                                     <td class=\"py-1 px-2\"><span id=\"uwpm-contrib-tfa\">${contribTFA.toFixed(3)}</span></td>
                                 </tr>
@@ -1727,6 +1765,7 @@
                         <div id=\"uwpm-detail-rds\" class=\"hidden mt-4\"></div>
                         <div id=\"uwpm-detail-lvi\" class=\"hidden mt-4\"></div>
                         <div id=\"uwpm-detail-bcr\" class=\"hidden mt-4\"></div>
+                        <div id=\"uwpm-detail-tfa\" class=\"hidden mt-4\"></div>
                     </div>
                 `;
 
@@ -1785,6 +1824,31 @@
                             }
                         });
                     }
+                    const tfaBtn = document.getElementById('toggle-detail-tfa');
+                    if (tfaBtn) {
+                        tfaBtn.addEventListener('click', function() {
+                            const el = document.getElementById('uwpm-detail-tfa');
+                            if (el.classList.contains('hidden')) {
+                                el.innerHTML = renderTFADetailTable(playerTFAObj, opponentTFAObj, tfaPhaseWeights);
+                                el.classList.remove('hidden');
+                            } else {
+                                el.classList.add('hidden');
+                            }
+                        });
+                    }
+                }, 0);
+                // Add event listeners to update TFA phase weights and recalculate
+                setTimeout(() => {
+                    ['early', 'mid', 'late'].forEach(phase => {
+                        const input = document.getElementById(`tfa-weight-${phase}`);
+                        if (input) {
+                            input.addEventListener('input', function() {
+                                tfaPhaseWeights[phase] = parseFloat(input.value) || 1;
+                                // Re-run analysis button to update everything
+                                handleAnalyzeButtonClick();
+                            });
+                        }
+                    });
                 }, 0);
             } else {
                 winProbDisplay.innerHTML = `<p class=\"text-lg text-gray-400\">Load both decks to calculate win probability.</p>`;
@@ -2452,8 +2516,105 @@
             `;
         }
 
+        // --- TFA (Tempo Flow Analysis) ---
+        /**
+         * Calculates the Tempo Flow Analysis (TFA) score for a deck, using existing RDS/LVI/BCR breakdowns and card counts.
+         * @param {Array<{cardInfo: object, count: number}>} deckEntries - Original deck entries with counts.
+         * @param {Array<object>} uwpCards - Enriched UWPCard objects (same order as deckEntries).
+         * @param {Array<{name: string, value: number}>} rdsBreakdown - getRDS(deck).breakdown
+         * @param {Array<{name: string, value: number}>} lviBreakdown - getLVI(deck).breakdown
+         * @param {Array<{name: string, value: number}>} bcrBreakdown - getBCR(deck).breakdown
+         * @param {object} phaseWeights - { early: number, mid: number, late: number }
+         * @returns {{ total: number, phaseScores: object, details: object }}
+         */
+        function calculateTFA(deckEntries, uwpCards, rdsBreakdown, lviBreakdown, bcrBreakdown, phaseWeights) {
+            // Map card name to metric values for quick lookup
+            const rdsMap = Object.fromEntries(rdsBreakdown.map(row => [row.name, row.value]));
+            const lviMap = Object.fromEntries(lviBreakdown.map(row => [row.name, row.value]));
+            const bcrMap = Object.fromEntries(bcrBreakdown.map(row => [row.name, row.value]));
+
+            // Phases: Early (1-3), Mid (4-6), Late (7+)
+            const phases = {
+                early: { turns: [1, 2, 3], threatPower: 0, consistency: 0, perTurn: {} },
+                mid: { turns: [4, 5, 6], threatPower: 0, consistency: 0, perTurn: {} },
+                late: { turns: [7, 8, 9, 10, 11, 12], threatPower: 0, consistency: 0, perTurn: {} },
+            };
+            // For each turn in each phase, track if at least one card is playable and sum threat power
+            Object.entries(phases).forEach(([phase, obj]) => {
+                obj.turns.forEach(cost => {
+                    obj.perTurn[cost] = { threatPower: 0, count: 0 };
+                });
+            });
+            // For each card in deck, add its threat power to the appropriate phase/turn, multiplied by count
+            deckEntries.forEach((entry, idx) => {
+                const card = entry.cardInfo;
+                const count = entry.count || 1;
+                const cost = card.cost;
+                const name = card.fullName;
+                // Get threat power from breakdowns (sum RDS+LVI+BCR for this card)
+                const threatPower = (rdsMap[name] || 0) + (lviMap[name] || 0) + (bcrMap[name] || 0);
+                // Assign to phase/turn
+                Object.entries(phases).forEach(([phase, obj]) => {
+                    if (obj.turns.includes(cost)) {
+                        obj.perTurn[cost].threatPower += threatPower * count;
+                        obj.perTurn[cost].count += count;
+                    }
+                });
+            });
+            // For each phase, sum threat power and calculate consistency
+            Object.entries(phases).forEach(([phase, obj]) => {
+                let totalThreat = 0;
+                let turnsWithThreat = 0;
+                obj.turns.forEach(cost => {
+                    if (obj.perTurn[cost].count > 0) turnsWithThreat++;
+                    totalThreat += obj.perTurn[cost].threatPower;
+                });
+                obj.threatPower = totalThreat;
+                obj.consistency = turnsWithThreat / obj.turns.length;
+            });
+            // Weighted sum for total TFA
+            const total =
+                (phases.early.threatPower * phases.early.consistency * (phaseWeights.early || 1)) +
+                (phases.mid.threatPower * phases.mid.consistency * (phaseWeights.mid || 1)) +
+                (phases.late.threatPower * phases.late.consistency * (phaseWeights.late || 1));
+            return {
+                total,
+                phaseScores: {
+                    early: phases.early.threatPower * phases.early.consistency,
+                    mid: phases.mid.threatPower * phases.mid.consistency,
+                    late: phases.late.threatPower * phases.late.consistency,
+                },
+                details: phases,
+            };
+        }
+
         // --- Start the app ---
         initializeApp();
+
+        // --- Helper to render TFA phase-by-phase breakdown ---
+        function renderTFADetailTable(playerTFAObj, opponentTFAObj, phaseWeights) {
+            const phases = ['early', 'mid', 'late'];
+            const phaseNames = { early: 'Early (1-3)', mid: 'Mid (4-6)', late: 'Late (7+)' };
+            let html = `<div class=\"mb-4\"><b>TFA Phase-by-Phase Breakdown</b></div>`;
+            html += `<table class=\"w-full text-xs mb-4 border-collapse\">
+                <thead><tr class=\"border-b border-gray-700\">
+                    <th class=\"py-1 px-2\">Phase</th>
+                    <th class=\"py-1 px-2\">Player Threat Power × Consistency</th>
+                    <th class=\"py-1 px-2\">Opponent Threat Power × Consistency</th>
+                    <th class=\"py-1 px-2\">Weight</th>
+                </tr></thead><tbody>`;
+            phases.forEach(phase => {
+                html += `<tr>
+                    <td class=\"py-1 px-2\">${phaseNames[phase]}</td>
+                    <td class=\"py-1 px-2\">${playerTFAObj.phaseScores[phase].toFixed(2)}</td>
+                    <td class=\"py-1 px-2\">${opponentTFAObj.phaseScores[phase].toFixed(2)}</td>
+                    <td class=\"py-1 px-2\"><input type=\"number\" step=\"0.1\" min=\"0\" max=\"5\" value=\"${phaseWeights[phase]}\" id=\"tfa-weight-${phase}\" class=\"w-12 bg-gray-800 border border-gray-600 rounded px-1 text-center\"></td>
+                </tr>`;
+            });
+            html += `</tbody></table>`;
+            html += `<div class=\"text-xs text-gray-400\">Threat Power = (RDS + LVI + BCR) × Copies, Consistency = Fraction of turns in phase with at least one playable card.</div>`;
+            return html;
+        }
     </script>
 </body>
 
