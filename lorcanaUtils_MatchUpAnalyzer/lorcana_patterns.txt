@@ -34,7 +34,7 @@ Regex: /put the rest on the bottom of your deck/gi
 ----------------------------------------
 
 Pattern Name: Card Effect: Discard to Hand
-Regex: /return a(nother)? (?:character|item|action|song|card)(?: with \d+ (?:¤|⬡|⛉) or (?:less|more))? from your discard (?:pile )?to your hand/gi
+Regex: /return (?:a|another|an)? (?:character|item|action|song|card)(?: card)?(?: with \d+ (?:¤|⬡|⛉) or (?:less|more))? from your discard (?:pile )?to your hand/gi
 ----------------------------------------
 
 Pattern Name: Card Effect: Discard to Deck
@@ -146,11 +146,11 @@ Regex: /When you play this (?:character|item|action)/gi
 ----------------------------------------
 
 Pattern Name: Trigger: On Quest
-Regex: /Whenever this character quests/gi
+Regex: /Whenever (this character|he|she|it) quests/gi
 ----------------------------------------
 
 Pattern Name: Trigger: On Banish (Self)
-Regex: /When this character is banished/gi
+Regex: /When (this character|he|she|it) is banished/gi
 ----------------------------------------
 
 Pattern Name: Trigger: On Banish (Other)
