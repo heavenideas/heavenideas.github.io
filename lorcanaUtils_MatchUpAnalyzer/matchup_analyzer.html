@@ -804,13 +804,13 @@
             deck.forEach(card => {
                 let value = 0;
                 let explanation = [];
+                let baseLorePotential = card.lore / (card.cost || 1);
                 if (card.lore > 0) {
-                    let baseLorePotential = card.lore / (card.cost || 1);
                     let loreSurvivabilityModifier = 1.0;
                     let questSafetyModifier = 1.0;
                     if (card.keywords.has('Ward')) { loreSurvivabilityModifier *= 1.4; explanation.push('Ward'); }
                     if (card.keywords.has('Resist')) { loreSurvivabilityModifier *= 1.2; explanation.push('Resist'); }
-                    if ((card.willpower || 0) >= 5) { loreSurvivabilityModifier *= 1.1; explanation.push('High Willpower'); }
+                    if ((card.willpower || 0) >= 6) { loreSurvivabilityModifier *= 1.1; explanation.push('High Willpower'); }
                     if (card.keywords.has('Evasive')) { questSafetyModifier *= 1.5; explanation.push('Evasive'); }
                     value += baseLorePotential * loreSurvivabilityModifier * questSafetyModifier;
                     explanation.unshift(`Lore: ${card.lore}`);
@@ -820,7 +820,7 @@
                     if (loreMatch) {
                         const loreAmount = getNumberFromText(loreMatch[0])
                         loreBuff = 1.5 * loreAmount
-                        value += loreBuff;
+                        value += baseLorePotential * loreBuff;
                         explanation.push('Lore: Gain' ,loreAmount);
                     }
                     
@@ -830,7 +830,7 @@
                     if (loreMatch) {
                         const loreAmount = getNumberFromText(loreMatch[0])
                         loreBuff = 1.5 * loreAmount
-                        value += loreBuff;
+                        value += baseLorePotential * loreBuff;
                         explanation.push('Lore: Opponent Loses' ,loreAmount);
                     }
                     
@@ -840,7 +840,7 @@
                     if (loreMatch){
                         const loreAmount = getNumberFromText(loreMatch[0])
                         loreBuff = 1.5*loreAmount
-                        value += loreBuff;
+                        value += baseLorePotential * loreBuff;
                         explanation.push('Static: Stat Buf: Lore:',loreAmount);
                     }
                 }
@@ -849,7 +849,7 @@
                     if (loreMatch){
                         const loreAmount = getNumberFromText(loreMatch[0])
                         loreBuff = 1.5*loreAmount
-                        value += loreBuff;
+                        value += baseLorePotential * loreBuff;
                         explanation.push('Damage: Heal:',loreAmount);
                     }
                 }
