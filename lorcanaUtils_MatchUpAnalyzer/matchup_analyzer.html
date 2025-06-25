@@ -607,7 +607,9 @@
             // in the card's `fullTextSections` which is conveiently already the fullText split into sections
             let allText = Array.from(rawCard.fullTextSections).join(' ').replace(/\s+/g, ' ').trim();
 
-
+            console.log("\n---Starting Search for: ", rawCard.name);
+            console.log("With text: ---", allText,"---");
+                        
             // For each pattern in all categories, if it matches, add its name
             for (const category in LORCANA_PATTERNS) {
                 for (const pattern of LORCANA_PATTERNS[category]) {
@@ -618,6 +620,7 @@
                     }
                 }
             }
+            console.log("\n---");
 
              // Add new logic here:
             features.scryEffect = { lookCount: 0, canFilterToBottom: false, canTutorToHand: false };
@@ -865,6 +868,11 @@
                     value += (card.strength || 0) * 0.5;
                     explanation.push('Rush');
                 }
+                if (card.abilityPatterns.has('Bounce: Opposing Character')) {
+                    value += 4 / (card.cost || 1);
+                    explanation.push('Bounce Opposing Character');
+                }
+                
                 if (card.abilityPatterns.has('Stat: Strength Buff')){
                     const strengthMatch = (card.rawData.fullText.replace(/\n/g, ' ').trim() || '').match(/(?:get(?:s)?|has|gain(?:s)?) \+(\d+) (¤|strength)/gi);
                     if (strengthMatch) {
@@ -1603,7 +1611,7 @@
             const winProbDisplay = document.getElementById('win-probability-display');
             if (playerUWPCards.length > 0 && opponentUWPCards.length > 0) {
                 // Store weights in a mutable object for live editing
-                const weights = { rds: 0.15, lvi: 0.25, bcr: 0.25, aim: 1.0, tfa: 1.0, taes: 1.0 };
+                const weights = { rds: 0.15, lvi: 0.15, bcr: 0.25, aim: 1.0, tfa: 0.0, taes: 1.0 };
                 const k = 1;
 
                 // Helper for tooltips
@@ -2548,7 +2556,7 @@
                     // Yellow to red
                     hue = 60 + (0 - 60) * ((t - 0.5) / 0.5);
                 }
-                return `background-color: hsl(${hue}, 90%, 40%); color: #fff;`;
+                return `background-color: hsl(${hue}, 45%, 40%); color: #fff;`;
             }
             // Responsive table: stack on small screens, show images+names on large
             return `
