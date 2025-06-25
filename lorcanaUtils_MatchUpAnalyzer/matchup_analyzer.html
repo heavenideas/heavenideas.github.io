@@ -820,7 +820,7 @@
                     if (loreMatch) {
                         const loreAmount = getNumberFromText(loreMatch[0])
                         loreBuff = 1.5 * loreAmount
-                        value += baseLorePotential * loreBuff;
+                        value += loreBuff / (card.cost || 1);
                         explanation.push('Lore: Gain' ,loreAmount);
                     }
                     
@@ -830,7 +830,7 @@
                     if (loreMatch) {
                         const loreAmount = getNumberFromText(loreMatch[0])
                         loreBuff = 1.5 * loreAmount
-                        value += baseLorePotential * loreBuff;
+                        value += loreBuff / (card.cost || 1);
                         explanation.push('Lore: Opponent Loses' ,loreAmount);
                     }
                     
@@ -840,7 +840,7 @@
                     if (loreMatch){
                         const loreAmount = getNumberFromText(loreMatch[0])
                         loreBuff = 1.5*loreAmount
-                        value += baseLorePotential * loreBuff;
+                        value += loreBuff / (card.cost || 1);
                         explanation.push('Static: Stat Buf: Lore:',loreAmount);
                     }
                 }
@@ -849,7 +849,7 @@
                     if (loreMatch){
                         const loreAmount = getNumberFromText(loreMatch[0])
                         loreBuff = 1.5*loreAmount
-                        value += baseLorePotential * loreBuff;
+                        value += loreBuff / (card.cost || 1);
                         explanation.push('Damage: Heal:',loreAmount);
                     }
                 }
