@@ -2528,51 +2528,65 @@
          * @returns {{ total: number, phaseScores: object, details: object }}
          */
         function calculateTFA(deckEntries, uwpCards, rdsBreakdown, lviBreakdown, bcrBreakdown, phaseWeights) {
-            // Map card name to metric values for quick lookup
             const rdsMap = Object.fromEntries(rdsBreakdown.map(row => [row.name, row.value]));
             const lviMap = Object.fromEntries(lviBreakdown.map(row => [row.name, row.value]));
             const bcrMap = Object.fromEntries(bcrBreakdown.map(row => [row.name, row.value]));
-
-            // Phases: Early (1-3), Mid (4-6), Late (7+)
             const phases = {
-                early: { turns: [1, 2, 3], threatPower: 0, consistency: 0, perTurn: {} },
-                mid: { turns: [4, 5, 6], threatPower: 0, consistency: 0, perTurn: {} },
-                late: { turns: [7, 8, 9, 10, 11, 12], threatPower: 0, consistency: 0, perTurn: {} },
+                early: { turns: [1, 2, 3], threatPower: 0, consistency: 0, perTurn: {}, turnDetails: [] },
+                mid: { turns: [4, 5, 6], threatPower: 0, consistency: 0, perTurn: {}, turnDetails: [] },
+                late: { turns: [7, 8, 9, 10, 11, 12], threatPower: 0, consistency: 0, perTurn: {}, turnDetails: [] },
             };
-            // For each turn in each phase, track if at least one card is playable and sum threat power
             Object.entries(phases).forEach(([phase, obj]) => {
                 obj.turns.forEach(cost => {
-                    obj.perTurn[cost] = { threatPower: 0, count: 0 };
+                    obj.perTurn[cost] = { threatPower: 0, count: 0, cards: [] };
                 });
             });
-            // For each card in deck, add its threat power to the appropriate phase/turn, multiplied by count
             deckEntries.forEach((entry, idx) => {
                 const card = entry.cardInfo;
                 const count = entry.count || 1;
                 const cost = card.cost;
                 const name = card.fullName;
-                // Get threat power from breakdowns (sum RDS+LVI+BCR for this card)
                 const threatPower = (rdsMap[name] || 0) + (lviMap[name] || 0) + (bcrMap[name] || 0);
-                // Assign to phase/turn
                 Object.entries(phases).forEach(([phase, obj]) => {
                     if (obj.turns.includes(cost)) {
                         obj.perTurn[cost].threatPower += threatPower * count;
                         obj.perTurn[cost].count += count;
+                        obj.perTurn[cost].cards.push({ card, count, threatPower });
                     }
                 });
             });
-            // For each phase, sum threat power and calculate consistency
             Object.entries(phases).forEach(([phase, obj]) => {
                 let totalThreat = 0;
                 let turnsWithThreat = 0;
+                obj.turnDetails = [];
                 obj.turns.forEach(cost => {
-                    if (obj.perTurn[cost].count > 0) turnsWithThreat++;
-                    totalThreat += obj.perTurn[cost].threatPower;
+                    const turn = obj.perTurn[cost];
+                    let turnReason = '';
+                    let selectedCards = [];
+                    if (turn.count > 0) {
+                        turnsWithThreat++;
+                        // Select the card(s) with the highest threat power for this turn
+                        let maxThreat = Math.max(...turn.cards.map(c => c.threatPower));
+                        selectedCards = turn.cards.filter(c => c.threatPower === maxThreat);
+                        if (selectedCards.length === 1) {
+                            turnReason = `Highest threat power for cost ${cost}`;
+                        } else if (selectedCards.length > 1) {
+                            turnReason = `Tie for highest threat power for cost ${cost}`;
+                        }
+                    } else {
+                        turnReason = 'No card available for this cost';
+                    }
+                    totalThreat += turn.threatPower;
+                    obj.turnDetails.push({
+                        cost,
+                        selectedCards,
+                        totalThreat: turn.threatPower,
+                        reason: turnReason
+                    });
                 });
                 obj.threatPower = totalThreat;
                 obj.consistency = turnsWithThreat / obj.turns.length;
             });
-            // Weighted sum for total TFA
             const total =
                 (phases.early.threatPower * phases.early.consistency * (phaseWeights.early || 1)) +
                 (phases.mid.threatPower * phases.mid.consistency * (phaseWeights.mid || 1)) +
@@ -2612,7 +2626,37 @@
                 </tr>`;
             });
             html += `</tbody></table>`;
-            html += `<div class=\"text-xs text-gray-400\">Threat Power = (RDS + LVI + BCR) × Copies, Consistency = Fraction of turns in phase with at least one playable card.</div>`;
+            // Per-turn breakdown for each phase
+            phases.forEach(phase => {
+                const playerTurns = playerTFAObj.details[phase].turnDetails;
+                const oppTurns = opponentTFAObj.details[phase].turnDetails;
+                html += `<div class=\"mb-2 mt-4\"><b>${phaseNames[phase]}: Per-Turn Threat Selection</b></div>`;
+                html += `<table class=\"w-full text-xs mb-2 border-collapse\">
+                    <thead><tr class=\"border-b border-gray-700\">
+                        <th class=\"py-1 px-2\">Turn (Cost)</th>
+                        <th class=\"py-1 px-2\">Player Threat Card(s)</th>
+                        <th class=\"py-1 px-2\">Player Threat Power</th>
+                        <th class=\"py-1 px-2\">Player Reason</th>
+                        <th class=\"py-1 px-2\">Opponent Threat Card(s)</th>
+                        <th class=\"py-1 px-2\">Opponent Threat Power</th>
+                        <th class=\"py-1 px-2\">Opponent Reason</th>
+                    </tr></thead><tbody>`;
+                for (let i = 0; i < playerTurns.length; i++) {
+                    const p = playerTurns[i];
+                    const o = oppTurns[i];
+                    html += `<tr>
+                        <td class=\"py-1 px-2\">${p.cost}</td>
+                        <td class=\"py-1 px-2\">${p.selectedCards.length > 0 ? p.selectedCards.map(c => `${c.card.fullName} (x${c.count})`).join('<br>') : '-'}</td>
+                        <td class=\"py-1 px-2\">${p.totalThreat.toFixed(2)}</td>
+                        <td class=\"py-1 px-2\">${p.reason}</td>
+                        <td class=\"py-1 px-2\">${o.selectedCards.length > 0 ? o.selectedCards.map(c => `${c.card.fullName} (x${c.count})`).join('<br>') : '-'}</td>
+                        <td class=\"py-1 px-2\">${o.totalThreat.toFixed(2)}</td>
+                        <td class=\"py-1 px-2\">${o.reason}</td>
+                    </tr>`;
+                }
+                html += `</tbody></table>`;
+            });
+            html += `<div class=\"text-xs text-gray-400\">Threat Power = (RDS + LVI + BCR) × Copies, Consistency = Fraction of turns in phase with at least one playable card. For each turn, the card(s) with the highest threat power are selected as the main threat(s).</div>`;
             return html;
         }
     </script>
