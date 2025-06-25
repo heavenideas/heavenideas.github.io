@@ -125,6 +125,23 @@
                         <div id="card-details" class="hidden">
                         </div>
                     </div>
+                    <!-- Custom Regex Search Feature -->
+                    <div id="custom-regex-section" class="mt-10 p-6 bg-slate-50 rounded-2xl border border-slate-200">
+                        <h3 class="text-xl font-bold text-slate-900 mb-2">Custom Regex Card Search</h3>
+                        <div class="flex flex-col md:flex-row gap-4 items-start md:items-end">
+                            <div class="flex-1">
+                                <label for="custom-regex-input" class="block text-sm font-medium text-slate-700 mb-1">Regex Pattern</label>
+                                <input type="text" id="custom-regex-input" class="regex-input" placeholder="e.g. draw 2 cards" />
+                            </div>
+                            <div>
+                                <label for="custom-regex-flags" class="block text-sm font-medium text-slate-700 mb-1">Flags</label>
+                                <input type="text" id="custom-regex-flags" class="regex-input w-20" placeholder="gi" value="gi" />
+                            </div>
+                            <button id="custom-regex-btn" class="px-5 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow hover:bg-blue-700 transition">Search</button>
+                        </div>
+                        <div id="custom-regex-error" class="text-red-500 text-sm mt-2 hidden"></div>
+                        <div id="custom-regex-results" class="mt-6"></div>
+                    </div>
                 </div>
             </div>
         </main>
@@ -149,6 +166,11 @@
             const searchResultsContainer = document.getElementById('search-results');
             const cardDetailsContainer = document.getElementById('card-details');
             const cardPlaceholder = document.getElementById('card-placeholder');
+            const customRegexInput = document.getElementById('custom-regex-input');
+            const customRegexFlags = document.getElementById('custom-regex-flags');
+            const customRegexBtn = document.getElementById('custom-regex-btn');
+            const customRegexResults = document.getElementById('custom-regex-results');
+            const customRegexError = document.getElementById('custom-regex-error');
 
             // --- INITIALIZATION ---
             async function initializeApp() {
@@ -394,6 +416,64 @@
                 highlightedHtml += originalText.substring(lastIndex);
                 return { highlightedHtml: highlightedHtml.replace(/\n/g, '<br>'), foundPatterns: foundPatterns };
             }
+
+            // Custom Regex Search Button
+            customRegexBtn.addEventListener('click', () => {
+                const pattern = customRegexInput.value;
+                const flags = customRegexFlags.value;
+                customRegexError.classList.add('hidden');
+                customRegexInput.classList.remove('regex-input-error');
+                customRegexResults.innerHTML = '';
+                let regex;
+                try {
+                    regex = new RegExp(pattern, flags);
+                } catch (err) {
+                    customRegexError.textContent = 'Invalid regex: ' + err.message;
+                    customRegexError.classList.remove('hidden');
+                    customRegexInput.classList.add('regex-input-error');
+                    return;
+                }
+                // Search all cards for matches
+                const results = [];
+                allCards.forEach(card => {
+                    let text = card.fullText || '';
+                    text = (text).replace(/\n/g, ' ').trim();
+                    regex.lastIndex = 0;
+                    if (text && regex.test(text)) {
+                        results.push({ card, text });
+                    }
+                });
+                if (results.length === 0) {
+                    customRegexResults.innerHTML = '<div class="text-slate-500">No cards matched this regex.</div>';
+                    return;
+                }
+                // Display results
+                const fragment = document.createDocumentFragment();
+                results.forEach(({ card, text }) => {
+                    // Highlight all matches in the text
+                    let highlighted = '';
+                    let lastIndex = 0;
+                    let match;
+                    regex.lastIndex = 0;
+                    const matches = [];
+                    while ((match = regex.exec(text)) !== null) {
+                        if (match[0].length === 0) break;
+                        matches.push({ start: match.index, end: match.index + match[0].length });
+                        if (!regex.global) break;
+                    }
+                    matches.forEach((m, i) => {
+                        highlighted += text.substring(lastIndex, m.start);
+                        highlighted += `<span class=\"highlight bg-yellow-200\">${text.substring(m.start, m.end)}</span>`;
+                        lastIndex = m.end;
+                    });
+                    highlighted += text.substring(lastIndex);
+                    const cardDiv = document.createElement('div');
+                    cardDiv.className = 'mb-6 p-4 bg-white rounded-lg border border-slate-200 shadow';
+                    cardDiv.innerHTML = `<div class=\"font-bold text-blue-800 mb-2\">${card.fullName}</div><div class=\"prose prose-slate\">${highlighted.replace(/\n/g, '<br>')}</div>`;
+                    fragment.appendChild(cardDiv);
+                });
+                customRegexResults.appendChild(fragment);
+            });
 
             // --- START THE APP ---
             initializeApp();
