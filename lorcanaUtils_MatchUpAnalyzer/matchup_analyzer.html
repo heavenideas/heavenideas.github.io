@@ -875,8 +875,8 @@
                     const strengthMatch = (card.rawData.fullText.replace(/\n/g, ' ').trim() || '').match(/(?:get(?:s)?|has|gain(?:s)?) \+(\d+) (¤|strength)/gi);
                     if (strengthMatch) {
                         const strengthAmount = getNumberFromText(strengthMatch[0])
-                        loreBuff = 1.5 * strengthAmount
-                        value += loreBuff;
+                        strengthBuff = (1.5 * strengthAmount) / (card.cost || 1)
+                        value += strengthBuff;
                         explanation.push('Static: Stat Buf: Strength:+', strengthAmount);
                     }
                 }
@@ -884,9 +884,18 @@
                     const willpowerMatch = (card.rawData.fullText.replace(/\n/g, ' ').trim() || '').match(/(?:get(?:s)?|has|gain(?:s)?) \+(\d+) (⛉|willpower)/gi);
                     if (willpowerMatch) {
                         const willpowerAmount = getNumberFromText(willpowerMatch[0])
-                        loreBuff = 1.5 * willpowerAmount
-                        value += loreBuff;
+                        willpowerBuff = (1.5 * willpowerAmount)  / (card.cost || 1)
+                        value += willpowerBuff;
                         explanation.push('Static: Stat Buf: Willpower:+', willpowerAmount);
+                    }
+                }
+                if (card.abilityPatterns.has('Static: Grant Keyword(Aura)')) {
+                    const resistMatch = (card.rawData.fullText.replace(/\n/g, ' ').trim() || '').match(/(?:Your other characters|they|it) gain(?:s)? (Resist \+\d+)/gi);
+                    if (resistMatch) {
+                        const resistAmount = getNumberFromText(willpowerMatch[0])
+                        resistBuff = (1.5 * resistAmount) / (card.cost || 1)
+                        value += resistBuff;
+                        explanation.push('Static: Grant Keyword(Resist):+', resistAmount);
                     }
                 }
 
