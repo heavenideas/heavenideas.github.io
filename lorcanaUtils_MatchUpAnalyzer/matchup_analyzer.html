@@ -735,6 +735,10 @@
                     value += 1.5;
                     explanation.push('Play: From Discard');
                 }
+                if (card.abilityPatterns.has('Card Effect: Discard to Hand')) {
+                    value += 1.5;
+                    explanation.push('Card Effect: Discard to Hand');
+                }
                 if (card.abilityPatterns.has('Card Effect: Opponent Discards')) {
                     value += 1.5;
                     explanation.push('Opponent Discards');
