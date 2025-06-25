@@ -114,7 +114,7 @@ Regex: /move (?:one of )?your characters to a location for free/gi
 ----------------------------------------
 
 Pattern Name: Stat: Strength Buff
-Regex: /(?:gets|has|gains) \+(\d+) ¤/gi
+Regex: /(?:get(?:s)?|has|gain(?:s)?) \+(\d+) (¤|strength)/gi
 ----------------------------------------
 
 Pattern Name: Stat: Strength Debuff
@@ -122,7 +122,7 @@ Regex: /(?:gets|has) -(\d+) ¤/gi
 ----------------------------------------
 
 Pattern Name: Stat: Willpower Buff
-Regex: /gains \+(\d+) ⛉/gi
+Regex: /(?:get(?:s)?|has|gain(?:s)?) \+(\d+) (⛉|Willpower)/gi
 ----------------------------------------
 
 Pattern Name: Stat: Cost Reduction

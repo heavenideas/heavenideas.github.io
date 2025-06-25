@@ -597,11 +597,11 @@
 
             let uniqueTexts = new Set();
 
-            if (rawCard.fullText) {
-                // Split fullText into sentences or phrases if it contains multiple distinct abilities
-                // For simplicity, adding the whole text for now. More advanced parsing might be needed.
-                uniqueTexts.add(rawCard.fullText.trim());
-            }
+            // if (rawCard.fullText) {
+            //     // Split fullText into sentences or phrases if it contains multiple distinct abilities
+            //     // For simplicity, adding the whole text for now. More advanced parsing might be needed.
+            //     uniqueTexts.add(rawCard.fullText.trim());
+            // }
 
             if (Array.isArray(rawCard.abilities)) {
                 rawCard.abilities.forEach(ability => {
@@ -825,7 +825,7 @@
                     
                 }
                 if (card.abilityPatterns.has('Static: Stat Buff')) {
-                    const loreMatch = (card.rawData.fullText.replace(/\n/g, ' ').trim() || '').match(/gets \+(\d+) ◊/gi);
+                    const loreMatch = (card.rawData.fullText.replace(/\n/g, ' ').trim() || '').match(/get(?:s)? \+(\d+) ◊/gi);
                     if (loreMatch){
                         const loreAmount = getNumberFromText(loreMatch[0])
                         loreBuff = 1.5*loreAmount
@@ -851,9 +851,9 @@
             deck.forEach(card => {
                 let value = 0;
                 let explanation = [];
-                if (card.abilityPatterns.has('Banish: Chosen Target') || card.abilityPatterns.has('Banish: Any')) {
+                if (card.abilityPatterns.has('Banish: Chosen Target') || card.abilityPatterns.has('Banish: Any') || card.abilityPatterns.has('Banish: Opponent\'s Choice')) {
                     value += 7 / (card.cost || 1);
-                    explanation.push('Banish');
+                    explanation.push('Banish Other Characters');
                 }
                 if (card.abilityPatterns.has('Damage: Deal to One') || card.abilityPatterns.has('Damage: Deal to Many')) {
                     value += 4 / (card.cost || 1);
@@ -871,6 +871,25 @@
                     value += (card.strength || 0) * 0.5;
                     explanation.push('Rush');
                 }
+                if (card.abilityPatterns.has('Stat: Strength Buff')){
+                    const strengthMatch = (card.rawData.fullText.replace(/\n/g, ' ').trim() || '').match(/(?:get(?:s)?|has|gain(?:s)?) \+(\d+) (¤|strength)/gi);
+                    if (strengthMatch) {
+                        const strengthAmount = getNumberFromText(strengthMatch[0])
+                        loreBuff = 1.5 * strengthAmount
+                        value += loreBuff;
+                        explanation.push('Static: Stat Buf: Strength:+', strengthAmount);
+                    }
+                }
+                if (card.abilityPatterns.has('Stat: Willpower Buff')) {
+                    const willpowerMatch = (card.rawData.fullText.replace(/\n/g, ' ').trim() || '').match(/(?:get(?:s)?|has|gain(?:s)?) \+(\d+) (⛉|willpower)/gi);
+                    if (willpowerMatch) {
+                        const willpowerAmount = getNumberFromText(willpowerMatch[0])
+                        loreBuff = 1.5 * willpowerAmount
+                        value += loreBuff;
+                        explanation.push('Static: Stat Buf: Willpower:+', willpowerAmount);
+                    }
+                }
+
                 breakdown.push({ name: card.rawData.fullName, value, explanation: explanation.join(', ') });
                 total += value;
             });
