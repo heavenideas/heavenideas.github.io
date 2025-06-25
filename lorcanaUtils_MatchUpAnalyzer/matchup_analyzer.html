@@ -831,7 +831,7 @@
                         const loreAmount = getNumberFromText(loreMatch[0])
                         loreBuff = 1.5 * loreAmount
                         value += loreBuff;
-                        explanation.push('Lore: Gain' ,loreAmount);
+                        explanation.push('Lore: Opponent Loses' ,loreAmount);
                     }
                     
                 }
@@ -844,6 +844,16 @@
                         explanation.push('Static: Stat Buf: Lore:',loreAmount);
                     }
                 }
+                if (card.abilityPatterns.has('Damage: Heal')) {
+                    const loreMatch = (card.rawData.fullText.replace(/\n/g, ' ').trim() || '').match(/up to (\d+) damage/gi);
+                    if (loreMatch){
+                        const loreAmount = getNumberFromText(loreMatch[0])
+                        loreBuff = 1.5*loreAmount
+                        value += loreBuff;
+                        explanation.push('Damage: Heal:',loreAmount);
+                    }
+                }
+                
                 
                 breakdown.push({ name: card.rawData.fullName, value, explanation: explanation.join(', ') });
                 total += value;
