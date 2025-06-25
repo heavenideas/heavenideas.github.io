@@ -604,35 +604,8 @@
             }
 
             // 3. Use the regex from LORCANA_PATTERNS to identify all matching ability patterns
-            // in the card's `fullText` or `abilities` field.
-            // let allText = '';
-            // if (rawCard.fullText) allText += rawCard.fullText + '\n';
-            // if (Array.isArray(rawCard.abilities)) {
-            //     rawCard.abilities.forEach(ability => {
-            //         if (ability.fullText) allText += ability.fullText + '\n';
-            //     });
-            // }
-
-            // allText = (allText).replace(/\n/g, ' ').trim();
-
-
-            let uniqueTexts = new Set();
-
-            // if (rawCard.fullText) {
-            //     // Split fullText into sentences or phrases if it contains multiple distinct abilities
-            //     // For simplicity, adding the whole text for now. More advanced parsing might be needed.
-            //     uniqueTexts.add(rawCard.fullText.trim());
-            // }
-
-            if (Array.isArray(rawCard.abilities)) {
-                rawCard.abilities.forEach(ability => {
-                    if (ability.fullText) {
-                        uniqueTexts.add(ability.fullText.trim());
-                    }
-                });
-            }
-
-            let allText = Array.from(uniqueTexts).join(' ').replace(/\s+/g, ' ').trim();
+            // in the card's `fullTextSections` which is conveiently already the fullText split into sections
+            let allText = Array.from(rawCard.fullTextSections).join(' ').replace(/\s+/g, ' ').trim();
 
 
             // For each pattern in all categories, if it matches, add its name
@@ -944,7 +917,7 @@
 
             // 2. Calculate Matchup-Specific Modifiers (now use provided TFA)
             const aim = 0; // Archetype Interaction Modifier
-            const tfa = tfaA - tfaB; // Use provided TFA values
+            const tfa = 0; // Use provided TFA values
             const taes = 0; // Threat-Answer Efficiency Score
 
             // 3. Define weights (tunable)
@@ -956,7 +929,7 @@
                 weights.lvi * (lviA.total - lviB.total) +
                 weights.bcr * (bcrA.total - bcrB.total) +
                 weights.aim * aim +
-                weights.tfa * tfa +
+                weights.tfa * (tfaA - tfaB) +
                 weights.taes * taes;
 
             // 5. Convert the score to a probability using the Logistic Function
@@ -1659,7 +1632,7 @@
                     const winProb = 1 / (1 + Math.exp(-k * matchupScore));
                     const winPercent = (winProb * 100).toFixed(1);
                     const lossPercent = (100 - winPercent).toFixed(1);
-
+                    console.log("updateUWPMTable", winPercent)
                     // Update the table and probability
                     document.getElementById('uwpm-win-chance').textContent = `${winPercent}%`;
                     document.getElementById('uwpm-opp-chance').textContent = `(Opponent's Chance: ${lossPercent}%)`;
@@ -1853,6 +1826,34 @@
             } else {
                 winProbDisplay.innerHTML = `<p class=\"text-lg text-gray-400\">Load both decks to calculate win probability.</p>`;
             }
+
+            // ... inside handleAnalyzeButtonClick, after winProbDisplay.innerHTML is set and after the setTimeout for details buttons ...
+            setTimeout(() => {
+                // Replace old details logic with unified tables
+                const rdsDetail = document.getElementById('uwpm-detail-rds');
+                const lviDetail = document.getElementById('uwpm-detail-lvi');
+                const bcrDetail = document.getElementById('uwpm-detail-bcr');
+                if (rdsDetail) {
+                    rdsDetail.innerHTML =
+                        renderUnifiedDeckMetricTable(
+                            [ ...PLAYER_DECK_CHARS, ...PLAYER_DECK_SONGS, ...PLAYER_DECK_LOCATIONS, ...PLAYER_DECK_ITEMS, ...PLAYER_DECK_ACTIONS ],
+                            playerRDSObj.breakdown,
+                            playerLVIObj.breakdown,
+                            playerBCRObj.breakdown,
+                            'Player'
+                        ) +
+                        renderUnifiedDeckMetricTable(
+                            [ ...OPPONENT_DECK_CHARS, ...OPPONENT_DECK_SONGS, ...OPPONENT_DECK_LOCATIONS, ...OPPONENT_DECK_ITEMS, ...OPPONENT_DECK_ACTIONS ],
+                            opponentRDSObj.breakdown,
+                            opponentLVIObj.breakdown,
+                            opponentBCRObj.breakdown,
+                            'Opponent'
+                        );
+                    rdsDetail.classList.remove('hidden');
+                }
+                if (lviDetail) lviDetail.classList.add('hidden');
+                if (bcrDetail) bcrDetail.classList.add('hidden');
+            }, 0);
         }
 
         function displayAnalysisResults() {
@@ -2498,6 +2499,7 @@
 
         // --- Per-card breakdown logic ---
         function renderCardMetricTable(title, playerBreakdown, oppBreakdown) {
+            // (Old function, will be replaced by unified tables)
             return `
                 <div class=\"mb-4\"><b>${title} - Player Deck</b></div>
                 <table class=\"w-full text-xs mb-4 border-collapse\">
@@ -2513,6 +2515,95 @@
                         ${oppBreakdown.map(row => `<tr><td class=\"py-1 px-2\">${row.name}</td><td class=\"py-1 px-2\">${row.value.toFixed(2)}</td><td class=\"py-1 px-2\">${row.explanation}</td></tr>`).join('')}
                     </tbody>
                 </table>
+            `;
+        }
+
+        // --- Unified per-deck, per-card metric table with heatmap and responsive layout ---
+        function renderUnifiedDeckMetricTable(deckCards, rdsBreakdown, lviBreakdown, bcrBreakdown, deckLabel) {
+            // Build lookup maps for fast access
+            const rdsMap = Object.fromEntries(rdsBreakdown.map(row => [row.name, row]));
+            const lviMap = Object.fromEntries(lviBreakdown.map(row => [row.name, row]));
+            const bcrMap = Object.fromEntries(bcrBreakdown.map(row => [row.name, row]));
+            // Get all unique cards (by fullName)
+            const allCards = deckCards.map(entry => entry.cardInfo);
+            // Compute min/max for each metric
+            function getMinMax(map) {
+                const values = allCards.map(card => (map[card.fullName]?.value ?? 0));
+                return { min: Math.min(...values), max: Math.max(...values) };
+            }
+            const rdsMinMax = getMinMax(rdsMap);
+            const lviMinMax = getMinMax(lviMap);
+            const bcrMinMax = getMinMax(bcrMap);
+            // Helper for heatmap color (blue for low, yellow for mid, red for high)
+            function getHeatColor(val, min, max) {
+                if (max === min) return '';
+                const t = (val - min) / (max - min);
+                // 0 = no color, 1 = strong color
+                // Use HSL: 220 (blue) to 60 (yellow) to 0 (red)
+                let hue;
+                if (t < 0.5) {
+                    // Blue to yellow
+                    hue = 220 + (60 - 220) * (t / 0.5);
+                } else {
+                    // Yellow to red
+                    hue = 60 + (0 - 60) * ((t - 0.5) / 0.5);
+                }
+                return `background-color: hsl(${hue}, 90%, 40%); color: #fff;`;
+            }
+            // Responsive table: stack on small screens, show images+names on large
+            return `
+            <div class=\"mb-4\"><b>${deckLabel} Deck: Per-Card Metrics</b></div>
+            <div class=\"overflow-x-auto\">
+            <table class=\"w-full text-xs border-collapse\">
+                <thead>
+                    <tr class=\"border-b border-gray-700\">
+                        <th class=\"py-1 px-2 text-left\">Card</th>
+                        <th class=\"py-1 px-2 text-center\">RDS</th>
+                        <th class=\"py-1 px-2 text-center\">LVI</th>
+                        <th class=\"py-1 px-2 text-center\">BCR</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${allCards.map(card => {
+                        const rds = rdsMap[card.fullName]?.value ?? 0;
+                        const lvi = lviMap[card.fullName]?.value ?? 0;
+                        const bcr = bcrMap[card.fullName]?.value ?? 0;
+                        const rdsExp = rdsMap[card.fullName]?.explanation || '';
+                        const lviExp = lviMap[card.fullName]?.explanation || '';
+                        const bcrExp = bcrMap[card.fullName]?.explanation || '';
+                        // Responsive: show image+name on md+, name only on sm
+                        const cardCell = `
+                          <div class=\"flex items-center gap-2\">
+                            <img src=\"${card.images?.thumbnail || 'https://placehold.co/40x56/2d3748/e2e8f0?text=No+Img'}\" alt=\"${card.fullName}\" class=\"hidden md:inline-block rounded w-10 h-auto\" style=\"min-width:40px;\">
+                            <span class=\"block\">${card.name}</span>
+                          </div>
+                        `;
+                        return `<tr>
+                            <td class=\"py-1 px-2 align-top\">${cardCell}</td>
+                            <td class=\"py-1 px-2 align-top text-center\" style=\"${getHeatColor(rds, rdsMinMax.min, rdsMinMax.max)}\">
+                                <div>${rds.toFixed(2)}</div>
+                                <div class=\"whitespace-normal break-words text-xs mt-1\">${rdsExp}</div>
+                            </td>
+                            <td class=\"py-1 px-2 align-top text-center\" style=\"${getHeatColor(lvi, lviMinMax.min, lviMinMax.max)}\">
+                                <div>${lvi.toFixed(2)}</div>
+                                <div class=\"whitespace-normal break-words text-xs mt-1\">${lviExp}</div>
+                            </td>
+                            <td class=\"py-1 px-2 align-top text-center\" style=\"${getHeatColor(bcr, bcrMinMax.min, bcrMinMax.max)}\">
+                                <div>${bcr.toFixed(2)}</div>
+                                <div class=\"whitespace-normal break-words text-xs mt-1\">${bcrExp}</div>
+                            </td>
+                        </tr>`;
+                    }).join('')}
+                </tbody>
+            </table>
+            </div>
+            <style>
+            @media (max-width: 640px) {
+              table td, table th { display: block; width: 100%; }
+              table tr { display: block; margin-bottom: 1rem; border-bottom: 2px solid #374151; }
+              table thead { display: none; }
+            }
+            </style>
             `;
         }
 
