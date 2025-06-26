@@ -266,7 +266,15 @@
 
         <div class="text-center mb-6">
             <button id="analyzeButton" class="px-6 py-3">Load Decks & Analyze</button>
+            <button id="batchAnalyzeButton" class="px-6 py-3 ml-4 bg-blue-600 hover:bg-blue-700">Run Batch Analysis</button>
         </div>
+
+        <section id="batchResultsDisplay" class="mt-8 hidden">
+            <h2 class="text-2xl font-bold text-center text-blue-400 mb-4">Batch Analysis Results</h2>
+            <div id="batchResultsTableContainer" class="overflow-x-auto">
+                <!-- Batch results table will be injected here -->
+            </div>
+        </section>
 
         <section id="analysisControls" class="hidden mt-8 p-4 bg-gray-700 rounded-lg shadow-md">
             <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
@@ -318,6 +326,19 @@
         </div>
         <div class="flex justify-end mt-6">
           <button id="closeDeckModalBtn" class="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded font-semibold">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Batch Detail Modal -->
+    <div id="batchDetailModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 p-4 opacity-0 pointer-events-none transition-opacity duration-200">
+      <div class="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-3xl h-5/6 overflow-y-auto">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-bold text-white">Matchup Details</h3>
+            <button id="closeBatchDetailModalBtn" class="text-gray-400 hover:text-white">&times;</button>
+        </div>
+        <div id="batchDetailContentContainer">
+          <!-- UWPM breakdown for the selected batch matchup will be injected here -->
         </div>
       </div>
     </div>
@@ -508,6 +529,13 @@
         const playerDeckInput = document.getElementById('playerDeckInput');
         const opponentDeckInput = document.getElementById('opponentDeckInput');
         const analyzeButton = document.getElementById('analyzeButton');
+        const batchAnalyzeButton = document.getElementById('batchAnalyzeButton'); // New button
+        const batchResultsDisplay = document.getElementById('batchResultsDisplay'); // New section
+        const batchResultsTableContainer = document.getElementById('batchResultsTableContainer'); // New table container
+        const batchDetailModal = document.getElementById('batchDetailModal'); // New modal
+        const closeBatchDetailModalBtn = document.getElementById('closeBatchDetailModalBtn'); // New modal close button
+        const batchDetailContentContainer = document.getElementById('batchDetailContentContainer'); // New modal content area
+
         const analysisControls = document.getElementById('analysisControls');
         const cardSelectionGrid = document.getElementById('cardSelectionGrid');
         const cardSelectionTitle = document.getElementById('cardSelectionTitle');
@@ -1015,6 +1043,17 @@
                     radio.addEventListener('change', handleAnalysisModeChange);
                 });
                 console.log("Event listeners attached.");
+
+                // Attach event listener for the new batch analyze button
+                if (batchAnalyzeButton) {
+                    batchAnalyzeButton.addEventListener('click', handleBatchAnalysisClick);
+                }
+                if (closeBatchDetailModalBtn) {
+                    closeBatchDetailModalBtn.addEventListener('click', ()_ => {
+                        batchDetailModal.classList.add('opacity-0', 'pointer-events-none');
+                    });
+                }
+
 
             } catch (error) {
                 console.error("Error during app initialization:", error);
@@ -2782,6 +2821,433 @@
             html += `<div class=\"text-xs text-gray-400\">Threat Power = (RDS + LVI + BCR) × Copies, Consistency = Fraction of turns in phase with at least one playable card. For each turn, the card(s) with the highest threat power are selected as the main threat(s).</div>`;
             return html;
         }
+
+        // --- Batch Analysis Functions ---
+        async function handleBatchAnalysisClick() {
+            console.log("Batch Analysis button clicked.");
+            loadingIndicator.classList.remove('hidden'); // Show loading indicator
+
+            // 1. Get Player's Deck
+            const playerDeckString = playerDeckInput.value;
+            if (!playerDeckString.trim()) {
+                alert("Player deck is empty. Please enter or load a deck.");
+                loadingIndicator.classList.add('hidden');
+                return;
+            }
+
+            console.log("Parsing player deck for batch analysis...");
+            const playerData = parseDeckString(playerDeckString);
+            const playerAllCardsForUWPMExtraction = [
+                ...playerData.characters,
+                ...playerData.songs,
+                ...playerData.locations,
+                ...playerData.items || [],
+                ...playerData.actions || []
+            ];
+            const playerUWPCards = playerAllCardsForUWPMExtraction.map(entry => extractCardFeatures(entry.cardInfo, LORCANA_PATTERNS));
+            console.log("Player UWPCards for batch:", playerUWPCards.length);
+
+            // Calculate Player's TFA (once)
+            const playerRDSObjBatch = getRDS(playerUWPCards);
+            const playerLVIObjBatch = getLVI(playerUWPCards);
+            const playerBCRObjBatch = getBCR(playerUWPCards);
+            const playerTFAObjBatch = calculateTFA(
+                playerAllCardsForUWPMExtraction, // These are {cardInfo, count}
+                playerUWPCards,
+                playerRDSObjBatch.breakdown,
+                playerLVIObjBatch.breakdown,
+                playerBCRObjBatch.breakdown,
+                window.tfaPhaseWeights || { early: 1, mid: 2, late: 1 }
+            );
+            const playerTFAForBatch = playerTFAObjBatch.total;
+
+
+            // 2. Fetch All Opponent Decks (if not already loaded)
+            if (allDecks.length === 0) {
+                console.log("Fetching all decks from database for batch analysis...");
+                await fetchDecksFromDatabase();
+                if (allDecks.length === 0) {
+                    alert("No opponent decks found in the database.");
+                    loadingIndicator.classList.add('hidden');
+                    return;
+                }
+            }
+            console.log(`Found ${allDecks.length} opponent decks in database.`);
+
+            const batchAnalysisResults = [];
+
+            for (const opponentDeckData of allDecks) {
+                console.log(`Analyzing against: ${opponentDeckData.name}`);
+                if (!opponentDeckData.decklist || !opponentDeckData.decklist.trim()) {
+                    console.warn(`Skipping opponent deck ${opponentDeckData.name} as it has no decklist.`);
+                    continue;
+                }
+
+                try {
+                    const opponentParsedData = parseDeckString(opponentDeckData.decklist);
+                    const opponentAllCardsForUWPMExtraction = [
+                        ...opponentParsedData.characters,
+                        ...opponentParsedData.songs,
+                        ...opponentParsedData.locations,
+                        ...opponentParsedData.items || [],
+                        ...opponentParsedData.actions || []
+                    ];
+                    const opponentUWPCards = opponentAllCardsForUWPMExtraction.map(entry => extractCardFeatures(entry.cardInfo, LORCANA_PATTERNS));
+
+                    if (opponentUWPCards.length === 0) {
+                        console.warn(`Skipping opponent deck ${opponentDeckData.name} as it parsed to 0 cards for UWPM.`);
+                        continue;
+                    }
+
+                    // Calculate Opponent's TFA
+                    const opponentRDSObjBatch = getRDS(opponentUWPCards);
+                    const opponentLVIObjBatch = getLVI(opponentUWPCards);
+                    const opponentBCRObjBatch = getBCR(opponentUWPCards);
+                    const opponentTFAObjBatch = calculateTFA(
+                        opponentAllCardsForUWPMExtraction, // These are {cardInfo, count}
+                        opponentUWPCards,
+                        opponentRDSObjBatch.breakdown,
+                        opponentLVIObjBatch.breakdown,
+                        opponentBCRObjBatch.breakdown,
+                        window.tfaPhaseWeights || { early: 1, mid: 2, late: 1 }
+                    );
+                    const opponentTFAForBatch = opponentTFAObjBatch.total;
+
+                    // Calculate Win Probability
+                    const winProb = calculateWinProbability(playerUWPCards, opponentUWPCards, playerTFAForBatch, opponentTFAForBatch);
+
+                    batchAnalysisResults.push({
+                        playerName: "Your Deck", // Or a name could be derived/input
+                        opponentName: opponentDeckData.name,
+                        winProbability: winProb,
+                        // Store all necessary data for the detailed view
+                        playerDeckDetails: {
+                            uwpmCards: playerUWPCards,
+                            rds: playerRDSObjBatch,
+                            lvi: playerLVIObjBatch,
+                            bcr: playerBCRObjBatch,
+                            tfa: playerTFAObjBatch,
+                            deckEntries: playerAllCardsForUWPMExtraction
+                        },
+                        opponentDeckDetails: {
+                            uwpmCards: opponentUWPCards,
+                            rds: opponentRDSObjBatch,
+                            lvi: opponentLVIObjBatch,
+                            bcr: opponentBCRObjBatch,
+                            tfa: opponentTFAObjBatch,
+                            deckEntries: opponentAllCardsForUWPMExtraction
+                        }
+                    });
+                    console.log(`Matchup: Your Deck vs ${opponentDeckData.name} - Win Prob: ${(winProb * 100).toFixed(1)}%`);
+
+                } catch (error) {
+                    console.error(`Error processing opponent deck ${opponentDeckData.name}:`, error);
+                    // Optionally, store this error or notify user
+                }
+            }
+
+            console.log("Batch analysis complete. Results:", batchAnalysisResults);
+            displayBatchResultsTable(batchAnalysisResults); // This function will be created next
+            loadingIndicator.classList.add('hidden');
+            batchResultsDisplay.classList.remove('hidden');
+        }
+
+        function displayBatchResultsTable(batchResults) {
+            batchResultsTableContainer.innerHTML = ''; // Clear previous results
+            if (!batchResults || batchResults.length === 0) {
+                batchResultsTableContainer.innerHTML = '<p class="text-center text-gray-400 italic">No batch results to display.</p>';
+                return;
+            }
+
+            const table = document.createElement('table');
+            table.className = 'w-full text-sm text-left text-gray-300 border-collapse'; // Tailwind classes for styling
+
+            // Table Header
+            const thead = table.createTHead();
+            const headerRow = thead.insertRow();
+            const headers = ["Your Deck", "Opponent Deck", "Win Probability (%)", "Details"];
+            headers.forEach(text => {
+                const th = document.createElement('th');
+                th.className = 'py-2 px-3 border-b border-gray-700 bg-gray-700 text-gray-200 font-semibold';
+                th.textContent = text;
+                headerRow.appendChild(th);
+            });
+
+            // Table Body
+            const tbody = table.createTBody();
+            batchResults.forEach((result, index) => {
+                const row = tbody.insertRow();
+                row.className = index % 2 === 0 ? 'bg-gray-800 hover:bg-gray-750' : 'bg-gray-850 hover:bg-gray-750'; // Alternating row colors
+
+                // Player Name
+                let cell = row.insertCell();
+                cell.className = 'py-2 px-3 border-b border-gray-600';
+                cell.textContent = result.playerName;
+
+                // Opponent Name
+                cell = row.insertCell();
+                cell.className = 'py-2 px-3 border-b border-gray-600';
+                cell.textContent = result.opponentName;
+
+                // Win Probability
+                cell = row.insertCell();
+                cell.className = 'py-2 px-3 border-b border-gray-600 text-center';
+                cell.textContent = (result.winProbability * 100).toFixed(1) + '%';
+                // Color coding for win probability
+                if (result.winProbability > 0.55) cell.classList.add('text-green-400');
+                else if (result.winProbability < 0.45) cell.classList.add('text-red-400');
+                else cell.classList.add('text-yellow-400');
+
+
+                // Details Button
+                cell = row.insertCell();
+                cell.className = 'py-2 px-3 border-b border-gray-600 text-center';
+                const detailsButton = document.createElement('button');
+                detailsButton.textContent = 'Details';
+                detailsButton.className = 'px-3 py-1 bg-purple-600 hover:bg-purple-700 rounded text-xs font-semibold';
+                detailsButton.onclick = () => showBatchMatchupDetails(result); // Pass the full result object
+                cell.appendChild(detailsButton);
+            });
+
+            batchResultsTableContainer.appendChild(table);
+        }
+
+        function showBatchMatchupDetails(matchupData) {
+            console.log("Showing details for:", matchupData.opponentName, matchupData);
+            batchDetailContentContainer.innerHTML = ''; // Clear previous content
+
+            const playerDetails = matchupData.playerDeckDetails;
+            const opponentDetails = matchupData.opponentDeckDetails;
+
+            const playerRDS = playerDetails.rds.total;
+            const playerLVI = playerDetails.lvi.total;
+            const playerBCR = playerDetails.bcr.total;
+            const playerTFA = playerDetails.tfa.total;
+
+            const opponentRDS = opponentDetails.rds.total;
+            const opponentLVI = opponentDetails.lvi.total;
+            const opponentBCR = opponentDetails.bcr.total;
+            const opponentTFA = opponentDetails.tfa.total;
+
+            // Default initial weights (can be made configurable or remembered)
+            const initialWeights = { rds: 0.15, lvi: 0.15, bcr: 0.25, aim: 1.0, tfa: 0.0, taes: 1.0 };
+            const k = 1; // Logistic function scaling factor
+
+            // Helper for tooltips
+            function infoIcon(text) {
+                return `<span class=\"ml-1 cursor-pointer text-blue-300\" title=\"${text.replace(/\"/g, '&quot;')}\">&#9432;</span>`;
+            }
+
+            const detailWrapper = document.createElement('div');
+
+            function updateBatchUWPMTable() {
+                // Parse weights from inputs within the modal
+                const currentWeights = {
+                    rds: parseFloat(detailWrapper.querySelector('#batch-uwpm-weight-rds').value) || 0,
+                    lvi: parseFloat(detailWrapper.querySelector('#batch-uwpm-weight-lvi').value) || 0,
+                    bcr: parseFloat(detailWrapper.querySelector('#batch-uwpm-weight-bcr').value) || 0,
+                    aim: parseFloat(detailWrapper.querySelector('#batch-uwpm-weight-aim').value) || 0,
+                    tfa: parseFloat(detailWrapper.querySelector('#batch-uwpm-weight-tfa').value) || 0,
+                    taes: parseFloat(detailWrapper.querySelector('#batch-uwpm-weight-taes').value) || 0,
+                };
+
+                // Calculate contributions
+                const contribRDS = currentWeights.rds * (playerRDS - opponentRDS);
+                const contribLVI = currentWeights.lvi * (playerLVI - opponentLVI);
+                const contribBCR = currentWeights.bcr * (playerBCR - opponentBCR);
+                const contribAIM = currentWeights.aim * 0; // Placeholder
+                const contribTFA = currentWeights.tfa * (playerTFA - opponentTFA);
+                const contribTAES = currentWeights.taes * 0; // Placeholder
+                const matchupScore = contribRDS + contribLVI + contribBCR + contribAIM + contribTFA + contribTAES;
+                const winProb = 1 / (1 + Math.exp(-k * matchupScore));
+                const winPercent = (winProb * 100).toFixed(1);
+                const lossPercent = (100 - parseFloat(winPercent)).toFixed(1);
+
+                // Update the table and probability in the modal
+                detailWrapper.querySelector('#batch-uwpm-win-chance').textContent = `${winPercent}%`;
+                detailWrapper.querySelector('#batch-uwpm-opp-chance').textContent = `(Opponent's Chance: ${lossPercent}%)`;
+                detailWrapper.querySelector('#batch-uwpm-matchup-score').textContent = matchupScore.toFixed(3);
+                detailWrapper.querySelector('#batch-uwpm-logistic').textContent = `1 / (1 + exp(-k × Matchup Score)), k = ${k}`;
+                detailWrapper.querySelector('#batch-uwpm-final-prob').textContent = `${winPercent}%`;
+                detailWrapper.querySelector('#batch-uwpm-contrib-rds').textContent = contribRDS.toFixed(3);
+                detailWrapper.querySelector('#batch-uwpm-contrib-lvi').textContent = contribLVI.toFixed(3);
+                detailWrapper.querySelector('#batch-uwpm-contrib-bcr').textContent = contribBCR.toFixed(3);
+                detailWrapper.querySelector('#batch-uwpm-contrib-aim').textContent = contribAIM.toFixed(3);
+                detailWrapper.querySelector('#batch-uwpm-contrib-tfa').textContent = contribTFA.toFixed(3);
+                detailWrapper.querySelector('#batch-uwpm-contrib-taes').textContent = contribTAES.toFixed(3);
+            }
+
+            // Initial calculation for display
+            const initialContribRDS = initialWeights.rds * (playerRDS - opponentRDS);
+            const initialContribLVI = initialWeights.lvi * (playerLVI - opponentLVI);
+            const initialContribBCR = initialWeights.bcr * (playerBCR - opponentBCR);
+            const initialContribAIM = initialWeights.aim * 0;
+            const initialContribTFA = initialWeights.tfa * (playerTFA - opponentTFA);
+            const initialContribTAES = initialWeights.taes * 0;
+            const initialMatchupScore = initialContribRDS + initialContribLVI + initialContribBCR + initialContribAIM + initialContribTFA + initialContribTAES;
+            const initialWinProb = 1 / (1 + Math.exp(-k * initialMatchupScore));
+            const initialWinPercent = (initialWinProb * 100).toFixed(1);
+            const initialLossPercent = (100 - parseFloat(initialWinPercent)).toFixed(1);
+
+            detailWrapper.innerHTML = `
+                <p class="text-xl text-center">Your Deck vs <strong>${matchupData.opponentName}</strong></p>
+                <p id="batch-uwpm-win-chance" class="text-4xl font-bold text-green-400 my-2 text-center">${initialWinPercent}%</p>
+                <p id="batch-uwpm-opp-chance" class="text-md text-gray-400 text-center">(Opponent's Chance: ${initialLossPercent}%)</p>
+                <div class="mt-4 text-left max-w-2xl mx-auto bg-gray-900 rounded-lg p-3 shadow-inner">
+                    <h3 class="text-md font-semibold text-purple-300 mb-2">UWPM Calculation Breakdown</h3>
+                    <div class="overflow-x-auto">
+                    <table class="w-full text-xs text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-gray-700">
+                                <th class="py-1 px-1">Metric</th>
+                                <th class="py-1 px-1">Player</th>
+                                <th class="py-1 px-1">Opponent</th>
+                                <th class="py-1 px-1">Weight</th>
+                                <th class="py-1 px-1">Contribution</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="py-1 px-1">RDS ${infoIcon('Resource Dominance Score: Measures card advantage, ink acceleration, and uninkable burden.')}
+                                    <button id="batch-toggle-detail-rds" class="ml-1 text-xs text-blue-400 underline">Details</button>
+                                </td>
+                                <td class="py-1 px-1 text-blue-300">${playerRDS.toFixed(2)}</td>
+                                <td class="py-1 px-1 text-pink-300">${opponentRDS.toFixed(2)}</td>
+                                <td class="py-1 px-1"><input id="batch-uwpm-weight-rds" type="number" step="0.01" min="-2" max="2" value="${initialWeights.rds}" class="w-14 bg-gray-800 border border-gray-600 rounded px-1 text-center"></td>
+                                <td class="py-1 px-1"><span id="batch-uwpm-contrib-rds">${initialContribRDS.toFixed(3)}</span></td>
+                            </tr>
+                            <tr>
+                                <td class="py-1 px-1">LVI ${infoIcon('Lore Velocity Index: Measures lore gain potential, survivability, and quest safety.')}
+                                    <button id="batch-toggle-detail-lvi" class="ml-1 text-xs text-blue-400 underline">Details</button>
+                                </td>
+                                <td class="py-1 px-1 text-blue-300">${playerLVI.toFixed(2)}</td>
+                                <td class="py-1 px-1 text-pink-300">${opponentLVI.toFixed(2)}</td>
+                                <td class="py-1 px-1"><input id="batch-uwpm-weight-lvi" type="number" step="0.01" min="-2" max="2" value="${initialWeights.lvi}" class="w-14 bg-gray-800 border border-gray-600 rounded px-1 text-center"></td>
+                                <td class="py-1 px-1"><span id="batch-uwpm-contrib-lvi">${initialContribLVI.toFixed(3)}</span></td>
+                            </tr>
+                            <tr>
+                                <td class="py-1 px-1">BCR ${infoIcon('Board Control Rating: Measures removal, versatility, and proactive board presence.')}
+                                    <button id="batch-toggle-detail-bcr" class="ml-1 text-xs text-blue-400 underline">Details</button>
+                                </td>
+                                <td class="py-1 px-1 text-blue-300">${playerBCR.toFixed(2)}</td>
+                                <td class="py-1 px-1 text-pink-300">${opponentBCR.toFixed(2)}</td>
+                                <td class="py-1 px-1"><input id="batch-uwpm-weight-bcr" type="number" step="0.01" min="-2" max="2" value="${initialWeights.bcr}" class="w-14 bg-gray-800 border border-gray-600 rounded px-1 text-center"></td>
+                                <td class="py-1 px-1"><span id="batch-uwpm-contrib-bcr">${initialContribBCR.toFixed(3)}</span></td>
+                            </tr>
+                             <tr>
+                                <td class="py-1 px-1">TFA ${infoIcon('Tempo Flow Analysis: Compares phase-by-phase threat deployment and consistency.')}
+                                    <button id="batch-toggle-detail-tfa" class="ml-1 text-xs text-blue-400 underline">Details</button>
+                                </td>
+                                <td class="py-1 px-1 text-blue-300">${playerTFA.toFixed(2)}</td>
+                                <td class="py-1 px-1 text-pink-300">${opponentTFA.toFixed(2)}</td>
+                                <td class="py-1 px-1"><input id="batch-uwpm-weight-tfa" type="number" step="0.01" min="-2" max="2" value="${initialWeights.tfa}" class="w-14 bg-gray-800 border border-gray-600 rounded px-1 text-center"></td>
+                                <td class="py-1 px-1"><span id="batch-uwpm-contrib-tfa">${initialContribTFA.toFixed(3)}</span></td>
+                            </tr>
+                            <tr>
+                                <td class="py-1 px-1">AIM ${infoIcon('Archetype Interaction Modifier: Placeholder for matchup-specific archetype effects.')}</td>
+                                <td class="py-1 px-1 text-blue-300">0</td>
+                                <td class="py-1 px-1 text-pink-300">0</td>
+                                <td class="py-1 px-1"><input id="batch-uwpm-weight-aim" type="number" step="0.01" min="-2" max="2" value="${initialWeights.aim}" class="w-14 bg-gray-800 border border-gray-600 rounded px-1 text-center" readonly></td>
+                                <td class="py-1 px-1"><span id="batch-uwpm-contrib-aim">${initialContribAIM.toFixed(3)}</span></td>
+                            </tr>
+                            <tr>
+                                <td class="py-1 px-1">TAES ${infoIcon('Threat-Answer Efficiency Score: Placeholder for threat/answer matchup effects.')}</td>
+                                <td class="py-1 px-1 text-blue-300">0</td>
+                                <td class="py-1 px-1 text-pink-300">0</td>
+                                <td class="py-1 px-1"><input id="batch-uwpm-weight-taes" type="number" step="0.01" min="-2" max="2" value="${initialWeights.taes}" class="w-14 bg-gray-800 border border-gray-600 rounded px-1 text-center" readonly></td>
+                                <td class="py-1 px-1"><span id="batch-uwpm-contrib-taes">${initialContribTAES.toFixed(3)}</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    </div>
+                    <div class="mt-3 mb-1"><b>Matchup Score:</b> <span id="batch-uwpm-matchup-score" class="text-yellow-200">${initialMatchupScore.toFixed(3)}</span></div>
+                    <div class="mb-1"><b>Logistic Function:</b> <span id="batch-uwpm-logistic" class="text-gray-300">1 / (1 + exp(-k × Matchup Score)), k = ${k}</span></div>
+                    <div class="mb-1"><b>Final Win Probability:</b> <span id="batch-uwpm-final-prob" class="text-green-400">${initialWinPercent}%</span></div>
+
+                    <!-- Detailed per-card breakdowns (hidden by default) -->
+                    <div id="batch-uwpm-detail-rds" class="hidden mt-3"></div>
+                    <div id="batch-uwpm-detail-lvi" class="hidden mt-3"></div>
+                    <div id="batch-uwpm-detail-bcr" class="hidden mt-3"></div>
+                    <div id="batch-uwpm-detail-tfa" class="hidden mt-3"></div>
+                </div>
+            `;
+
+            batchDetailContentContainer.appendChild(detailWrapper);
+
+            // Add event listeners for all weight inputs in the modal
+            [
+                'batch-uwpm-weight-rds', 'batch-uwpm-weight-lvi', 'batch-uwpm-weight-bcr',
+                'batch-uwpm-weight-aim', 'batch-uwpm-weight-tfa', 'batch-uwpm-weight-taes',
+            ].forEach(id => {
+                const input = detailWrapper.querySelector(`#${id}`);
+                if (input) {
+                    input.addEventListener('input', updateBatchUWPMTable);
+                }
+            });
+
+            // Attach expand/collapse logic for details buttons within the modal
+            const batchTfaPhaseWeights = window.tfaPhaseWeights || { early: 1, mid: 2, late: 1 }; // Use global or default
+
+            detailWrapper.querySelector('#batch-toggle-detail-rds').addEventListener('click', function() {
+                const el = detailWrapper.querySelector('#batch-uwpm-detail-rds');
+                if (el.classList.contains('hidden')) {
+                    el.innerHTML = renderUnifiedDeckMetricTable(playerDetails.deckEntries, playerDetails.rds.breakdown, playerDetails.lvi.breakdown, playerDetails.bcr.breakdown, 'Player (' + matchupData.playerName + ')') +
+                                   renderUnifiedDeckMetricTable(opponentDetails.deckEntries, opponentDetails.rds.breakdown, opponentDetails.lvi.breakdown, opponentDetails.bcr.breakdown, 'Opponent (' + matchupData.opponentName + ')');
+                    el.classList.remove('hidden');
+                } else {
+                    el.classList.add('hidden');
+                }
+            });
+             // For LVI and BCR, we can hide them if RDS is already showing the unified table
+            detailWrapper.querySelector('#batch-toggle-detail-lvi').addEventListener('click', function() {
+                const el = detailWrapper.querySelector('#batch-uwpm-detail-lvi');
+                 if (el.classList.contains('hidden')) {
+                    el.innerHTML = `<em>LVI details are part of the unified table shown under RDS Details.</em>`;
+                    el.classList.remove('hidden');
+                } else {
+                    el.classList.add('hidden');
+                }
+            });
+            detailWrapper.querySelector('#batch-toggle-detail-bcr').addEventListener('click', function() {
+                const el = detailWrapper.querySelector('#batch-uwpm-detail-bcr');
+                 if (el.classList.contains('hidden')) {
+                    el.innerHTML = `<em>BCR details are part of the unified table shown under RDS Details.</em>`;
+                    el.classList.remove('hidden');
+                } else {
+                    el.classList.add('hidden');
+                }
+            });
+
+            detailWrapper.querySelector('#batch-toggle-detail-tfa').addEventListener('click', function() {
+                const el = detailWrapper.querySelector('#batch-uwpm-detail-tfa');
+                if (el.classList.contains('hidden')) {
+                    el.innerHTML = renderTFADetailTable(playerDetails.tfa, opponentDetails.tfa, batchTfaPhaseWeights);
+                    el.classList.remove('hidden');
+                    // Add event listeners to update TFA phase weights within the modal and recalculate
+                    ['early', 'mid', 'late'].forEach(phase => {
+                        const input = el.querySelector(`#tfa-weight-${phase}`);
+                        if (input) {
+                            input.addEventListener('input', function() {
+                                batchTfaPhaseWeights[phase] = parseFloat(input.value) || 1;
+                                // To see changes, user would need to re-open or we'd need more complex state management
+                                // For now, this change would apply if they close and re-open details for another item or re-run batch
+                                // A full re-render of this modal section would be needed for live update.
+                                // Let's keep it simple: the weights are taken at the time of rendering.
+                                // To make it fully dynamic here, we'd need to store these modal-specific weights and re-render.
+                                // The global tfaPhaseWeights will be used by the main batch analysis.
+                            });
+                        }
+                    });
+                } else {
+                    el.classList.add('hidden');
+                }
+            });
+
+            // Open the modal
+            batchDetailModal.classList.remove('opacity-0', 'pointer-events-none');
+            batchDetailModal.scrollTop = 0; // Scroll to top of modal
+        }
+
     </script>
 </body>
 
