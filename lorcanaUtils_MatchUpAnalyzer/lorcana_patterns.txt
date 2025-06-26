@@ -2,7 +2,7 @@ Lorcana Ability Patterns Export
 ============================
 
 Pattern Name: Lore: Gain
-Regex: /Gain (\d+) (◊|lore)/gi
+Regex: /Gain (\d+)?(?: )?(◊|lore)(?: equal to)?/gi
 ----------------------------------------
 
 Pattern Name: Lore: Lose
