@@ -804,9 +804,11 @@
             deck.forEach(card => {
                 let value = 0;
                 let explanation = [];
-                let baseLorePotential = card.lore / (card.cost || 1);
+                let baseLorePotential = (card.lore || 0) / (card.cost || 1);
+                let allText = Array.from(card.rawData.fullTextSections).join(' ').replace(/\s+/g, ' ').trim();
+                let loreSurvivabilityModifier = 1.0;
+
                 if (card.lore > 0) {
-                    let loreSurvivabilityModifier = 1.0;
                     let questSafetyModifier = 1.0;
                     if (card.keywords.has('Ward')) { loreSurvivabilityModifier *= 1.4; explanation.push('Ward'); }
                     if (card.keywords.has('Resist')) { loreSurvivabilityModifier *= 1.2; explanation.push('Resist'); }
@@ -814,19 +816,31 @@
                     if (card.keywords.has('Evasive')) { questSafetyModifier *= 1.5; explanation.push('Evasive'); }
                     value += baseLorePotential * loreSurvivabilityModifier * questSafetyModifier;
                     explanation.unshift(`Lore: ${card.lore}`);
+                } else {
+                    // if card is an item buff up their survaibability multiplier
+                    if (card.rawData.type.toLowerCase() === 'item') {loreSurvivabilityModifier = 3.0;}
                 }
                 if (card.abilityPatterns.has('Lore: Gain')) {
-                    const loreMatch = (card.rawData.fullText.replace(/\n/g, ' ').trim() || '').match(/ain (\d+) (◊|lore)/gi);
+
+                    const loreMatch = allText.match(/ain (\d+) (◊|lore)/gi);
                     if (loreMatch) {
                         const loreAmount = getNumberFromText(loreMatch[0])
                         loreBuff = 1.5 * loreAmount
                         value += loreBuff / (card.cost || 1);
                         explanation.push('Lore: Gain' ,loreAmount);
+                    } else {
+                        // this is trying to find cases where it's gaining lore "equal" to other stuff
+                        // This is a bit of a rabbit hole as there are two many options to make this into a generic check
+                        // we will acknowledge this case and give it a generic value
+                        loreBase = loreSurvivabilityModifier * 5.0 / (card.cost || 1) 
+                        value += loreBase;
+                        let explanationString = `Lore: Gain Special: ${loreSurvivabilityModifier} * 5 / card const \(${(card.cost || 1)}\) = ${loreBase.toFixed(2)}`;
+                        explanation.push(explanationString );
                     }
                     
                 }
                 if (card.abilityPatterns.has('Lore: Lose')) {
-                    const loreMatch = (card.rawData.fullText.replace(/\n/g, ' ').trim() || '').match(/loses (\d+) (◊|lore)/gi);
+                    const loreMatch = allText.match(/loses (\d+) (◊|lore)/gi);
                     if (loreMatch) {
                         const loreAmount = getNumberFromText(loreMatch[0])
                         loreBuff = 1.5 * loreAmount
@@ -836,7 +850,7 @@
                     
                 }
                 if (card.abilityPatterns.has('Static: Stat Buff')) {
-                    const loreMatch = (card.rawData.fullText.replace(/\n/g, ' ').trim() || '').match(/get(?:s)? \+(\d+) ◊/gi);
+                    const loreMatch = allText.match(/get(?:s)? \+(\d+) ◊/gi);
                     if (loreMatch){
                         const loreAmount = getNumberFromText(loreMatch[0])
                         loreBuff = 1.5*loreAmount
@@ -845,12 +859,11 @@
                     }
                 }
                 if (card.abilityPatterns.has('Damage: Heal')) {
-                    const loreMatch = (card.rawData.fullText.replace(/\n/g, ' ').trim() || '').match(/up to (\d+) damage/gi);
-                    if (loreMatch){
-                        const loreAmount = getNumberFromText(loreMatch[0])
-                        loreBuff = 1.5*loreAmount
-                        value += loreBuff / (card.cost || 1);
-                        explanation.push('Damage: Heal:',loreAmount);
+                    const healMatch = allText.match(/up to (\d+) damage/gi);
+                    if (healMatch){
+                        const healAmount = getNumberFromText(healMatch[0])
+                        value += healAmount / (card.cost || 1);
+                        explanation.push('Damage: Heal:',healAmount);
                     }
                 }
                 
@@ -883,7 +896,7 @@
                     explanation.push('Banish Other Characters');
                 }
                 if (card.abilityPatterns.has('Add to Inkwell: Opposing Character')) {
-                    value += 5 / (card.cost || 1);
+                    value += 7 / (card.cost || 1);
                     explanation.push('Add opposing character to their inkwell');
                 }
                 if (card.abilityPatterns.has('Damage: Put Damage Counters')) {
