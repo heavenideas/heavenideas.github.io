@@ -735,6 +735,10 @@
                     value += 1.5;
                     explanation.push('Play: From Discard');
                 }
+                if (card.abilityPatterns.has('Card Effect: Discard to Hand')) {
+                    value += 1.5;
+                    explanation.push('Card Effect: Discard to Hand');
+                }
                 if (card.abilityPatterns.has('Card Effect: Opponent Discards')) {
                     value += 1.5;
                     explanation.push('Opponent Discards');
@@ -800,13 +804,13 @@
             deck.forEach(card => {
                 let value = 0;
                 let explanation = [];
+                let baseLorePotential = card.lore / (card.cost || 1);
                 if (card.lore > 0) {
-                    let baseLorePotential = card.lore / (card.cost || 1);
                     let loreSurvivabilityModifier = 1.0;
                     let questSafetyModifier = 1.0;
                     if (card.keywords.has('Ward')) { loreSurvivabilityModifier *= 1.4; explanation.push('Ward'); }
                     if (card.keywords.has('Resist')) { loreSurvivabilityModifier *= 1.2; explanation.push('Resist'); }
-                    if ((card.willpower || 0) >= 5) { loreSurvivabilityModifier *= 1.1; explanation.push('High Willpower'); }
+                    if ((card.willpower || 0) >= 6) { loreSurvivabilityModifier *= 1.1; explanation.push('High Willpower'); }
                     if (card.keywords.has('Evasive')) { questSafetyModifier *= 1.5; explanation.push('Evasive'); }
                     value += baseLorePotential * loreSurvivabilityModifier * questSafetyModifier;
                     explanation.unshift(`Lore: ${card.lore}`);
@@ -816,8 +820,18 @@
                     if (loreMatch) {
                         const loreAmount = getNumberFromText(loreMatch[0])
                         loreBuff = 1.5 * loreAmount
-                        value += loreBuff;
+                        value += loreBuff / (card.cost || 1);
                         explanation.push('Lore: Gain' ,loreAmount);
+                    }
+                    
+                }
+                if (card.abilityPatterns.has('Lore: Lose')) {
+                    const loreMatch = (card.rawData.fullText.replace(/\n/g, ' ').trim() || '').match(/loses (\d+) (◊|lore)/gi);
+                    if (loreMatch) {
+                        const loreAmount = getNumberFromText(loreMatch[0])
+                        loreBuff = 1.5 * loreAmount
+                        value += loreBuff / (card.cost || 1);
+                        explanation.push('Lore: Opponent Loses' ,loreAmount);
                     }
                     
                 }
@@ -826,10 +840,20 @@
                     if (loreMatch){
                         const loreAmount = getNumberFromText(loreMatch[0])
                         loreBuff = 1.5*loreAmount
-                        value += loreBuff;
+                        value += loreBuff / (card.cost || 1);
                         explanation.push('Static: Stat Buf: Lore:',loreAmount);
                     }
                 }
+                if (card.abilityPatterns.has('Damage: Heal')) {
+                    const loreMatch = (card.rawData.fullText.replace(/\n/g, ' ').trim() || '').match(/up to (\d+) damage/gi);
+                    if (loreMatch){
+                        const loreAmount = getNumberFromText(loreMatch[0])
+                        loreBuff = 1.5*loreAmount
+                        value += loreBuff / (card.cost || 1);
+                        explanation.push('Damage: Heal:',loreAmount);
+                    }
+                }
+                
                 
                 breakdown.push({ name: card.rawData.fullName, value, explanation: explanation.join(', ') });
                 total += value;
