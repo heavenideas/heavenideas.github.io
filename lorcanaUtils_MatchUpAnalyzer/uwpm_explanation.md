@@ -437,3 +437,96 @@ Locations that provide board presence and effects
 Songs (already included) for their strategic value
 Characters (already included) for their combat and lore potential
 This change ensures that the UWPM lives up to its name as a "Unified" model that considers all aspects of both decks in the matchup analysis.
+
+## Migration to Using Card Count in the Lorcana Matchup Analyzer
+
+### Background
+
+Originally, the Lorcana Matchup Analyzer parsed decklists and stored each card as a reference to a global card object (from the card database), sometimes wrapped in an object like `{ cardInfo, count }`. However, in many places, only the card data was used, and the count (number of copies in the deck) was either ignored or inconsistently handled. This led to inaccurate analysis, especially for metrics that should be sensitive to the number of copies of each card.
+
+### Goals of the Migration
+
+- **Accurately reflect the number of copies of each card in all calculations and UI.**
+- **Unify the data structure** so that every function and UI component can reliably access both card data and its count.
+- **Eliminate bugs and confusion** caused by mixing `{ cardInfo, count }` wrappers and direct card object usage.
+
+### Key Changes
+
+#### 1. Deck Parsing and Data Structure
+
+**Before:**  
+Decks were parsed into arrays of `{ cardInfo, count }` or sometimes just card objects, leading to ambiguity.
+
+**After:**  
+- Every deck entry is now a **flat card object** with all card properties **plus a `count` property**.
+- Example:  
+  ```js
+  {
+    name: "Goofy - Super Goof",
+    cost: 4,
+    ... // other card properties
+    count: 4
+  }
+  ```
+- This structure is used for all deck sections: characters, songs, locations, items, actions.
+
+#### 2. Downstream Usage
+
+- **All analysis functions** (RDS, LVI, BCR, TFA, etc.) now expect and use the `count` property on each card object.
+- **UI components** (tables, tooltips, breakdowns) can display the number of copies directly from the card object.
+
+#### 3. Metric Calculations
+
+- **Resource Dominance Score (RDS), Lore Velocity Index (LVI), Board Control Rating (BCR):**
+  - Each card's contribution is **multiplied by its `count`**.
+  - Example: If a card would contribute 2.5 to RDS and you have 3 copies, its total contribution is 7.5.
+
+- **Tempo Flow Analysis (TFA):**
+  - The calculation was updated to **avoid double-counting**. Since RDS/LVI/BCR already include the count, TFA now uses the per-card total, not multiplying by count again.
+
+#### 4. Helper Functions and UI
+
+- All helpers (e.g., `getSongSingCost`, `extractCharacterKeywords`) and UI rendering functions now expect a flat card object with a `count` property.
+- Defensive checks were added to handle missing or undefined fields gracefully.
+
+#### 5. Elimination of `.cardInfo`
+
+- All code was refactored to **remove any usage of `.cardInfo`**.
+- Now, every function, loop, and UI component works directly with the flat card object.
+
+### Benefits of the Migration
+
+- **Accuracy:** All metrics and analyses now correctly account for the number of copies of each card.
+- **Consistency:** The data structure is unified and predictable throughout the codebase.
+- **Maintainability:** Future features and bug fixes are easier, as there's no ambiguity about how to access card data or count.
+- **UI Improvements:** The number of copies can be shown in tooltips, tables, and breakdowns, improving user understanding.
+
+### Example: Before vs. After
+
+**Before:**
+```js
+characters: [{ cardInfo: { ...cardData }, count: 4 }, ...]
+someFunction(entry.cardInfo); // sometimes used, sometimes not
+```
+
+**After:**
+```js
+characters: [{ ...cardData, count: 4 }, ...]
+someFunction(entry); // always use the flat object
+```
+
+### Summary Table
+
+| Aspect                | Before Migration                | After Migration (Current)         |
+|-----------------------|---------------------------------|-----------------------------------|
+| Deck entry structure  | `{ cardInfo, count }` or card   | `{ ...card, count }` (flat)       |
+| Metric calculations   | Sometimes ignored count         | Always use `count`                |
+| UI/Breakdowns         | Inconsistent, sometimes missing | Always available, accurate        |
+| Helper functions      | Mixed, sometimes ambiguous      | Always expect flat card object    |
+| `.cardInfo` usage     | Frequent                        | **Eliminated**                    |
+
+### Conclusion
+
+This migration ensures that the Lorcana Matchup Analyzer is **accurate, robust, and maintainable**. All analyses, visualizations, and features now correctly reflect the true composition of each deck, providing users with reliable insights.
+
+If you have any questions about the migration or want to know how to extend this pattern for new features, just ask!

@@ -787,8 +787,8 @@
                     value += cardCEV;
                 }
 
-                breakdown.push({ name: card.rawData.fullName, value, explanation: explanation.join(', ') });
-                total += value;
+                breakdown.push({ name: card.rawData?.fullName || card.fullName, value: value * (card.count || 1), explanation: explanation.join(', ') });
+                total += value * (card.count || 1);
             });
             return { total, breakdown };
         }
@@ -868,8 +868,8 @@
                 }
                 
                 
-                breakdown.push({ name: card.rawData.fullName, value, explanation: explanation.join(', ') });
-                total += value;
+                breakdown.push({ name: card.rawData?.fullName || card.fullName, value: value * (card.count || 1), explanation: explanation.join(', ') });
+                total += value * (card.count || 1);
             });
             return { total, breakdown };
         }
@@ -942,8 +942,8 @@
                     value += (card.strength || 0) * 0.5;
                     explanation.push('Rush');
                 }
-                breakdown.push({ name: card.rawData.fullName, value, explanation: explanation.join(', ') });
-                total += value;
+                breakdown.push({ name: card.rawData?.fullName || card.fullName, value: value * (card.count || 1), explanation: explanation.join(', ') });
+                total += value * (card.count || 1);
             });
             return { total, breakdown };
         }
@@ -1093,29 +1093,30 @@
                     const cardData = ALL_CARDS_MAP.get(cardName);
 
                     if (cardData) {
+                        const cardWithCount = { ...cardData, count };
                         if (cardData.type === 'Character') {
                             if (!uniqueCharNames.has(cardData.fullName)) {
-                                characters.push({ cardInfo: cardData, count: count });
+                                characters.push(cardWithCount);
                                 uniqueCharNames.add(cardData.fullName);
                             }
                         } else if (cardData.type === 'Action' && cardData.subtypes?.includes('Song')) {
                             if (!uniqueSongNames.has(cardData.fullName)) {
-                                songs.push({ cardInfo: cardData, count: count });
+                                songs.push(cardWithCount);
                                 uniqueSongNames.add(cardData.fullName);
                             }
                         } else if (cardData.type === 'Location') { // Added location check
                             if (!uniqueLocationNames.has(cardData.fullName)) {
-                                locations.push({ cardInfo: cardData, count: count });
+                                locations.push(cardWithCount);
                                 uniqueLocationNames.add(cardData.fullName);
                             }
                         } else if (cardData.type === 'Item') { // Added item check
                             if (!uniqueItemNames.has(cardData.fullName)) {
-                                items.push({ cardInfo: cardData, count: count });
+                                items.push(cardWithCount);
                                 uniqueItemNames.add(cardData.fullName);
                             }
                         } else if (cardData.type === 'Action') { // Added action check (non-song actions)
                             if (!uniqueActionNames.has(cardData.fullName)) {
-                                actions.push({ cardInfo: cardData, count: count });
+                                actions.push(cardWithCount);
                                 uniqueActionNames.add(cardData.fullName);
                             }
                         }
@@ -1127,11 +1128,11 @@
                 }
             });
             const parsedResult = {
-                characters: Array.from(uniqueCharNames).map(name => ({ cardInfo: ALL_CARDS_MAP.get(name) })),
-                songs: Array.from(uniqueSongNames).map(name => ({ cardInfo: ALL_CARDS_MAP.get(name) })),
-                locations: Array.from(uniqueLocationNames).map(name => ({ cardInfo: ALL_CARDS_MAP.get(name) })), // Added locations
-                items: Array.from(uniqueItemNames).map(name => ({ cardInfo: ALL_CARDS_MAP.get(name) })), // Added items
-                actions: Array.from(uniqueActionNames).map(name => ({ cardInfo: ALL_CARDS_MAP.get(name) })) // Added actions
+                characters,
+                songs,
+                locations,
+                items,
+                actions
             };
             console.log("Deck parsed. Characters:", parsedResult.characters.length, "Songs:", parsedResult.songs.length, "Locations:", parsedResult.locations.length, "Items:", parsedResult.items.length, "Actions:", parsedResult.actions.length);
             return parsedResult;
@@ -1475,8 +1476,7 @@
                 return;
             }
 
-            cardsToShow.forEach((cardEntry, index) => {
-                const card = cardEntry.cardInfo;
+            cardsToShow.forEach((card, index) => {
                 const cardElement = document.createElement('div');
                 cardElement.className = 'selectable-card';
                 cardElement.dataset.index = index;
@@ -1573,8 +1573,14 @@
                 ...OPPONENT_DECK_ACTIONS || []
             ];
             
-            const playerUWPCards = allPlayerCards.map(entry => extractCardFeatures(entry.cardInfo, LORCANA_PATTERNS));
-            const opponentUWPCards = allOpponentCards.map(entry => extractCardFeatures(entry.cardInfo, LORCANA_PATTERNS));
+            const playerUWPCards = allPlayerCards.map(entry => ({
+                ...extractCardFeatures(entry, LORCANA_PATTERNS),
+                count: entry.count
+            }));
+            const opponentUWPCards = allOpponentCards.map(entry => ({
+                ...extractCardFeatures(entry, LORCANA_PATTERNS),
+                count: entry.count
+            }));
             console.log('UWPM Player UWPCard objects:', playerUWPCards);
             console.log('UWPM Opponent UWPCard objects:', opponentUWPCards);
 
@@ -1936,13 +1942,12 @@
                 return;
             }
 
-            const playerCharEntry = PLAYER_DECK_CHARS[selectedCardIndex];
-            if (!playerCharEntry) {
+            const playerChar = PLAYER_DECK_CHARS[selectedCardIndex];
+            if (!playerChar) {
                 resultsDisplay.innerHTML += `<p class="text-yellow-400 text-center">Invalid character selection.</p>`;
                 console.warn("Invalid player character selection index:", selectedCardIndex);
                 return;
             }
-            const playerChar = playerCharEntry.cardInfo;
             const turnType = turnContextSelect.value;
             console.log(`Analyzing player character: ${playerChar.fullName}, Turn type: ${turnType}`);
 
@@ -1980,8 +1985,8 @@
             if (OPPONENT_DECK_CHARS.length > 0) {
                 const analysisResults = { noInteraction: [], bothBanishedPositive: [], bothBanishedNeutral: [], bothBanishedNegative: [], opponentSurvivesPlayerBanished: [], playerSurvivesOpponentBanished: [], bothSurvive: [] };
                 OPPONENT_DECK_CHARS.forEach(opponentCharEntry => {
-                    const matchup = calculateSingleMatchup(playerChar, opponentCharEntry.cardInfo, turnType);
-                    const opponentCard = opponentCharEntry.cardInfo;
+                    const matchup = calculateSingleMatchup(playerChar, opponentCharEntry, turnType);
+                    const opponentCard = opponentCharEntry;
                     if (matchup.outcomeName.startsWith("NoInteraction")) analysisResults.noInteraction.push({ card: opponentCard, details: matchup.details });
                     else if (matchup.outcomeName === "BothBanished") {
                         if (matchup.classification === "Positive") analysisResults.bothBanishedPositive.push({ card: opponentCard, details: matchup.details });
@@ -2030,9 +2035,9 @@
 
                         const abilityImpactOnOppChars = { directRemoval: [], potentialRemoval: [], affectsNoRemoval: [], noInteraction: [] };
                         OPPONENT_DECK_CHARS.forEach(oppCharEntry => {
-                            const classificationResult = classifyAbilityEffectOnTarget(playerChar, ability.text, oppCharEntry.cardInfo, true);
+                            const classificationResult = classifyAbilityEffectOnTarget(playerChar, ability.text, oppCharEntry, true);
                             const displayItem = {
-                                card: oppCharEntry.cardInfo,
+                                card: oppCharEntry,
                                 details: classificationResult.details,
                                 classification: classificationResult.classification,
                             };
@@ -2067,8 +2072,8 @@
             if (OPPONENT_DECK_SONGS.length > 0) {
                 const songAnalysis = { directRemoval: [], potentialRemoval: [], affectsNoRemoval: [], noInteraction: [] };
                 OPPONENT_DECK_SONGS.forEach(songEntry => {
-                    const songFullText = songEntry.cardInfo.effects?.join(' ') || songEntry.cardInfo.fullText || "";
-                    const result = classifyAbilityEffectOnTarget(songEntry.cardInfo, songFullText, playerChar, false);
+                    const songFullText = songEntry.effects?.join(' ') || songEntry.fullText || "";
+                    const result = classifyAbilityEffectOnTarget(songEntry, songFullText, playerChar, false);
                     if (result.classification === "DirectRemoval") songAnalysis.directRemoval.push(result);
                     else if (result.classification === "PotentialRemoval") songAnalysis.potentialRemoval.push(result);
                     else if (result.classification === "AffectsNoRemoval") songAnalysis.affectsNoRemoval.push(result);
@@ -2106,8 +2111,12 @@
 
                     const abilityImpactOnOppChars = { directRemoval: [], potentialRemoval: [], affectsNoRemoval: [], noInteraction: [] };
                     OPPONENT_DECK_CHARS.forEach(oppCharEntry => {
-                        const classificationResult = classifyAbilityEffectOnTarget(playerChar, effectText, oppCharEntry.cardInfo, true);
-                        const displayItem = { card: oppCharEntry.cardInfo, details: classificationResult.details, classification: classificationResult.classification };
+                        const classificationResult = classifyAbilityEffectOnTarget(playerChar, effectText, oppCharEntry, true);
+                        const displayItem = {
+                            card: oppCharEntry,
+                            details: classificationResult.details,
+                            classification: classificationResult.classification
+                        };
                         if (classificationResult.classification === "DirectRemoval") abilityImpactOnOppChars.directRemoval.push(displayItem);
                         else if (classificationResult.classification === "PotentialRemoval") abilityImpactOnOppChars.potentialRemoval.push(displayItem);
                         else if (classificationResult.classification === "AffectsNoRemoval") abilityImpactOnOppChars.affectsNoRemoval.push(displayItem);
@@ -2133,8 +2142,7 @@
             let canSingList = [];
             let cannotSingList = [];
 
-            PLAYER_DECK_SONGS.forEach(songEntry => {
-                const song = songEntry.cardInfo;
+            PLAYER_DECK_SONGS.forEach(song => {
                 const singCost = getSongSingCost(song);
                 if (characterSingValue >= singCost) {
                     canSingList.push({card: song, details: `Can sing (Value ${characterSingValue} >= Cost ${singCost})`});
@@ -2162,7 +2170,7 @@
                 console.warn("Invalid player song selection index:", selectedCardIndex);
                 return;
             }
-            const playerSongToAnalyze = playerSongEntry.cardInfo;
+            const playerSongToAnalyze = playerSongEntry;
             console.log(`Analyzing player song: ${playerSongToAnalyze.fullName}`);
 
             const overallAnalysisContainer = document.createElement('div');
@@ -2190,9 +2198,9 @@
                 const songFullTextForAnalysis = playerSongToAnalyze.effects?.join(' ') || playerSongToAnalyze.fullText || "";
 
                 OPPONENT_DECK_CHARS.forEach(oppCharEntry => {
-                    const classificationResult = classifyAbilityEffectOnTarget(playerSongToAnalyze, songFullTextForAnalysis, oppCharEntry.cardInfo, true);
+                    const classificationResult = classifyAbilityEffectOnTarget(playerSongToAnalyze, songFullTextForAnalysis, oppCharEntry, true);
                     const displayItem = {
-                        card: oppCharEntry.cardInfo,
+                        card: oppCharEntry,
                         details: classificationResult.details,
                         classification: classificationResult.classification,
                     };
@@ -2220,8 +2228,7 @@
             const songSingCost = getSongSingCost(playerSongToAnalyze);
             let eligibleSingers = [];
 
-            PLAYER_DECK_CHARS.forEach(charEntry => {
-                const character = charEntry.cardInfo;
+            PLAYER_DECK_CHARS.forEach(character => {
                 const singerAbility = (character.abilities || []).find(a => a.keyword === 'Singer');
                 const singValue = singerAbility ? singerAbility.keywordValueNumber : character.cost;
                 if (singValue >= songSingCost) {
@@ -2254,24 +2261,23 @@
 
             let oppCharsThreateningLocations = [];
             OPPONENT_DECK_CHARS.forEach(oppChar => {
-                const activeAbilities = getActiveAbilitiesForCharacter(oppChar.cardInfo, { perspective: "opponentTurn", action: "any" }); // Generic context for location abilities
+                const activeAbilities = getActiveAbilitiesForCharacter(oppChar, { perspective: "opponentTurn", action: "any" }); // Generic context for location abilities
                 activeAbilities.forEach(ability => {
-                    const interaction = classifyLocationInteraction(oppChar.cardInfo, ability.text, false); // false: opponent's card
+                    const interaction = classifyLocationInteraction(oppChar, ability.text, false); // false: opponent's card
                     if (interaction && interaction.canInteract) {
-                        oppCharsThreateningLocations.push({ card: oppChar.cardInfo, details: `Ability: ${ability.name} - ${interaction.details}` });
+                        oppCharsThreateningLocations.push({ card: oppChar, details: `Ability: ${ability.name} - ${interaction.details}` });
                     }
                 });
             });
             // --- NEW LOGIC: Check for strength-based removal of locations ---
             if (PLAYER_DECK_LOCATIONS.length > 0) {
-                PLAYER_DECK_LOCATIONS.forEach(locationEntry => {
-                    const location = locationEntry.cardInfo;
+                PLAYER_DECK_LOCATIONS.forEach(location => {
                     const locationWillpower = location.willpower || 0;
                     OPPONENT_DECK_CHARS.forEach(oppChar => {
-                        const oppStrength = oppChar.cardInfo.strength || 0;
+                        const oppStrength = oppChar.strength || 0;
                         if (oppStrength >= locationWillpower && locationWillpower > 0) {
                             oppCharsThreateningLocations.push({
-                                card: oppChar.cardInfo,
+                                card: oppChar,
                                 details: `Can remove your location '${location.fullName}' by strength (${oppStrength} ≥ ${locationWillpower})`
                             });
                         }
@@ -2285,10 +2291,10 @@
 
             let oppSongsThreateningLocations = [];
             OPPONENT_DECK_SONGS.forEach(oppSong => {
-                const songText = oppSong.cardInfo.effects?.join(' ') || oppSong.cardInfo.fullText || "";
-                const interaction = classifyLocationInteraction(oppSong.cardInfo, songText, false);
+                const songText = (oppSong.effects?.join(' ') || oppSong.fullText || "");
+                const interaction = classifyLocationInteraction(oppSong, songText, false);
                 if (interaction && interaction.canInteract) {
-                    oppSongsThreateningLocations.push({ card: oppSong.cardInfo, details: interaction.details });
+                    oppSongsThreateningLocations.push({ card: oppSong, details: interaction.details });
                 }
             });
             oppThreatsContainer.appendChild(createLocationInteractorsDOM("Opponent Songs That Can Remove/Target Your Locations", oppSongsThreateningLocations, 'bg-red-700'));
@@ -2304,11 +2310,11 @@
 
             let playerCharsRemovingLocations = [];
             PLAYER_DECK_CHARS.forEach(playerChar => {
-                const activeAbilities = getActiveAbilitiesForCharacter(playerChar.cardInfo, { perspective: "playerTurn", action: "any" });
+                const activeAbilities = getActiveAbilitiesForCharacter(playerChar, { perspective: "playerTurn", action: "any" });
                 activeAbilities.forEach(ability => {
-                    const interaction = classifyLocationInteraction(playerChar.cardInfo, ability.text, true); // true: player's card
+                    const interaction = classifyLocationInteraction(playerChar, ability.text, true); // true: player's card
                     if (interaction && interaction.canInteract) {
-                        playerCharsRemovingLocations.push({ card: playerChar.cardInfo, details: `Ability: ${ability.name} - ${interaction.details}` });
+                        playerCharsRemovingLocations.push({ card: playerChar, details: `Ability: ${ability.name} - ${interaction.details}` });
                     }
                 });
             });
@@ -2318,10 +2324,10 @@
 
             let playerSongsRemovingLocations = [];
             PLAYER_DECK_SONGS.forEach(playerSong => {
-                const songText = playerSong.cardInfo.effects?.join(' ') || playerSong.cardInfo.fullText || "";
-                const interaction = classifyLocationInteraction(playerSong.cardInfo, songText, true);
+                const songText = (playerSong.effects?.join(' ') || playerSong.fullText || "");
+                const interaction = classifyLocationInteraction(playerSong, songText, true);
                 if (interaction && interaction.canInteract) {
-                    playerSongsRemovingLocations.push({ card: playerSong.cardInfo, details: interaction.details });
+                    playerSongsRemovingLocations.push({ card: playerSong, details: interaction.details });
                 }
             });
             playerOptionsContainer.appendChild(createLocationInteractorsDOM("Your Songs That Can Remove/Target Opponent's Locations", playerSongsRemovingLocations, 'bg-green-700'));
@@ -2535,15 +2541,16 @@
             return traits.size > 0 ? Array.from(traits).join(', ') : 'No notable keywords/abilities.';
         }
 
-        function getSongSingCost(songCardInfo) {
+        function getSongSingCost(songCard) {
+            if (!songCard) return 0;
             const songCostPattern = LORCANA_PATTERNS['Play']?.find(p => p.name === 'Song');
             if (songCostPattern) {
-                const match = (songCardInfo.fullText || '').match(songCostPattern.regex);
+                const match = (songCard.fullText || '').match(songCostPattern.regex);
                 if (match && match[1]) {
                     return parseInt(match[1], 10);
                 }
             }
-            return songCardInfo.cost; // Fallback to the song's main cost if pattern fails
+            return songCard.cost || 0; // Fallback to the song's main cost if pattern fails
         }
 
         // --- Per-card breakdown logic ---
@@ -2574,7 +2581,7 @@
             const lviMap = Object.fromEntries(lviBreakdown.map(row => [row.name, row]));
             const bcrMap = Object.fromEntries(bcrBreakdown.map(row => [row.name, row]));
             // Get all unique cards (by fullName)
-            const allCards = deckCards.map(entry => entry.cardInfo);
+            const allCards = deckCards;
             // Compute min/max for each metric
             function getMinMax(map) {
                 const values = allCards.map(card => (map[card.fullName]?.value ?? 0));
@@ -2659,7 +2666,7 @@
         // --- TFA (Tempo Flow Analysis) ---
         /**
          * Calculates the Tempo Flow Analysis (TFA) score for a deck, using existing RDS/LVI/BCR breakdowns and card counts.
-         * @param {Array<{cardInfo: object, count: number}>} deckEntries - Original deck entries with counts.
+         * @param {Array<object>} deckEntries - Original deck entries with counts.
          * @param {Array<object>} uwpCards - Enriched UWPCard objects (same order as deckEntries).
          * @param {Array<{name: string, value: number}>} rdsBreakdown - getRDS(deck).breakdown
          * @param {Array<{name: string, value: number}>} lviBreakdown - getLVI(deck).breakdown
@@ -2682,16 +2689,17 @@
                 });
             });
             deckEntries.forEach((entry, idx) => {
-                const card = entry.cardInfo;
                 const count = entry.count || 1;
-                const cost = card.cost;
-                const name = card.fullName;
+                const cost = entry.cost;
+                const name = entry.fullName;
                 const threatPower = (rdsMap[name] || 0) + (lviMap[name] || 0) + (bcrMap[name] || 0);
                 Object.entries(phases).forEach(([phase, obj]) => {
                     if (obj.turns.includes(cost)) {
-                        obj.perTurn[cost].threatPower += threatPower * count;
+                        // the threat power should be calculated per card irregardless of card counts ?
+                        // at least for now
+                        obj.perTurn[cost].threatPower += threatPower / count;
                         obj.perTurn[cost].count += count;
-                        obj.perTurn[cost].cards.push({ card, count, threatPower });
+                        obj.perTurn[cost].cards.push({ card: entry, count, threatPower });
                     }
                 });
             });
