@@ -712,7 +712,7 @@
 
             // DQI weights as in original
             const dqiWeights = {
-                perCardLookedAt: 0.15,
+                perCardLookedAt: 1.0,
                 filterToBottom: 1.0,
                 tutorToHand: 2.5
             };
@@ -731,6 +731,10 @@
                     value += drawCount * (2 / (card.cost || 1));
                     explanation.push(`Draw (${drawCount})`);
                 }
+                if (card.abilityPatterns.has('Card Effect: Hand to Inkwell')) {
+                    value += 2.0;
+                    explanation.push('Hand to Inkwell');
+                }
                 if (card.abilityPatterns.has('Play: From Discard')) {
                     value += 1.5;
                     explanation.push('Play: From Discard');
@@ -742,10 +746,6 @@
                 if (card.abilityPatterns.has('Card Effect: Opponent Discards')) {
                     value += 1.5;
                     explanation.push('Opponent Discards');
-                }
-                if (card.abilityPatterns.has('Card Effect: Hand to Inkwell')) {
-                    value += 2.0;
-                    explanation.push('Hand to Inkwell');
                 }
                 if (card.abilityPatterns.has('Stat: Cost Reduction')) {
                     value += 1.0;
@@ -764,7 +764,7 @@
                         cardDQI += dqiWeights.tutorToHand;
                         dqiParts.push('Tutor to Hand');
                         value += 0.8;
-                        explanation.push('Tutor to Hand (Card Draw Adj)');
+                        explanation.push('Add to Hand (aka Tutor)');
                     }
                     let dqiValue = cardDQI / (card.cost || 1);
                     value += dqiValue;
