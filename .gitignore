@@ -1,3 +1,4 @@
 lorcanaUtils_MatchUpAnalyzer/multideckmode/*
 lorcanaUtils_MatchUpAnalyzer/matchup_analyzer_matrix_example.html
 lorcanaUtils_MatchUpAnalyzer/matchup_analyzer_batchmode_example.html
+.env
