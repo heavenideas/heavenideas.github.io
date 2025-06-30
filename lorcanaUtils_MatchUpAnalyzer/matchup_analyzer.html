@@ -821,6 +821,12 @@
                     // if card is an item buff up their survaibability multiplier
                     if (card.rawData.type.toLowerCase() === 'item') {loreSurvivabilityModifier = 3.0;}
                 }
+                if (card.abilityPatterns.has('State: Ready Character')) {
+                    //this is like "protecting" a character almost like Evasive (because it can still be targeted by actions)
+                    //but it's better because it can quest, ready, and then challenge
+                    value += 1.6 / (card.cost || 1);
+                    explanation.push('Ready Chose Character');
+                }
                 if (card.abilityPatterns.has('Lore: Gain')) {
 
                     const loreMatch = allText.match(/ain (\d+) (◊|lore)/gi);
@@ -852,13 +858,14 @@
                 }
                 if (card.abilityPatterns.has('Static: Stat Buff')) {
                     const loreMatch = allText.match(/get(?:s)? \+(\d+) ◊/gi);
-                    if (loreMatch){
+                    if (loreMatch) {
                         const loreAmount = getNumberFromText(loreMatch[0])
-                        loreBuff = 1.5*loreAmount
+                        loreBuff = 1.5 * loreAmount
                         value += loreBuff / (card.cost || 1);
-                        explanation.push('Static: Stat Buf: Lore:',loreAmount);
+                        explanation.push('Static: Stat Buf: Lore:', loreAmount);
                     }
                 }
+               
                 if (card.abilityPatterns.has('Damage: Heal')) {
                     const healMatch = allText.match(/up to (\d+) damage/gi);
                     if (healMatch){
@@ -913,7 +920,16 @@
                     explanation.push('Bounce Opposing Character');
                 }             
                 if (card.abilityPatterns.has('Stat: Strength Buff')){
-                    const strengthMatch = (card.rawData.fullText.replace(/\n/g, ' ').trim() || '').match(/(?:get(?:s)?|has|gain(?:s)?) \+(\d+) (¤|strength)/gi);
+                    const strengthMatch = (card.rawData.fullText.replace(/\n/g, ' ').trim() || '').match(/(?:all characters )?(?:get|gets|has|chosen character(?:s)?) \+(\d+) (¤|strength)/gi);
+                    if (strengthMatch) {
+                        const strengthAmount = getNumberFromText(strengthMatch[0])
+                        strengthBuff = (1.5 * strengthAmount) / (card.cost || 1)
+                        value += strengthBuff;
+                        explanation.push('Static: Stat Buf: Strength:+', strengthAmount);
+                    }
+                }
+                if (card.abilityPatterns.has('Stat: Strength Debuff')) {
+                    const strengthMatch = (card.rawData.fullText.replace(/\n/g, ' ').trim() || '').match(/(?:all characters )?(?:get|gets|has|chosen character(?:s)?) \-(\d+) (¤|strength)/gi);
                     if (strengthMatch) {
                         const strengthAmount = getNumberFromText(strengthMatch[0])
                         strengthBuff = (1.5 * strengthAmount) / (card.cost || 1)
@@ -922,7 +938,7 @@
                     }
                 }
                 if (card.abilityPatterns.has('Stat: Willpower Buff')) {
-                    const willpowerMatch = (card.rawData.fullText.replace(/\n/g, ' ').trim() || '').match(/(?:get(?:s)?|has|gain(?:s)?) \+(\d+) (⛉|willpower)/gi);
+                    const willpowerMatch = (card.rawData.fullText.replace(/\n/g, ' ').trim() || '').match(/(?:all characters )?(?:get|gets|has|chosen character(?:s)?) \+(\d+) (⛉|willpower)/gi);
                     if (willpowerMatch) {
                         const willpowerAmount = getNumberFromText(willpowerMatch[0])
                         willpowerBuff = (1.5 * willpowerAmount)  / (card.cost || 1)

@@ -46,7 +46,7 @@ Regex: /(look at chosen opponent's hand|chosen opponent reveals their hand)/gi
 ----------------------------------------
 
 Pattern Name: Card Effect: Hand to Inkwell
-Regex: /put (a|an additional|the top|any)(?: character| item | location| action| song)? card (from your discard|from your hand|of your deck) into your inkwell( facedown)?( and exerted)?/gi
+Regex: /put (a|an additional|the top|any|chosen)(?: character| item | location| action| song| item or location)?(?: card)? (?:from your discard|from your hand|of your deck)?(?: )?into (your|its player's) inkwell( facedown)?( and exerted)?/gi
 ----------------------------------------
 
 Pattern Name: Bounce: Opposing Character
