@@ -2631,7 +2631,7 @@
                         const cardCell = `
                           <div class=\"flex items-center gap-2\">
                             <img src=\"${card.images?.thumbnail || 'https://placehold.co/40x56/2d3748/e2e8f0?text=No+Img'}\" alt=\"${card.fullName}\" class=\"hidden md:inline-block rounded w-10 h-auto\" style=\"min-width:40px;\">
-                            <span class=\"block\">${card.name}</span>
+                            <span class=\"block\">${card.count ? card.count + 'x ' : ''}${card.name}</span>
                           </div>
                         `;
                         return `<tr>
