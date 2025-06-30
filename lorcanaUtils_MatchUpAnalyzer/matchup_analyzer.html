@@ -613,6 +613,7 @@
             // For each pattern in all categories, if it matches, add its name
             for (const category in LORCANA_PATTERNS) {
                 for (const pattern of LORCANA_PATTERNS[category]) {
+                    pattern.regex.lastIndex = 0; //this is to avoid regex.test in the next line missing matches after finding the first match
                     if (pattern.regex && pattern.name && pattern.regex.test(allText)) {
                         features.abilityPatterns.add(pattern.fullName);
                         console.log("Adding ability: ", pattern.fullName, "to: ", rawCard.name);
