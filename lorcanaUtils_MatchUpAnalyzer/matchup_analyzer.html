@@ -788,8 +788,9 @@
                     value += cardCEV;
                 }
 
-                breakdown.push({ name: card.rawData?.fullName || card.fullName, value: value * (card.count || 1), explanation: explanation.join(', ') });
-                total += value * (card.count || 1);
+                finalValue = value * (card.count || 1);
+                breakdown.push({ name: card.rawData?.fullName || card.fullName, value: finalValue, explanation: explanation.join(', ') });
+                total += finalValue;
             });
             return { total, breakdown };
         }
@@ -875,9 +876,10 @@
                     }
                 }
                 
-                
-                breakdown.push({ name: card.rawData?.fullName || card.fullName, value: value * (card.count || 1), explanation: explanation.join(', ') });
-                total += value * (card.count || 1);
+        
+                finalValue = value * (card.count || 1);
+                breakdown.push({ name: card.rawData?.fullName || card.fullName, value: finalValue, explanation: explanation.join(', ') });
+                total += finalValue;
             });
             return { total, breakdown };
         }
@@ -959,8 +961,10 @@
                     value += (card.strength || 0) * 0.5;
                     explanation.push('Rush');
                 }
-                breakdown.push({ name: card.rawData?.fullName || card.fullName, value: value * (card.count || 1), explanation: explanation.join(', ') });
-                total += value * (card.count || 1);
+                
+                finalValue = value * (card.count || 1);
+                breakdown.push({ name: card.rawData?.fullName || card.fullName, value: finalValue, explanation: explanation.join(', ') });
+                total += finalValue;
             });
             return { total, breakdown };
         }
@@ -2739,15 +2743,15 @@
                         return `<tr>
                             <td class=\"py-1 px-2 align-top\">${cardCell}</td>
                             <td class=\"py-1 px-2 align-top text-center\" style=\"${getHeatColor(rds, rdsMinMax.min, rdsMinMax.max)}\">
-                                <div>${rds.toFixed(2)}</div>
+                                <div>${rds.toFixed(2)} = ${(rds / card.count).toFixed(2)} * ${card.count}</div>
                                 <div class=\"whitespace-normal break-words text-xs mt-1\">${rdsExp}</div>
                             </td>
                             <td class=\"py-1 px-2 align-top text-center\" style=\"${getHeatColor(lvi, lviMinMax.min, lviMinMax.max)}\">
-                                <div>${lvi.toFixed(2)}</div>
+                                <div>${lvi.toFixed(2)} = ${(lvi / card.count).toFixed(2)} * ${card.count}</div>
                                 <div class=\"whitespace-normal break-words text-xs mt-1\">${lviExp}</div>
                             </td>
                             <td class=\"py-1 px-2 align-top text-center\" style=\"${getHeatColor(bcr, bcrMinMax.min, bcrMinMax.max)}\">
-                                <div>${bcr.toFixed(2)}</div>
+                                <div>${bcr.toFixed(2)} = ${(bcr / card.count).toFixed(2)} * ${card.count}</div>
                                 <div class=\"whitespace-normal break-words text-xs mt-1\">${bcrExp}</div>
                             </td>
                         </tr>`;
