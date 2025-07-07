@@ -1,0 +1,222 @@
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #1a202c;
+    /* Dark mode background */
+    color: #e2e8f0;
+    /* Light text for dark mode */
+}
+
+.card-image {
+    width: 100px;
+    height: auto;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    transition: transform 0.2s ease-in-out;
+    cursor: pointer;
+}
+
+.card-image:hover {
+    transform: scale(1.1);
+}
+
+.selectable-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px;
+    border-radius: 8px;
+    transition: all 0.2s ease-in-out;
+    cursor: pointer;
+}
+
+.selectable-card:hover {
+    background-color: #4a5568;
+}
+
+.selectable-card.selected {
+    background-color: #667eea;
+    box-shadow: 0 0 0 2px #a0aec0;
+}
+
+.selectable-card .card-name {
+    font-size: 0.75rem;
+    text-align: center;
+    margin-top: 4px;
+    color: #e2e8f0;
+    max-width: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.card-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px;
+    background-color: #2d3748;
+    /* Slightly lighter dark background for sections */
+    border-radius: 8px;
+    min-height: 100px;
+    /* Adjusted min-height */
+    align-items: flex-start;
+    /* Align items to the top */
+}
+
+.analysis-section {
+    /* Generic class for major sections */
+    background-color: #222b3c;
+    /* Slightly different dark for main sections */
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 24px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+.outcome-section,
+.song-breakdown-section,
+.ability-impact-section,
+.location-interaction-subsection {
+    /* Specific styling for subsections */
+    background-color: #2d3748;
+    padding: 12px;
+    /* Slightly reduced padding */
+    border-radius: 8px;
+    margin-bottom: 12px;
+    /* Reduced margin */
+}
+
+.section-title {
+    /* For main section titles like "Character Matchups" */
+    font-size: 1.5rem;
+    /* Larger */
+    font-weight: bold;
+    color: #c3dafe;
+    /* Light blueish */
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #4a5568;
+}
+
+.subsection-title {
+    /* For titles within outcome/song sections */
+    font-weight: bold;
+    margin-bottom: 8px;
+    color: #a0aec0;
+    font-size: 1rem;
+    /* Standardized size */
+}
+
+.ability-title {
+    /* For individual ability names */
+    font-weight: bold;
+    color: #b0c4de;
+    /* Lighter blue for ability names */
+    margin-top: 10px;
+    margin-bottom: 5px;
+}
+
+textarea {
+    background-color: #2d3748;
+    color: #e2e8f0;
+    border: 1px solid #4a5568;
+    border-radius: 8px;
+}
+
+button {
+    background-color: #4a5fa0;
+    color: white;
+    padding: 10px 15px;
+    border-radius: 8px;
+    font-weight: bold;
+    transition: background-color 0.2s;
+}
+
+button:hover {
+    background-color: #3c4b80;
+}
+
+select {
+    background-color: #2d3748;
+    color: #e2e8f0;
+    border: 1px solid #4a5568;
+    border-radius: 8px;
+    padding: 8px;
+}
+
+.loading-spinner {
+    border: 4px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top: 4px solid #fff;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin: 20px auto;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.tooltip {
+    position: relative;
+    display: inline-block;
+}
+
+.tooltip .tooltiptext {
+    visibility: hidden;
+    width: 240px;
+    /* Increased width for more text */
+    background-color: #374151;
+    color: #e5e7eb;
+    text-align: left;
+    border-radius: 6px;
+    padding: 10px;
+    /* Increased padding */
+    position: absolute;
+    z-index: 10;
+    bottom: 125%;
+    left: 50%;
+    margin-left: -120px;
+    /* Half of new width */
+    opacity: 0;
+    transition: opacity 0.3s;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+    white-space: pre-line;
+    /* Allow newlines in tooltip */
+}
+
+.tooltip .tooltiptext::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #374151 transparent transparent transparent;
+}
+
+.tooltip:hover .tooltiptext {
+    visibility: visible;
+    opacity: 1;
+}
+
+/* Styling for radio buttons */
+.radio-label {
+    margin-right: 10px;
+    cursor: pointer;
+}
+
+.radio-label input[type="radio"] {
+    margin-right: 5px;
+} 
