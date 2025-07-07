@@ -986,52 +986,37 @@
          * Calculates the final win probability for Deck A against Deck B.
          * @param {UWPCard[]} deckA - The player's deck.
          * @param {UWPCard[]} deckB - The opponent's deck.
+         * @param {number} tfaA - Player's TFA score.
+         * @param {number} tfaB - Opponent's TFA score.
+         * @param {object} config - UWPM config object (optional, defaults to window.uwpmConfig)
          * @returns {number} - The win probability for Deck A (e.g., 0.55 for 55%).
          */
-        function calculateWinProbability(deckA, deckB, tfaA = 0, tfaB = 0, normalized = true) {
+        function calculateWinProbability(deckA, deckB, tfaA = 0, tfaB = 0, config) {
+            config = config || window.uwpmConfig;
             // 1. Define Tuning Knobs
             const tuning = {
-                // Use these scales to adjust the impact of each metric.
-                // If you find LVI scores are generally higher than BCR, you might use a larger scale for it.
                 rdsScale: 50,
                 lviScale: 100,
                 bcrScale: 75,
-
-                // The 'k' factor controls the SENSITIVITY of the probability curve.
-                // A lower value makes the curve "flatter", meaning larger score differences
-                // are needed to create a high-confidence prediction.
-                // Good starting range: 1.5 to 3.0
-                kFactor: 2.0,
-
-                // The 'compression' factor prevents 0% or 100% results.
-                // A value of 0.05 means the win probability will be squeezed into the
-                // range [5%, 95%], acknowledging that no matchup is ever a truly guaranteed win or loss.
-                probabilityCompression: 0.05
+                kFactor: config.k,
+                probabilityCompression: config.probabilityCompression
             };
-
             // 2. Calculate Intrinsic Scores for both decks
             const rdsA = getRDS(deckA);
             const lviA = getLVI(deckA);
             const bcrA = getBCR(deckA);
-
             const rdsB = getRDS(deckB);
             const lviB = getLVI(deckB);
             const bcrB = getBCR(deckB);
-
             // 3. Calculate Matchup-Specific Modifiers (now use provided TFA)
             const aim = 0; // Archetype Interaction Modifier
-            const tfa = 0; // Use provided TFA values
             const taes = 0; // Threat-Answer Efficiency Score
-
             // 4. Calculate NORMALIZED Score Differences
             const rdsDiff_norm = normalizeScore(rdsA.total - rdsB.total, tuning.rdsScale);
             const lviDiff_norm = normalizeScore(lviA.total - lviB.total, tuning.lviScale);
             const bcrDiff_norm = normalizeScore(bcrA.total - bcrB.total, tuning.bcrScale);
- 
-
-            // 4. Define weights (tunable)
-            const weights = { rds: 0.15, lvi: 0.15, bcr: 0.15, aim: 1.0, tfa: 0.15, taes: 1.0 };
-
+            // 4. Define weights (from config)
+            const weights = config.weights;
             // 4. Calculate the final Matchup Score using the Master Equation
             let matchupScore =
                 weights.rds * (rdsA.total - rdsB.total) +
@@ -1040,8 +1025,7 @@
                 weights.aim * aim +
                 weights.tfa * (tfaA - tfaB) +
                 weights.taes * taes;
-
-            // 4. Calculate the final Matchup Score using the Master Equation
+            // 4. Calculate the final Matchup Score using the Master Equation (normalized)
             const matchupScoreNormalized =
                 weights.rds * rdsDiff_norm +
                 weights.lvi * lviDiff_norm +
@@ -1049,26 +1033,16 @@
                 weights.aim * aim +
                 weights.tfa * (tfaA - tfaB) +
                 weights.taes * taes;
-
-            //Convert the score to a probability using the Logistic Function
-            //const winProbability = 1 / (1 + Math.exp(-k * matchupScore));
-
-            // The maximum possible matchupScore is now 1.0 and the minimum is -1.0,
-            // which is a much more stable input for the logistic function.
-            if (normalized){
-                console.log("Outputing Normalised MatchUp Score")
-                console.log("Original MatchUpScore:", matchupScore)
-                matchupScore = matchupScoreNormalized
-                console.log("Normalized MatchUpScore:", matchupScore)
+            // Use normalized by default
+            let useNormalized = true;
+            if (typeof config.useNormalized === 'boolean') useNormalized = config.useNormalized;
+            if (useNormalized) {
+                matchupScore = matchupScoreNormalized;
             }
-
             // 6. Convert the score to a probability using the Logistic Function with the k-factor
             const rawProbability = 1 / (1 + Math.exp(-tuning.kFactor * matchupScore));
-
             // 7. Apply Probability Compression
             const compressedProbability = rawProbability * (1 - 2 * tuning.probabilityCompression) + tuning.probabilityCompression;
-
-
             return compressedProbability;
         }
 
@@ -1721,7 +1695,7 @@
 
             // --- UWPM Phase 3: Calculate win probability ---
             // (For now, TFA is not yet included in the win probability calculation, but will be soon)
-            const winProb = calculateWinProbability(playerUWPCards, opponentUWPCards, playerTFA, opponentTFA);
+            const winProb = calculateWinProbability(playerUWPCards, opponentUWPCards, playerTFA, opponentTFA, window.uwpmConfig);
             console.log('UWPM Win Probability (Player Deck):', winProb, '(', (winProb * 100).toFixed(1) + '% )');
 
             console.log("Decks loaded. Player Chars:", PLAYER_DECK_CHARS.length, "Player Songs:", PLAYER_DECK_SONGS.length, "Player Locations:", PLAYER_DECK_LOCATIONS.length, "Player Items:", PLAYER_DECK_ITEMS.length, "Player Actions:", PLAYER_DECK_ACTIONS.length);
@@ -1741,67 +1715,44 @@
             // --- UWPM Phase 4: UI Integration ---
             const winProbDisplay = document.getElementById('win-probability-display');
             if (playerUWPCards.length > 0 && opponentUWPCards.length > 0) {
-                // Store weights in a mutable object for live editing
-                const weights = { rds: 0.15, lvi: 0.15, bcr: 0.25, aim: 1.0, tfa: 0.0, taes: 1.0 };
-                const k = 1;
-
                 // Helper for tooltips
                 function infoIcon(text) {
                     return `<span class=\"ml-1 cursor-pointer text-blue-300\" title=\"${text.replace(/\"/g, '&quot;')}\">&#9432;</span>`;
                 }
 
-                // Function to recalculate and update the table and probability
-                function updateUWPMTable() {
-                    // Parse weights from inputs
-                    weights.rds = parseFloat(document.getElementById('uwpm-weight-rds').value) || 0;
-                    weights.lvi = parseFloat(document.getElementById('uwpm-weight-lvi').value) || 0;
-                    weights.bcr = parseFloat(document.getElementById('uwpm-weight-bcr').value) || 0;
-                    weights.aim = parseFloat(document.getElementById('uwpm-weight-aim').value) || 0;
-                    weights.tfa = parseFloat(document.getElementById('uwpm-weight-tfa').value) || 0;
-                    weights.taes = parseFloat(document.getElementById('uwpm-weight-taes').value) || 0;
-
-                    // Calculate contributions
-                    const contribRDS = weights.rds * (playerRDS - opponentRDS);
-                    const contribLVI = weights.lvi * (playerLVI - opponentLVI);
-                    const contribBCR = weights.bcr * (playerBCR - opponentBCR);
-                    const contribAIM = weights.aim * 0;
-                    const contribTFA = weights.tfa * (playerTFA - opponentTFA);
-                    const contribTAES = weights.taes * 0;
-                    const matchupScore = contribRDS + contribLVI + contribBCR + contribAIM + contribTFA + contribTAES;
-                    const winProb = 1 / (1 + Math.exp(-k * matchupScore));
-                    const winPercent = (winProb * 100).toFixed(1);
-                    const lossPercent = (100 - winPercent).toFixed(1);
-                    console.log("updateUWPMTable", winPercent)
-                    // Update the table and probability
-                    document.getElementById('uwpm-win-chance').textContent = `${winPercent}%`;
-                    document.getElementById('uwpm-opp-chance').textContent = `(Opponent's Chance: ${lossPercent}%)`;
-                    document.getElementById('uwpm-matchup-score').textContent = matchupScore.toFixed(3);
-                    document.getElementById('uwpm-logistic').textContent = `1 / (1 + exp(-k × Matchup Score)), k = ${k}`;
-                    document.getElementById('uwpm-final-prob').textContent = `${winPercent}%`;
-                    document.getElementById('uwpm-contrib-rds').textContent = contribRDS.toFixed(3);
-                    document.getElementById('uwpm-contrib-lvi').textContent = contribLVI.toFixed(3);
-                    document.getElementById('uwpm-contrib-bcr').textContent = contribBCR.toFixed(3);
-                    document.getElementById('uwpm-contrib-aim').textContent = contribAIM.toFixed(3);
-                    document.getElementById('uwpm-contrib-tfa').textContent = contribTFA.toFixed(3);
-                    document.getElementById('uwpm-contrib-taes').textContent = contribTAES.toFixed(3);
+                // --- DYNAMIC UWPM CONFIG UI GENERATION ---
+                function renderUWPMConfigControls() {
+                    const config = window.uwpmConfig;
+                    let html = '<div class="flex flex-wrap gap-4 mb-4">';
+                    // Weights
+                    html += '<div><b>Weights</b><div class="flex flex-col gap-1">';
+                    Object.entries(config.weights).forEach(([key, value]) => {
+                        html += `<label class="flex items-center gap-2 text-xs">`
+                            + `<span class="w-16">${key.toUpperCase()}</span>`
+                            + `<input type="number" step="0.01" min="-2" max="2" value="${value}" data-uwpm-weight="${key}" class="w-16 bg-gray-800 border border-gray-600 rounded px-1 text-center">`
+                            + `</label>`;
+                    });
+                    html += '</div></div>';
+                    // Other top-level config params
+                    html += '<div><b>Parameters</b><div class="flex flex-col gap-1">';
+                    Object.entries(config).forEach(([key, value]) => {
+                        if (key === 'weights' || typeof value === 'object') return;
+                        html += `<label class="flex items-center gap-2 text-xs">`
+                            + `<span class="w-24">${key}</span>`
+                            + `<input type="number" step="0.01" value="${value}" data-uwpm-param="${key}" class="w-20 bg-gray-800 border border-gray-600 rounded px-1 text-center">`
+                            + `</label>`;
+                    });
+                    html += '</div></div>';
+                    html += '</div>';
+                    return html;
                 }
 
-                // Initial values
-                const contribRDS = weights.rds * (playerRDS - opponentRDS);
-                const contribLVI = weights.lvi * (playerLVI - opponentLVI);
-                const contribBCR = weights.bcr * (playerBCR - opponentBCR);
-                const contribAIM = weights.aim * 0;
-                const contribTFA = weights.tfa * (playerTFA - opponentTFA);
-                const contribTAES = weights.taes * 0;
-                const matchupScore = contribRDS + contribLVI + contribBCR + contribAIM + contribTFA + contribTAES;
-                const winProb = 1 / (1 + Math.exp(-k * matchupScore));
-                const winPercent = (winProb * 100).toFixed(1);
-                const lossPercent = (100 - winPercent).toFixed(1);
-
+                // --- UWPM UI RENDER ---
                 winProbDisplay.innerHTML = `
+                    <div id="uwpm-config-controls" class="mb-2">${renderUWPMConfigControls()}</div>
                     <p class=\"text-xl\">Your Deck's Estimated Win Chance:</p>
-                    <p id=\"uwpm-win-chance\" class=\"text-5xl font-bold text-green-400 my-2\">${winPercent}%</p>
-                    <p id=\"uwpm-opp-chance\" class=\"text-lg text-gray-400\">(Opponent's Chance: ${lossPercent}%)</p>
+                    <p id=\"uwpm-win-chance\" class=\"text-5xl font-bold text-green-400 my-2\">...</p>
+                    <p id=\"uwpm-opp-chance\" class=\"text-lg text-gray-400\"></p>
                     <div class=\"mt-6 text-left max-w-2xl mx-auto bg-gray-900 rounded-lg p-4 shadow-inner\">
                         <h3 class=\"text-lg font-semibold text-purple-300 mb-2\">UWPM Calculation Breakdown</h3>
                         <div class=\"overflow-x-auto\">
@@ -1822,8 +1773,8 @@
                                     </td>
                                     <td class=\"py-1 px-2 text-blue-300\">${playerRDS.toFixed(2)}</td>
                                     <td class=\"py-1 px-2 text-pink-300\">${opponentRDS.toFixed(2)}</td>
-                                    <td class=\"py-1 px-2\"><input id=\"uwpm-weight-rds\" type=\"number\" step=\"0.01\" min=\"-2\" max=\"2\" value=\"${weights.rds}\" class=\"w-16 bg-gray-800 border border-gray-600 rounded px-1 text-center\"></td>
-                                    <td class=\"py-1 px-2\"><span id=\"uwpm-contrib-rds\">${contribRDS.toFixed(3)}</span></td>
+                                    <td class=\"py-1 px-2\"><span id=\"uwpm-weight-rds-val\">${window.uwpmConfig.weights.rds}</span></td>
+                                    <td class=\"py-1 px-2\"><span id=\"uwpm-contrib-rds\"></span></td>
                                 </tr>
                                 <tr>
                                     <td class=\"py-1 px-2\">LVI Lore Velocity Index ${infoIcon('Lore Velocity Index: Measures lore gain potential, survivability, and quest safety.')}
@@ -1831,8 +1782,8 @@
                                     </td>
                                     <td class=\"py-1 px-2 text-blue-300\">${playerLVI.toFixed(2)}</td>
                                     <td class=\"py-1 px-2 text-pink-300\">${opponentLVI.toFixed(2)}</td>
-                                    <td class=\"py-1 px-2\"><input id=\"uwpm-weight-lvi\" type=\"number\" step=\"0.01\" min=\"-2\" max=\"2\" value=\"${weights.lvi}\" class=\"w-16 bg-gray-800 border border-gray-600 rounded px-1 text-center\"></td>
-                                    <td class=\"py-1 px-2\"><span id=\"uwpm-contrib-lvi\">${contribLVI.toFixed(3)}</span></td>
+                                    <td class=\"py-1 px-2\"><span id=\"uwpm-weight-lvi-val\">${window.uwpmConfig.weights.lvi}</span></td>
+                                    <td class=\"py-1 px-2\"><span id=\"uwpm-contrib-lvi\"></span></td>
                                 </tr>
                                 <tr>
                                     <td class=\"py-1 px-2\">BCR Board Control Rating ${infoIcon('Board Control Rating: Measures removal, versatility, and proactive board presence.')}
@@ -1840,15 +1791,15 @@
                                     </td>
                                     <td class=\"py-1 px-2 text-blue-300\">${playerBCR.toFixed(2)}</td>
                                     <td class=\"py-1 px-2 text-pink-300\">${opponentBCR.toFixed(2)}</td>
-                                    <td class=\"py-1 px-2\"><input id=\"uwpm-weight-bcr\" type=\"number\" step=\"0.01\" min=\"-2\" max=\"2\" value=\"${weights.bcr}\" class=\"w-16 bg-gray-800 border border-gray-600 rounded px-1 text-center\"></td>
-                                    <td class=\"py-1 px-2\"><span id=\"uwpm-contrib-bcr\">${contribBCR.toFixed(3)}</span></td>
+                                    <td class=\"py-1 px-2\"><span id=\"uwpm-weight-bcr-val\">${window.uwpmConfig.weights.bcr}</span></td>
+                                    <td class=\"py-1 px-2\"><span id=\"uwpm-contrib-bcr\"></span></td>
                                 </tr>
                                 <tr>
                                     <td class=\"py-1 px-2\">AIM Archetype Interaction Modifier ${infoIcon('Archetype Interaction Modifier: Placeholder for matchup-specific archetype effects.')}</td>
                                     <td class=\"py-1 px-2 text-blue-300\">0</td>
                                     <td class=\"py-1 px-2 text-pink-300\">0</td>
-                                    <td class=\"py-1 px-2\"><input id=\"uwpm-weight-aim\" type=\"number\" step=\"0.01\" min=\"-2\" max=\"2\" value=\"${weights.aim}\" class=\"w-16 bg-gray-800 border border-gray-600 rounded px-1 text-center\"></td>
-                                    <td class=\"py-1 px-2\"><span id=\"uwpm-contrib-aim\">${contribAIM.toFixed(3)}</span></td>
+                                    <td class=\"py-1 px-2\"><span id=\"uwpm-weight-aim-val\">${window.uwpmConfig.weights.aim}</span></td>
+                                    <td class=\"py-1 px-2\"><span id=\"uwpm-contrib-aim\"></span></td>
                                 </tr>
                                 <tr>
                                     <td class=\"py-1 px-2\">TFA Tempo Flow Analysis ${infoIcon('Tempo Flow Analysis: Compares phase-by-phase threat deployment and consistency.')}
@@ -1856,23 +1807,22 @@
                                     </td>
                                     <td class=\"py-1 px-2 text-blue-300\">${playerTFA.toFixed(2)}</td>
                                     <td class=\"py-1 px-2 text-pink-300\">${opponentTFA.toFixed(2)}</td>
-                                    <td class=\"py-1 px-2\"><input id=\"uwpm-weight-tfa\" type=\"number\" step=\"0.01\" min=\"-2\" max=\"2\" value=\"${weights.tfa}\" class=\"w-16 bg-gray-800 border border-gray-600 rounded px-1 text-center\"></td>
-                                    <td class=\"py-1 px-2\"><span id=\"uwpm-contrib-tfa\">${contribTFA.toFixed(3)}</span></td>
+                                    <td class=\"py-1 px-2\"><span id=\"uwpm-weight-tfa-val\">${window.uwpmConfig.weights.tfa}</span></td>
+                                    <td class=\"py-1 px-2\"><span id=\"uwpm-contrib-tfa\"></span></td>
                                 </tr>
                                 <tr>
                                     <td class=\"py-1 px-2\">TAES Threat-Answer Efficiency Score ${infoIcon('Threat-Answer Efficiency Score: Placeholder for threat/answer matchup effects.')}</td>
                                     <td class=\"py-1 px-2 text-blue-300\">0</td>
                                     <td class=\"py-1 px-2 text-pink-300\">0</td>
-                                    <td class=\"py-1 px-2\"><input id=\"uwpm-weight-taes\" type=\"number\" step=\"0.01\" min=\"-2\" max=\"2\" value=\"${weights.taes}\" class=\"w-16 bg-gray-800 border border-gray-600 rounded px-1 text-center\"></td>
-                                    <td class=\"py-1 px-2\"><span id=\"uwpm-contrib-taes\">${contribTAES.toFixed(3)}</span></td>
+                                    <td class=\"py-1 px-2\"><span id=\"uwpm-weight-taes-val\">${window.uwpmConfig.weights.taes}</span></td>
+                                    <td class=\"py-1 px-2\"><span id=\"uwpm-contrib-taes\"></span></td>
                                 </tr>
                             </tbody>
                         </table>
                         </div>
-                        <div class=\"mt-4 mb-2\"><b>Matchup Score:</b> <span id=\"uwpm-matchup-score\" class=\"text-yellow-200\">${matchupScore.toFixed(3)}</span></div>
-                        <div class=\"mb-2\"><b>Logistic Function:</b> <span id=\"uwpm-logistic\" class=\"text-gray-300\">1 / (1 + exp(-k × Matchup Score)), k = ${k}</span></div>
-                        <div class=\"mb-2\"><b>Final Win Probability:</b> <span id=\"uwpm-final-prob\" class=\"text-green-400\">${winPercent}%</span></div>
-
+                        <div class=\"mt-4 mb-2\"><b>Matchup Score:</b> <span id=\"uwpm-matchup-score\" class=\"text-yellow-200\"></span></div>
+                        <div class=\"mb-2\"><b>Logistic Function:</b> <span id=\"uwpm-logistic\" class=\"text-gray-300\"></span></div>
+                        <div class=\"mb-2\"><b>Final Win Probability:</b> <span id=\"uwpm-final-prob\" class=\"text-green-400\"></span></div>
                         <!-- Detailed per-card breakdowns (hidden by default) -->
                         <div id=\"uwpm-detail-rds\" class=\"hidden mt-4\"></div>
                         <div id=\"uwpm-detail-lvi\" class=\"hidden mt-4\"></div>
@@ -1881,22 +1831,59 @@
                     </div>
                 `;
 
-                // Add event listeners for all weight inputs
-                [
-                    'uwpm-weight-rds',
-                    'uwpm-weight-lvi',
-                    'uwpm-weight-bcr',
-                    'uwpm-weight-aim',
-                    'uwpm-weight-tfa',
-                    'uwpm-weight-taes',
-                ].forEach(id => {
-                    const input = document.getElementById(id);
-                    if (input) {
-                        input.addEventListener('input', updateUWPMTable);
-                    }
+                // --- BIND DYNAMIC CONTROLS ---
+                // Weights
+                document.querySelectorAll('[data-uwpm-weight]').forEach(input => {
+                    input.addEventListener('input', function() {
+                        const key = input.getAttribute('data-uwpm-weight');
+                        window.uwpmConfig.weights[key] = parseFloat(input.value) || 0;
+                        window.saveUWPMConfig();
+                        handleAnalyzeButtonClick();
+                    });
+                });
+                // Other params
+                document.querySelectorAll('[data-uwpm-param]').forEach(input => {
+                    input.addEventListener('input', function() {
+                        const key = input.getAttribute('data-uwpm-param');
+                        window.uwpmConfig[key] = parseFloat(input.value) || 0;
+                        window.saveUWPMConfig();
+                        handleAnalyzeButtonClick();
+                    });
                 });
 
-                // Tooltips are handled via the title attribute for now
+                // --- UWPM TABLE/PROBABILITY UPDATE ---
+                function updateUWPMTable() {
+                    const weights = window.uwpmConfig.weights;
+                    const k = window.uwpmConfig.k;
+                    // Calculate contributions
+                    const contribRDS = weights.rds * (playerRDS - opponentRDS);
+                    const contribLVI = weights.lvi * (playerLVI - opponentLVI);
+                    const contribBCR = weights.bcr * (playerBCR - opponentBCR);
+                    const contribAIM = weights.aim * 0;
+                    const contribTFA = weights.tfa * (playerTFA - opponentTFA);
+                    const contribTAES = weights.taes * 0;
+                    const matchupScore = contribRDS + contribLVI + contribBCR + contribAIM + contribTFA + contribTAES;
+                    const winProb = 1 / (1 + Math.exp(-k * matchupScore));
+                    const winPercent = (winProb * 100).toFixed(1);
+                    const lossPercent = (100 - winPercent).toFixed(1);
+                    document.getElementById('uwpm-win-chance').textContent = `${winPercent}%`;
+                    document.getElementById('uwpm-opp-chance').textContent = `(Opponent's Chance: ${lossPercent}%)`;
+                    document.getElementById('uwpm-matchup-score').textContent = matchupScore.toFixed(3);
+                    document.getElementById('uwpm-logistic').textContent = `1 / (1 + exp(-k × Matchup Score)), k = ${k}`;
+                    document.getElementById('uwpm-final-prob').textContent = `${winPercent}%`;
+                    document.getElementById('uwpm-contrib-rds').textContent = contribRDS.toFixed(3);
+                    document.getElementById('uwpm-contrib-lvi').textContent = contribLVI.toFixed(3);
+                    document.getElementById('uwpm-contrib-bcr').textContent = contribBCR.toFixed(3);
+                    document.getElementById('uwpm-contrib-aim').textContent = contribAIM.toFixed(3);
+                    document.getElementById('uwpm-contrib-tfa').textContent = contribTFA.toFixed(3);
+                    document.getElementById('uwpm-contrib-taes').textContent = contribTAES.toFixed(3);
+                    // Also update weight/param display spans
+                    Object.entries(weights).forEach(([key, value]) => {
+                        const el = document.getElementById(`uwpm-weight-${key}-val`);
+                        if (el) el.textContent = value;
+                    });
+                }
+                updateUWPMTable();
 
                 // Attach expand/collapse logic for details buttons after DOM is ready
                 setTimeout(() => {
@@ -1956,7 +1943,6 @@
                         if (input) {
                             input.addEventListener('input', function() {
                                 tfaPhaseWeights[phase] = parseFloat(input.value) || 1;
-                                // Re-run analysis button to update everything
                                 handleAnalyzeButtonClick();
                             });
                         }
@@ -2891,6 +2877,32 @@
             html += `<div class=\"text-xs text-gray-400\">Threat Power = (RDS + LVI + BCR) × Copies, Consistency = Fraction of turns in phase with at least one playable card. For each turn, the card(s) with the highest threat power are selected as the main threat(s).</div>`;
             return html;
         }
+
+        // --- UWPM CONFIG (GLOBAL, PERSISTENT) ---
+        (function() {
+            const defaultUWPMConfig = {
+                weights: {
+                    rds: 0.15,
+                    lvi: 0.15,
+                    bcr: 0.25,
+                    aim: 1.0,
+                    tfa: 0.0,
+                    taes: 1.0,
+                },
+                k: 1,
+                probabilityCompression: 0.05,
+            };
+            // Load from localStorage if available
+            let savedConfig = null;
+            try {
+                savedConfig = JSON.parse(localStorage.getItem('uwpmConfig'));
+            } catch (e) { savedConfig = null; }
+            window.uwpmConfig = savedConfig && typeof savedConfig === 'object' ? {...defaultUWPMConfig, ...savedConfig, weights: {...defaultUWPMConfig.weights, ...(savedConfig.weights||{})}} : defaultUWPMConfig;
+            // Helper to persist config
+            window.saveUWPMConfig = function() {
+                localStorage.setItem('uwpmConfig', JSON.stringify(window.uwpmConfig));
+            };
+        })();
     </script>
 </body>
 
