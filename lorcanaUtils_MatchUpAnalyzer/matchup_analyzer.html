@@ -966,13 +966,50 @@
         }
 
         /**
+         * Normalizes a raw score to a value between -1 and 1 using Math.tanh.
+         * This prevents outlier scores from having an excessive impact.
+         * @param {number} score - The raw score from a metric like RDS, LVI, or BCR.
+         * @param {number} scale - A factor to control how quickly the score approaches -1 or 1.
+         * A smaller scale means the score needs to be much larger to max out.
+         * @returns {number} - The normalized score, between -1 and 1.
+         */
+        function normalizeScore(score, scale = 50) {
+            // The scale parameter is a crucial tuning knob. If your raw RDS scores
+            // are typically around 50, a scale of 50 will mean an "average" good
+            // score gets normalized to tanh(1) ≈ 0.76.
+            // A score of 100 would be tanh(2) ≈ 0.96.
+            // This allows for differentiation without letting scores run away to infinity.
+            return Math.tanh(score / scale);
+        }
+
+        /**
          * Calculates the final win probability for Deck A against Deck B.
          * @param {UWPCard[]} deckA - The player's deck.
          * @param {UWPCard[]} deckB - The opponent's deck.
          * @returns {number} - The win probability for Deck A (e.g., 0.55 for 55%).
          */
-        function calculateWinProbability(deckA, deckB, tfaA = 0, tfaB = 0) {
-            // 1. Calculate Intrinsic Scores for both decks
+        function calculateWinProbability(deckA, deckB, tfaA = 0, tfaB = 0, normalized = true) {
+            // 1. Define Tuning Knobs
+            const tuning = {
+                // Use these scales to adjust the impact of each metric.
+                // If you find LVI scores are generally higher than BCR, you might use a larger scale for it.
+                rdsScale: 50,
+                lviScale: 100,
+                bcrScale: 75,
+
+                // The 'k' factor controls the SENSITIVITY of the probability curve.
+                // A lower value makes the curve "flatter", meaning larger score differences
+                // are needed to create a high-confidence prediction.
+                // Good starting range: 1.5 to 3.0
+                kFactor: 2.0,
+
+                // The 'compression' factor prevents 0% or 100% results.
+                // A value of 0.05 means the win probability will be squeezed into the
+                // range [5%, 95%], acknowledging that no matchup is ever a truly guaranteed win or loss.
+                probabilityCompression: 0.05
+            };
+
+            // 2. Calculate Intrinsic Scores for both decks
             const rdsA = getRDS(deckA);
             const lviA = getLVI(deckA);
             const bcrA = getBCR(deckA);
@@ -981,16 +1018,22 @@
             const lviB = getLVI(deckB);
             const bcrB = getBCR(deckB);
 
-            // 2. Calculate Matchup-Specific Modifiers (now use provided TFA)
+            // 3. Calculate Matchup-Specific Modifiers (now use provided TFA)
             const aim = 0; // Archetype Interaction Modifier
             const tfa = 0; // Use provided TFA values
             const taes = 0; // Threat-Answer Efficiency Score
 
-            // 3. Define weights (tunable)
-            const weights = { rds: 0.15, lvi: 0.25, bcr: 0.25, aim: 1.0, tfa: 0.5, taes: 1.0 };
+            // 4. Calculate NORMALIZED Score Differences
+            const rdsDiff_norm = normalizeScore(rdsA.total - rdsB.total, tuning.rdsScale);
+            const lviDiff_norm = normalizeScore(lviA.total - lviB.total, tuning.lviScale);
+            const bcrDiff_norm = normalizeScore(bcrA.total - bcrB.total, tuning.bcrScale);
+ 
+
+            // 4. Define weights (tunable)
+            const weights = { rds: 0.15, lvi: 0.15, bcr: 0.15, aim: 1.0, tfa: 0.15, taes: 1.0 };
 
             // 4. Calculate the final Matchup Score using the Master Equation
-            const matchupScore =
+            let matchupScore =
                 weights.rds * (rdsA.total - rdsB.total) +
                 weights.lvi * (lviA.total - lviB.total) +
                 weights.bcr * (bcrA.total - bcrB.total) +
@@ -998,11 +1041,35 @@
                 weights.tfa * (tfaA - tfaB) +
                 weights.taes * taes;
 
-            // 5. Convert the score to a probability using the Logistic Function
-            const k = 1; // Scaling factor, tunable
-            const winProbability = 1 / (1 + Math.exp(-k * matchupScore));
+            // 4. Calculate the final Matchup Score using the Master Equation
+            const matchupScoreNormalized =
+                weights.rds * rdsDiff_norm +
+                weights.lvi * lviDiff_norm +
+                weights.bcr * bcrDiff_norm +
+                weights.aim * aim +
+                weights.tfa * (tfaA - tfaB) +
+                weights.taes * taes;
 
-            return winProbability;
+            //Convert the score to a probability using the Logistic Function
+            //const winProbability = 1 / (1 + Math.exp(-k * matchupScore));
+
+            // The maximum possible matchupScore is now 1.0 and the minimum is -1.0,
+            // which is a much more stable input for the logistic function.
+            if (normalized){
+                console.log("Outputing Normalised MatchUp Score")
+                console.log("Original MatchUpScore:", matchupScore)
+                matchupScore = matchupScoreNormalized
+                console.log("Normalized MatchUpScore:", matchupScore)
+            }
+
+            // 6. Convert the score to a probability using the Logistic Function with the k-factor
+            const rawProbability = 1 / (1 + Math.exp(-tuning.kFactor * matchupScore));
+
+            // 7. Apply Probability Compression
+            const compressedProbability = rawProbability * (1 - 2 * tuning.probabilityCompression) + tuning.probabilityCompression;
+
+
+            return compressedProbability;
         }
 
         // --- Initialization ---
