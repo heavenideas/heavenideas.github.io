@@ -720,6 +720,7 @@
             deck.forEach(card => {
                 let explanation = [];
                 let value = 0;
+                let allText = Array.from(card.rawData.fullTextSections).join(' ').replace(/\s+/g, ' ').trim();
                 // Card Advantage Generation
                 if (card.abilityPatterns.has('Card Effect: Draw')) {
                     let drawCount = 1;
@@ -787,6 +788,7 @@
                     explanation.push(`Play this or other card for free: ${cardCEV.toFixed(2)}`);
                     value += cardCEV;
                 }
+                
 
                 finalValue = value * (card.count || 1);
                 breakdown.push({ name: card.rawData?.fullName || card.fullName, value: finalValue, explanation: explanation.join(', ') });
@@ -895,6 +897,7 @@
             deck.forEach(card => {
                 let value = 0;
                 let explanation = [];
+                let allText = Array.from(card.rawData.fullTextSections).join(' ').replace(/\s+/g, ' ').trim();
                 // Oredered from more control rating to less in terms of weight
                 //Banish all characters is the highest as it's the biggest board control
                 if (card.abilityPatterns.has('Banish: All Characters')) {
@@ -960,6 +963,22 @@
                 if (card.keywords.has('Rush')) {
                     value += (card.strength || 0) * 0.5;
                     explanation.push('Rush');
+                }
+                if (card.keywords && card.keywords.has('Singer')) {
+                    // Check for "Singer X" where X is a number, and use X as the value
+                    let singerValue = 1;
+                    // Check keywords for "Singer X"
+
+                    const singerMatch = allText.match(/(?:Singer )(\d+)/i);
+                    if (singerMatch) {
+                        singerValue = getNumberFromText(singerMatch[1])
+                    }
+
+                    fullValue = 1.0 * singerValue / (card.cost || 1);
+                    value += fullValue
+
+                    explanation.push(`Singer ${singerValue} (${fullValue.toFixed(2)})`);
+
                 }
                 
                 finalValue = value * (card.count || 1);
