@@ -574,7 +574,7 @@
                 strength: rawCard.strength || 0,
                 willpower: rawCard.willpower || 0,
                 lore: rawCard.lore || 0,
-                isUninkable: rawCard.inkable === false,
+                isUninkable: rawCard.inkwell === false,
                 keywords: new Set(),
                 abilityPatterns: new Set(),
                 rawData: rawCard,
@@ -735,23 +735,23 @@
                 }
                 if (card.abilityPatterns.has('Card Effect: Hand to Inkwell')) {
                     value += 2.0;
-                    explanation.push('Hand to Inkwell');
+                    explanation.push(`Hand to Inkwell (2.0 / ${(card.cost || 1)})`);
                 }
                 if (card.abilityPatterns.has('Play: From Discard')) {
                     value += 1.5;
-                    explanation.push('Play: From Discard');
+                    explanation.push(`Play: From Discard (1.5 / ${(card.cost || 1)})`);
                 }
                 if (card.abilityPatterns.has('Card Effect: Discard to Hand')) {
                     value += 1.5;
-                    explanation.push('Card Effect: Discard to Hand');
+                    explanation.push(`Card Effect: Discard to Hand (1.5 / ${(card.cost || 1)})`);
                 }
                 if (card.abilityPatterns.has('Card Effect: Opponent Discards')) {
                     value += 1.5;
-                    explanation.push('Opponent Discards');
+                    explanation.push(`Opponent Discards (1.5 / ${(card.cost || 1)})`);
                 }
                 if (card.abilityPatterns.has('Stat: Cost Reduction')) {
                     value += 1.0;
-                    explanation.push('Cost Reduction');
+                    explanation.push(`Cost Reduction (1.0 / ${(card.cost || 1)})`);
                 }
                 // DQI (Deck Quality Improvement) for scry effects
                 if (card.scryEffect && card.scryEffect.lookCount > 0) {
@@ -760,21 +760,21 @@
                     let dqiParts = [`Scry: Look at ${card.scryEffect.lookCount}`];
                     if (card.scryEffect.canFilterToBottom) {
                         cardDQI += dqiWeights.filterToBottom;
-                        dqiParts.push('Filter to Bottom');
+                        dqiParts.push(`Filter to Bottom`);
                     }
                     if (card.scryEffect.canTutorToHand) {
                         cardDQI += dqiWeights.tutorToHand;
-                        dqiParts.push('Tutor to Hand');
+                        dqiParts.push(`Tutor to Hand`);
                         value += 0.8;
-                        explanation.push('Add to Hand (aka Tutor)');
+                        explanation.push(`Add to Hand (aka Tutor)`);
                     }
-                    let dqiValue = cardDQI / (card.cost || 1);
+                    let dqiValue = cardDQI;
                     value += dqiValue;
                     explanation.push(`DQI: ${dqiParts.join(', ')} (+${dqiValue.toFixed(2)})`);
                 }
                 if (card.isUninkable) {
-                    value -= (card.cost || 1) * 0.25;
-                    explanation.push('Uninkable Burden');
+                    value -= (card.cost || 1) * 0.15;
+                    explanation.push(`Uninkable Burden (${(card.cost || 1)}) * 0.15`);
                 }
                 // NEW: Calculate Cost Evasion Value (CEV) score for the card
                 if (card.freePlayEffect && card.freePlayEffect.maxCost > 0) {
@@ -785,12 +785,12 @@
 
                     // This is a direct contribution to the deck's resource dominance.
                     
-                    explanation.push(`Play this or other card for free: ${cardCEV.toFixed(2)}`);
+                    explanation.push(`Play this or other card for free: ( ${cardCEV.toFixed(2)} / ${(card.cost || 1)})`);
                     value += cardCEV;
                 }
                 
 
-                finalValue = value * (card.count || 1);
+                finalValue = (value / (card.cost || 1)) * (card.count || 1);
                 breakdown.push({ name: card.rawData?.fullName || card.fullName, value: finalValue, explanation: explanation.join(', ') });
                 total += finalValue;
             });
@@ -933,7 +933,7 @@
                     explanation.push('Bounce Opposing Character');
                 }             
                 if (card.abilityPatterns.has('Stat: Strength Buff')){
-                    const strengthMatch = (card.rawData.fullText.replace(/\n/g, ' ').trim() || '').match(/(?:all characters )?(?:get|gets|has|chosen character(?:s)?) \+(\d+) (¤|strength)/gi);
+                    const strengthMatch = allText.match(/(?:all characters )?(?:get|gets|has|chosen character(?:s)?) \+(\d+) (¤|strength)/gi);
                     if (strengthMatch) {
                         const strengthAmount = getNumberFromText(strengthMatch[0])
                         strengthBuff = (1.5 * strengthAmount) / (card.cost || 1)
@@ -942,7 +942,7 @@
                     }
                 }
                 if (card.abilityPatterns.has('Stat: Strength Debuff')) {
-                    const strengthMatch = (card.rawData.fullText.replace(/\n/g, ' ').trim() || '').match(/(?:all characters )?(?:get|gets|has|chosen character(?:s)?) \-(\d+) (¤|strength)/gi);
+                    const strengthMatch = allText.match(/(?:all characters )?(?:get|gets|has|chosen character(?:s)?) \-(\d+) (¤|strength)/gi);
                     if (strengthMatch) {
                         const strengthAmount = getNumberFromText(strengthMatch[0])
                         strengthBuff = (1.5 * strengthAmount) / (card.cost || 1)
@@ -951,7 +951,7 @@
                     }
                 }
                 if (card.abilityPatterns.has('Stat: Willpower Buff')) {
-                    const willpowerMatch = (card.rawData.fullText.replace(/\n/g, ' ').trim() || '').match(/(?:all characters )?(?:get|gets|has|chosen character(?:s)?) \+(\d+) (⛉|willpower)/gi);
+                    const willpowerMatch = allText.match(/(?:all characters )?(?:get|gets|has|chosen character(?:s)?) \+(\d+) (⛉|willpower)/gi);
                     if (willpowerMatch) {
                         const willpowerAmount = getNumberFromText(willpowerMatch[0])
                         willpowerBuff = (1.5 * willpowerAmount)  / (card.cost || 1)
@@ -960,7 +960,7 @@
                     }
                 }
                 if (card.abilityPatterns.has('Static: Grant Keyword (Aura)')) {
-                    const resistMatch = (card.rawData.fullText.replace(/\n/g, ' ').trim() || '').match(/(?:Your other characters|they|it) gain(?:s)? (Resist \+\d+)/gi);
+                    const resistMatch = allText.match(/(?:Your other characters|they|it) gain(?:s)? (Resist \+\d+)/gi);
                     if (resistMatch) {
                         const resistAmount = getNumberFromText(resistMatch[0])
                         resistBuff = (1.5 * resistAmount) / (card.cost || 1)
@@ -972,6 +972,15 @@
                     value += (card.strength || 0) * 0.5;
                     explanation.push('Rush');
                 }
+                
+                if (card.abilityPatterns.has('Static: Grant Keyword (Aura)')) {
+                    let auraMatch = allText.match(/(?:gain(?:s)?) (Rush|Support|Reckless|Bodyguard)/gi)
+
+                    value += 1.5;
+                    explanation.push(`Grants others ${auraMatch[0]}`);
+                }
+                
+
                 if (card.keywords && card.keywords.has('Singer')) {
                     // Check for "Singer X" where X is a number, and use X as the value
                     let singerValue = 1;
