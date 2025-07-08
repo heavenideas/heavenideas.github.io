@@ -828,7 +828,7 @@
                     //this is like "protecting" a character almost like Evasive (because it can still be targeted by actions)
                     //but it's better because it can quest, ready, and then challenge
                     value += 1.6 / (card.cost || 1);
-                    explanation.push('Ready Chose Character');
+                    explanation.push('Ready Chosen Character');
                 }
                 if (card.abilityPatterns.has('Lore: Gain')) {
 
@@ -909,36 +909,41 @@
                 // Oredered from more control rating to less in terms of weight
                 //Banish all characters is the highest as it's the biggest board control
                 if (card.abilityPatterns.has('Banish: All Characters')) {
-                    value += 8.0;
-                    explanation.push('Banish All');
+                    value += 8.0 / (card.cost || 1);
+                    explanation.push(`Banish All 8.0 / ${(card.cost || 1)}`);
                 } 
                 if (card.abilityPatterns.has('Banish: Chosen Target') || card.abilityPatterns.has('Banish: Any') || card.abilityPatterns.has('Banish: Opponent\'s Choice')) {
                     value += 7 / (card.cost || 1);
-                    explanation.push('Banish Other Characters');
+                    explanation.push(`Banish Other Characters 7.0 / ${(card.cost || 1)}`);
                 }
                 if (card.abilityPatterns.has('Add to Inkwell: Opposing Character')) {
-                    value += 7 / (card.cost || 1);
-                    explanation.push('Add opposing character to their inkwell');
+                    value += 6.5 / (card.cost || 1);
+                    explanation.push(`Add opposing character to their inkwell 6.5 / ${(card.cost || 1)}`);
                 }
                 if (card.abilityPatterns.has('Damage: Put Damage Counters')) {
                     value += 4.5 / (card.cost || 1);
-                    explanation.push('Put Damage Counters');
+                    explanation.push(`Put Damage Counters 4.5 / ${(card.cost || 1)}`);
                 }
                 if (card.abilityPatterns.has('Damage: Deal to One') || card.abilityPatterns.has('Damage: Deal to Many')) {
                     value += 4 / (card.cost || 1);
-                    explanation.push('Deal Damage');
+                    explanation.push(`Deal Damage 4.0 / ${(card.cost || 1)}`);
                 }
                 if (card.abilityPatterns.has('Bounce: Opposing Character')) {
-                    value += 4 / (card.cost || 1);
-                    explanation.push('Bounce Opposing Character');
-                }             
+                    value += 3.5 / (card.cost || 1);
+                    explanation.push(`Bounce Opposing Character 3.5 / ${(card.cost || 1)}`);
+                }
+                if (card.abilityPatterns.has('State: Exert Character')) {
+                    value += 2.5 / (card.cost || 1);
+                    explanation.push(`Exert Character/Item 2.5 / ${(card.cost || 1)}`);
+                }
+                             
                 if (card.abilityPatterns.has('Stat: Strength Buff')){
                     const strengthMatch = allText.match(/(?:all characters )?(?:get|gets|has|chosen character(?:s)?) \+(\d+) (¤|strength)/gi);
                     if (strengthMatch) {
                         const strengthAmount = getNumberFromText(strengthMatch[0])
                         strengthBuff = (1.5 * strengthAmount) / (card.cost || 1)
                         value += strengthBuff;
-                        explanation.push('Static: Stat Buf: Strength:+', strengthAmount);
+                        explanation.push(`Static: Stat Buf: Strength:+ ${strengthAmount} * 1.5 / ${(card.cost || 1)}`);
                     }
                 }
                 if (card.abilityPatterns.has('Stat: Strength Debuff')) {
@@ -947,7 +952,7 @@
                         const strengthAmount = getNumberFromText(strengthMatch[0])
                         strengthBuff = (1.5 * strengthAmount) / (card.cost || 1)
                         value += strengthBuff;
-                        explanation.push('Static: Stat Buf: Strength:+', strengthAmount);
+                        explanation.push(`Static: Stat Buf: Strength:+ ${strengthAmount} * 1.5 / ${(card.cost || 1)}`);
                     }
                 }
                 if (card.abilityPatterns.has('Stat: Willpower Buff')) {
@@ -956,7 +961,7 @@
                         const willpowerAmount = getNumberFromText(willpowerMatch[0])
                         willpowerBuff = (1.5 * willpowerAmount)  / (card.cost || 1)
                         value += willpowerBuff;
-                        explanation.push('Static: Stat Buf: Willpower:+', willpowerAmount);
+                        explanation.push(`Static: Stat Buf: Willpower:+ ${willpowerAmount} * 1.5 / ${(card.cost || 1)}`);
                     }
                 }
                 if (card.abilityPatterns.has('Static: Grant Keyword (Aura)')) {
@@ -965,19 +970,19 @@
                         const resistAmount = getNumberFromText(resistMatch[0])
                         resistBuff = (1.5 * resistAmount) / (card.cost || 1)
                         value += resistBuff;
-                        explanation.push('Static: Grant Keyword(Resist):+', resistAmount);
+                        explanation.push(`Static: Grant Keyword(Resist):+ ${resistAmount} * 1.5 / ${(card.cost || 1)}`);
                     }
                 }
                 if (card.keywords.has('Rush')) {
-                    value += (card.strength || 0) * 0.5;
-                    explanation.push('Rush');
+                    value += (card.strength || 0) * 0.5 / (card.cost || 1);
+                    explanation.push(`Rush ${(card.strength || 0)} * 0.5 / ${(card.cost || 1)}`);
                 }
                 
                 if (card.abilityPatterns.has('Static: Grant Keyword (Aura)')) {
                     let auraMatch = allText.match(/(?:gain(?:s)?) (Rush|Support|Reckless|Bodyguard)/gi)
 
-                    value += 1.5;
-                    explanation.push(`Grants others ${auraMatch[0]}`);
+                    value += 1.5 / (card.cost || 1);
+                    explanation.push(`Grants others ${auraMatch[0]} (1.5 / ${(card.cost || 1)})`);
                 }
                 
 
