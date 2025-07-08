@@ -78,7 +78,7 @@ Regex: /You may banish (?:this character|one of your characters) to/gi
 ----------------------------------------
 
 Pattern Name: Damage: Deal to One
-Regex: /(Deal|move)(?: up to)? (\d+)?(:? )?damage( counters)?( from (chosen|another|another chosen)?( character| location| character or location)?( of yours)?)? to (chosen|another|another chosen) (?:opposing )?(character|location|character or location)(?: with \d+ (?:¤|⬡|⛉) or (?:less|more))?/gi
+Regex: /(Deal|move)(?: up to)? (\d+)?(:? )?damage( counters)?( from (chosen|another|another chosen)?( character| location| character or location)?( of yours)?)? to (chosen|another|another chosen) (?:opposing )?(character|location|character or location)(?! of yours)(?: with \d+ (?:¤|⬡|⛉) or (?:less|more))?/gi
 ----------------------------------------
 
 Pattern Name: Damage: Put Damage Counters
@@ -95,6 +95,10 @@ Regex: /(Deal|move) (\d+) damage divided as you choose among any number of chose
 
 Pattern Name: Damage: Heal
 Regex: /Remove up to (\d+) damage from (?:chosen )?(?:one of )?(?:your )?(character|location)/gi
+----------------------------------------
+
+Pattern Name: Damage: Deal to Self
+Regex: /(Deal|move)(?: up to)? (\d+)?(:? )?damage( counters)?( from (chosen|another|another chosen)?( character| location| character or location)?( of yours)?)? to (chosen|another|another chosen) (?:opposing )?(character|location|character or location)( of yours)(?: with \d+ (?:¤|⬡|⛉) or (?:less|more))?/gi
 ----------------------------------------
 
 Pattern Name: State: Ready Character
