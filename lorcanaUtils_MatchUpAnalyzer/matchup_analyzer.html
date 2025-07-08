@@ -892,6 +892,14 @@
          * @returns {{ total: number, breakdown: Array<{ name: string, value: number, explanation: string }> }}
          */
         function getBCR(deck) {
+            
+            // Define weights for CEV calculation.
+            const triggerReliability = {
+                    'OnPlay': 1.0,   // Highest reliability
+                    'OnQuest': 0.65, // Less reliable; character must survive
+                    'Other': 0.5     // Default for other, potentially more complex triggers
+            };
+
             let total = 0;
             let breakdown = [];
             deck.forEach(card => {
