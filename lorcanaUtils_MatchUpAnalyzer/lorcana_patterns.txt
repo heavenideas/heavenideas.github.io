@@ -254,7 +254,7 @@ Regex: /\(A character with cost (\d+) or more can ⟳ to sing this song for free
 ----------------------------------------
 
 Pattern Name: Static: Grant Keyword (Aura)
-Regex: /(?:Your other characters|they|it)(?: with (Ward|Evasive|Rush|Bodyguard|Support|Reckless|Resist \+\d+|Challenger \+\d+))? gain(?:s)? (Ward|Evasive|Rush|Bodyguard|Support|Reckless|Resist \+\d+|Challenger \+\d+)/gi
+Regex: /(?:Your other characters|they|it)?(?: with (Ward|Evasive|Rush|Bodyguard|Support|Reckless|Resist \+\d+|Challenger \+\d+))? gain(?:s)? (Ward|Evasive|Rush|Bodyguard|Support|Reckless|Resist \+\d+|Challenger \+\d+)/gi
 ----------------------------------------
 
 Pattern Name: Static: Grant Keyword (Named Character)
