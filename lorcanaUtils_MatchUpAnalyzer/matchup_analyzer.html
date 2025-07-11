@@ -979,7 +979,7 @@
                 }
                 
                 if (card.abilityPatterns.has('Static: Grant Keyword (Aura)')) {
-                    let auraMatch = allText.match(/(?:gain(?:s)?) (Rush|Support|Reckless|Bodyguard)/gi)
+                    let auraMatch = allText.match(/(?:gain(?:s)?) (Rush|Support|Reckless|Bodyguard|Ward)/gi)
 
                     value += 1.5 / (card.cost || 1);
                     explanation.push(`Grants others ${auraMatch[0]} (1.5 / ${(card.cost || 1)})`);
