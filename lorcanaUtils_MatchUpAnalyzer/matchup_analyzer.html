@@ -877,7 +877,13 @@
                         explanation.push('Damage: Heal:',healAmount);
                     }
                 }
-                
+                if (card.abilityPatterns.has('Static: Grant Keyword (Aura)')) {
+                    let auraMatch = allText.match(/(?:gain(?:s)?) (Ward)/gi)
+                    if(auraMatch){
+                        value += 1.5 / (card.cost || 1);
+                        explanation.push(`Grants others ${auraMatch} (1.5 / ${(card.cost || 1)})`);
+                    }
+                }
         
                 finalValue = value * (card.count || 1);
                 breakdown.push({ name: card.rawData?.fullName || card.fullName, value: finalValue, explanation: explanation.join(', ') });
@@ -979,10 +985,15 @@
                 }
                 
                 if (card.abilityPatterns.has('Static: Grant Keyword (Aura)')) {
-                    let auraMatch = allText.match(/(?:gain(?:s)?) (Rush|Support|Reckless|Bodyguard|Ward)/gi)
-
-                    value += 1.5 / (card.cost || 1);
-                    explanation.push(`Grants others ${auraMatch[0]} (1.5 / ${(card.cost || 1)})`);
+                    
+                    let auraMatch = allText.match(/(?:gain(?:s)?) (Rush|Support|Reckless|Bodyguard)/gi)
+                    if(auraMatch){
+                        value += 1.5 / (card.cost || 1);
+                        explanation.push(`Grants others ${auraMatch} (1.5 / ${(card.cost || 1)})`);
+                    }else{
+                        console.log(`No Aura Match in BCR for ${card.fullName} \n ${allText}`)
+                    }
+                    
                 }
                 
 
