@@ -12,6 +12,7 @@
     <!-- Intro.js for the tutorial -->
     <link rel="stylesheet" href="https://unpkg.com/intro.js/minified/introjs.min.css">
     <script src="https://unpkg.com/intro.js/minified/intro.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <style>
         :root {
@@ -789,17 +790,23 @@
             let popularDecks = [];
 
             // --- INITIALIZATION ---
-            // Fetch Popular Decks
-            fetch('https://raw.githubusercontent.com/heavenideas/heavenideas.github.io/refs/heads/main/lorcanaUtils_turnMapper/featuredDecks.json')
-                .then(response => response.json())
-                .then(data => {
-                    popularDecks = data;
-                    popularDecksSelectEl.innerHTML = popularDecks.map(deck => `<option value="${deck.id}">${deck.name}</option>`).join('');
-                })
-                .catch(error => {
-                    console.error('Error fetching popular decks:', error);
+            const SUPABASE_URL = 'https://cjlhrfhximjldqrfblkj.supabase.co';
+            const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNqbGhyZmh4aW1qbGRxcmZibGtqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA0MTcxNzQsImV4cCI6MjA2NTk5MzE3NH0.zLiQcPnKt2SnNfQIkUnOG7bOo6F7MPMh8MsasdFF6lw';
+            const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+            async function fetchDecksFromDatabase() {
+                const { data, error } = await supabaseClient.from('decks').select('*').order('created_at', { ascending: true });
+                if (error) {
+                    console.error('Error fetching decks:', error);
                     popularDecksSelectEl.innerHTML = '<option>Error loading decks</option>';
-                });
+                    return;
+                }
+                popularDecks = data;
+                popularDecksSelectEl.innerHTML = popularDecks.map(deck => `<option value="${deck.id}">${deck.name}</option>`).join('');
+            }
+
+            fetchDecksFromDatabase();
+
 
             // Fetch the main card data, then initialize the app
             fetch('https://raw.githubusercontent.com/heavenideas/similcana/main/database/allCards.json')
@@ -1801,16 +1808,14 @@
 
             loadPopularDeckBtnEl.addEventListener('click', () => {
                 const selectedDeckId = popularDecksSelectEl.value;
-                const selectedDeck = popularDecks.find(d => d.id === selectedDeckId);
-                if (selectedDeck && selectedDeck.encoded) {
-                    try {
-                        const state = JSON.parse(atob(selectedDeck.encoded));
-                        loadState(state);
-                        saveSessionToLocalStorage();
-                    } catch (e) {
-                        alert('Invalid deck data! The encoded string might be corrupted.');
-                        console.error("Popular deck import failed:", e);
-                    }
+                const selectedDeck = popularDecks.find(d => d.id == selectedDeckId);
+                if (selectedDeck && selectedDeck.decklist) {
+                    decklistInputEl.value = selectedDeck.decklist;
+                    loadDeck();
+                    autoPopulateDeck();
+                    saveSessionToLocalStorage();
+                } else {
+                    alert('Could not find the selected deck or the deck has no decklist.');
                 }
             });
 
