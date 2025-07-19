@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lorcana Tools Landing Page</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #181a20;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+    h1 {
+      margin-top: 40px;
+      color: #f3f3f3;
+    }
+    .container {
+      display: flex;
+      gap: 40px;
+      margin-top: 60px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .card {
+      background: #23262f;
+      border-radius: 16px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.32);
+      overflow: hidden;
+      transition: transform 0.2s, box-shadow 0.2s;
+      width: 340px;
+      text-align: center;
+      cursor: pointer;
+      border: 1px solid #23262f;
+    }
+    .card:hover {
+      transform: translateY(-8px) scale(1.03);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.48);
+      border: 1px solid #4f8cff;
+    }
+    .card img {
+      width: 100%;
+      height: 220px;
+      object-fit: cover;
+      display: block;
+      background: #181a20;
+    }
+    .card-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin: 18px 0 12px 0;
+      color: #f3f3f3;
+    }
+    .card-desc {
+      color: #b0b3c0;
+      font-size: 1rem;
+      margin-bottom: 18px;
+      padding: 0 16px;
+    }
+    a.card {
+      text-decoration: none;
+    }
+    @media (max-width: 800px) {
+      .container {
+        flex-direction: column;
+        gap: 24px;
+      }
+      .card {
+        width: 90vw;
+        max-width: 340px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>Lorcana Tools</h1>
+  <div class="container">
+    <a class="card" href="lorcanaUtils_MatchUpAnalyzer/matchup_analyzer.html">
+      <img src="../img/lorcana_matchup_analyzer_001.png" alt="Matchup Analyzer">
+      <div class="card-title">Matchup Analyzer</div>
+      <div class="card-desc">Analyze Lorcana deck matchups and get insights for your next game.</div>
+    </a>
+    <a class="card" href="lorcanaUtils_lorcanaRotationVisualizer/lorcanaVisualizer.html">
+      <img src="../img/lorcana_set_rotation_visualizer_001.png" alt="Set Rotation Visualizer">
+      <div class="card-title">Set Rotation Visualizer</div>
+      <div class="card-desc">Visualize Lorcana set rotations and plan your collection.</div>
+    </a>
+    <a class="card" href="https://lorcana-lens.vercel.app/">
+        <img src="../img/lorcana_lens_001.png" alt="Lorcana Lens">
+        <div class="card-title">Lorcana Lens</div>
+        <div class="card-desc">Compare pictures of your cards to spot any fake cards</div>
+    </a>
+    <a class="card" href="lorcanaUtils_turnMapper/turnMapper.html">
+        <img src="../img/lorcana_turnMapper_001.png" alt="Set Rotation Visualizer">
+        <div class="card-title">Lorcana Deck Turn Mapper</div>
+        <div class="card-desc">Map out your deck's turn order and see how it compares to other decks.</div>
+    </a>
+    <a class="card" href="personal_deck_saver.html">
+      <img src="../img/lorcana_turnMapper_001.png" alt="Set Rotation Visualizer">
+      <div class="card-title">Personal Lorcana Deck Saver</div>
+      <div class="card-desc">My own personal dreamborn</div>
+  </a>
+  <a class="card" href="decision_tree_visualizer.html">
+    <img src="../img/lorcana_turnMapper_001.png" alt="Set Rotation Visualizer">
+    <div class="card-title">Desicion Tree Visualizer</div>
+    <div class="card-desc">Map out available plays based on board state.</div>
+  </a>
+  <a class="card" href="ability_text_analyzer.html">
+    <img src="../img/lorcana_turnMapper_001.png" alt="Set Rotation Visualizer">
+    <div class="card-title">Ability Text Analyzer</div>
+    <div class="card-desc">Check ability text from cards using regular expresions</div>
+  </a>
+  </div>
+</body>
+</html>

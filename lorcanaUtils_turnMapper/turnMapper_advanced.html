@@ -1,0 +1,1821 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lorcana Turn Mapper</title>
+    <script src="https://cdn.jsdelivr.net/npm/fuse.js@6.6.2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/leader-line-new@1.1.9/leader-line.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <!-- Intro.js for the tutorial -->
+    <link rel="stylesheet" href="https://unpkg.com/intro.js/minified/introjs.min.css">
+    <script src="https://unpkg.com/intro.js/minified/intro.min.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --primary-color: #2c2c2c;
+            --secondary-color: #444;
+            --text-color: #f0f0f0;
+            --border-color: #666;
+            --accent-color: #a855f7;
+            --danger-color: #ef4444;
+            --song-bg-color: #3a3a3a;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        header {
+            padding: 0.5rem 1rem;
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+            position: relative;
+            z-index: 501;
+            background-color: var(--bg-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header .header-content {
+            flex-grow: 1;
+        }
+
+        header h1 {
+            margin: 0.25rem 0;
+            font-size: 1.5rem;
+            color: var(--accent-color);
+        }
+
+        header p {
+            margin: 0.25rem 0;
+            font-size: 0.9rem;
+            color: var(--secondary-color);
+        }
+
+        #tutorial-btn {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        #tutorial-btn:hover {
+            background-color: #9333ea;
+        }
+
+
+        #app-container {
+            display: flex;
+            flex-grow: 1;
+            overflow: hidden;
+        }
+
+        #sidebar {
+            width: 350px;
+            background-color: var(--primary-color);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            padding: 1rem;
+            overflow-y: auto;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .sidebar-section {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .sidebar-section h3 {
+            margin-top: 0;
+            text-align: center;
+            border-bottom: 1px solid var(--secondary-color);
+            padding-bottom: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        #decklist-input,
+        #import-text-input,
+        #decklist-url-input {
+            background-color: var(--secondary-color);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 0.5rem;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        #decklist-input {
+            height: 150px;
+            resize: vertical;
+        }
+
+        #decklist-url-input {
+            margin-top: 0.5rem;
+        }
+
+        .btn {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 0.75rem;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 0.5rem;
+            transition: background-color 0.3s;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .btn:hover {
+            background-color: #9333ea;
+        }
+
+        .btn-secondary {
+            background-color: var(--secondary-color);
+        }
+
+        .btn-secondary:hover {
+            background-color: #555;
+        }
+
+        .btn-small {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.8rem;
+            margin-top: 0.5rem;
+            width: auto;
+        }
+
+        #search-input {
+            width: 100%;
+            padding: 0.5rem;
+            margin-bottom: 1rem;
+            background-color: var(--secondary-color);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            box-sizing: border-box;
+        }
+
+        #card-list {
+            flex-grow: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .card-container {
+            position: relative;
+            cursor: grab;
+        }
+
+        .card-image {
+            width: 100px;
+            border-radius: 8px;
+            transition: transform 0.2s;
+            display: block;
+        }
+
+        .card-image:hover {
+            transform: scale(1.05);
+        }
+
+        .card-instance {
+            position: absolute;
+            z-index: 1000;
+        }
+
+        .card-comment {
+            width: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            font-size: 12px;
+            padding: 4px;
+            border: none;
+            border-top: 1px solid var(--border-color);
+            box-sizing: border-box;
+            text-align: center;
+            border-bottom-left-radius: 8px;
+            border-bottom-right-radius: 8px;
+            resize: none;
+            overflow: hidden;
+            font-family: inherit;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        #main-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        #overall-comments-container {
+            padding: 1rem;
+            background: var(--primary-color);
+            border-bottom: 1px solid var(--border-color);
+            position: relative;
+            z-index: 501;
+        }
+
+        #overall-comments {
+            width: 100%;
+            min-height: 60px;
+            background: var(--secondary-color);
+            color: var(--text-color);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            padding: 0.5rem;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+
+        #add-turn-btn {
+            align-self: center;
+        }
+
+        #lanes-wrapper {
+            display: flex;
+            flex-grow: 1;
+            overflow-x: auto;
+            border-bottom: 1px solid var(--border-color);
+            background-color: var(--bg-color);
+        }
+
+        .turn-column {
+            min-width: 300px;
+            border-right: 1px solid var(--border-color);
+            display: grid;
+            grid-template-rows: auto 1fr auto auto;
+            padding: 0.5rem;
+            height: 100%;
+        }
+
+        .turn-column .lane-section.board-section {
+            align-self: start;
+        }
+
+        .turn-column .lane-section {
+            width: 100%;
+        }
+
+        .lane-section {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 1rem;
+        }
+
+        .lane-section.board-section {
+            flex-grow: 1;
+            margin-bottom: 0;
+        }
+
+        .lane-section-title {
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--secondary-color);
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+        }
+
+        .lane-grid {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            padding: 0.5rem;
+            border: 1px dashed var(--secondary-color);
+            border-radius: 8px;
+            min-height: 150px;
+        }
+
+        .lane-grid[data-grid-type="song"] {
+            background-color: var(--song-bg-color);
+            border: 1px dashed var(--accent-color);
+        }
+
+        .lane-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            padding: 0.5rem;
+            background-color: rgba(0, 0, 0, 0.2);
+            border-radius: 6px;
+            min-height: 120px;
+            align-content: flex-start;
+            border: 1px solid transparent;
+        }
+
+        .lane-row.drag-over {
+            border: 1px solid var(--accent-color);
+            background-color: var(--secondary-color);
+        }
+
+        .turn-label-container {
+            font-weight: bold;
+            font-size: 1.2rem;
+            text-align: center;
+            padding: 0.5rem;
+            margin-top: auto;
+        }
+
+        .turn-label-container span[contenteditable] {
+            outline: none;
+            padding: 0 4px;
+            border-radius: 4px;
+        }
+
+        .turn-label-container span[contenteditable]:hover,
+        .turn-label-container span[contenteditable]:focus {
+            background-color: var(--secondary-color);
+            box-shadow: 0 0 5px var(--accent-color);
+        }
+
+        .droppable-card-container {
+            position: relative;
+        }
+
+        .delete-card-btn {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            width: 20px;
+            height: 20px;
+            background-color: var(--danger-color);
+            color: white;
+            border: 1px solid white;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: bold;
+            line-height: 1;
+            z-index: 10;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .droppable-card-container:hover .delete-card-btn {
+            opacity: 1;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.6);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background-color: var(--primary-color);
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            width: 80%;
+            max-width: 500px;
+            border-radius: 8px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .leader-line {
+            z-index: 500;
+            cursor: pointer;
+            transition: filter 0.2s;
+        }
+
+        .leader-line:hover {
+            filter: drop-shadow(0 0 5px var(--danger-color));
+        }
+
+        /* Custom styles for intro.js to match the site's theme */
+        .introjs-tooltip {
+            background-color: var(--primary-color);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+        }
+
+        .introjs-arrow.top {
+            border-bottom-color: var(--primary-color);
+        }
+
+        .introjs-arrow.bottom {
+            border-top-color: var(--primary-color);
+        }
+
+        .introjs-arrow.left {
+            border-right-color: var(--primary-color);
+        }
+
+        .introjs-arrow.right {
+            border-left-color: var(--primary-color);
+        }
+
+        .introjs-button {
+            background-color: var(--accent-color);
+            color: white !important;
+            text-shadow: none;
+            border-radius: 4px;
+        }
+
+        .introjs-button:hover {
+            background-color: #9333ea;
+        }
+
+        .introjs-overlay {
+            opacity: 0.8 !important;
+            background-color: rgba(0, 0, 0, 0.8) !important;
+        }
+
+        .introjs-skipbutton {
+            color: var(--text-color) !important;
+        }
+
+        footer {
+            padding: 0.5rem 1rem;
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--secondary-color);
+            border-top: 1px solid var(--border-color);
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div class="header-content">
+            <h1>Lorcana Turn Mapper</h1>
+            <p>Map out your turns with grid-based logic. Horizonal cards are AND, vertical rows are OR.</p>
+        </div>
+        <button id="tutorial-btn">Start Tutorial</button>
+    </header>
+
+    <div id="app-container">
+        <div id="sidebar">
+            <div id="import-export-section" class="sidebar-section">
+                <h3>Import / Export</h3>
+                <button id="import-btn" class="btn btn-secondary"
+                    alt="Paste in the text from the Encoded Text export">Import from Encoded Text</button>
+                <button id="export-text-btn" class="btn" alt="Export as a text string to share with others">Export as
+                    Encoded Text</button>
+                <button id="export-human-text-btn" class="btn"
+                    alt="Create a Turn By Turn text to share with others">Export Turn By Turn Text</button>
+                <button id="export-png-btn" class="btn" alt="Export full mapping as an image">Export as PNG
+                    (WIP)</button>
+                <button id="clear-session-btn" class="btn btn-secondary" alt="Erase all cards from canvas"
+                    style="margin-top:1rem;background-color:var(--danger-color);color:white;">Clear Session</button>
+            </div>
+
+            <div class="sidebar-section">
+                <h3>Popular Decks</h3>
+                <select id="popular-decks-select" class="btn btn-secondary"
+                    style="width:100%; margin-bottom: 0.5rem;"></select>
+                <button id="load-popular-deck-btn" class="btn">Load Selected Deck</button>
+            </div>
+
+            <div id="decklist-section" class="sidebar-section">
+                <h3>Decklist</h3>
+                <textarea id="decklist-input" placeholder="Paste decklist here..."></textarea>
+                <button id="load-deck-btn" class="btn">Load Deck</button>
+                <button id="auto-populate-btn" class="btn btn-secondary">Auto Populate</button>
+                <input type="url" id="decklist-url-input" placeholder="Decklist URL (Reference only)">
+            </div>
+
+
+
+            <div id="card-library-section" class="sidebar-section">
+                <h3>Card Search</h3>
+                <input type="text" id="search-input" placeholder="Search for any card...">
+                <div id="card-list">
+                    <p>Load a deck or search.</p>
+                </div>
+            </div>
+
+
+        </div>
+
+        <div id="main-content">
+            <div id="overall-comments-container">
+                <textarea id="overall-comments" placeholder="Overall comments..."></textarea>
+            </div>
+            <div id="lanes-wrapper">
+                <!-- Turn columns will be added dynamically -->
+            </div>
+            <button id="add-turn-btn" class="btn" style="width: auto; padding: 0.5rem 1rem;">Add Turn</button>
+        </div>
+    </div>
+
+    <footer>
+        <p>Lorcana Turn Mapper is NOT affiliated with Disney or Ravensburger. This is a fan project and is presented for
+            free as is for anyone to use.</p>
+    </footer>
+
+    <!-- Modals -->
+    <div id="arrow-modal" class="modal">
+        <div class="modal-content">
+            <label for="arrow-annotation-input">Arrow Annotation (optional):</label>
+            <input type="text" id="arrow-annotation-input">
+            <div>
+                <button id="save-arrow-btn" class="btn">Create Arrow</button>
+                <button id="cancel-arrow-btn" class="btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+    <div id="export-modal" class="modal">
+        <div class="modal-content">
+            <h3>Exported Map Data</h3>
+            <p>Copy the text below to save your map.</p>
+            <textarea id="export-text-output" readonly
+                style="height: 150px; width: 100%; background-color: var(--bg-color); color: var(--text-color); border-radius: 8px;"></textarea>
+            <button id="close-export-modal-btn" class="btn">Close</button>
+        </div>
+    </div>
+    <div id="human-export-modal" class="modal">
+        <div class="modal-content">
+            <h3>Human-Readable Export</h3>
+            <p>Copy the text below to share.</p>
+            <textarea id="human-export-text-output" readonly
+                style="height: 250px; width: 100%; background-color: var(--bg-color); color: var(--text-color); border-radius: 8px; white-space: pre-wrap;"></textarea>
+            <button id="close-human-export-modal-btn" class="btn">Close</button>
+        </div>
+    </div>
+    <div id="import-modal" class="modal">
+        <div class="modal-content">
+            <h3>Import Map Data</h3>
+            <p>Paste your map data below and click Import.</p>
+            <textarea id="import-text-input"
+                style="height: 150px; width: 100%; background-color: var(--secondary-color); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.5rem; box-sizing: border-box;"></textarea>
+            <div>
+                <button id="confirm-import-btn" class="btn">Import</button>
+                <button id="close-import-modal-btn" class="btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+    <div id="confirm-clear-modal" class="modal">
+        <div class="modal-content">
+            <h3>Confirm Clear</h3>
+            <p>Are you sure you want to clear your entire session? This action cannot be undone.</p>
+            <div>
+                <button id="confirm-clear-btn" class="btn"
+                    style="background-color:var(--danger-color);color:white;">Yes, Clear Everything</button>
+                <button id="cancel-clear-btn" class="btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // --- INTERACTIVE TUTORIAL SETUP ---
+            function startTutorial() {
+                const intro = introJs();
+
+                intro.setOptions({
+                    steps: [
+                        {
+                            title: 'Welcome!',
+                            intro: 'This tool helps you plan your game turns visually. Let\'s walk through the basics.'
+                        },
+                        {
+                            element: document.querySelector('#decklist-section'),
+                            title: 'Start With Your Deck',
+                            intro: 'Let\'s load an example for you. When you click <b>Next</b>, we\'ll automatically add a mini-decklist and load the cards.'
+                        },
+                        {
+                            element: document.querySelector('#card-library-section'),
+                            title: 'Your Card Library',
+                            intro: 'The cards from the decklist are now loaded here! You can also use the search bar to find any card in the Lorcana database.'
+                        },
+                        {
+                            element: document.querySelector('#lanes-wrapper'),
+                            title: 'The Main Canvas',
+                            intro: 'Drag cards from your library and drop them into the turn columns to plan your plays. <br><br><img src="tutorial/drag_01.gif" alt="Drag Example" style="width: 100%; max-width: 300px;"><br> You can add more turns using the "Add Turn" button.'
+                        },
+                        {
+                            element: document.querySelector('.turn-column') || document.querySelector('#lanes-wrapper'), // Fallback to prevent errors
+                            title: 'AND/OR Logic',
+                            intro: 'Plan your options! <br><ul><li>Cards side-by-side in the same row are <b>AND</b> plays.</li><li>Rows stacked vertically are <b>OR</b> plays.</li></ul><br>To create a new "OR" option, just drag a card into the space between rows.',
+                            position: 'left'
+                        },
+                        {
+                            element: document.querySelector('#main-content'),
+                            title: 'Create Connections',
+                            intro: 'Show card interactions! <b>Right-click</b> on a card to select it, then <b>right-click</b> on another card to draw an arrow. You can annotate arrows with text. <br><br><img src="tutorial/arrows_01.gif" alt="Arrow Example" style="width: 100%; max-width: 300px;"><br> This is great for showing shifts or who is singing a song.'
+                        },
+                        {
+                            element: document.querySelector('#overall-comments-container'),
+                            title: 'Leave Notes',
+                            intro: 'Use this area for your general strategy. Each card you place on the board also has its own comment box for specific notes.'
+                        },
+                        {
+                            element: document.querySelector('#import-export-section'),
+                            title: 'Save and Share',
+                            intro: 'When you\'re done, you can export your map as an image (PNG), text for sharing, or a data string to re-import later.'
+                        },
+                        {
+                            element: document.querySelector('#popular-decks-select'),
+                            title: 'Pre-loaded Examples',
+                            intro: 'If you want to see some examples, you can click on the "Popular Decks" dropdown and select one of the pre-loaded decks.'
+                        },
+                        {
+                            title: 'You\'re Ready!',
+                            intro: 'You\'ve learned the basics. Feel free to explore and experiment. You can restart this tutorial any time using the button in the header.'
+                        }
+                    ],
+                    showProgress: true,
+                    showBullets: false,
+                    tooltipClass: 'themed-tooltip' // A class for custom styling
+                });
+
+                intro.onbeforechange(function () {
+                    // `this._currentStep` is the index of the step we are LEAVING.
+                    // The decklist step is the second step, which has an index of 1.
+                    if (this._currentStep === 1) {
+                        const decklistInput = document.getElementById('decklist-input');
+                        const loadDeckBtn = document.getElementById('load-deck-btn');
+
+                        // Check if the elements exist to prevent errors
+                        if (decklistInput && loadDeckBtn) {
+                            decklistInput.value = "2 Diablo - Maleficent's Spy\n3 Diablo - Devoted Herald";
+                            loadDeckBtn.click();
+                        }
+                    }
+                });
+
+                intro.oncomplete(() => {
+                    localStorage.setItem('lorcanaTurnMapperTutorialSeen', 'true');
+                });
+
+                intro.onexit(() => {
+                    localStorage.setItem('lorcanaTurnMapperTutorialSeen', 'true');
+                });
+
+                intro.start();
+            }
+
+            // Bind the tutorial to the button
+            document.getElementById('tutorial-btn').addEventListener('click', startTutorial);
+
+            // --- SECTION ALIGNMENT ---
+            // This function ensures that all "Song" sections have the same height,
+            // which in turn aligns the "Board" sections below them.
+            function alignBoardTops() {
+                const songSections = document.querySelectorAll('.lane-section-song');
+                if (songSections.length < 2) return; // No need to align if there's 0 or 1 column
+
+                // Reset height to allow shrinking before recalculating
+                songSections.forEach(s => s.style.minHeight = 'auto');
+
+                // Use requestAnimationFrame to wait for the DOM to reflow after the reset
+                requestAnimationFrame(() => {
+                    let maxHeight = 0;
+                    songSections.forEach(s => {
+                        if (s.offsetHeight > maxHeight) {
+                            maxHeight = s.offsetHeight;
+                        }
+                    });
+
+                    // Set all song sections to the height of the tallest one
+                    songSections.forEach(s => s.style.minHeight = `${maxHeight}px`);
+                });
+            }
+
+            // --- LOCAL STORAGE SESSION HELPERS ---
+            function saveSessionToLocalStorage() {
+                try {
+                    const state = gatherState();
+                    // console.log('Saving session to localStorage:', state);
+                    localStorage.setItem('lorcanaTurnMapperSession', btoa(JSON.stringify(state)));
+                } catch (e) {
+                    console.error('Failed to save session:', e);
+                }
+            }
+            function loadSessionFromLocalStorage() {
+                try {
+                    const data = localStorage.getItem('lorcanaTurnMapperSession');
+                    if (data) {
+                        const state = JSON.parse(atob(data));
+                        loadState(state);
+                        // console.log('Loaded session from localStorage:', state);
+                        return true;
+                    }
+                } catch (e) {
+                    console.error('Failed to load session:', e);
+                }
+                return false;
+            }
+
+            // --- STATE MANAGEMENT ---
+            let allCards = [];
+            let fuse;
+            let deckCards = [];
+            let turnCount = 0;
+            let draggedCardData = null;
+            let lines = [];
+            let cardElements = {};
+            let nextCardInstanceId = 0;
+            let arrowStartElement = null;
+
+            // --- DOM ELEMENTS ---
+            const cardListEl = document.getElementById('card-list');
+            const searchInputEl = document.getElementById('search-input');
+            const decklistInputEl = document.getElementById('decklist-input');
+            const loadDeckBtnEl = document.getElementById('load-deck-btn');
+            const decklistUrlInputEl = document.getElementById('decklist-url-input');
+            const lanesWrapperEl = document.getElementById('lanes-wrapper');
+            const addTurnBtnEl = document.getElementById('add-turn-btn');
+            const autoPopulateBtnEl = document.getElementById('auto-populate-btn');
+
+            // Import/Export Buttons
+            const importBtnEl = document.getElementById('import-btn');
+            const exportTextBtnEl = document.getElementById('export-text-btn');
+            const exportHumanTextBtnEl = document.getElementById('export-human-text-btn');
+            const exportPngBtnEl = document.getElementById('export-png-btn');
+            const clearSessionBtnEl = document.getElementById('clear-session-btn');
+
+            // Modals and their buttons
+            const arrowModalEl = document.getElementById('arrow-modal');
+            const arrowAnnotationInputEl = document.getElementById('arrow-annotation-input');
+            const saveArrowBtnEl = document.getElementById('save-arrow-btn');
+            const cancelArrowBtnEl = document.getElementById('cancel-arrow-btn');
+            const exportModalEl = document.getElementById('export-modal');
+            const exportTextOutputEl = document.getElementById('export-text-output');
+            const closeExportModalBtnEl = document.getElementById('close-export-modal-btn');
+            const humanExportModalEl = document.getElementById('human-export-modal');
+            const humanExportTextOutputEl = document.getElementById('human-export-text-output');
+            const closeHumanExportModalBtnEl = document.getElementById('close-human-export-modal-btn');
+            const importModalEl = document.getElementById('import-modal');
+            const importTextInputEl = document.getElementById('import-text-input');
+            const confirmImportBtnEl = document.getElementById('confirm-import-btn');
+            const closeImportModalBtnEl = document.getElementById('close-import-modal-btn');
+            const confirmClearModalEl = document.getElementById('confirm-clear-modal');
+
+            // --- DOM ELEMENTS (Popular Decks) ---
+            const popularDecksSelectEl = document.getElementById('popular-decks-select');
+            const loadPopularDeckBtnEl = document.getElementById('load-popular-deck-btn');
+            let popularDecks = [];
+
+            // --- INITIALIZATION ---
+            // Fetch Popular Decks
+            fetch('https://raw.githubusercontent.com/heavenideas/heavenideas.github.io/refs/heads/main/lorcanaUtils_turnMapper/featuredDecks.json')
+                .then(response => response.json())
+                .then(data => {
+                    popularDecks = data;
+                    popularDecksSelectEl.innerHTML = popularDecks.map(deck => `<option value="${deck.id}">${deck.name}</option>`).join('');
+                })
+                .catch(error => {
+                    console.error('Error fetching popular decks:', error);
+                    popularDecksSelectEl.innerHTML = '<option>Error loading decks</option>';
+                });
+
+            // Fetch the main card data, then initialize the app
+            fetch('https://raw.githubusercontent.com/heavenideas/similcana/main/database/allCards.json')
+                .then(response => response.json())
+                .then(data => {
+                    allCards = data.cards;
+                    const uniqueCards = new Map();
+                    allCards.forEach(card => {
+                        if (!card.rarity.includes('Enchanted')) {
+                            if (!uniqueCards.has(card.fullName)) {
+                                uniqueCards.set(card.fullName, card);
+                            }
+                        }
+                    });
+                    allCards = Array.from(uniqueCards.values());
+                    fuse = new Fuse(allCards, { keys: ['fullName', 'name', 'version', 'bodyText'], includeScore: true, threshold: 0.4 });
+                    displayCardsInSidebar(allCards.slice(0, 50)); // Show some initial cards
+
+                    // --- SESSION RESTORE OR DEFAULT SETUP ---
+                    if (!loadSessionFromLocalStorage()) {
+                        for (let i = 0; i < 4; i++) addTurnColumn();
+                    }
+
+                    // --- START TUTORIAL IF FIRST VISIT ---
+                    // This is moved here to ensure the page is fully initialized.
+                    if (!localStorage.getItem('lorcanaTurnMapperTutorialSeen')) {
+                        // Use a small timeout to ensure DOM has fully updated after adding columns
+                        setTimeout(startTutorial, 500);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching card data:', error);
+                    cardListEl.innerHTML = '<p>Error loading card data.</p>';
+                });
+
+            searchInputEl.addEventListener('input', (e) => {
+                const query = e.target.value.trim();
+                if (query.length > 2) {
+                    const results = fuse.search(query).map(r => r.item);
+                    displayCardsInSidebar(results);
+                } else if (query.length === 0) {
+                    displayCardsInSidebar(deckCards.length > 0 ? deckCards : allCards.slice(0, 50));
+                }
+            });
+
+            // --- DECKLIST HANDLING ---
+            const parseDecklist = text => text.trim().split('\n').map(line => {
+                const match = line.match(/^(\d+)\s+(.+)/);
+                return match ? { count: parseInt(match[1], 10), name: match[2].trim() } : null;
+            }).filter(Boolean);
+
+            const findCardById = id => allCards.find(c => c.id === id);
+
+            const findCardByName = name => {
+                let card = allCards.find(c => c.fullName.toLowerCase() === name.toLowerCase());
+                if (card) return card;
+                const results = fuse.search(name);
+                return results.length > 0 ? results[0].item : null;
+            };
+
+            function loadDeck() {
+                const parsedDeck = parseDecklist(decklistInputEl.value);
+                const uniqueDeckCards = new Map();
+                parsedDeck.forEach(entry => {
+                    const cardData = findCardByName(entry.name);
+                    if (cardData && !uniqueDeckCards.has(cardData.fullName)) {
+                        uniqueDeckCards.set(cardData.fullName, cardData);
+                    }
+                });
+                deckCards = Array.from(uniqueDeckCards.values()).sort((a, b) => a.cost - b.cost);
+                displayCardsInSidebar(deckCards);
+            };
+
+            loadDeckBtnEl.addEventListener('click', () => {
+                loadDeck();
+                saveSessionToLocalStorage();
+            });
+
+            autoPopulateBtnEl.addEventListener('click', () => {
+                autoPopulateDeck();
+            });
+
+            function autoPopulateDeck() {
+                if (deckCards.length === 0) {
+                    alert("Please load a deck first.");
+                    return;
+                }
+
+                clearBoard(full = false);
+
+                // Find the highest ink cost to determine how many turns we need
+                const maxInkCost = Math.max(...deckCards.map(c => c.cost), 0);
+
+                // Ensure we have enough turn columns by checking the highest existing turn number
+                const existingTurnNumbers = Array.from(document.querySelectorAll('.turn-number-input')).map(el => parseInt(el.textContent) || 0);
+                const maxExistingTurn = Math.max(0, ...existingTurnNumbers);
+
+                let currentMaxTurn = maxExistingTurn;
+                if (maxInkCost > currentMaxTurn) {
+                    while (currentMaxTurn < maxInkCost) {
+                        addTurnColumn();
+                        currentMaxTurn++;
+                    }
+                }
+
+
+                // Place each card
+                deckCards.forEach(cardData => {
+                    const turnNumber = cardData.cost;
+                    if (turnNumber > 0) { // Don't place 0-cost cards automatically
+                        // Find the correct turn column by its visible number, not its internal ID
+                        const allTurnColumns = document.querySelectorAll('.turn-column');
+                        let targetColumn = null;
+                        for (const column of allTurnColumns) {
+                            const turnNumberInput = column.querySelector('.turn-number-input');
+                            if (turnNumberInput && parseInt(turnNumberInput.textContent) === turnNumber) {
+                                targetColumn = column;
+                                break;
+                            }
+                        }
+
+                        if (targetColumn) {
+                            const isSong = cardData.subtypesText && cardData.subtypesText.includes('Song');
+                            const gridType = isSong ? 'song' : 'board';
+                            const laneGrid = targetColumn.querySelector(`.lane-grid[data-grid-type="${gridType}"]`);
+
+                            if (laneGrid) {
+                                // Find an existing, empty lane row. A row is considered empty if it has no child elements (i.e., no cards).
+                                let targetRow = Array.from(laneGrid.children).find(row => row.children.length === 0);
+
+                                // If no empty row is found, create a new one and append it to the grid.
+                                if (!targetRow) {
+                                    targetRow = createLaneRow(gridType, turnNumber, laneGrid.children.length + 1);
+                                    laneGrid.appendChild(targetRow);
+                                }
+
+                                // Create the card's DOM element and append it to the target row.
+                                const instanceId = nextCardInstanceId++;
+                                const { cardContainer } = createCardDOM(cardData, instanceId);
+                                targetRow.appendChild(cardContainer);
+                            }
+                        }
+                    }
+                });
+                alignBoardTops();
+                saveSessionToLocalStorage();
+            }
+
+            // --- UI & DISPLAY ---
+            function createCardDOM(cardData, instanceId) {
+                const cardContainer = document.createElement('div');
+                cardContainer.className = 'droppable-card-container';
+                const cardEl = createCardElement(cardData, false, instanceId);
+                makeCardMovable(cardEl, cardContainer);
+
+                const commentEl = document.createElement('textarea');
+                commentEl.rows = 1;
+                commentEl.placeholder = 'Add comment...';
+                commentEl.className = 'card-comment';
+
+                commentEl.addEventListener('input', () => {
+                    commentEl.style.height = 'auto';
+                    commentEl.style.height = `${commentEl.scrollHeight}px`;
+                    updateLines();
+                    alignBoardTops(); // Align sections on comment change
+                    saveSessionToLocalStorage();
+                });
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'delete-card-btn';
+                deleteBtn.innerHTML = '&times;';
+                deleteBtn.addEventListener('click', () => deleteCard(cardContainer, cardEl.id));
+
+                cardContainer.appendChild(deleteBtn);
+                cardContainer.appendChild(cardEl);
+                cardContainer.appendChild(commentEl);
+
+                cardEl.addEventListener('contextmenu', (ev) => {
+                    ev.preventDefault();
+                    if (!arrowStartElement) {
+                        arrowStartElement = cardEl;
+                        arrowStartElement.style.outline = '3px solid var(--accent-color)';
+                    } else {
+                        showArrowModal(arrowStartElement, cardEl);
+                    }
+                });
+
+                return { cardContainer, commentInput: commentEl };
+            }
+
+            function createCardElement(cardData, isDraggable = true, instanceId = null) {
+                const cardContainer = document.createElement('div');
+                cardContainer.className = 'card-container';
+                if (isDraggable) cardContainer.draggable = true;
+
+                const cardImage = document.createElement('img');
+                const originalUrl = cardData.images.full;
+                const proxiedUrl = `https://images.weserv.nl/?url=${encodeURIComponent(originalUrl)}`;
+
+                cardImage.crossOrigin = 'anonymous';
+                cardImage.src = proxiedUrl;
+                cardImage.onerror = () => cardImage.src = originalUrl;
+                cardImage.alt = cardData.fullName;
+                cardImage.className = 'card-image';
+
+                const uniqueId = instanceId !== null ? `card-instance-${instanceId}` : `card-lib-${cardData.id}`;
+                cardContainer.id = uniqueId;
+                cardContainer.dataset.cardId = cardData.id;
+                cardContainer.dataset.cardName = cardData.fullName; // For export
+                cardElements[uniqueId] = cardContainer;
+                cardContainer.appendChild(cardImage);
+
+                if (isDraggable) {
+                    cardContainer.addEventListener('dragstart', (e) => {
+                        draggedCardData = cardData;
+                        const clone = e.target.cloneNode(true);
+                        clone.style.position = 'absolute';
+                        clone.style.left = '-9999px';
+                        document.body.appendChild(clone);
+                        e.dataTransfer.setDragImage(clone, 50, 70);
+                        setTimeout(() => document.body.removeChild(clone), 0);
+                    });
+                }
+                return cardContainer;
+            };
+
+            const displayCardsInSidebar = (cards) => {
+                cardListEl.innerHTML = cards.length > 0 ? '' : '<p>No cards found.</p>';
+                cards.forEach(card => cardListEl.appendChild(createCardElement(card)));
+            };
+
+            function deleteCard(cardDOMContainer, cardId) {
+                lines = lines.filter(l => {
+                    if (l.line.start.id === cardId || l.line.end.id === cardId) {
+                        l.line.remove();
+                        return false;
+                    }
+                    return true;
+                });
+                const parentRow = cardDOMContainer.parentElement;
+                cardDOMContainer.remove();
+                // If the row becomes empty, remove it, unless it's the last one
+                if (parentRow && parentRow.classList.contains('lane-row') && parentRow.children.length === 0) {
+                    const grid = parentRow.parentElement;
+                    if (grid && grid.children.length > 1) {
+                        parentRow.remove();
+                    }
+                }
+                alignBoardTops(); // Align sections after deleting a card
+                saveSessionToLocalStorage();
+            }
+
+            // --- DRAG & DROP ---
+            function setupDropZone(zone) {
+                zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('drag-over'); });
+                zone.addEventListener('dragleave', (e) => { e.preventDefault(); zone.classList.remove('drag-over'); });
+                zone.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation(); // Prevent event from bubbling to parent drop zones
+                    zone.classList.remove('drag-over');
+                    const droppedCardId = e.dataTransfer.getData('text/plain');
+
+                    if (draggedCardData) {
+                        const instanceId = nextCardInstanceId++;
+                        const { cardContainer } = createCardDOM(draggedCardData, instanceId);
+                        zone.appendChild(cardContainer);
+                        draggedCardData = null; // Clear after use
+                    } else if (droppedCardId) {
+                        const cardInstanceContainer = document.getElementById(droppedCardId)?.closest('.droppable-card-container');
+                        if (cardInstanceContainer) {
+                            zone.appendChild(cardInstanceContainer);
+                            updateLines();
+                        }
+                    }
+                    alignBoardTops(); // Align sections after dropping a card
+                    saveSessionToLocalStorage();
+                });
+            };
+
+            function makeCardMovable(cardEl, container) {
+                cardEl.draggable = true;
+                cardEl.addEventListener('dragstart', (e) => {
+                    e.stopPropagation(); // Prevent lane drag-start
+                    e.dataTransfer.setData('text/plain', cardEl.id);
+                    setTimeout(() => container.style.opacity = '0.5', 0);
+                });
+                cardEl.addEventListener('dragend', () => {
+                    container.style.opacity = '1';
+                    updateLines();
+                    saveSessionToLocalStorage();
+                });
+            }
+
+            // --- TURN LANES ---
+            function addTurnColumn() {
+                turnCount++;
+                const turnColumn = document.createElement('div');
+                turnColumn.className = 'turn-column';
+                turnColumn.dataset.turnId = turnCount;
+
+                // Create Song Area
+                const songSection = createLaneSection('song', turnCount, 'Songs');
+                // Create Board Area
+                const boardSection = createLaneSection('board', turnCount, 'Board');
+                boardSection.classList.add('board-section');
+
+                // Explicitly set grid rows for robustness
+                songSection.style.gridRow = '1';
+                boardSection.style.gridRow = '2';
+
+                turnColumn.appendChild(songSection);
+                turnColumn.appendChild(boardSection);
+
+                // Label container
+                const labelContainer = document.createElement('div');
+                labelContainer.className = 'turn-label-container';
+                labelContainer.innerHTML = `
+                    <div>TURN <span class="turn-number-input" contenteditable="true">${turnCount}</span></div>
+                    <div>INK <span class="ink-number-input" contenteditable="true">${turnCount}</span></div>
+                `;
+                labelContainer.style.gridRow = '3';
+                turnColumn.appendChild(labelContainer);
+
+                // Add turn lane comment box
+                const turnCommentContainer = document.createElement('div');
+                turnCommentContainer.style.marginTop = '0.5rem';
+                const turnCommentBox = document.createElement('textarea');
+                turnCommentBox.className = 'turn-comment-box';
+                turnCommentBox.placeholder = 'Comments for this turn...';
+                turnCommentBox.style.width = '100%';
+                turnCommentBox.style.minHeight = '40px';
+                turnCommentBox.style.background = 'var(--secondary-color)';
+                turnCommentBox.style.color = 'var(--text-color)';
+                turnCommentBox.style.borderRadius = '8px';
+                turnCommentBox.style.border = '1px solid var(--border-color)';
+                turnCommentBox.style.padding = '0.5rem';
+                turnCommentBox.style.boxSizing = 'border-box';
+                turnCommentBox.style.fontFamily = 'inherit';
+                turnCommentBox.addEventListener('input', saveSessionToLocalStorage);
+                turnCommentContainer.appendChild(turnCommentBox);
+                turnCommentContainer.style.gridRow = '4';
+                turnColumn.appendChild(turnCommentContainer);
+                lanesWrapperEl.appendChild(turnColumn);
+
+                alignBoardTops(); // Align sections when a new turn is added
+                saveSessionToLocalStorage();
+            };
+
+            function createLaneSection(type, turnId, title) {
+                const section = document.createElement('div');
+                // Add a specific class for the section type for easier selection
+                section.className = `lane-section lane-section-${type}`;
+
+                const sectionTitle = document.createElement('div');
+                sectionTitle.className = 'lane-section-title';
+                sectionTitle.textContent = title;
+
+                const laneGrid = document.createElement('div');
+                laneGrid.className = 'lane-grid';
+                laneGrid.dataset.gridType = type;
+
+                laneGrid.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    if (e.target === laneGrid) laneGrid.style.backgroundColor = 'var(--secondary-color)';
+                });
+                laneGrid.addEventListener('dragleave', (e) => {
+                    if (e.target === laneGrid) laneGrid.style.backgroundColor = '';
+                });
+                laneGrid.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    if (e.target !== laneGrid) return;
+
+                    laneGrid.style.backgroundColor = '';
+                    const droppedCardId = e.dataTransfer.getData('text/plain');
+                    const rowCount = laneGrid.children.length + 1;
+                    const newRow = createLaneRow(type, turnId, rowCount);
+
+                    if (draggedCardData) {
+                        const instanceId = nextCardInstanceId++;
+                        const { cardContainer } = createCardDOM(draggedCardData, instanceId);
+                        newRow.appendChild(cardContainer);
+                        draggedCardData = null; // Clear after use
+                    } else if (droppedCardId) {
+                        const cardInstanceContainer = document.getElementById(droppedCardId)?.closest('.droppable-card-container');
+                        if (cardInstanceContainer) newRow.appendChild(cardInstanceContainer);
+                    }
+
+                    laneGrid.appendChild(newRow);
+                    updateLines();
+                    alignBoardTops(); // Align sections on drop
+                });
+
+                laneGrid.appendChild(createLaneRow(type, turnId, 1));
+
+                section.append(sectionTitle, laneGrid);
+                return section;
+            }
+
+            function createLaneRow(type, turnId, rowId) {
+                const row = document.createElement('div');
+                row.className = 'lane-row drop-zone';
+                row.dataset.laneId = `${type}-turn-${turnId}-row-${rowId}`;
+                setupDropZone(row);
+                return row;
+            }
+
+            addTurnBtnEl.addEventListener('click', addTurnColumn);
+
+            // --- ARROWS (Optional Connections) ---
+            function showArrowModal(startEl, endEl) {
+                arrowModalEl.style.display = 'flex';
+                arrowAnnotationInputEl.value = '';
+                arrowAnnotationInputEl.focus();
+
+                const saveHandler = () => {
+                    createArrow(startEl, endEl, arrowAnnotationInputEl.value);
+                    cleanupArrowModal();
+                };
+                const cancelHandler = () => cleanupArrowModal();
+                const cleanupArrowModal = () => {
+                    arrowModalEl.style.display = 'none';
+                    if (arrowStartElement) arrowStartElement.style.outline = '';
+                    arrowStartElement = null;
+                    saveArrowBtnEl.removeEventListener('click', saveHandler);
+                    cancelArrowBtnEl.removeEventListener('click', cancelHandler);
+                }
+                saveArrowBtnEl.addEventListener('click', saveHandler, { once: true });
+                cancelArrowBtnEl.addEventListener('click', cancelHandler, { once: true });
+            }
+
+            function createArrow(startEl, endEl, label) {
+                const lineOptions = { start: startEl, end: endEl, color: 'rgba(255, 255, 255, 0.7)', size: 3, path: 'fluid' };
+                if (label) lineOptions.middleLabel = LeaderLine.captionLabel(label, { color: 'var(--accent-color)', outlineColor: 'var(--bg-color)', fontSize: 14 });
+                const line = new LeaderLine(lineOptions);
+                const lineId = `line-${Date.now()}`;
+                document.querySelector('.leader-line:last-of-type').id = lineId;
+                lines.push({ id: lineId, line, label });
+
+                if (arrowStartElement) arrowStartElement.style.outline = '';
+                arrowStartElement = null;
+                saveSessionToLocalStorage();
+            }
+
+            document.body.addEventListener('click', (e) => {
+                if (e.target.closest('.leader-line')) {
+                    const lineId = e.target.closest('.leader-line').id;
+                    const lineIndex = lines.findIndex(l => l.id === lineId);
+                    if (lineIndex > -1) {
+                        lines[lineIndex].line.remove();
+                        lines.splice(lineIndex, 1);
+                        saveSessionToLocalStorage();
+                    }
+                }
+            });
+
+            const updateLines = () => setTimeout(() => lines.forEach(l => { try { l.line.position(); } catch (e) { /* ignore */ } }), 10);
+            new ResizeObserver(updateLines).observe(document.body);
+            lanesWrapperEl.addEventListener('scroll', updateLines);
+            document.addEventListener('click', (e) => {
+                if (arrowStartElement && !e.target.closest('.card-container')) {
+                    arrowStartElement.style.outline = '';
+                    arrowStartElement = null;
+                }
+            });
+
+            // --- IMPORT/EXPORT ---
+            function gatherState() {
+                const placedCards = [];
+                document.querySelectorAll('.droppable-card-container').forEach(container => {
+                    const cardEl = container.querySelector('.card-container');
+                    const commentEl = container.querySelector('.card-comment');
+                    const laneEl = container.closest('.lane-row');
+                    if (cardEl && laneEl) {
+                        placedCards.push({
+                            cardId: parseInt(cardEl.dataset.cardId),
+                            instanceId: parseInt(cardEl.id.split('-').pop()),
+                            laneId: laneEl.dataset.laneId,
+                            comment: commentEl.value
+                        });
+                    }
+                });
+
+                // Gather turn comments
+                const turnComments = [];
+                document.querySelectorAll('.turn-column').forEach((column) => {
+                    const commentBox = column.querySelector('.turn-comment-box');
+                    turnComments.push(commentBox ? commentBox.value : '');
+                });
+
+                // Gather overall comment
+                const overallComment = document.getElementById('overall-comments')?.value || '';
+
+                const arrowData = lines.map(({ line, label }) => ({
+                    start: line.start.id,
+                    end: line.end.id,
+                    label: label || ''
+                }));
+
+                const turnData = [];
+                document.querySelectorAll('.turn-column').forEach((column) => {
+                    const turnNumber = column.querySelector('.turn-number-input').textContent;
+                    const inkNumber = column.querySelector('.ink-number-input').textContent;
+                    const songRowCount = column.querySelector('[data-grid-type="song"]').querySelectorAll('.lane-row').length;
+                    const boardRowCount = column.querySelector('[data-grid-type="board"]').querySelectorAll('.lane-row').length;
+                    turnData.push({ id: column.dataset.turnId, turn: turnNumber, ink: inkNumber, songRowCount, boardRowCount });
+                });
+
+                return {
+                    turnCount,
+                    cards: placedCards,
+                    arrows: arrowData,
+                    nextCardInstanceId,
+                    decklist: decklistInputEl.value,
+                    decklistUrl: decklistUrlInputEl.value,
+                    turnData: turnData,
+                    turnComments,
+                    overallComment
+                };
+            }
+
+            function generateHumanReadableText() {
+                // Ensure we have the latest card data available
+                if (!allCards.length) {
+                    console.error("Card data not loaded yet.");
+                    return "Error: Card data not available. Please wait and try again.";
+                }
+                const cardDataMap = new Map(allCards.map(c => [c.id, c]));
+
+                const state = gatherState();
+                let outputLines = [];
+
+                // 1. Overall Comments
+                if (state.overallComment && state.overallComment.trim()) {
+                    outputLines.push("Overall Comments:");
+                    outputLines.push(state.overallComment);
+                }
+
+                // 2. Process all interactions (arrows) and group them by turn number
+                const interactionsByTurn = {};
+                const turnColumns = [...document.querySelectorAll('.turn-column')];
+                turnColumns.forEach(column => {
+                    const turnNumber = column.querySelector('.turn-number-input').textContent;
+                    if (!interactionsByTurn[turnNumber]) {
+                        // Initialize sets for interactions AND a set for card IDs to exclude from 'Play'
+                        interactionsByTurn[turnNumber] = { shifts: [], sings: [], others: [], excludedIds: new Set() };
+                    }
+                });
+
+
+                state.arrows.forEach(arrow => {
+                    const startCardEl = document.getElementById(arrow.start);
+                    const endCardEl = document.getElementById(arrow.end);
+                    if (!startCardEl || !endCardEl) return;
+
+                    const startCardId = parseInt(startCardEl.dataset.cardId);
+                    const endCardId = parseInt(endCardEl.dataset.cardId);
+                    const startCardData = cardDataMap.get(startCardId);
+                    const endCardData = cardDataMap.get(endCardId);
+                    if (!startCardData || !endCardData) return;
+
+                    const startCardName = startCardData.fullName;
+                    const endCardName = endCardData.fullName;
+                    const annotation = (arrow.label || "").toLowerCase();
+
+                    const startTurnColumn = startCardEl.closest('.turn-column');
+                    const endTurnColumn = endCardEl.closest('.turn-column');
+
+                    if (!startTurnColumn || !endTurnColumn) return;
+
+                    const startTurnNumber = startTurnColumn.querySelector('.turn-number-input').textContent;
+                    const endTurnNumber = endTurnColumn.querySelector('.turn-number-input').textContent;
+
+                    // Shift: Character -> Character OR annotation includes "shift"
+                    // Turn determined by the card being played (origin of arrow)
+                    const isShiftInteraction = (startCardData.type === 'Character' && endCardData.type === 'Character') || annotation.includes('shift');
+                    if (isShiftInteraction) {
+                        let costText = "";
+                        // The Shift property on the card object is the most reliable source for cost
+                        if (startCardData.Shift !== undefined) {
+                            costText = `${startCardData.Shift} Ink`;
+                        } else {
+                            // Fallback to parsing abilities text
+                            const shiftAbility = startCardData.Abilities?.find(a => a.toUpperCase().includes('SHIFT'));
+                            if (shiftAbility) {
+                                const costMatch = shiftAbility.match(/SHIFT\s+(\d+)/i);
+                                if (costMatch && costMatch[1]) {
+                                    costText = `${costMatch[1]} Ink`;
+                                } else {
+                                    // Capture text within parentheses for special costs
+                                    const specialCostMatch = shiftAbility.match(/\(([^)]+)\)/);
+                                    costText = specialCostMatch ? specialCostMatch[1] : 'special rules';
+                                }
+                            } else {
+                                costText = 'its cost'; // Final fallback
+                            }
+                        }
+                        const turnToUpdate = interactionsByTurn[startTurnNumber];
+                        if (turnToUpdate) {
+                            turnToUpdate.shifts.push(`Shift: ${startCardName} onto ${endCardName} for ${costText}`);
+                            // Exclude the shifting card from being 'Played' on its turn
+                            turnToUpdate.excludedIds.add(startCardEl.id);
+                        }
+                        return;
+                    }
+
+                    // Sing: Character -> Song
+                    // Turn determined by the Song card's location
+                    if (startCardData.type === 'Character' && endCardData.subtypesText === 'Song') {
+                        const turnToUpdate = interactionsByTurn[endTurnNumber];
+                        if (turnToUpdate) {
+                            turnToUpdate.sings.push(`Sing: ${endCardName} with ${startCardName}`);
+                            // Exclude the sung song from being 'Played' on its turn
+                            turnToUpdate.excludedIds.add(endCardEl.id);
+                        }
+                        return;
+                    } else if (startCardData.subtypesText === 'Song' && endCardData.type === 'Character') {
+                        const turnToUpdate = interactionsByTurn[startTurnNumber];
+                        if (turnToUpdate) {
+                            turnToUpdate.sings.push(`Sing: ${startCardName} with ${endCardName}`);
+                            // Exclude the sung song from being 'Played' on its turn
+                            turnToUpdate.excludedIds.add(startCardEl.id);
+                        }
+                        return;
+                    }
+
+                    // Other Interactions: Any other arrow with an annotation
+                    // Turn determined by origin of arrow
+                    if (arrow.label) {
+                        const turnToUpdate = interactionsByTurn[startTurnNumber];
+                        if (turnToUpdate) turnToUpdate.others.push(`Other Interactions: ${startCardName} ${arrow.label} ${endCardName}`);
+                    }
+                });
+
+                // 3. Process each turn column in sorted order
+                const sortedTurnColumns = turnColumns.sort((a, b) => {
+                    const turnA = parseInt(a.querySelector('.turn-number-input').textContent) || 0;
+                    const turnB = parseInt(b.querySelector('.turn-number-input').textContent) || 0;
+                    return turnA - turnB;
+                });
+
+                let isFirstSection = outputLines.length === 0;
+
+                sortedTurnColumns.forEach(column => {
+                    const turnNumber = column.querySelector('.turn-number-input').textContent;
+                    const inkNumber = column.querySelector('.ink-number-input').textContent;
+                    const turnComment = column.querySelector('.turn-comment-box').value.trim();
+                    const turnInteractions = interactionsByTurn[turnNumber];
+                    const excludedIds = turnInteractions ? turnInteractions.excludedIds : new Set();
+
+                    let turnContent = [];
+
+                    // Get "Play" lines, excluding shifted/sung cards
+                    const playRows = [...column.querySelectorAll('.lane-row')];
+                    let playLines = [];
+                    playRows.forEach(row => {
+                        const cardsInRow = [...row.querySelectorAll('.card-container')]
+                            .filter(c => !excludedIds.has(c.id)) // Filter out excluded cards
+                            .map(c => c.dataset.cardName);
+                        if (cardsInRow.length > 0) {
+                            playLines.push(`Play: ${cardsInRow.join(' AND ')}`);
+                        }
+                    });
+                    if (playLines.length > 0) {
+                        turnContent.push(playLines.join('\nor\n'));
+                    }
+
+                    // Get other interaction lines
+                    if (turnInteractions) {
+                        if (turnInteractions.shifts.length > 0) turnContent.push(...turnInteractions.shifts);
+                        if (turnInteractions.sings.length > 0) turnContent.push(...turnInteractions.sings);
+                        if (turnInteractions.others.length > 0) turnContent.push(...turnInteractions.others);
+                    }
+
+                    const hasComment = turnComment.length > 0;
+
+                    if (turnContent.length > 0 || hasComment) {
+                        if (isFirstSection) {
+                            isFirstSection = false;
+                        } else {
+                            outputLines.push("-----------------------------");
+                        }
+
+                        outputLines.push(`Turn ${turnNumber}, Ink ${inkNumber}\n`);
+
+                        if (turnContent.length > 0) {
+                            outputLines.push(turnContent.join('\n'));
+                        }
+
+                        if (hasComment) {
+                            outputLines.push(`\nTurn ${turnNumber} comments:`);
+                            outputLines.push(turnComment);
+                        }
+                    }
+                });
+
+                // Add separator before Deck URL/List if there was turn content
+                if (!isFirstSection) {
+                    outputLines.push("-----------------------------");
+                }
+
+                // 4. Deck URL
+                if (state.decklistUrl && state.decklistUrl.trim()) {
+                    outputLines.push("Deck Url:");
+                    outputLines.push(state.decklistUrl);
+                    outputLines.push("\n-----------------------------");
+                }
+
+                // 5. Decklist
+                if (state.decklist && state.decklist.trim()) {
+                    outputLines.push("Decklist:");
+                    outputLines.push(state.decklist);
+                    outputLines.push("\n-----------------------------");
+                }
+
+                // 6. Footer
+                outputLines.push("Generated by Lorcana Turn Mapper");
+
+                return outputLines.join('\n').replace(/\n{2,}/g, '\n\n').trim();
+            }
+
+
+            function clearBoard(full = true) {
+                lanesWrapperEl.innerHTML = '';
+                lines.forEach(({ line }) => line.remove());
+                lines = [];
+                cardElements = {};
+                turnCount = 0;
+                nextCardInstanceId = 0;
+                document.getElementById('overall-comments').value = '';
+                if (full) {
+                    decklistInputEl.value = '';
+                    decklistUrlInputEl.value = '';
+                }
+            }
+
+            function loadState(state) {
+                clearBoard(full = true);
+                decklistInputEl.value = state.decklist || '';
+                decklistUrlInputEl.value = state.decklistUrl || '';
+                if (decklistInputEl.value) loadDeck();
+                nextCardInstanceId = state.nextCardInstanceId || 0;
+
+                if (state.turnData) {
+                    state.turnData.forEach(data => {
+                        addTurnColumn(); // This increments global turnCount
+                        const newColumn = document.querySelector(`.turn-column[data-turn-id="${turnCount}"]`);
+                        if (newColumn) {
+                            newColumn.querySelector('.turn-number-input').textContent = data.turn;
+                            newColumn.querySelector('.ink-number-input').textContent = data.ink;
+
+                            // Recreate song rows
+                            const songGrid = newColumn.querySelector('[data-grid-type="song"]');
+                            songGrid.innerHTML = '';
+                            for (let i = 1; i <= data.songRowCount; i++) {
+                                songGrid.appendChild(createLaneRow('song', turnCount, i));
+                            }
+                            // Recreate board rows
+                            const boardGrid = newColumn.querySelector('[data-grid-type="board"]');
+                            boardGrid.innerHTML = '';
+                            for (let i = 1; i <= data.boardRowCount; i++) {
+                                boardGrid.appendChild(createLaneRow('board', turnCount, i));
+                            }
+                        }
+                    });
+                }
+
+                state.cards.forEach(cardState => {
+                    const cardData = findCardById(cardState.cardId);
+                    if (cardData) {
+                        const { cardContainer, commentInput } = createCardDOM(cardData, cardState.instanceId);
+                        commentInput.value = cardState.comment;
+                        if (commentInput.value) {
+                            setTimeout(() => {
+                                commentInput.style.height = 'auto';
+                                commentInput.style.height = `${commentInput.scrollHeight}px`;
+                            }, 0);
+                        }
+                        const targetLane = document.querySelector(`[data-lane-id="${cardState.laneId}"]`);
+                        if (targetLane) targetLane.appendChild(cardContainer);
+                    }
+                });
+
+                setTimeout(() => {
+                    state.arrows.forEach(arrowState => {
+                        const startEl = document.getElementById(arrowState.start);
+                        const endEl = document.getElementById(arrowState.end);
+                        if (startEl && endEl) createArrow(startEl, endEl, arrowState.label);
+                    });
+                    updateLines();
+                    alignBoardTops(); // Align sections after loading state
+                }, 100);
+
+                // Restore turn comments
+                if (state.turnComments) {
+                    document.querySelectorAll('.turn-column').forEach((column, idx) => {
+                        const commentBox = column.querySelector('.turn-comment-box');
+                        if (commentBox) commentBox.value = state.turnComments[idx] || '';
+                    });
+                }
+                // Restore overall comment
+                if (state.overallComment !== undefined) {
+                    const overallBox = document.getElementById('overall-comments');
+                    if (overallBox) overallBox.value = state.overallComment;
+                }
+                saveSessionToLocalStorage();
+            }
+
+            exportTextBtnEl.addEventListener('click', () => {
+                const state = gatherState();
+                const stateString = btoa(JSON.stringify(state));
+                exportTextOutputEl.value = stateString;
+                exportModalEl.style.display = 'flex';
+            });
+
+            exportHumanTextBtnEl.addEventListener('click', () => {
+                const text = generateHumanReadableText();
+                humanExportTextOutputEl.value = text;
+                humanExportModalEl.style.display = 'flex';
+            });
+
+            exportPngBtnEl.addEventListener('click', () => {
+                const originalScrollX = lanesWrapperEl.scrollLeft;
+                const originalScrollY = lanesWrapperEl.scrollTop;
+
+                // 1. Create a temporary container for printing
+                const printContainer = document.createElement('div');
+                printContainer.style.position = 'absolute';
+                printContainer.style.left = '-9999px'; // Move off-screen
+                printContainer.style.top = '-9999px';
+                printContainer.style.backgroundColor = getComputedStyle(document.body).getPropertyValue('--bg-color');
+                printContainer.style.padding = '20px';
+                printContainer.style.display = 'inline-block'; // Ensure it sizes to content
+
+                // 2. Add Overall Comments if they exist
+                const overallCommentsEl = document.getElementById('overall-comments');
+                if (overallCommentsEl.value.trim()) {
+                    const commentsHeader = document.createElement('h2');
+                    commentsHeader.textContent = 'Overall Comments';
+                    commentsHeader.style.color = 'var(--text-color)';
+                    commentsHeader.style.borderBottom = '1px solid var(--border-color)';
+                    commentsHeader.style.paddingBottom = '10px';
+                    commentsHeader.style.marginBottom = '10px';
+                    printContainer.appendChild(commentsHeader);
+
+                    const commentsDiv = document.createElement('div');
+                    commentsDiv.textContent = overallCommentsEl.value;
+                    commentsDiv.style.color = 'var(--text-color)';
+                    commentsDiv.style.whiteSpace = 'pre-wrap';
+                    commentsDiv.style.wordWrap = 'break-word';
+                    commentsDiv.style.marginBottom = '20px';
+                    printContainer.appendChild(commentsDiv);
+                }
+
+                // 3. Clone the lanes wrapper to process for printing
+                const lanesClone = lanesWrapperEl.cloneNode(true);
+                lanesClone.style.overflow = 'visible';
+                lanesClone.style.display = 'flex';
+                lanesClone.style.width = `${lanesWrapperEl.scrollWidth}px`; // Set explicit width
+
+                // 4. Process the cloned lanes
+                lanesClone.querySelectorAll('.turn-column').forEach(column => {
+                    // Convert turn comment textarea to a div
+                    const turnCommentBox = column.querySelector('.turn-comment-box');
+                    if (turnCommentBox && turnCommentBox.value.trim()) {
+                        const commentDiv = document.createElement('div');
+                        commentDiv.textContent = turnCommentBox.value;
+                        // Copy styles from the textarea for consistency
+                        commentDiv.style.cssText = window.getComputedStyle(turnCommentBox).cssText;
+                        commentDiv.style.height = 'auto';
+                        commentDiv.style.whiteSpace = 'pre-wrap';
+                        commentDiv.style.wordWrap = 'break-word';
+                        turnCommentBox.parentNode.replaceChild(commentDiv, turnCommentBox);
+                    } else if (turnCommentBox) {
+                        turnCommentBox.parentNode.remove(); // Remove empty comment box container
+                    }
+
+                    // Convert card comment textareas to divs
+                    column.querySelectorAll('.card-comment').forEach(commentArea => {
+                        if (commentArea.value && commentArea.value.trim() && commentArea.value !== commentArea.placeholder) {
+                            const commentDiv = document.createElement('div');
+                            commentDiv.textContent = commentArea.value;
+                            commentDiv.className = commentArea.className; // Keep styling
+                            commentDiv.style.height = 'auto';
+                            commentDiv.style.whiteSpace = 'pre-wrap';
+                            commentDiv.style.wordWrap = 'break-word';
+                            commentArea.parentNode.replaceChild(commentDiv, commentArea);
+                        } else {
+                            commentArea.remove(); // Remove empty/default comments
+                        }
+                    });
+
+                    // Remove delete buttons
+                    column.querySelectorAll('.delete-card-btn').forEach(btn => btn.remove());
+                });
+
+                printContainer.appendChild(lanesClone);
+
+                document.body.appendChild(printContainer);
+
+                // 5. Re-create arrows for the cloned content
+                const exportLines = [];
+                // Must wait for the DOM to update with the new container
+                setTimeout(() => {
+                    lines.forEach(l => {
+                        const startEl = printContainer.querySelector('#' + l.line.start.id);
+                        const endEl = printContainer.querySelector('#' + l.line.end.id);
+
+                        if (startEl && endEl) {
+                            const lineOptions = {
+                                start: startEl,
+                                end: endEl,
+                                color: 'rgba(255, 255, 255, 0.7)',
+                                size: 3,
+                                path: 'fluid',
+                                // Append the line to the print container itself
+                                parent: printContainer
+                            };
+                            if (l.label) {
+                                lineOptions.middleLabel = LeaderLine.captionLabel(l.label, {
+                                    color: 'var(--accent-color)',
+                                    outlineColor: 'var(--bg-color)',
+                                    fontSize: 14
+                                });
+                            }
+                            const exportLine = new LeaderLine(lineOptions);
+                            exportLines.push(exportLine);
+                        }
+                    });
+
+                    // 6. Use html2canvas on the prepared container
+                    html2canvas(printContainer, {
+                        allowTaint: true,
+                        useCORS: true,
+                        backgroundColor: getComputedStyle(document.body).getPropertyValue('--bg-color'),
+                        x: 0,
+                        y: 0,
+                        width: printContainer.scrollWidth,
+                        height: printContainer.scrollHeight,
+                        scale: 1.5 // Increase resolution
+                    }).then(canvas => {
+                        const link = document.createElement('a');
+                        link.download = 'lorcana-turn-map.png';
+                        link.href = canvas.toDataURL('image/png');
+                        link.click();
+                    }).catch(err => {
+                        console.error("PNG Export failed:", err);
+                        alert("PNG Export failed. Some images may not be accessible.");
+                    }).finally(() => {
+                        // 7. Cleanup
+                        exportLines.forEach(l => { try { l.remove(); } catch (e) { } });
+                        document.body.removeChild(printContainer);
+                        lanesWrapperEl.scrollLeft = originalScrollX;
+                        lanesWrapperEl.scrollTop = originalScrollY;
+                    });
+                }, 100); // A short timeout to ensure the off-screen element is rendered
+            });
+
+            importBtnEl.addEventListener('click', () => { importModalEl.style.display = 'flex'; });
+            closeExportModalBtnEl.addEventListener('click', () => { exportModalEl.style.display = 'none'; });
+            closeHumanExportModalBtnEl.addEventListener('click', () => { humanExportModalEl.style.display = 'none'; });
+            closeImportModalBtnEl.addEventListener('click', () => { importModalEl.style.display = 'none'; });
+            confirmImportBtnEl.addEventListener('click', () => {
+                try {
+                    const state = JSON.parse(atob(importTextInputEl.value));
+                    loadState(state);
+                    importModalEl.style.display = 'none';
+                    saveSessionToLocalStorage();
+                } catch (e) {
+                    alert('Invalid map data! Please check the text and try again.');
+                    console.error("Import failed:", e);
+                }
+            });
+
+            // --- CLEAR SESSION ---
+            clearSessionBtnEl.addEventListener('click', () => {
+                confirmClearModalEl.style.display = 'flex';
+            });
+
+            document.getElementById('cancel-clear-btn').addEventListener('click', () => {
+                confirmClearModalEl.style.display = 'none';
+            });
+
+            document.getElementById('confirm-clear-btn').addEventListener('click', () => {
+                localStorage.removeItem('lorcanaTurnMapperSession');
+                localStorage.removeItem('lorcanaTurnMapperTutorialSeen'); // Also clear tutorial flag
+                clearBoard();
+                for (let i = 0; i < 4; i++) addTurnColumn();
+                confirmClearModalEl.style.display = 'none';
+            });
+
+
+            // Save on any interaction
+            document.getElementById('overall-comments').addEventListener('input', saveSessionToLocalStorage);
+            document.body.addEventListener('change', (e) => {
+                if (e.target.matches('.turn-number-input, .ink-number-input, .turn-comment-box')) {
+                    saveSessionToLocalStorage();
+                }
+            });
+
+            loadPopularDeckBtnEl.addEventListener('click', () => {
+                const selectedDeckId = popularDecksSelectEl.value;
+                const selectedDeck = popularDecks.find(d => d.id === selectedDeckId);
+                if (selectedDeck && selectedDeck.encoded) {
+                    try {
+                        const state = JSON.parse(atob(selectedDeck.encoded));
+                        loadState(state);
+                        saveSessionToLocalStorage();
+                    } catch (e) {
+                        alert('Invalid deck data! The encoded string might be corrupted.');
+                        console.error("Popular deck import failed:", e);
+                    }
+                }
+            });
+
+        });
+    </script>
+</body>
+
+</html>
