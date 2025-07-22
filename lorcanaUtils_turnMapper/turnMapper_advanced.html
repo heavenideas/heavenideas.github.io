@@ -417,7 +417,8 @@
             gap: 1rem;
         }
 
-        #map-save-options {
+        #map-save-options,
+        #import-map-options {
             text-align: left;
             display: flex;
             flex-direction: column;
@@ -626,6 +627,20 @@
             </div>
         </div>
     </div>
+    <div id="import-from-comment-modal" class="modal">
+        <div class="modal-content">
+            <h3>Import Map from Comments</h3>
+            <p>Select a saved map to load:</p>
+            <div id="import-map-options">
+                <!-- Import options will be dynamically inserted here -->
+            </div>
+            <div>
+                <button id="confirm-import-map-btn" class="btn">Load Selected Map</button>
+                <button id="cancel-import-map-btn" class="btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -811,6 +826,10 @@
             const mapSaveOptionsEl = document.getElementById('map-save-options');
             const confirmSaveMapBtnEl = document.getElementById('confirm-save-map-btn');
             const cancelSaveMapBtnEl = document.getElementById('cancel-save-map-btn');
+            const importFromCommentModalEl = document.getElementById('import-from-comment-modal');
+            const importMapOptionsEl = document.getElementById('import-map-options');
+            const confirmImportMapBtnEl = document.getElementById('confirm-import-map-btn');
+            const cancelImportMapBtnEl = document.getElementById('cancel-import-map-btn');
 
 
             // --- DOM ELEMENTS (Popular Decks) ---
@@ -1885,19 +1904,67 @@
             loadPopularDeckBtnEl.addEventListener('click', () => {
                 const selectedDeckId = popularDecksSelectEl.value;
                 const selectedDeck = popularDecks.find(d => d.id == selectedDeckId);
-                if (selectedDeck && selectedDeck.decklist) {
-                    currentLoadedDeck = selectedDeck; // Set the current deck
-                    saveToCommentsBtnEl.disabled = false; // Enable the save button
-                    decklistInputEl.value = selectedDeck.decklist;
+                if (selectedDeck) {
+                    currentLoadedDeck = selectedDeck;
+                    saveToCommentsBtnEl.disabled = false;
+                    decklistInputEl.value = selectedDeck.decklist || '';
                     loadDeck();
-                    autoPopulateDeck();
+
+                    const comments = selectedDeck.comments || "";
+                    const mapRegex = /--- Turn Mapping (\d+) ---\s*([\s\S]*?)\s*--- End Turn Mapping \1 ---/g;
+                    const existingMaps = [...comments.matchAll(mapRegex)];
+
+                    if (existingMaps.length > 0) {
+                        // Prompt user to select a map or auto-populate
+                        importMapOptionsEl.innerHTML = '';
+                        existingMaps.forEach(map => {
+                            const mapNumber = map[1];
+                            const mapData = map[2].trim();
+                            importMapOptionsEl.innerHTML += `
+                                <label>
+                                    <input type="radio" name="import-option" value="${mapData}">
+                                    Load Turn Mapping ${mapNumber}
+                                </label>
+                            `;
+                        });
+                        importMapOptionsEl.innerHTML += `
+                            <label>
+                                <input type="radio" name="import-option" value="auto-populate" checked>
+                                Auto-Populate Fresh Deck
+                            </label>
+                        `;
+                        importFromCommentModalEl.style.display = 'flex';
+                    } else {
+                        autoPopulateDeck();
+                    }
                     saveSessionToLocalStorage();
                 } else {
-                    alert('Could not find the selected deck or the deck has no decklist.');
+                    alert('Could not find the selected deck.');
                     currentLoadedDeck = null;
                     saveToCommentsBtnEl.disabled = true;
                 }
             });
+
+            confirmImportMapBtnEl.addEventListener('click', () => {
+                const selectedValue = document.querySelector('input[name="import-option"]:checked').value;
+                if (selectedValue === 'auto-populate') {
+                    autoPopulateDeck();
+                } else {
+                    try {
+                        const state = JSON.parse(atob(selectedValue));
+                        loadState(state);
+                    } catch (e) {
+                        alert('Invalid map data found in comments. Could not load.');
+                        console.error('Comment import failed:', e);
+                    }
+                }
+                importFromCommentModalEl.style.display = 'none';
+            });
+
+            cancelImportMapBtnEl.addEventListener('click', () => {
+                importFromCommentModalEl.style.display = 'none';
+            });
+
 
         });
     </script>
