@@ -147,7 +147,13 @@
             box-sizing: border-box;
         }
 
-        .btn:hover {
+        .btn:disabled {
+            background-color: var(--secondary-color);
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .btn:hover:not(:disabled) {
             background-color: #9333ea;
         }
 
@@ -155,7 +161,7 @@
             background-color: var(--secondary-color);
         }
 
-        .btn-secondary:hover {
+        .btn-secondary:hover:not(:disabled) {
             background-color: #555;
         }
 
@@ -411,6 +417,13 @@
             gap: 1rem;
         }
 
+        #map-save-options {
+            text-align: left;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
         .leader-line {
             z-index: 500;
             cursor: pointer;
@@ -496,6 +509,9 @@
                     alt="Create a Turn By Turn text to share with others">Export Turn By Turn Text</button>
                 <button id="export-png-btn" class="btn" alt="Export full mapping as an image">Export as PNG
                     (WIP)</button>
+                <button id="save-to-comments-btn" class="btn"
+                    alt="Save the current map to the loaded popular deck's comments" disabled>Save to Deck
+                    Comments</button>
                 <button id="clear-session-btn" class="btn btn-secondary" alt="Erase all cards from canvas"
                     style="margin-top:1rem;background-color:var(--danger-color);color:white;">Clear Session</button>
             </div>
@@ -596,6 +612,19 @@
             </div>
         </div>
     </div>
+    <div id="save-map-modal" class="modal">
+        <div class="modal-content">
+            <h3>Save Turn Map</h3>
+            <p>Existing maps found in comments. Choose an action:</p>
+            <div id="map-save-options">
+                <!-- Options will be dynamically inserted here -->
+            </div>
+            <div>
+                <button id="confirm-save-map-btn" class="btn">Confirm</button>
+                <button id="cancel-save-map-btn" class="btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -649,7 +678,7 @@
                         {
                             element: document.querySelector('#popular-decks-select'),
                             title: 'Pre-loaded Examples',
-                            intro: 'If you want to see some examples, you can click on the "Popular Decks" dropdown and select one of the pre-loaded decks.'
+                            intro: 'If you want to see some examples, you can click on the "Popular Decks" dropdown and select one of the pre-loaded decks. You can also save your map back to the deck\'s comments.'
                         },
                         {
                             title: 'You\'re Ready!',
@@ -691,16 +720,12 @@
             document.getElementById('tutorial-btn').addEventListener('click', startTutorial);
 
             // --- SECTION ALIGNMENT ---
-            // This function ensures that all "Song" sections have the same height,
-            // which in turn aligns the "Board" sections below them.
             function alignBoardTops() {
                 const songSections = document.querySelectorAll('.lane-section-song');
-                if (songSections.length < 2) return; // No need to align if there's 0 or 1 column
+                if (songSections.length < 2) return;
 
-                // Reset height to allow shrinking before recalculating
                 songSections.forEach(s => s.style.minHeight = 'auto');
 
-                // Use requestAnimationFrame to wait for the DOM to reflow after the reset
                 requestAnimationFrame(() => {
                     let maxHeight = 0;
                     songSections.forEach(s => {
@@ -708,8 +733,6 @@
                             maxHeight = s.offsetHeight;
                         }
                     });
-
-                    // Set all song sections to the height of the tallest one
                     songSections.forEach(s => s.style.minHeight = `${maxHeight}px`);
                 });
             }
@@ -718,7 +741,6 @@
             function saveSessionToLocalStorage() {
                 try {
                     const state = gatherState();
-                    // console.log('Saving session to localStorage:', state);
                     localStorage.setItem('lorcanaTurnMapperSession', btoa(JSON.stringify(state)));
                 } catch (e) {
                     console.error('Failed to save session:', e);
@@ -730,7 +752,6 @@
                     if (data) {
                         const state = JSON.parse(atob(data));
                         loadState(state);
-                        // console.log('Loaded session from localStorage:', state);
                         return true;
                     }
                 } catch (e) {
@@ -749,6 +770,7 @@
             let cardElements = {};
             let nextCardInstanceId = 0;
             let arrowStartElement = null;
+            let currentLoadedDeck = null; // To store the currently loaded popular deck
 
             // --- DOM ELEMENTS ---
             const cardListEl = document.getElementById('card-list');
@@ -760,11 +782,12 @@
             const addTurnBtnEl = document.getElementById('add-turn-btn');
             const autoPopulateBtnEl = document.getElementById('auto-populate-btn');
 
-            // Import/Export Buttons
+            // Import/Export/Save Buttons
             const importBtnEl = document.getElementById('import-btn');
             const exportTextBtnEl = document.getElementById('export-text-btn');
             const exportHumanTextBtnEl = document.getElementById('export-human-text-btn');
             const exportPngBtnEl = document.getElementById('export-png-btn');
+            const saveToCommentsBtnEl = document.getElementById('save-to-comments-btn');
             const clearSessionBtnEl = document.getElementById('clear-session-btn');
 
             // Modals and their buttons
@@ -783,6 +806,11 @@
             const confirmImportBtnEl = document.getElementById('confirm-import-btn');
             const closeImportModalBtnEl = document.getElementById('close-import-modal-btn');
             const confirmClearModalEl = document.getElementById('confirm-clear-modal');
+            const saveMapModalEl = document.getElementById('save-map-modal');
+            const mapSaveOptionsEl = document.getElementById('map-save-options');
+            const confirmSaveMapBtnEl = document.getElementById('confirm-save-map-btn');
+            const cancelSaveMapBtnEl = document.getElementById('cancel-save-map-btn');
+
 
             // --- DOM ELEMENTS (Popular Decks) ---
             const popularDecksSelectEl = document.getElementById('popular-decks-select');
@@ -823,17 +851,13 @@
                     });
                     allCards = Array.from(uniqueCards.values());
                     fuse = new Fuse(allCards, { keys: ['fullName', 'name', 'version', 'bodyText'], includeScore: true, threshold: 0.4 });
-                    displayCardsInSidebar(allCards.slice(0, 50)); // Show some initial cards
+                    displayCardsInSidebar(allCards.slice(0, 50));
 
-                    // --- SESSION RESTORE OR DEFAULT SETUP ---
                     if (!loadSessionFromLocalStorage()) {
                         for (let i = 0; i < 4; i++) addTurnColumn();
                     }
 
-                    // --- START TUTORIAL IF FIRST VISIT ---
-                    // This is moved here to ensure the page is fully initialized.
                     if (!localStorage.getItem('lorcanaTurnMapperTutorialSeen')) {
-                        // Use a small timeout to ensure DOM has fully updated after adding columns
                         setTimeout(startTutorial, 500);
                     }
                 })
@@ -882,6 +906,9 @@
 
             loadDeckBtnEl.addEventListener('click', () => {
                 loadDeck();
+                // When loading a manual deck, disable the save to comments button
+                saveToCommentsBtnEl.disabled = true;
+                currentLoadedDeck = null;
                 saveSessionToLocalStorage();
             });
 
@@ -897,13 +924,9 @@
 
                 clearBoard(full = false);
 
-                // Find the highest ink cost to determine how many turns we need
                 const maxInkCost = Math.max(...deckCards.map(c => c.cost), 0);
-
-                // Ensure we have enough turn columns by checking the highest existing turn number
                 const existingTurnNumbers = Array.from(document.querySelectorAll('.turn-number-input')).map(el => parseInt(el.textContent) || 0);
                 const maxExistingTurn = Math.max(0, ...existingTurnNumbers);
-
                 let currentMaxTurn = maxExistingTurn;
                 if (maxInkCost > currentMaxTurn) {
                     while (currentMaxTurn < maxInkCost) {
@@ -912,12 +935,9 @@
                     }
                 }
 
-
-                // Place each card
                 deckCards.forEach(cardData => {
                     const turnNumber = cardData.cost;
-                    if (turnNumber > 0) { // Don't place 0-cost cards automatically
-                        // Find the correct turn column by its visible number, not its internal ID
+                    if (turnNumber > 0) {
                         const allTurnColumns = document.querySelectorAll('.turn-column');
                         let targetColumn = null;
                         for (const column of allTurnColumns) {
@@ -934,16 +954,11 @@
                             const laneGrid = targetColumn.querySelector(`.lane-grid[data-grid-type="${gridType}"]`);
 
                             if (laneGrid) {
-                                // Find an existing, empty lane row. A row is considered empty if it has no child elements (i.e., no cards).
                                 let targetRow = Array.from(laneGrid.children).find(row => row.children.length === 0);
-
-                                // If no empty row is found, create a new one and append it to the grid.
                                 if (!targetRow) {
                                     targetRow = createLaneRow(gridType, turnNumber, laneGrid.children.length + 1);
                                     laneGrid.appendChild(targetRow);
                                 }
-
-                                // Create the card's DOM element and append it to the target row.
                                 const instanceId = nextCardInstanceId++;
                                 const { cardContainer } = createCardDOM(cardData, instanceId);
                                 targetRow.appendChild(cardContainer);
@@ -971,7 +986,7 @@
                     commentEl.style.height = 'auto';
                     commentEl.style.height = `${commentEl.scrollHeight}px`;
                     updateLines();
-                    alignBoardTops(); // Align sections on comment change
+                    alignBoardTops();
                     saveSessionToLocalStorage();
                 });
 
@@ -1015,7 +1030,7 @@
                 const uniqueId = instanceId !== null ? `card-instance-${instanceId}` : `card-lib-${cardData.id}`;
                 cardContainer.id = uniqueId;
                 cardContainer.dataset.cardId = cardData.id;
-                cardContainer.dataset.cardName = cardData.fullName; // For export
+                cardContainer.dataset.cardName = cardData.fullName;
                 cardElements[uniqueId] = cardContainer;
                 cardContainer.appendChild(cardImage);
 
@@ -1048,14 +1063,13 @@
                 });
                 const parentRow = cardDOMContainer.parentElement;
                 cardDOMContainer.remove();
-                // If the row becomes empty, remove it, unless it's the last one
                 if (parentRow && parentRow.classList.contains('lane-row') && parentRow.children.length === 0) {
                     const grid = parentRow.parentElement;
                     if (grid && grid.children.length > 1) {
                         parentRow.remove();
                     }
                 }
-                alignBoardTops(); // Align sections after deleting a card
+                alignBoardTops();
                 saveSessionToLocalStorage();
             }
 
@@ -1065,7 +1079,7 @@
                 zone.addEventListener('dragleave', (e) => { e.preventDefault(); zone.classList.remove('drag-over'); });
                 zone.addEventListener('drop', (e) => {
                     e.preventDefault();
-                    e.stopPropagation(); // Prevent event from bubbling to parent drop zones
+                    e.stopPropagation();
                     zone.classList.remove('drag-over');
                     const droppedCardId = e.dataTransfer.getData('text/plain');
 
@@ -1073,7 +1087,7 @@
                         const instanceId = nextCardInstanceId++;
                         const { cardContainer } = createCardDOM(draggedCardData, instanceId);
                         zone.appendChild(cardContainer);
-                        draggedCardData = null; // Clear after use
+                        draggedCardData = null;
                     } else if (droppedCardId) {
                         const cardInstanceContainer = document.getElementById(droppedCardId)?.closest('.droppable-card-container');
                         if (cardInstanceContainer) {
@@ -1081,7 +1095,7 @@
                             updateLines();
                         }
                     }
-                    alignBoardTops(); // Align sections after dropping a card
+                    alignBoardTops();
                     saveSessionToLocalStorage();
                 });
             };
@@ -1089,7 +1103,7 @@
             function makeCardMovable(cardEl, container) {
                 cardEl.draggable = true;
                 cardEl.addEventListener('dragstart', (e) => {
-                    e.stopPropagation(); // Prevent lane drag-start
+                    e.stopPropagation();
                     e.dataTransfer.setData('text/plain', cardEl.id);
                     setTimeout(() => container.style.opacity = '0.5', 0);
                 });
@@ -1107,20 +1121,16 @@
                 turnColumn.className = 'turn-column';
                 turnColumn.dataset.turnId = turnCount;
 
-                // Create Song Area
                 const songSection = createLaneSection('song', turnCount, 'Songs');
-                // Create Board Area
                 const boardSection = createLaneSection('board', turnCount, 'Board');
                 boardSection.classList.add('board-section');
 
-                // Explicitly set grid rows for robustness
                 songSection.style.gridRow = '1';
                 boardSection.style.gridRow = '2';
 
                 turnColumn.appendChild(songSection);
                 turnColumn.appendChild(boardSection);
 
-                // Label container
                 const labelContainer = document.createElement('div');
                 labelContainer.className = 'turn-label-container';
                 labelContainer.innerHTML = `
@@ -1130,7 +1140,6 @@
                 labelContainer.style.gridRow = '3';
                 turnColumn.appendChild(labelContainer);
 
-                // Add turn lane comment box
                 const turnCommentContainer = document.createElement('div');
                 turnCommentContainer.style.marginTop = '0.5rem';
                 const turnCommentBox = document.createElement('textarea');
@@ -1151,13 +1160,12 @@
                 turnColumn.appendChild(turnCommentContainer);
                 lanesWrapperEl.appendChild(turnColumn);
 
-                alignBoardTops(); // Align sections when a new turn is added
+                alignBoardTops();
                 saveSessionToLocalStorage();
             };
 
             function createLaneSection(type, turnId, title) {
                 const section = document.createElement('div');
-                // Add a specific class for the section type for easier selection
                 section.className = `lane-section lane-section-${type}`;
 
                 const sectionTitle = document.createElement('div');
@@ -1188,7 +1196,7 @@
                         const instanceId = nextCardInstanceId++;
                         const { cardContainer } = createCardDOM(draggedCardData, instanceId);
                         newRow.appendChild(cardContainer);
-                        draggedCardData = null; // Clear after use
+                        draggedCardData = null;
                     } else if (droppedCardId) {
                         const cardInstanceContainer = document.getElementById(droppedCardId)?.closest('.droppable-card-container');
                         if (cardInstanceContainer) newRow.appendChild(cardInstanceContainer);
@@ -1196,7 +1204,7 @@
 
                     laneGrid.appendChild(newRow);
                     updateLines();
-                    alignBoardTops(); // Align sections on drop
+                    alignBoardTops();
                 });
 
                 laneGrid.appendChild(createLaneRow(type, turnId, 1));
@@ -1272,7 +1280,7 @@
                 }
             });
 
-            // --- IMPORT/EXPORT ---
+            // --- IMPORT/EXPORT & SAVE TO COMMENTS ---
             function gatherState() {
                 const placedCards = [];
                 document.querySelectorAll('.droppable-card-container').forEach(container => {
@@ -1289,14 +1297,12 @@
                     }
                 });
 
-                // Gather turn comments
                 const turnComments = [];
                 document.querySelectorAll('.turn-column').forEach((column) => {
                     const commentBox = column.querySelector('.turn-comment-box');
                     turnComments.push(commentBox ? commentBox.value : '');
                 });
 
-                // Gather overall comment
                 const overallComment = document.getElementById('overall-comments')?.value || '';
 
                 const arrowData = lines.map(({ line, label }) => ({
@@ -1328,29 +1334,24 @@
             }
 
             function generateHumanReadableText() {
-                // Ensure we have the latest card data available
                 if (!allCards.length) {
                     console.error("Card data not loaded yet.");
                     return "Error: Card data not available. Please wait and try again.";
                 }
                 const cardDataMap = new Map(allCards.map(c => [c.id, c]));
-
                 const state = gatherState();
                 let outputLines = [];
 
-                // 1. Overall Comments
                 if (state.overallComment && state.overallComment.trim()) {
                     outputLines.push("Overall Comments:");
                     outputLines.push(state.overallComment);
                 }
 
-                // 2. Process all interactions (arrows) and group them by turn number
                 const interactionsByTurn = {};
                 const turnColumns = [...document.querySelectorAll('.turn-column')];
                 turnColumns.forEach(column => {
                     const turnNumber = column.querySelector('.turn-number-input').textContent;
                     if (!interactionsByTurn[turnNumber]) {
-                        // Initialize sets for interactions AND a set for card IDs to exclude from 'Play'
                         interactionsByTurn[turnNumber] = { shifts: [], sings: [], others: [], excludedIds: new Set() };
                     }
                 });
@@ -1379,46 +1380,37 @@
                     const startTurnNumber = startTurnColumn.querySelector('.turn-number-input').textContent;
                     const endTurnNumber = endTurnColumn.querySelector('.turn-number-input').textContent;
 
-                    // Shift: Character -> Character OR annotation includes "shift"
-                    // Turn determined by the card being played (origin of arrow)
                     const isShiftInteraction = (startCardData.type === 'Character' && endCardData.type === 'Character') || annotation.includes('shift');
                     if (isShiftInteraction) {
                         let costText = "";
-                        // The Shift property on the card object is the most reliable source for cost
                         if (startCardData.Shift !== undefined) {
                             costText = `${startCardData.Shift} Ink`;
                         } else {
-                            // Fallback to parsing abilities text
                             const shiftAbility = startCardData.Abilities?.find(a => a.toUpperCase().includes('SHIFT'));
                             if (shiftAbility) {
                                 const costMatch = shiftAbility.match(/SHIFT\s+(\d+)/i);
                                 if (costMatch && costMatch[1]) {
                                     costText = `${costMatch[1]} Ink`;
                                 } else {
-                                    // Capture text within parentheses for special costs
                                     const specialCostMatch = shiftAbility.match(/\(([^)]+)\)/);
                                     costText = specialCostMatch ? specialCostMatch[1] : 'special rules';
                                 }
                             } else {
-                                costText = 'its cost'; // Final fallback
+                                costText = 'its cost';
                             }
                         }
                         const turnToUpdate = interactionsByTurn[startTurnNumber];
                         if (turnToUpdate) {
                             turnToUpdate.shifts.push(`Shift: ${startCardName} onto ${endCardName} for ${costText}`);
-                            // Exclude the shifting card from being 'Played' on its turn
                             turnToUpdate.excludedIds.add(startCardEl.id);
                         }
                         return;
                     }
 
-                    // Sing: Character -> Song
-                    // Turn determined by the Song card's location
                     if (startCardData.type === 'Character' && endCardData.subtypesText === 'Song') {
                         const turnToUpdate = interactionsByTurn[endTurnNumber];
                         if (turnToUpdate) {
                             turnToUpdate.sings.push(`Sing: ${endCardName} with ${startCardName}`);
-                            // Exclude the sung song from being 'Played' on its turn
                             turnToUpdate.excludedIds.add(endCardEl.id);
                         }
                         return;
@@ -1426,21 +1418,17 @@
                         const turnToUpdate = interactionsByTurn[startTurnNumber];
                         if (turnToUpdate) {
                             turnToUpdate.sings.push(`Sing: ${startCardName} with ${endCardName}`);
-                            // Exclude the sung song from being 'Played' on its turn
                             turnToUpdate.excludedIds.add(startCardEl.id);
                         }
                         return;
                     }
 
-                    // Other Interactions: Any other arrow with an annotation
-                    // Turn determined by origin of arrow
                     if (arrow.label) {
                         const turnToUpdate = interactionsByTurn[startTurnNumber];
                         if (turnToUpdate) turnToUpdate.others.push(`Other Interactions: ${startCardName} ${arrow.label} ${endCardName}`);
                     }
                 });
 
-                // 3. Process each turn column in sorted order
                 const sortedTurnColumns = turnColumns.sort((a, b) => {
                     const turnA = parseInt(a.querySelector('.turn-number-input').textContent) || 0;
                     const turnB = parseInt(b.querySelector('.turn-number-input').textContent) || 0;
@@ -1458,12 +1446,11 @@
 
                     let turnContent = [];
 
-                    // Get "Play" lines, excluding shifted/sung cards
                     const playRows = [...column.querySelectorAll('.lane-row')];
                     let playLines = [];
                     playRows.forEach(row => {
                         const cardsInRow = [...row.querySelectorAll('.card-container')]
-                            .filter(c => !excludedIds.has(c.id)) // Filter out excluded cards
+                            .filter(c => !excludedIds.has(c.id))
                             .map(c => c.dataset.cardName);
                         if (cardsInRow.length > 0) {
                             playLines.push(`Play: ${cardsInRow.join(' AND ')}`);
@@ -1473,7 +1460,6 @@
                         turnContent.push(playLines.join('\nor\n'));
                     }
 
-                    // Get other interaction lines
                     if (turnInteractions) {
                         if (turnInteractions.shifts.length > 0) turnContent.push(...turnInteractions.shifts);
                         if (turnInteractions.sings.length > 0) turnContent.push(...turnInteractions.sings);
@@ -1502,26 +1488,22 @@
                     }
                 });
 
-                // Add separator before Deck URL/List if there was turn content
                 if (!isFirstSection) {
                     outputLines.push("-----------------------------");
                 }
 
-                // 4. Deck URL
                 if (state.decklistUrl && state.decklistUrl.trim()) {
                     outputLines.push("Deck Url:");
                     outputLines.push(state.decklistUrl);
                     outputLines.push("\n-----------------------------");
                 }
 
-                // 5. Decklist
                 if (state.decklist && state.decklist.trim()) {
                     outputLines.push("Decklist:");
                     outputLines.push(state.decklist);
                     outputLines.push("\n-----------------------------");
                 }
 
-                // 6. Footer
                 outputLines.push("Generated by Lorcana Turn Mapper");
 
                 return outputLines.join('\n').replace(/\n{2,}/g, '\n\n').trim();
@@ -1539,6 +1521,9 @@
                 if (full) {
                     decklistInputEl.value = '';
                     decklistUrlInputEl.value = '';
+                    // When clearing the board fully, disable save button and reset deck
+                    saveToCommentsBtnEl.disabled = true;
+                    currentLoadedDeck = null;
                 }
             }
 
@@ -1551,19 +1536,17 @@
 
                 if (state.turnData) {
                     state.turnData.forEach(data => {
-                        addTurnColumn(); // This increments global turnCount
+                        addTurnColumn();
                         const newColumn = document.querySelector(`.turn-column[data-turn-id="${turnCount}"]`);
                         if (newColumn) {
                             newColumn.querySelector('.turn-number-input').textContent = data.turn;
                             newColumn.querySelector('.ink-number-input').textContent = data.ink;
 
-                            // Recreate song rows
                             const songGrid = newColumn.querySelector('[data-grid-type="song"]');
                             songGrid.innerHTML = '';
                             for (let i = 1; i <= data.songRowCount; i++) {
                                 songGrid.appendChild(createLaneRow('song', turnCount, i));
                             }
-                            // Recreate board rows
                             const boardGrid = newColumn.querySelector('[data-grid-type="board"]');
                             boardGrid.innerHTML = '';
                             for (let i = 1; i <= data.boardRowCount; i++) {
@@ -1596,17 +1579,15 @@
                         if (startEl && endEl) createArrow(startEl, endEl, arrowState.label);
                     });
                     updateLines();
-                    alignBoardTops(); // Align sections after loading state
+                    alignBoardTops();
                 }, 100);
 
-                // Restore turn comments
                 if (state.turnComments) {
                     document.querySelectorAll('.turn-column').forEach((column, idx) => {
                         const commentBox = column.querySelector('.turn-comment-box');
                         if (commentBox) commentBox.value = state.turnComments[idx] || '';
                     });
                 }
-                // Restore overall comment
                 if (state.overallComment !== undefined) {
                     const overallBox = document.getElementById('overall-comments');
                     if (overallBox) overallBox.value = state.overallComment;
@@ -1631,16 +1612,14 @@
                 const originalScrollX = lanesWrapperEl.scrollLeft;
                 const originalScrollY = lanesWrapperEl.scrollTop;
 
-                // 1. Create a temporary container for printing
                 const printContainer = document.createElement('div');
                 printContainer.style.position = 'absolute';
-                printContainer.style.left = '-9999px'; // Move off-screen
+                printContainer.style.left = '-9999px';
                 printContainer.style.top = '-9999px';
                 printContainer.style.backgroundColor = getComputedStyle(document.body).getPropertyValue('--bg-color');
                 printContainer.style.padding = '20px';
-                printContainer.style.display = 'inline-block'; // Ensure it sizes to content
+                printContainer.style.display = 'inline-block';
 
-                // 2. Add Overall Comments if they exist
                 const overallCommentsEl = document.getElementById('overall-comments');
                 if (overallCommentsEl.value.trim()) {
                     const commentsHeader = document.createElement('h2');
@@ -1660,55 +1639,46 @@
                     printContainer.appendChild(commentsDiv);
                 }
 
-                // 3. Clone the lanes wrapper to process for printing
                 const lanesClone = lanesWrapperEl.cloneNode(true);
                 lanesClone.style.overflow = 'visible';
                 lanesClone.style.display = 'flex';
-                lanesClone.style.width = `${lanesWrapperEl.scrollWidth}px`; // Set explicit width
+                lanesClone.style.width = `${lanesWrapperEl.scrollWidth}px`;
 
-                // 4. Process the cloned lanes
                 lanesClone.querySelectorAll('.turn-column').forEach(column => {
-                    // Convert turn comment textarea to a div
                     const turnCommentBox = column.querySelector('.turn-comment-box');
                     if (turnCommentBox && turnCommentBox.value.trim()) {
                         const commentDiv = document.createElement('div');
                         commentDiv.textContent = turnCommentBox.value;
-                        // Copy styles from the textarea for consistency
                         commentDiv.style.cssText = window.getComputedStyle(turnCommentBox).cssText;
                         commentDiv.style.height = 'auto';
                         commentDiv.style.whiteSpace = 'pre-wrap';
                         commentDiv.style.wordWrap = 'break-word';
                         turnCommentBox.parentNode.replaceChild(commentDiv, turnCommentBox);
                     } else if (turnCommentBox) {
-                        turnCommentBox.parentNode.remove(); // Remove empty comment box container
+                        turnCommentBox.parentNode.remove();
                     }
 
-                    // Convert card comment textareas to divs
                     column.querySelectorAll('.card-comment').forEach(commentArea => {
                         if (commentArea.value && commentArea.value.trim() && commentArea.value !== commentArea.placeholder) {
                             const commentDiv = document.createElement('div');
                             commentDiv.textContent = commentArea.value;
-                            commentDiv.className = commentArea.className; // Keep styling
+                            commentDiv.className = commentArea.className;
                             commentDiv.style.height = 'auto';
                             commentDiv.style.whiteSpace = 'pre-wrap';
                             commentDiv.style.wordWrap = 'break-word';
                             commentArea.parentNode.replaceChild(commentDiv, commentArea);
                         } else {
-                            commentArea.remove(); // Remove empty/default comments
+                            commentArea.remove();
                         }
                     });
 
-                    // Remove delete buttons
                     column.querySelectorAll('.delete-card-btn').forEach(btn => btn.remove());
                 });
 
                 printContainer.appendChild(lanesClone);
-
                 document.body.appendChild(printContainer);
 
-                // 5. Re-create arrows for the cloned content
                 const exportLines = [];
-                // Must wait for the DOM to update with the new container
                 setTimeout(() => {
                     lines.forEach(l => {
                         const startEl = printContainer.querySelector('#' + l.line.start.id);
@@ -1721,7 +1691,6 @@
                                 color: 'rgba(255, 255, 255, 0.7)',
                                 size: 3,
                                 path: 'fluid',
-                                // Append the line to the print container itself
                                 parent: printContainer
                             };
                             if (l.label) {
@@ -1736,7 +1705,6 @@
                         }
                     });
 
-                    // 6. Use html2canvas on the prepared container
                     html2canvas(printContainer, {
                         allowTaint: true,
                         useCORS: true,
@@ -1745,7 +1713,7 @@
                         y: 0,
                         width: printContainer.scrollWidth,
                         height: printContainer.scrollHeight,
-                        scale: 1.5 // Increase resolution
+                        scale: 1.5
                     }).then(canvas => {
                         const link = document.createElement('a');
                         link.download = 'lorcana-turn-map.png';
@@ -1755,13 +1723,12 @@
                         console.error("PNG Export failed:", err);
                         alert("PNG Export failed. Some images may not be accessible.");
                     }).finally(() => {
-                        // 7. Cleanup
                         exportLines.forEach(l => { try { l.remove(); } catch (e) { } });
                         document.body.removeChild(printContainer);
                         lanesWrapperEl.scrollLeft = originalScrollX;
                         lanesWrapperEl.scrollTop = originalScrollY;
                     });
-                }, 100); // A short timeout to ensure the off-screen element is rendered
+                }, 100);
             });
 
             importBtnEl.addEventListener('click', () => { importModalEl.style.display = 'flex'; });
@@ -1791,11 +1758,105 @@
 
             document.getElementById('confirm-clear-btn').addEventListener('click', () => {
                 localStorage.removeItem('lorcanaTurnMapperSession');
-                localStorage.removeItem('lorcanaTurnMapperTutorialSeen'); // Also clear tutorial flag
+                localStorage.removeItem('lorcanaTurnMapperTutorialSeen');
                 clearBoard();
                 for (let i = 0; i < 4; i++) addTurnColumn();
                 confirmClearModalEl.style.display = 'none';
             });
+
+
+            // --- SAVE TO DECK COMMENTS LOGIC ---
+            async function handleSaveToComments() {
+                if (!currentLoadedDeck) {
+                    alert("Please load a popular deck first before saving.");
+                    return;
+                }
+
+                const encodedMap = btoa(JSON.stringify(gatherState()));
+
+                // Fetch current comments from Supabase
+                const { data, error } = await supabaseClient
+                    .from('decks')
+                    .select('comments')
+                    .eq('id', currentLoadedDeck.id)
+                    .single();
+
+                if (error) {
+                    alert("Error fetching deck comments from the database.");
+                    console.error("Fetch error:", error);
+                    return;
+                }
+
+                let currentComments = data.comments || "";
+                const mapRegex = /--- Turn Mapping (\d+) ---\s*([\s\S]*?)\s*--- End Turn Mapping \1 ---/g;
+                const existingMaps = [...currentComments.matchAll(mapRegex)];
+
+                if (existingMaps.length === 0) {
+                    // No existing maps, just append the new one
+                    const newComments = `${currentComments}\n\n--- Turn Mapping 01 ---\n${encodedMap}\n--- End Turn Mapping 01 ---`.trim();
+                    updateDeckComments(currentLoadedDeck.id, newComments);
+                } else {
+                    // Maps exist, show the modal
+                    mapSaveOptionsEl.innerHTML = ''; // Clear previous options
+                    existingMaps.forEach(map => {
+                        const mapNumber = map[1];
+                        mapSaveOptionsEl.innerHTML += `
+                            <label>
+                                <input type="radio" name="save-option" value="override-${mapNumber}">
+                                Override Turn Mapping ${mapNumber}
+                            </label>
+                        `;
+                    });
+                    const nextMapNumber = Math.max(...existingMaps.map(m => parseInt(m[1]))) + 1;
+                    mapSaveOptionsEl.innerHTML += `
+                        <label>
+                            <input type="radio" name="save-option" value="add-new" checked>
+                            Add as New Turn Mapping ${String(nextMapNumber).padStart(2, '0')}
+                        </label>
+                    `;
+                    saveMapModalEl.style.display = 'flex';
+
+                    // Handle modal confirmation
+                    confirmSaveMapBtnEl.onclick = () => {
+                        const selectedOption = document.querySelector('input[name="save-option"]:checked').value;
+                        let newComments = currentComments;
+
+                        if (selectedOption.startsWith('override-')) {
+                            const mapNumberToOverride = selectedOption.split('-')[1];
+                            const paddedMapNumber = String(mapNumberToOverride).padStart(2, '0');
+                            const specificMapRegex = new RegExp(`(--- Turn Mapping ${paddedMapNumber} ---[\\s\\S]*?--- End Turn Mapping ${paddedMapNumber} ---)`);
+                            newComments = newComments.replace(specificMapRegex, `--- Turn Mapping ${paddedMapNumber} ---\n${encodedMap}\n--- End Turn Mapping ${paddedMapNumber} ---`);
+                        } else { // add-new
+                            const nextMapNumber = Math.max(0, ...existingMaps.map(m => parseInt(m[1]))) + 1;
+                            const paddedNextMapNumber = String(nextMapNumber).padStart(2, '0');
+                            newComments = `${currentComments}\n\n--- Turn Mapping ${paddedNextMapNumber} ---\n${encodedMap}\n--- End Turn Mapping ${paddedNextMapNumber} ---`.trim();
+                        }
+
+                        updateDeckComments(currentLoadedDeck.id, newComments);
+                        saveMapModalEl.style.display = 'none';
+                    };
+
+                    cancelSaveMapBtnEl.onclick = () => {
+                        saveMapModalEl.style.display = 'none';
+                    };
+                }
+            }
+
+            async function updateDeckComments(deckId, newComments) {
+                const { error } = await supabaseClient
+                    .from('decks')
+                    .update({ comments: newComments })
+                    .eq('id', deckId);
+
+                if (error) {
+                    alert("Failed to save the map to the deck comments.");
+                    console.error("Update error:", error);
+                } else {
+                    alert("Successfully saved turn map to deck comments!");
+                }
+            }
+
+            saveToCommentsBtnEl.addEventListener('click', handleSaveToComments);
 
 
             // Save on any interaction
@@ -1810,12 +1871,16 @@
                 const selectedDeckId = popularDecksSelectEl.value;
                 const selectedDeck = popularDecks.find(d => d.id == selectedDeckId);
                 if (selectedDeck && selectedDeck.decklist) {
+                    currentLoadedDeck = selectedDeck; // Set the current deck
+                    saveToCommentsBtnEl.disabled = false; // Enable the save button
                     decklistInputEl.value = selectedDeck.decklist;
                     loadDeck();
                     autoPopulateDeck();
                     saveSessionToLocalStorage();
                 } else {
                     alert('Could not find the selected deck or the deck has no decklist.');
+                    currentLoadedDeck = null;
+                    saveToCommentsBtnEl.disabled = true;
                 }
             });
 
