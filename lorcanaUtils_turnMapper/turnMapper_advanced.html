@@ -615,8 +615,9 @@
     <div id="save-map-modal" class="modal">
         <div class="modal-content">
             <h3>Save Turn Map</h3>
-            <p>Existing maps found in comments. Choose an action:</p>
-            <div id="map-save-options">
+            <p id="save-map-deck-name"></p>
+            <p id="save-map-prompt"></p>
+            <div id="map-save-options" style="display: none;">
                 <!-- Options will be dynamically inserted here -->
             </div>
             <div>
@@ -1791,12 +1792,19 @@
                 const mapRegex = /--- Turn Mapping (\d+) ---\s*([\s\S]*?)\s*--- End Turn Mapping \1 ---/g;
                 const existingMaps = [...currentComments.matchAll(mapRegex)];
 
+                // --- Populate and show modal ---
+                const deckNameEl = document.getElementById('save-map-deck-name');
+                const promptEl = document.getElementById('save-map-prompt');
+
+                deckNameEl.innerHTML = `You are about to save a map to the deck: <strong>${currentLoadedDeck.name}</strong>`;
+
                 if (existingMaps.length === 0) {
-                    // No existing maps, just append the new one
-                    const newComments = `${currentComments}\n\n--- Turn Mapping 01 ---\n${encodedMap}\n--- End Turn Mapping 01 ---`.trim();
-                    updateDeckComments(currentLoadedDeck.id, newComments);
+                    promptEl.textContent = "This will add the first turn map to the deck's comments. Do you want to continue?";
+                    mapSaveOptionsEl.style.display = 'none';
+                    mapSaveOptionsEl.innerHTML = '';
                 } else {
-                    // Maps exist, show the modal
+                    promptEl.textContent = "Existing maps were found in the comments. Please choose an action.";
+                    mapSaveOptionsEl.style.display = 'block';
                     mapSaveOptionsEl.innerHTML = ''; // Clear previous options
                     existingMaps.forEach(map => {
                         const mapNumber = map[1];
@@ -1814,13 +1822,20 @@
                             Add as New Turn Mapping ${String(nextMapNumber).padStart(2, '0')}
                         </label>
                     `;
-                    saveMapModalEl.style.display = 'flex';
+                }
 
-                    // Handle modal confirmation
-                    confirmSaveMapBtnEl.onclick = () => {
+                saveMapModalEl.style.display = 'flex';
+
+                // --- Handle modal confirmation ---
+                confirmSaveMapBtnEl.onclick = () => {
+                    let newComments = currentComments;
+
+                    if (existingMaps.length === 0) {
+                        // Logic for adding the first map
+                        newComments = `${currentComments}\n\n--- Turn Mapping 01 ---\n${encodedMap}\n--- End Turn Mapping 01 ---`.trim();
+                    } else {
+                        // Logic for override/add-new
                         const selectedOption = document.querySelector('input[name="save-option"]:checked').value;
-                        let newComments = currentComments;
-
                         if (selectedOption.startsWith('override-')) {
                             const mapNumberToOverride = selectedOption.split('-')[1];
                             const paddedMapNumber = String(mapNumberToOverride).padStart(2, '0');
@@ -1831,15 +1846,15 @@
                             const paddedNextMapNumber = String(nextMapNumber).padStart(2, '0');
                             newComments = `${currentComments}\n\n--- Turn Mapping ${paddedNextMapNumber} ---\n${encodedMap}\n--- End Turn Mapping ${paddedNextMapNumber} ---`.trim();
                         }
+                    }
 
-                        updateDeckComments(currentLoadedDeck.id, newComments);
-                        saveMapModalEl.style.display = 'none';
-                    };
+                    updateDeckComments(currentLoadedDeck.id, newComments);
+                    saveMapModalEl.style.display = 'none';
+                };
 
-                    cancelSaveMapBtnEl.onclick = () => {
-                        saveMapModalEl.style.display = 'none';
-                    };
-                }
+                cancelSaveMapBtnEl.onclick = () => {
+                    saveMapModalEl.style.display = 'none';
+                };
             }
 
             async function updateDeckComments(deckId, newComments) {
