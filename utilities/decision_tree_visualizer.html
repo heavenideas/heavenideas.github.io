@@ -7,10 +7,14 @@
     <title>Lorcana AI Decision Tree</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/fuse.js/dist/fuse.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #1a202c;
+            background-color: #111827;
+            /* A darker gray */
             color: #e2e8f0;
         }
 
@@ -21,6 +25,8 @@
             padding: 1rem;
             border-radius: 0.5rem;
             min-height: 150px;
+            background-color: #1f2937;
+            /* Even darker for drop zones */
         }
 
         .card {
@@ -32,6 +38,13 @@
             transform: scale(1.05);
         }
 
+        .card-pool {
+            height: 300px;
+            overflow-y: auto;
+            background-color: #374151;
+            /* Lighter gray for pools */
+        }
+
         .tree-node {
             padding-left: 20px;
             border-left: 1px solid #4a5568;
@@ -41,70 +54,111 @@
         .tree-node::before {
             content: '';
             position: absolute;
-            top: 10px;
+            top: 15px;
             left: -10px;
             width: 10px;
             height: 1px;
             background-color: #4a5568;
         }
+
+        .btn {
+            background-color: #4f46e5;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .btn:hover {
+            background-color: #4338ca;
+        }
     </style>
 </head>
 
-<body class="bg-gray-900 text-white p-4">
-    <div class="flex h-screen">
+<body class="p-4">
+    <div class="flex flex-col lg:flex-row h-screen gap-4">
         <!-- Main Content -->
-        <div class="flex-grow p-4 overflow-y-auto">
-            <h1 class="text-3xl font-bold mb-4 text-center">Lorcana AI Decision Tree</h1>
+        <div class="flex-grow p-4 overflow-y-auto bg-gray-900 rounded-lg">
+            <h1 class="text-3xl font-bold mb-6 text-center text-indigo-400">Lorcana AI Decision Tree</h1>
 
-            <!-- Player 1 -->
-            <div class="bg-gray-800 p-4 rounded-lg mb-4">
-                <h2 class="text-2xl font-bold mb-2">Player 1</h2>
-                <div class="flex space-x-4 mb-2">
-                    <div>
-                        <label for="p1-ink">Ink:</label>
-                        <input type="number" id="p1-ink" class="bg-gray-700 rounded p-1 w-20" value="0">
-                    </div>
-                    <div>
-                        <label for="p1-lore">Lore:</label>
-                        <input type="number" id="p1-lore" class="bg-gray-700 rounded p-1 w-20" value="0">
-                    </div>
+            <!-- Deck Loading Section -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <!-- Player 1 Deck Input -->
+                <div class="bg-gray-800 p-4 rounded-lg">
+                    <h2 class="text-xl font-bold mb-2">Player 1 Deck</h2>
+                    <textarea id="p1-decklist-input" class="w-full h-40 bg-gray-700 rounded p-2 mb-2"
+                        placeholder="Paste Player 1 decklist here..."></textarea>
+                    <button id="p1-load-deck-btn" class="btn w-full">Load P1 Deck</button>
+                    <h3 class="text-lg font-semibold mt-4 mb-2">Player 1 Card Pool</h3>
+                    <div id="p1-card-pool" class="zone-grid card-pool"></div>
                 </div>
-                <h3 class="text-xl font-semibold mt-4 mb-2">Hand</h3>
-                <div id="p1-hand" class="zone-grid bg-gray-600"></div>
-                <h3 class="text-xl font-semibold mt-4 mb-2">Board</h3>
-                <div id="p1-board" class="zone-grid bg-gray-700"></div>
+                <!-- Player 2 Deck Input -->
+                <div class="bg-gray-800 p-4 rounded-lg">
+                    <h2 class="text-xl font-bold mb-2">Player 2 Deck</h2>
+                    <textarea id="p2-decklist-input" class="w-full h-40 bg-gray-700 rounded p-2 mb-2"
+                        placeholder="Paste Player 2 decklist here..."></textarea>
+                    <button id="p2-load-deck-btn" class="btn w-full">Load P2 Deck</button>
+                    <h3 class="text-lg font-semibold mt-4 mb-2">Player 2 Card Pool</h3>
+                    <div id="p2-card-pool" class="zone-grid card-pool"></div>
+                </div>
             </div>
 
-            <!-- Player 2 -->
-            <div class="bg-gray-800 p-4 rounded-lg">
-                <h2 class="text-2xl font-bold mb-2">Player 2</h2>
-                <div class="flex space-x-4 mb-2">
-                    <div>
-                        <label for="p2-ink">Ink:</label>
-                        <input type="number" id="p2-ink" class="bg-gray-700 rounded p-1 w-20" value="0">
+            <!-- Game State Section -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Player 1 -->
+                <div class="bg-gray-800 p-4 rounded-lg">
+                    <h2 class="text-2xl font-bold mb-2">Player 1</h2>
+                    <div class="flex space-x-4 mb-2">
+                        <div>
+                            <label for="p1-ink">Ink:</label>
+                            <input type="number" id="p1-ink" class="bg-gray-700 rounded p-1 w-20" value="0">
+                        </div>
+                        <div>
+                            <label for="p1-lore">Lore:</label>
+                            <input type="number" id="p1-lore" class="bg-gray-700 rounded p-1 w-20" value="0">
+                        </div>
                     </div>
-                    <div>
-                        <label for="p2-lore">Lore:</label>
-                        <input type="number" id="p2-lore" class="bg-gray-700 rounded p-1 w-20" value="0">
-                    </div>
+                    <h3 class="text-xl font-semibold mt-4 mb-2">Hand</h3>
+                    <div id="p1-hand" class="zone-grid bg-gray-700"></div>
+                    <h3 class="text-xl font-semibold mt-4 mb-2">Board</h3>
+                    <div id="p1-board" class="zone-grid bg-gray-700"></div>
                 </div>
-                <h3 class="text-xl font-semibold mt-4 mb-2">Hand</h3>
-                <div id="p2-hand" class="zone-grid bg-gray-600"></div>
-                <h3 class="text-xl font-semibold mt-4 mb-2">Board</h3>
-                <div id="p2-board" class="zone-grid bg-gray-700"></div>
+
+                <!-- Player 2 -->
+                <div class="bg-gray-800 p-4 rounded-lg">
+                    <h2 class="text-2xl font-bold mb-2">Player 2</h2>
+                    <div class="flex space-x-4 mb-2">
+                        <div>
+                            <label for="p2-ink">Ink:</label>
+                            <input type="number" id="p2-ink" class="bg-gray-700 rounded p-1 w-20" value="0">
+                        </div>
+                        <div>
+                            <label for="p2-lore">Lore:</label>
+                            <input type="number" id="p2-lore" class="bg-gray-700 rounded p-1 w-20" value="0">
+                        </div>
+                    </div>
+                    <h3 class="text-xl font-semibold mt-4 mb-2">Hand</h3>
+                    <div id="p2-hand" class="zone-grid bg-gray-700"></div>
+                    <h3 class="text-xl font-semibold mt-4 mb-2">Board</h3>
+                    <div id="p2-board" class="zone-grid bg-gray-700"></div>
+                </div>
             </div>
 
             <!-- Card Search -->
-            <div class="mt-4">
-                <input type="text" id="search-bar" placeholder="Search for cards..."
+            <div class="mt-6">
+                <h2 class="text-xl font-bold mb-2">Global Card Search</h2>
+                <input type="text" id="search-bar" placeholder="Search for any card to add manually..."
                     class="w-full p-2 bg-gray-700 rounded">
                 <div id="search-results"
-                    class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mt-2 h-64 overflow-y-auto"></div>
+                    class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 mt-2 h-64 overflow-y-auto bg-gray-800 p-4 rounded-lg">
+                </div>
             </div>
         </div>
 
         <!-- Tree Sidebar -->
-        <div class="w-1/3 bg-gray-800 p-4 overflow-y-auto rounded-lg ml-4">
+        <div class="w-full lg:w-1/3 bg-gray-800 p-4 overflow-y-auto rounded-lg">
             <h2 class="text-2xl font-bold mb-4">Decision Tree</h2>
             <div id="tree-container"></div>
         </div>
@@ -112,8 +166,10 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            // --- DOM Element References ---
             const searchBar = document.getElementById('search-bar');
             const searchResults = document.getElementById('search-results');
+
             const p1Board = document.getElementById('p1-board');
             const p2Board = document.getElementById('p2-board');
             const p1Hand = document.getElementById('p1-hand');
@@ -122,23 +178,40 @@
             const p1Lore = document.getElementById('p1-lore');
             const p2Ink = document.getElementById('p2-ink');
             const p2Lore = document.getElementById('p2-lore');
+
+            const p1DecklistInput = document.getElementById('p1-decklist-input');
+            const p1LoadDeckBtn = document.getElementById('p1-load-deck-btn');
+            const p1CardPool = document.getElementById('p1-card-pool');
+
+            const p2DecklistInput = document.getElementById('p2-decklist-input');
+            const p2LoadDeckBtn = document.getElementById('p2-load-deck-btn');
+            const p2CardPool = document.getElementById('p2-card-pool');
+
             const treeContainer = document.getElementById('tree-container');
 
+            // --- State Variables ---
             let allCards = [];
             let fuse;
 
-            // Fetch card data
+            // --- Initialization ---
+            // Fetch card data from external source
             fetch('https://raw.githubusercontent.com/heavenideas/similcana/refs/heads/main/database/allCards.json')
                 .then(response => response.json())
                 .then(data => {
                     allCards = data.cards;
-                    fuse = new Fuse(allCards, { keys: ['fullName', 'simpleName'], threshold: 0.3 });
+                    // Initialize Fuse.js for fuzzy searching
+                    fuse = new Fuse(allCards, { keys: ['fullName', 'name', 'version'], includeScore: true, threshold: 0.4 });
                     displayInitialCards();
+                }).catch(error => {
+                    console.error("Failed to load card data:", error);
+                    searchResults.innerHTML = `<p class="text-red-400">Error loading card data. Please refresh.</p>`;
                 });
 
+            // --- Card Display and Creation ---
             function displayInitialCards() {
                 searchResults.innerHTML = '';
-                allCards.slice(0, 50).forEach(card => { // Display first 50 cards initially
+                // Display a subset of cards initially in the global search
+                allCards.slice(0, 50).forEach(card => {
                     const cardElement = createCardElement(card);
                     searchResults.appendChild(cardElement);
                 });
@@ -151,15 +224,21 @@
                 cardDiv.dataset.cardId = card.id;
 
                 const img = document.createElement('img');
-                img.src = card.images.thumbnail;
+                const originalUrl = card.images.full;
+                // Use a proxy to avoid CORS issues with some image hosts
+                const proxiedUrl = `https://images.weserv.nl/?url=${encodeURIComponent(originalUrl)}`;
+                img.src = proxiedUrl;
                 img.alt = card.fullName;
+                img.className = 'rounded-md w-full h-auto';
                 img.onerror = () => img.src = 'https://via.placeholder.com/100x140?text=No+Image';
                 cardDiv.appendChild(img);
 
+                // Event listener for starting a drag operation
                 cardDiv.addEventListener('dragstart', (e) => {
                     e.dataTransfer.setData('text/plain', card.id);
                 });
 
+                // Event listener to remove a card from a zone by double-clicking it
                 cardDiv.addEventListener('dblclick', () => {
                     cardDiv.remove();
                     updateGameState();
@@ -168,6 +247,57 @@
                 return cardDiv;
             }
 
+            // --- Decklist Loading Logic ---
+
+            /**
+             * Parses a multiline text decklist into an array of objects.
+             * @param {string} text - The raw text from the textarea.
+             * @returns {Array<{count: number, name: string}>} An array of card entries.
+             */
+            const parseDecklist = text => text.trim().split('\n').map(line => {
+                const match = line.match(/^(\d+)\s+(.+)/);
+                return match ? { count: parseInt(match[1], 10), name: match[2].trim() } : null;
+            }).filter(Boolean); // Filter out any null entries from invalid lines
+
+            /**
+             * Finds a card in the database by its name using fuzzy search.
+             * @param {string} name - The name of the card to find.
+             * @returns {object|null} The card object or null if not found.
+             */
+            const findCardByName = name => {
+                const results = fuse.search(name);
+                return results.length > 0 ? results[0].item : null;
+            };
+
+            /**
+             * Loads a decklist into a specified player's card pool.
+             * @param {HTMLTextAreaElement} inputEl - The textarea element with the decklist.
+             * @param {HTMLElement} poolEl - The container element for the card pool.
+             */
+            function loadDeck(inputEl, poolEl) {
+                const parsedDeck = parseDecklist(inputEl.value);
+                const uniqueDeckCards = new Map();
+
+                parsedDeck.forEach(entry => {
+                    const cardData = findCardByName(entry.name);
+                    // Add card only if it's found and not already in the map
+                    if (cardData && !uniqueDeckCards.has(cardData.fullName)) {
+                        uniqueDeckCards.set(cardData.fullName, cardData);
+                    }
+                });
+
+                // Sort cards by ink cost
+                const deckCards = Array.from(uniqueDeckCards.values()).sort((a, b) => a.cost - b.cost);
+
+                poolEl.innerHTML = ''; // Clear the pool before adding new cards
+                deckCards.forEach(card => {
+                    poolEl.appendChild(createCardElement(card));
+                });
+            };
+
+            // --- Event Listeners ---
+
+            // Global search bar input
             searchBar.addEventListener('input', (e) => {
                 const query = e.target.value;
                 if (query.length > 2) {
@@ -182,6 +312,11 @@
                 }
             });
 
+            // Deck loading buttons
+            p1LoadDeckBtn.addEventListener('click', () => loadDeck(p1DecklistInput, p1CardPool));
+            p2LoadDeckBtn.addEventListener('click', () => loadDeck(p2DecklistInput, p2CardPool));
+
+            // Setup drop zones for all player areas
             [p1Board, p2Board, p1Hand, p2Hand].forEach(zone => {
                 zone.addEventListener('dragover', (e) => e.preventDefault());
                 zone.addEventListener('drop', (e) => {
@@ -196,32 +331,34 @@
                 });
             });
 
+            // Update game state when lore/ink values change
             [p1Ink, p1Lore, p2Ink, p2Lore].forEach(input => {
                 input.addEventListener('change', updateGameState);
             });
 
+            // --- Game State and Decision Tree Logic ---
+
             function getZoneCards(zone) {
                 return Array.from(zone.children).map(cardEl => {
                     return allCards.find(c => c.id == cardEl.dataset.cardId);
-                });
+                }).filter(Boolean); // Ensure no undefined cards are returned
             }
 
             function updateGameState() {
                 const gameState = {
                     player1: {
-                        ink: parseInt(p1Ink.value),
-                        lore: parseInt(p1Lore.value),
+                        ink: parseInt(p1Ink.value) || 0,
+                        lore: parseInt(p1Lore.value) || 0,
                         board: getZoneCards(p1Board),
                         hand: getZoneCards(p1Hand)
                     },
                     player2: {
-                        ink: parseInt(p2Ink.value),
-                        lore: parseInt(p2Lore.value),
+                        ink: parseInt(p2Ink.value) || 0,
+                        lore: parseInt(p2Lore.value) || 0,
                         board: getZoneCards(p2Board),
                         hand: getZoneCards(p2Hand)
                     }
                 };
-
                 generateDecisionTree(gameState);
             }
 
@@ -298,7 +435,7 @@
                     }
                 });
 
-                return moves.slice(0, 15);
+                return moves.slice(0, 15); // Limit moves for performance
             }
 
             function applyMove(state, move) {
@@ -350,13 +487,13 @@
                     el.className = 'tree-node mb-2';
 
                     const desc = document.createElement('div');
-                    desc.className = 'bg-gray-700 p-2 rounded';
-                    const scoreText = this.score !== undefined ? `(Score: ${this.score}) ` : '';
-                    desc.textContent = scoreText + this.moveDescription;
+                    desc.className = 'bg-gray-700 p-2 rounded hover:bg-gray-600';
+                    const scoreText = this.score !== undefined ? `<span class="font-bold text-indigo-300">(Score: ${this.score})</span> ` : '';
+                    desc.innerHTML = scoreText + this.moveDescription;
                     el.appendChild(desc);
 
                     const childrenContainer = document.createElement('div');
-                    childrenContainer.className = 'pl-4'; // Tree is now always unfolded
+                    childrenContainer.className = 'pl-4 mt-2';
 
                     this.children.forEach(child => {
                         childrenContainer.appendChild(child.render());
@@ -368,6 +505,7 @@
                 }
             }
 
+            // Initial call to set up the board state
             updateGameState();
         });
     </script>
