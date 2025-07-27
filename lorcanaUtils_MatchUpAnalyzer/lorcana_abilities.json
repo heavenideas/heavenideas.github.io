@@ -1,5 +1,28 @@
 [
     {
+      "name": "State: Can't Exert",
+      "category": "State",
+      "sub_type": "Control",
+      "quick_description": "Characters can't exert",
+      "regex": "/(all characters|characters|opponent's characters|other characters|opposing characters|chosen character) (?:can't|cannot) exert/gi ",
+      "explanation": "this is good for tempo as it blocks any abilities that would require exerting.",
+      "justification": "",
+      "scores": {
+        "board_control": {
+          "value": "",
+          "notes": ""
+        },
+        "lore_velocity": {
+          "value": "",
+          "notes": ""
+        },
+        "resource_dominance": {
+          "value": "",
+          "notes": ""
+        }
+      }
+    },
+    {
       "name": "Condition: On Banish",
       "category": "Condition",
       "sub_type": "On Banish",
