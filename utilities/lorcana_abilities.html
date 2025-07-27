@@ -104,6 +104,15 @@
         .regex-input-error {
             border: 2px solid #ef4444 !important; /* red-500 */
         }
+
+        @keyframes focus-highlight {
+            from { background-color: #2563eb; } /* blue-600 */
+            to { background-color: #1e293b; } /* slate-800 */
+        }
+
+        .focus-animation {
+            animation: focus-highlight 1.5s ease-out;
+        }
     </style>
 </head>
 
@@ -140,9 +149,12 @@
                         </div>
                         <button id="save-json-btn" class="px-4 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 transition">Save JSON</button>
                     </div>
-                    <div class="relative mb-4">
-                         <input type="text" id="pattern-filter-input" placeholder="Filter abilities by name..." class="form-input w-full !pl-10">
-                         <svg class="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>
+                    <div class="flex justify-between items-center mb-4">
+                        <div class="relative flex-grow">
+                             <input type="text" id="pattern-filter-input" placeholder="Filter abilities by name..." class="form-input w-full !pl-10">
+                             <svg class="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>
+                        </div>
+                        <span id="last-loaded-timestamp" class="text-xs text-slate-500 ml-4 whitespace-nowrap"></span>
                     </div>
 
                     <!-- Pattern List -->
@@ -210,6 +222,7 @@
             const patternFilterInput = document.getElementById('pattern-filter-input');
             const patternListContainer = document.getElementById('pattern-list');
             const patternPlaceholder = document.getElementById('pattern-placeholder');
+            const lastLoadedTimestamp = document.getElementById('last-loaded-timestamp');
 
             // Right Column
             const searchInput = document.getElementById('search-input');
@@ -264,6 +277,8 @@
                             }
                         });
                         displayPatterns();
+                        const now = new Date();
+                        lastLoadedTimestamp.textContent = `Last loaded: ${now.toLocaleTimeString()}`;
                         if(selectedCard) displayCardDetails(selectedCard, false);
                     } catch (err) {
                         alert('Error parsing JSON file: ' + err.message);
@@ -305,9 +320,9 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div><label class="form-label">Name</label><input type="text" class="form-input" data-field="name" value="${pattern.name || ''}"></div>
                             <div><label class="form-label">Category</label><input type="text" class="form-input" data-field="category" value="${pattern.category || ''}"></div>
-                            <div><label class="form-label">Sub-type</label><input type="text" class="form-input" data-field="sub_type" value="${pattern.sub_type || ''}"></div>
-                            <div><label class="form-label">Regex</label><input type="text" class="form-input regex-input" data-field="regex" value="${pattern.regex || ''}"></div>
                         </div>
+                        <div class="mt-4"><label class="form-label">Sub-type</label><input type="text" class="form-input" data-field="sub_type" value="${pattern.sub_type || ''}"></div>
+                        <div class="mt-4"><label class="form-label">Regex</label><input type="text" class="form-input regex-input" data-field="regex" value="${pattern.regex || ''}"></div>
                         <div class="mt-4"><label class="form-label">Quick Description</label><input type="text" class="form-input" data-field="quick_description" value="${pattern.quick_description || ''}"></div>
                         <div class="mt-4"><label class="form-label">Explanation</label><textarea class="form-textarea" rows="3" data-field="explanation">${pattern.explanation || ''}</textarea></div>
                         <div class="mt-4"><label class="form-label">Justification</label><textarea class="form-textarea" rows="2" data-field="justification">${pattern.justification || ''}</textarea></div>
@@ -335,7 +350,6 @@
                 });
             }
 
-            // Live filtering for ability editor
             patternFilterInput.addEventListener('input', (e) => {
                 const filterText = e.target.value.toLowerCase();
                 document.querySelectorAll('#pattern-list > div').forEach(el => {
@@ -348,7 +362,6 @@
                 });
             });
 
-            // Event delegation for live editing of patterns
             patternListContainer.addEventListener('input', (e) => {
                 const target = e.target;
                 const parentPattern = target.closest('[data-index]');
@@ -360,16 +373,14 @@
                 if (target.matches('[data-field]')) {
                     const field = target.dataset.field;
                     patternToUpdate[field] = target.value;
+                    if (field === 'name') {
+                        parentPattern.dataset.patternName = target.value;
+                    }
 
-                    // Special handling for regex to update the live object
                     if (field === 'regex') {
                         try {
                             const match = target.value.match(/^\/(.*)\/([gimuy]*)$/);
-                            if (match) {
-                                patternToUpdate.regexObject = new RegExp(match[1], match[2]);
-                            } else {
-                                patternToUpdate.regexObject = new RegExp(target.value, 'gi'); // Fallback
-                            }
+                            patternToUpdate.regexObject = match ? new RegExp(match[1], match[2]) : new RegExp(target.value, 'gi');
                             target.classList.remove('regex-input-error');
                         } catch (err) {
                             target.classList.add('regex-input-error');
@@ -442,6 +453,7 @@
 
                 const abilityContainer = document.createElement('div');
                 abilityContainer.className = 'space-y-6';
+                abilityContainer.addEventListener('click', handlePatternTagClick);
 
                 const textsToAnalyze = card.fullTextSections || (card.fullText ? [card.fullText] : []);
                 const masterFoundPatterns = new Set();
@@ -458,7 +470,7 @@
                             ${foundPatterns.size > 0 ? `
                                 <h4 class="font-semibold text-sm text-slate-300 mt-3 border-t border-slate-700 pt-3">Triggered Patterns:</h4>
                                 <div class="flex flex-wrap gap-2 mt-2">
-                                    ${[...foundPatterns].map(pName => `<span class="text-xs font-medium text-blue-200 bg-blue-900/50 px-2 py-1 rounded-full">${pName}</span>`).join('')}
+                                    ${[...foundPatterns].map(pName => `<span class="text-xs font-medium text-blue-200 bg-blue-900/50 px-2 py-1 rounded-full cursor-pointer hover:bg-blue-800" data-pattern-name="${pName}">${pName}</span>`).join('')}
                                 </div>
                             ` : ''}
                         `;
@@ -472,9 +484,23 @@
                 cardDetailsContainer.classList.remove('hidden');
 
                 masterFoundPatterns.forEach(pName => {
-                    const patternEl = document.querySelector(`[data-pattern-name="${pName}"]`);
+                    const patternEl = document.querySelector(`#pattern-list [data-pattern-name="${pName}"]`);
                     if (patternEl) patternEl.classList.add('pattern-highlight');
                 });
+            }
+
+            function handlePatternTagClick(event) {
+                const target = event.target;
+                if (target.matches('[data-pattern-name]')) {
+                    const patternName = target.dataset.patternName;
+                    const patternEditorEl = document.querySelector(`#pattern-list [data-pattern-name="${patternName}"]`);
+                    if (patternEditorEl) {
+                        patternEditorEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        patternEditorEl.classList.remove('focus-animation'); // Reset animation
+                        void patternEditorEl.offsetWidth; // Trigger reflow
+                        patternEditorEl.classList.add('focus-animation');
+                    }
+                }
             }
 
             function analyzeAndHighlightText(originalText) {
@@ -543,6 +569,7 @@
 
                 const results = allCards.filter(card => {
                     const text = (card.fullText || '').replace(/\n/g, ' ').trim();
+                    regex.lastIndex = 0; // Reset regex state for global flag
                     return text && regex.test(text);
                 });
 
@@ -553,8 +580,8 @@
 
                 const fragment = document.createDocumentFragment();
                 results.forEach(card => {
-                    const text = (card.fullText || '').replace(/\n/g, ' ');
-                    const highlighted = text.replace(regex, `<span class="highlight bg-yellow-400">$_</span>`);
+                    const text = (card.fullText || '');
+                    const highlighted = text.replace(regex, `<span class="highlight bg-yellow-400">$&</span>`);
                     
                     const cardDiv = document.createElement('div');
                     cardDiv.className = 'mb-4 p-3 bg-slate-800 rounded-lg border border-slate-700 shadow flex items-start';
