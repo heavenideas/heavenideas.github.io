@@ -348,7 +348,7 @@
       "name": "Banish: All Characters",
       "category": "Board Control",
       "sub_type": "Board Wipe",
-      "regex": "/Banish all (opposing )?characters(?: with \\d+ (?:¤|⬡|⛉) or (?:less|more))?/gi",
+      "regex": "Banish all (opposing )?(ready |damaged )?characters(?: with \\d+ (?:¤|⬡|⛉) or (?:less|more))?",
       "explanation": "Permanently removes all characters from the board, or all of the opponent's characters.",
       "justification": "The most powerful board control effect, resetting the entire character board state.",
       "quick_description": "Permanently remove all characters from play.",
