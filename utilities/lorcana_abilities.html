@@ -940,13 +940,13 @@
                     }
                     matches.forEach((m, i) => {
                         highlighted += text.substring(lastIndex, m.start);
-                        highlighted += `<span class=\"highlight bg-yellow-200\">${text.substring(m.start, m.end)}</span>`;
+                        highlighted += `<span class="highlight bg-yellow-200">${text.substring(m.start, m.end)}</span>`;
                         lastIndex = m.end;
                     });
                     highlighted += text.substring(lastIndex);
 
                     const cardDiv = document.createElement('div');
-                    cardDiv.className = 'mb-4 p-3 bg-slate-800 rounded-lg border border-slate-700 shadow flex items-start';
+                    cardDiv.className = 'mb-4 p-3 bg-slate-800 rounded-lg border border-slate-700 shadow flex items-start cursor-pointer hover:bg-slate-700 transition-colors';
                     cardDiv.innerHTML = `
                         <img src="${card.images.thumbnail}" alt="${card.fullName}" class="w-16 h-22 mr-4 rounded-md" onerror="this.style.display='none'">
                         <div>
@@ -954,6 +954,7 @@
                             <div class="prose prose-sm prose-invert">${highlighted.replace(/\n/g, '<br>')}</div>
                         </div>
                     `;
+                    cardDiv.addEventListener('click', () => displayCardDetails(card, true));
                     fragment.appendChild(cardDiv);
                 });
                 customRegexResults.appendChild(fragment);
