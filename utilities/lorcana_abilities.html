@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lorcana Ability Editor & Analyzer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fuse.js/dist/fuse.basic.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        slate: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                            950: '#020617',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .highlight {
+            padding: 2px 4px;
+            border-radius: 4px;
+            font-weight: 600;
+            color: #1e293b; /* slate-800 */
+        }
+        
+        /* Custom Scrollbars */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1e293b; /* slate-800 */
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #475569; /* slate-600 */
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b; /* slate-500 */
+        }
+
+        .pattern-highlight {
+            background-color: #1e3a8a !important; /* blue-900 */
+            border-left-width: 4px;
+            border-color: #3b82f6; /* blue-500 */
+        }
+
+        .form-input, .form-textarea {
+            background-color: #1e293b; /* slate-800 */
+            border: 1px solid #334155; /* slate-700 */
+            color: #e2e8f0; /* slate-200 */
+            border-radius: 0.375rem;
+            padding: 0.5rem 0.75rem;
+            width: 100%;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .form-input:focus, .form-textarea:focus {
+            outline: none;
+            border-color: #3b82f6; /* blue-500 */
+            box-shadow: 0 0 0 2px #1e40af; /* blue-800 */
+        }
+        
+        .form-label {
+            font-weight: 500;
+            color: #94a3b8; /* slate-400 */
+            margin-bottom: 0.25rem;
+            display: block;
+            font-size: 0.875rem;
+        }
+
+        .regex-input {
+            font-family: monospace;
+            font-size: 0.875rem;
+            color: #f472b6; /* pink-400 */
+        }
+        
+        .regex-input-error {
+            border: 2px solid #ef4444 !important; /* red-500 */
+        }
+    </style>
+</head>
+
+<body class="bg-slate-950 text-slate-300">
+
+    <div id="app" class="container mx-auto p-4 md:p-6">
+        <header class="text-center mb-6 border-b border-slate-800 pb-6">
+            <h1 class="text-4xl md:text-5xl font-bold text-slate-100">Lorcana Ability Editor & Analyzer</h1>
+            <p class="text-slate-400 mt-2">Load, edit, and analyze ability patterns across all Disney Lorcana cards.</p>
+        </header>
+
+        <div id="loader" class="text-center py-10">
+            <div class="flex justify-center items-center space-x-2">
+                <svg class="animate-spin h-8 w-8 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span class="text-lg font-medium text-slate-400">Loading card database...</span>
+            </div>
+        </div>
+
+        <main id="main-content" class="hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                
+                <!-- Left Column: Ability Editor -->
+                <div class="bg-slate-900 p-4 rounded-2xl shadow-lg flex flex-col h-[85vh]">
+                    <h2 class="text-2xl font-bold mb-4 text-slate-100 border-b border-slate-700 pb-3">Ability Pattern Editor</h2>
+                    
+                    <!-- Controls -->
+                    <div class="flex flex-wrap gap-4 items-center mb-4">
+                        <div class="flex-grow">
+                            <label for="json-file-input" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition cursor-pointer">Load lorcana_abilities.json</label>
+                            <input type="file" id="json-file-input" class="hidden" accept=".json">
+                        </div>
+                        <button id="save-json-btn" class="px-4 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 transition">Save JSON</button>
+                    </div>
+                    <div class="relative mb-4">
+                         <input type="text" id="pattern-filter-input" placeholder="Filter abilities by name..." class="form-input w-full !pl-10">
+                         <svg class="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>
+                    </div>
+
+                    <!-- Pattern List -->
+                    <div id="pattern-list" class="space-y-4 overflow-y-auto flex-grow pr-2">
+                         <div id="pattern-placeholder" class="text-center text-slate-500 py-10 border-2 border-dashed border-slate-700 rounded-lg">
+                            <p>Load `lorcana_abilities.json` to start editing.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Card Analyzer -->
+                <div class="bg-slate-900 p-4 rounded-2xl shadow-lg flex flex-col h-[85vh]">
+                    <h2 class="text-2xl font-bold mb-4 text-slate-100 border-b border-slate-700 pb-3">Card Search & Analysis</h2>
+                    <div class="relative">
+                        <input type="text" id="search-input" placeholder="Search for a card (e.g., 'Elsa', 'Be Prepared')" class="form-input w-full">
+                        <div id="search-results" class="absolute z-10 w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-xl max-h-60 overflow-y-auto hidden"></div>
+                    </div>
+                    <div id="card-display" class="mt-4 overflow-y-auto flex-grow pr-2">
+                        <div id="card-placeholder" class="text-center text-slate-500 py-10 border-2 border-dashed border-slate-700 rounded-lg">
+                            <p>Select a card to see its ability analysis.</p>
+                            <p class="text-sm mt-1">Edits to abilities on the left will update the analysis here live.</p>
+                        </div>
+                        <div id="card-details" class="hidden"></div>
+                    </div>
+                    
+                    <!-- Custom Regex Search -->
+                    <div id="custom-regex-section" class="mt-4 p-4 bg-slate-950 rounded-xl border border-slate-800">
+                        <h3 class="text-lg font-bold text-slate-100 mb-2">Custom Regex Card Search</h3>
+                        <div class="flex flex-col md:flex-row gap-4 items-start md:items-end">
+                            <div class="flex-1">
+                                <label for="custom-regex-input" class="form-label">Regex Pattern</label>
+                                <input type="text" id="custom-regex-input" class="form-input regex-input" placeholder="e.g. draw 2 cards" />
+                            </div>
+                            <div>
+                                <label for="custom-regex-flags" class="form-label">Flags</label>
+                                <input type="text" id="custom-regex-flags" class="form-input regex-input w-20" placeholder="gi" value="gi" />
+                            </div>
+                            <button id="custom-regex-btn" class="px-5 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition w-full md:w-auto">Search</button>
+                        </div>
+                        <div id="custom-regex-error" class="text-red-500 text-sm mt-2 hidden"></div>
+                        <div id="custom-regex-results" class="mt-4 max-h-64 overflow-y-auto pr-2"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- GLOBAL STATE ---
+            let allCards = [];
+            let abilityPatterns = []; // This will be our editable source of truth
+            let fuse;
+            let selectedCard = null;
+
+            const DB_URL = 'https://raw.githubusercontent.com/heavenideas/similcana/refs/heads/main/database/allCards.json';
+
+            // --- UI ELEMENTS ---
+            const loader = document.getElementById('loader');
+            const mainContent = document.getElementById('main-content');
+            
+            // Left Column
+            const jsonFileInput = document.getElementById('json-file-input');
+            const saveJsonBtn = document.getElementById('save-json-btn');
+            const patternFilterInput = document.getElementById('pattern-filter-input');
+            const patternListContainer = document.getElementById('pattern-list');
+            const patternPlaceholder = document.getElementById('pattern-placeholder');
+
+            // Right Column
+            const searchInput = document.getElementById('search-input');
+            const searchResultsContainer = document.getElementById('search-results');
+            const cardDetailsContainer = document.getElementById('card-details');
+            const cardPlaceholder = document.getElementById('card-placeholder');
+            const customRegexInput = document.getElementById('custom-regex-input');
+            const customRegexFlags = document.getElementById('custom-regex-flags');
+            const customRegexBtn = document.getElementById('custom-regex-btn');
+            const customRegexResults = document.getElementById('custom-regex-results');
+            const customRegexError = document.getElementById('custom-regex-error');
+
+            // --- INITIALIZATION ---
+            async function initializeApp() {
+                try {
+                    const cardsResponse = await fetch(DB_URL);
+                    if (!cardsResponse.ok) throw new Error(`Network response for cards was not ok: ${cardsResponse.statusText}`);
+                    const cardsData = await cardsResponse.json();
+                    
+                    allCards = cardsData.cards;
+                    setupFuseSearch();
+                    
+                    loader.classList.add('hidden');
+                    mainContent.classList.remove('hidden');
+                } catch (error) {
+                    loader.innerHTML = `<div class="text-red-500 font-bold">Failed to load card database. Please try refreshing the page.</div><p class="text-sm text-slate-500 mt-2">${error.message}</p>`;
+                }
+            }
+
+            function setupFuseSearch() {
+                const options = { includeScore: true, keys: ['fullName', 'simpleName'], threshold: 0.3 };
+                fuse = new Fuse(allCards, options);
+            }
+
+            // --- JSON FILE HANDLING ---
+            jsonFileInput.addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const content = e.target.result;
+                        abilityPatterns = JSON.parse(content);
+                        // Convert regex strings back to RegExp objects
+                        abilityPatterns.forEach(p => {
+                            const match = p.regex.match(/^\/(.*)\/([gimuy]*)$/);
+                            if (match) {
+                                p.regexObject = new RegExp(match[1], match[2]);
+                            } else {
+                                p.regexObject = new RegExp(p.regex, 'gi'); // Fallback
+                            }
+                        });
+                        displayPatterns();
+                        if(selectedCard) displayCardDetails(selectedCard, false);
+                    } catch (err) {
+                        alert('Error parsing JSON file: ' + err.message);
+                    }
+                };
+                reader.readAsText(file);
+            });
+
+            saveJsonBtn.addEventListener('click', () => {
+                if(abilityPatterns.length === 0) {
+                    alert("No ability data loaded to save.");
+                    return;
+                }
+                // Create a deep copy for export, removing the temporary regexObject
+                const patternsToSave = JSON.parse(JSON.stringify(abilityPatterns));
+                patternsToSave.forEach(p => delete p.regexObject);
+
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(patternsToSave, null, 2));
+                const downloadAnchorNode = document.createElement('a');
+                downloadAnchorNode.setAttribute("href", dataStr);
+                downloadAnchorNode.setAttribute("download", "lorcana_abilities.json");
+                document.body.appendChild(downloadAnchorNode);
+                downloadAnchorNode.click();
+                downloadAnchorNode.remove();
+            });
+
+            // --- PATTERN EDITOR UI & LOGIC ---
+            function displayPatterns() {
+                patternListContainer.innerHTML = '';
+                patternPlaceholder.classList.add('hidden');
+
+                abilityPatterns.forEach((pattern, index) => {
+                    const patternEl = document.createElement('div');
+                    patternEl.className = 'p-4 bg-slate-800 rounded-lg border border-slate-700 transition-colors duration-300';
+                    patternEl.setAttribute('data-pattern-name', pattern.name);
+                    patternEl.setAttribute('data-index', index);
+
+                    patternEl.innerHTML = `
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div><label class="form-label">Name</label><input type="text" class="form-input" data-field="name" value="${pattern.name || ''}"></div>
+                            <div><label class="form-label">Category</label><input type="text" class="form-input" data-field="category" value="${pattern.category || ''}"></div>
+                            <div><label class="form-label">Sub-type</label><input type="text" class="form-input" data-field="sub_type" value="${pattern.sub_type || ''}"></div>
+                            <div><label class="form-label">Regex</label><input type="text" class="form-input regex-input" data-field="regex" value="${pattern.regex || ''}"></div>
+                        </div>
+                        <div class="mt-4"><label class="form-label">Quick Description</label><input type="text" class="form-input" data-field="quick_description" value="${pattern.quick_description || ''}"></div>
+                        <div class="mt-4"><label class="form-label">Explanation</label><textarea class="form-textarea" rows="3" data-field="explanation">${pattern.explanation || ''}</textarea></div>
+                        <div class="mt-4"><label class="form-label">Justification</label><textarea class="form-textarea" rows="2" data-field="justification">${pattern.justification || ''}</textarea></div>
+                        
+                        <h4 class="text-lg font-semibold mt-6 mb-2 text-slate-200 border-t border-slate-700 pt-3">Scores</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label class="form-label">Board Control</label>
+                                <input type="text" class="form-input" data-path="scores.board_control.value" value="${pattern.scores?.board_control?.value || ''}">
+                                <textarea class="form-textarea mt-2 text-sm" rows="2" data-path="scores.board_control.notes" placeholder="Notes...">${pattern.scores?.board_control?.notes || ''}</textarea>
+                            </div>
+                            <div>
+                                <label class="form-label">Lore Velocity</label>
+                                <input type="text" class="form-input" data-path="scores.lore_velocity.value" value="${pattern.scores?.lore_velocity?.value || ''}">
+                                <textarea class="form-textarea mt-2 text-sm" rows="2" data-path="scores.lore_velocity.notes" placeholder="Notes...">${pattern.scores?.lore_velocity?.notes || ''}</textarea>
+                            </div>
+                            <div>
+                                <label class="form-label">Resource Dominance</label>
+                                <input type="text" class="form-input" data-path="scores.resource_dominance.value" value="${pattern.scores?.resource_dominance?.value || ''}">
+                                <textarea class="form-textarea mt-2 text-sm" rows="2" data-path="scores.resource_dominance.notes" placeholder="Notes...">${pattern.scores?.resource_dominance?.notes || ''}</textarea>
+                            </div>
+                        </div>
+                    `;
+                    patternListContainer.appendChild(patternEl);
+                });
+            }
+
+            // Live filtering for ability editor
+            patternFilterInput.addEventListener('input', (e) => {
+                const filterText = e.target.value.toLowerCase();
+                document.querySelectorAll('#pattern-list > div').forEach(el => {
+                    const name = el.dataset.patternName.toLowerCase();
+                    if (name.includes(filterText)) {
+                        el.style.display = 'block';
+                    } else {
+                        el.style.display = 'none';
+                    }
+                });
+            });
+
+            // Event delegation for live editing of patterns
+            patternListContainer.addEventListener('input', (e) => {
+                const target = e.target;
+                const parentPattern = target.closest('[data-index]');
+                if (!parentPattern) return;
+
+                const index = parseInt(parentPattern.dataset.index, 10);
+                const patternToUpdate = abilityPatterns[index];
+                
+                if (target.matches('[data-field]')) {
+                    const field = target.dataset.field;
+                    patternToUpdate[field] = target.value;
+
+                    // Special handling for regex to update the live object
+                    if (field === 'regex') {
+                        try {
+                            const match = target.value.match(/^\/(.*)\/([gimuy]*)$/);
+                            if (match) {
+                                patternToUpdate.regexObject = new RegExp(match[1], match[2]);
+                            } else {
+                                patternToUpdate.regexObject = new RegExp(target.value, 'gi'); // Fallback
+                            }
+                            target.classList.remove('regex-input-error');
+                        } catch (err) {
+                            target.classList.add('regex-input-error');
+                        }
+                    }
+                } else if (target.matches('[data-path]')) {
+                    const path = target.dataset.path.split('.');
+                    let current = patternToUpdate;
+                    for (let i = 0; i < path.length - 1; i++) {
+                        current[path[i]] = current[path[i]] || {};
+                        current = current[path[i]];
+                    }
+                    current[path[path.length - 1]] = target.value;
+                }
+                
+                if (selectedCard) {
+                    displayCardDetails(selectedCard, false);
+                }
+            });
+
+            // --- CARD ANALYSIS & DISPLAY (Right Column) ---
+            searchInput.addEventListener('input', (e) => handleSearch(e.target.value));
+            searchInput.addEventListener('focus', (e) => { if (e.target.value) handleSearch(e.target.value); });
+            document.addEventListener('click', (e) => { if (!e.target.closest('#search-input, #search-results')) searchResultsContainer.classList.add('hidden'); });
+
+            function handleSearch(query) {
+                if (query.trim() === '') {
+                    searchResultsContainer.classList.add('hidden');
+                    return;
+                }
+                const results = fuse.search(query, { limit: 10 });
+                searchResultsContainer.innerHTML = '';
+                if (results.length > 0) {
+                    results.forEach(result => {
+                        const card = result.item;
+                        const resultEl = document.createElement('div');
+                        resultEl.className = 'p-3 hover:bg-slate-700 cursor-pointer border-b border-slate-700 last:border-b-0 flex items-center';
+                        resultEl.innerHTML = `
+                            <img src="${card.images.thumbnail}" alt="${card.fullName}" class="w-10 h-14 mr-3 rounded-sm" onerror="this.style.display='none'">
+                            <span class="text-slate-200">${card.fullName}</span>
+                        `;
+                        resultEl.addEventListener('click', () => displayCardDetails(card, true));
+                        searchResultsContainer.appendChild(resultEl);
+                    });
+                    searchResultsContainer.classList.remove('hidden');
+                } else {
+                    searchResultsContainer.classList.add('hidden');
+                }
+            }
+
+            function displayCardDetails(card, updateSearchInput = true) {
+                if(abilityPatterns.length === 0) {
+                    alert("Please load the `lorcana_abilities.json` file first to analyze cards.");
+                    return;
+                }
+                selectedCard = card;
+                if (updateSearchInput) {
+                    searchInput.value = card.fullName;
+                    searchResultsContainer.classList.add('hidden');
+                }
+
+                document.querySelectorAll('.pattern-highlight').forEach(el => el.classList.remove('pattern-highlight'));
+                cardPlaceholder.classList.add('hidden');
+                cardDetailsContainer.innerHTML = '';
+
+                const cardHeader = document.createElement('h3');
+                cardHeader.className = 'text-2xl font-bold text-slate-100 mb-4';
+                cardHeader.textContent = card.fullName;
+                cardDetailsContainer.appendChild(cardHeader);
+
+                const abilityContainer = document.createElement('div');
+                abilityContainer.className = 'space-y-6';
+
+                const textsToAnalyze = card.fullTextSections || (card.fullText ? [card.fullText] : []);
+                const masterFoundPatterns = new Set();
+
+                if (textsToAnalyze.length > 0 && textsToAnalyze.some(t => t && t.trim() !== '')) {
+                    textsToAnalyze.forEach(abilityText => {
+                        const { highlightedHtml, foundPatterns } = analyzeAndHighlightText(abilityText);
+                        foundPatterns.forEach(p => masterFoundPatterns.add(p));
+                        
+                        const abilityBlock = document.createElement('div');
+                        abilityBlock.className = 'p-4 bg-slate-800 rounded-lg border border-slate-700';
+                        abilityBlock.innerHTML = `
+                            <div class="mb-3 prose prose-invert max-w-none">${highlightedHtml}</div>
+                            ${foundPatterns.size > 0 ? `
+                                <h4 class="font-semibold text-sm text-slate-300 mt-3 border-t border-slate-700 pt-3">Triggered Patterns:</h4>
+                                <div class="flex flex-wrap gap-2 mt-2">
+                                    ${[...foundPatterns].map(pName => `<span class="text-xs font-medium text-blue-200 bg-blue-900/50 px-2 py-1 rounded-full">${pName}</span>`).join('')}
+                                </div>
+                            ` : ''}
+                        `;
+                        abilityContainer.appendChild(abilityBlock);
+                    });
+                } else {
+                    abilityContainer.innerHTML = '<p class="text-slate-500">This card has no ability text.</p>';
+                }
+
+                cardDetailsContainer.appendChild(abilityContainer);
+                cardDetailsContainer.classList.remove('hidden');
+
+                masterFoundPatterns.forEach(pName => {
+                    const patternEl = document.querySelector(`[data-pattern-name="${pName}"]`);
+                    if (patternEl) patternEl.classList.add('pattern-highlight');
+                });
+            }
+
+            function analyzeAndHighlightText(originalText) {
+                if (!originalText || originalText.trim() === '') {
+                    return { highlightedHtml: '', foundPatterns: new Set() };
+                }
+                const sanitizedText = originalText.replace(/\n/g, ' ');
+                let allMatches = [];
+                abilityPatterns.forEach(pattern => {
+                    if (!pattern.regexObject) return;
+                    pattern.regexObject.lastIndex = 0; 
+                    let match;
+                    while ((match = pattern.regexObject.exec(sanitizedText)) !== null) {
+                        if (match[0].length === 0) continue;
+                        allMatches.push({ name: pattern.name, text: match[0], start: match.index, end: match.index + match[0].length });
+                    }
+                });
+
+                allMatches.sort((a, b) => a.start - b.start || b.end - a.end);
+                const filteredMatches = [];
+                let lastEnd = -1;
+                for (const match of allMatches) {
+                    if (match.start >= lastEnd) {
+                        filteredMatches.push(match);
+                        lastEnd = match.end;
+                    }
+                }
+
+                const foundPatterns = new Set(filteredMatches.map(m => m.name));
+                const patternColors = {};
+                const colorPool = ['#fef9c3', '#dbeafe', '#dcfce7', '#fee2e2', '#e0f2fe', '#f3e8ff', '#ffe4e6', '#d1fae5', '#fae8ff', '#e0e7ff'];
+                let colorIndex = 0;
+                foundPatterns.forEach(name => {
+                    patternColors[name] = colorPool[colorIndex % colorPool.length];
+                    colorIndex++;
+                });
+
+                let highlightedHtml = "";
+                let lastIndex = 0;
+                filteredMatches.forEach(match => {
+                    highlightedHtml += originalText.substring(lastIndex, match.start);
+                    const color = patternColors[match.name];
+                    highlightedHtml += `<span class="highlight" style="background-color: ${color};">${match.text}</span>`;
+                    lastIndex = match.end;
+                });
+                highlightedHtml += originalText.substring(lastIndex);
+                return { highlightedHtml: highlightedHtml.replace(/\n/g, '<br>'), foundPatterns };
+            }
+
+            // Custom Regex Search Button
+            customRegexBtn.addEventListener('click', () => {
+                const pattern = customRegexInput.value;
+                const flags = customRegexFlags.value;
+                customRegexError.classList.add('hidden');
+                customRegexInput.classList.remove('regex-input-error');
+                customRegexResults.innerHTML = '';
+                let regex;
+                try {
+                    regex = new RegExp(pattern, flags);
+                } catch (err) {
+                    customRegexError.textContent = 'Invalid regex: ' + err.message;
+                    customRegexError.classList.remove('hidden');
+                    customRegexInput.classList.add('regex-input-error');
+                    return;
+                }
+
+                const results = allCards.filter(card => {
+                    const text = (card.fullText || '').replace(/\n/g, ' ').trim();
+                    return text && regex.test(text);
+                });
+
+                if (results.length === 0) {
+                    customRegexResults.innerHTML = '<div class="text-slate-500">No cards matched this regex.</div>';
+                    return;
+                }
+
+                const fragment = document.createDocumentFragment();
+                results.forEach(card => {
+                    const text = (card.fullText || '').replace(/\n/g, ' ');
+                    const highlighted = text.replace(regex, `<span class="highlight bg-yellow-400">$_</span>`);
+                    
+                    const cardDiv = document.createElement('div');
+                    cardDiv.className = 'mb-4 p-3 bg-slate-800 rounded-lg border border-slate-700 shadow flex items-start';
+                    cardDiv.innerHTML = `
+                        <img src="${card.images.thumbnail}" alt="${card.fullName}" class="w-16 h-22 mr-4 rounded-md" onerror="this.style.display='none'">
+                        <div>
+                            <div class="font-bold text-blue-400 mb-2">${card.fullName}</div>
+                            <div class="prose prose-sm prose-invert">${highlighted.replace(/\n/g, '<br>')}</div>
+                        </div>
+                    `;
+                    fragment.appendChild(cardDiv);
+                });
+                customRegexResults.appendChild(fragment);
+            });
+
+            // --- START THE APP ---
+            initializeApp();
+        });
+    </script>
+</body>
+
+</html>
