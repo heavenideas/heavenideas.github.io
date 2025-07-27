@@ -929,6 +929,7 @@
                 const fragment = document.createDocumentFragment();
                 results.forEach(card => {
                     const text = (card.fullText || '');
+                    regex.lastIndex = 0; // Reset regex state before replacing to ensure all matches are found
                     const highlighted = text.replace(regex, `<span class="highlight bg-yellow-400">$&</span>`);
                     
                     const cardDiv = document.createElement('div');
@@ -937,7 +938,7 @@
                         <img src="${card.images.thumbnail}" alt="${card.fullName}" class="w-16 h-22 mr-4 rounded-md" onerror="this.style.display='none'">
                         <div>
                             <div class="font-bold text-blue-400 mb-2">${card.fullName}</div>
-                            <div class="prose prose-sm prose-invert">${highlighted.replace(/\n/g, '<br>')}</div>
+                            <div class="prose prose-sm prose-invert">${highlighted.replace(/\n/gi, '<br>')}</div>
                         </div>
                     `;
                     fragment.appendChild(cardDiv);
