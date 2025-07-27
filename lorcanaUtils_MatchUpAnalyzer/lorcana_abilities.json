@@ -1,5 +1,74 @@
 [
     {
+      "name": "Condition: No Cards",
+      "category": "Condition",
+      "sub_type": "No Cards",
+      "quick_description": "",
+      "regex": "/(while|if|and) you have no cards in (?:your )hand/gi",
+      "explanation": "",
+      "justification": "",
+      "scores": {
+        "board_control": {
+          "value": "0",
+          "notes": ""
+        },
+        "lore_velocity": {
+          "value": "0",
+          "notes": ""
+        },
+        "resource_dominance": {
+          "value": "0",
+          "notes": ""
+        }
+      }
+    },
+    {
+      "name": "Condition: Character exerted",
+      "category": "Condition",
+      "sub_type": "Exerted",
+      "quick_description": "characters need to be exerted",
+      "regex": "/(while|if|and) (?:this character|one of your characters|all of your characters) (is|are) exerted/gi",
+      "explanation": "this is a requirement of some cards.",
+      "justification": "",
+      "scores": {
+        "board_control": {
+          "value": "0",
+          "notes": ""
+        },
+        "lore_velocity": {
+          "value": "0",
+          "notes": ""
+        },
+        "resource_dominance": {
+          "value": "0",
+          "notes": ""
+        }
+      }
+    },
+    {
+      "name": "State: Can't play",
+      "category": "State",
+      "sub_type": "Control",
+      "quick_description": "Can't play a type of card",
+      "regex": "/opponents (?:can't|cannot) play (?:actions|songs|items|locations|characters)/gi",
+      "explanation": "Opponents are prevented from playing a specific type of card",
+      "justification": "This affects the tempo of the game enormously",
+      "scores": {
+        "board_control": {
+          "value": "0",
+          "notes": "This affects the tempo of the game"
+        },
+        "lore_velocity": {
+          "value": "0",
+          "notes": ""
+        },
+        "resource_dominance": {
+          "value": "0",
+          "notes": ""
+        }
+      }
+    },
+    {
       "name": "Lore: Gain",
       "category": "Lore",
       "sub_type": "Direct Gain",
@@ -364,29 +433,6 @@
         "resource_dominance": {
           "value": "0",
           "notes": "Can be a massive resource swing if it removes more cards than it cost."
-        }
-      }
-    },
-    {
-      "name": "Banish: This Character",
-      "category": "Board Control",
-      "sub_type": "Cost",
-      "regex": "/Banish (this |them )?character (?:of your)/gi",
-      "explanation": "The player's own character is banished, usually as a cost or consequence of an ability.",
-      "justification": "A significant cost.",
-      "quick_description": "Your own character is banished.",
-      "scores": {
-        "board_control": {
-          "value": "TBD",
-          "notes": "Negative value."
-        },
-        "lore_velocity": {
-          "value": "TBD",
-          "notes": "Negative value."
-        },
-        "resource_dominance": {
-          "value": "TBD",
-          "notes": "Negative value."
         }
       }
     },
