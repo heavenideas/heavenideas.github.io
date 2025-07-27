@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Disney Lorcana Card Exporter</title>
+    <style>
+        :root {
+            --bg-color: #2c2f33;
+            --text-color: #e2e2e2;
+            --primary-color: #7289da;
+            --secondary-color: #43b581;
+            --border-color: #4f545c;
+            --input-bg: #23272a;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        main {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        h1, h2 {
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+
+        .container {
+            background-color: var(--input-bg);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        #status {
+            font-size: 1.2em;
+            font-weight: bold;
+            text-align: center;
+            padding: 40px;
+            color: var(--secondary-color);
+        }
+
+        #controls { display: none; }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        select {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 8px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        #output-fields-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 10px;
+        }
+
+        #output-fields-container label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: normal;
+            cursor: pointer;
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: bold;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+        
+        button.secondary {
+            background-color: var(--secondary-color);
+        }
+
+        .actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        #output-text {
+            width: 100%;
+            height: 500px;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 10px;
+            margin-top: 10px;
+            box-sizing: border-box;
+            font-family: "Courier New", Courier, monospace;
+        }
+    </style>
+</head>
+<body>
+
+    <main>
+        <header>
+            <h1>Disney Lorcana Card Exporter</h1>
+        </header>
+
+        <div id="status">Loading card database... This may take a moment.</div>
+
+        <div id="controls">
+            <section class="container">
+                <h2>1. Filter Cards</h2>
+                <div class="grid-container">
+                    <div class="form-group">
+                        <label for="filter-name">Card Name</label>
+                        <input type="text" id="filter-name" placeholder="e.g., mickey mouse">
+                    </div>
+                    <div class="form-group">
+                        <label for="filter-type">Card Type</label>
+                        <select id="filter-type">
+                            <option value="">All Types</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="filter-color">Ink Color</label>
+                        <select id="filter-color">
+                            <option value="">All Colors</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="filter-cost">Cost</label>
+                        <input type="number" id="filter-cost" placeholder="Any">
+                    </div>
+                    <div class="form-group">
+                        <label for="filter-strength">Strength</label>
+                        <input type="number" id="filter-strength" placeholder="Any">
+                    </div>
+                    <div class="form-group">
+                        <label for="filter-willpower">Willpower</label>
+                        <input type="number" id="filter-willpower" placeholder="Any">
+                    </div>
+                    <div class="form-group">
+                        <label for="filter-lore">Lore</label>
+                        <input type="number" id="filter-lore" placeholder="Any">
+                    </div>
+                    <div class="form-group">
+                        <label for="filter-rarity">Rarity</label>
+                        <select id="filter-rarity">
+                            <option value="">All Rarities</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="filter-set">Set</label>
+                        <select id="filter-set">
+                            <option value="">All Sets</option>
+                        </select>
+                    </div>
+                </div>
+            </section>
+
+            <section class="container">
+                <h2>2. Select Export Fields</h2>
+                <div id="output-fields-container">
+                    <!-- Checkboxes will be populated by JavaScript -->
+                </div>
+            </section>
+
+            <section class="actions">
+                <button id="generate-btn">Generate Markdown</button>
+            </section>
+
+            <section id="results-container" class="container" style="display: none;">
+                <h2>3. Exported Text</h2>
+                <button id="copy-btn" class="secondary">Copy to Clipboard</button>
+                <textarea id="output-text" readonly></textarea>
+            </section>
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const API_URL = 'https://raw.githubusercontent.com/heavenideas/similcana/refs/heads/main/database/allCards.json';
+
+            let allCards = [];
+            let allSets = {};
+            
+            // --- UI Elements ---
+            const statusEl = document.getElementById('status');
+            const controlsEl = document.getElementById('controls');
+            const generateBtn = document.getElementById('generate-btn');
+            const copyBtn = document.getElementById('copy-btn');
+            const outputTextEl = document.getElementById('output-text');
+            const resultsContainer = document.getElementById('results-container');
+            const outputFieldsContainer = document.getElementById('output-fields-container');
+
+            // --- Filter Elements ---
+            const filterName = document.getElementById('filter-name');
+            const filterType = document.getElementById('filter-type');
+            const filterColor = document.getElementById('filter-color');
+            const filterCost = document.getElementById('filter-cost');
+            const filterStrength = document.getElementById('filter-strength');
+            const filterWillpower = document.getElementById('filter-willpower');
+            const filterLore = document.getElementById('filter-lore');
+            const filterRarity = document.getElementById('filter-rarity');
+            const filterSet = document.getElementById('filter-set');
+
+            const exportableFields = [
+                { id: 'image', label: 'Image (Thumbnail)', checked: true },
+                { id: 'fullName', label: 'Full Name', checked: true },
+                { id: 'type', label: 'Card Type', checked: true },
+                { id: 'cost', label: 'Cost', checked: true },
+                { id: 'stats', label: 'Stats (Strength/Willpower/Lore)', checked: true },
+                { id: 'color', label: 'Ink Color', checked: false },
+                { id: 'inkwell', label: 'Inkable', checked: true },
+                { id: 'fullText', label: 'Card Text / Abilities', checked: true },
+                { id: 'subtypes', label: 'Subtypes', checked: false },
+                { id: 'rarity', label: 'Rarity', checked: true },
+                { id: 'set', label: 'Set Name', checked: true },
+                { id: 'fullIdentifier', label: 'Card Identifier', checked: true },
+                { id: 'flavorText', label: 'Flavor Text', checked: false },
+                { id: 'artists', label: 'Artist(s)', checked: false },
+            ];
+
+            async function initialize() {
+                try {
+                    const response = await fetch(API_URL);
+                    if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
+                    const data = await response.json();
+                    
+                    allCards = data.cards;
+                    allSets = data.sets;
+
+                    populateFilters();
+                    populateOutputFields();
+                    
+                    statusEl.style.display = 'none';
+                    controlsEl.style.display = 'block';
+
+                } catch (error) {
+                    statusEl.textContent = `Error loading card data: ${error.message}`;
+                    statusEl.style.color = 'red';
+                    console.error('Failed to fetch or process card data:', error);
+                }
+            }
+            
+            function populateSelect(element, values) {
+                values.forEach(value => {
+                    const option = document.createElement('option');
+                    option.value = value;
+                    option.textContent = value;
+                    element.appendChild(option);
+                });
+            }
+
+            function populateFilters() {
+                const types = [...new Set(allCards.map(c => c.type).filter(Boolean))].sort();
+                const colors = [...new Set(allCards.flatMap(c => c.colors || (c.color ? [c.color] : [])).filter(Boolean))].sort();
+                const rarities = [...new Set(allCards.map(c => c.rarity).filter(Boolean))].sort();
+                const setNames = Object.values(allSets).map(s => s.name).sort();
+
+                populateSelect(filterType, types);
+                populateSelect(filterColor, colors);
+                populateSelect(filterRarity, rarities);
+                populateSelect(filterSet, setNames);
+            }
+
+            function populateOutputFields() {
+                exportableFields.forEach(field => {
+                    const label = document.createElement('label');
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.id = `field-${field.id}`;
+                    checkbox.value = field.id;
+                    checkbox.checked = field.checked;
+                    
+                    label.appendChild(checkbox);
+                    label.appendChild(document.createTextNode(` ${field.label}`));
+                    outputFieldsContainer.appendChild(label);
+                });
+            }
+            
+            function generateMarkdown() {
+                const selectedFields = Array.from(outputFieldsContainer.querySelectorAll('input:checked')).map(cb => cb.value);
+
+                const nameQuery = filterName.value.toLowerCase().trim();
+                const costQuery = filterCost.value ? parseInt(filterCost.value) : null;
+                const strengthQuery = filterStrength.value ? parseInt(filterStrength.value) : null;
+                const willpowerQuery = filterWillpower.value ? parseInt(filterWillpower.value) : null;
+                const loreQuery = filterLore.value ? parseInt(filterLore.value) : null;
+                const typeQuery = filterType.value;
+                const colorQuery = filterColor.value;
+                const rarityQuery = filterRarity.value;
+                const setQuery = filterSet.value;
+                const setCodeQuery = setQuery ? Object.keys(allSets).find(key => allSets[key].name === setQuery) : null;
+
+
+                const filteredCards = allCards.filter(card => {
+                    if (nameQuery && !card.simpleName.includes(nameQuery)) return false;
+                    if (typeQuery && card.type !== typeQuery) return false;
+                    if (rarityQuery && card.rarity !== rarityQuery) return false;
+                    if (setCodeQuery && card.setCode !== setCodeQuery) return false;
+                    
+                    if (colorQuery && !(card.color === colorQuery || (card.colors && card.colors.includes(colorQuery)))) return false;
+                    
+                    if (costQuery !== null && card.cost !== costQuery) return false;
+                    if (strengthQuery !== null && card.strength !== strengthQuery) return false;
+                    if (willpowerQuery !== null && card.willpower !== willpowerQuery) return false;
+                    if (loreQuery !== null && card.lore !== loreQuery) return false;
+                    
+                    return true;
+                });
+
+                const markdownParts = filteredCards.map(card => {
+                    const cardMd = [];
+
+                    if (selectedFields.includes('image') && card.images?.thumbnail) {
+                        cardMd.push(`![${card.fullName}](${card.images.thumbnail})`);
+                    }
+                    if (selectedFields.includes('fullName') && card.fullName) {
+                        cardMd.push(`## ${card.fullName}`);
+                    }
+                    if (selectedFields.includes('set') && card.setCode && allSets[card.setCode]) {
+                        cardMd.push(`**Set:** ${allSets[card.setCode].name}`);
+                    }
+                    if (selectedFields.includes('rarity') && card.rarity) {
+                        cardMd.push(`**Rarity:** ${card.rarity}`);
+                    }
+                    if (selectedFields.includes('fullIdentifier') && card.fullIdentifier) {
+                        cardMd.push(`**ID:** ${card.fullIdentifier}`);
+                    }
+                     if (selectedFields.includes('type') && card.type) {
+                        let typeInfo = card.type;
+                        if(selectedFields.includes('subtypes') && card.subtypesText) {
+                            typeInfo += ` - ${card.subtypesText}`;
+                        }
+                        cardMd.push(`**Type:** ${typeInfo}`);
+                    }
+                    if (selectedFields.includes('color') && card.color) {
+                         cardMd.push(`**Color(s):** ${card.color}`);
+                    }
+                    if (selectedFields.includes('cost') && typeof card.cost !== 'undefined') {
+                        let costText = `**Cost:** ${card.cost}`;
+                        if(selectedFields.includes('inkwell')) {
+                            costText += ` (${card.inkwell ? 'Inkable' : 'Not Inkable'})`;
+                        }
+                        cardMd.push(costText);
+                    }
+                    if (selectedFields.includes('stats')) {
+                        let statsLine = [];
+                        if (typeof card.strength !== 'undefined') statsLine.push(`Strength: ${card.strength}`);
+                        if (typeof card.willpower !== 'undefined') statsLine.push(`Willpower: ${card.willpower}`);
+                        if (typeof card.lore !== 'undefined') statsLine.push(`Lore: ${card.lore}`);
+                        if (statsLine.length > 0) cardMd.push(`**Stats:** ${statsLine.join(' / ')}`);
+                    }
+                    
+                    if (selectedFields.includes('fullText') && card.fullText) {
+                        cardMd.push('\n### Abilities / Effects\n');
+                        cardMd.push(card.fullText.replace(/\n/g, '\n\n'));
+                    }
+                     if (selectedFields.includes('flavorText') && card.flavorText) {
+                        cardMd.push(`\n*${card.flavorText.replace(/\n/g, ' ')}*`);
+                    }
+                    if (selectedFields.includes('artists') && card.artistsText) {
+                        cardMd.push(`\n**Artist:** ${card.artistsText}`);
+                    }
+                    return cardMd.join('\n');
+                });
+                
+                outputTextEl.value = markdownParts.join('\n\n---\n\n');
+                resultsContainer.style.display = 'block';
+                outputTextEl.scrollTop = 0; // Scroll to top of textarea
+            }
+
+            function copyToClipboard() {
+                navigator.clipboard.writeText(outputTextEl.value).then(() => {
+                    copyBtn.textContent = 'Copied!';
+                    setTimeout(() => {
+                        copyBtn.textContent = 'Copy to Clipboard';
+                    }, 2000);
+                }).catch(err => {
+                    console.error('Failed to copy text: ', err);
+                    alert('Failed to copy text. Please try again or copy manually.');
+                });
+            }
+
+            // --- Event Listeners ---
+            generateBtn.addEventListener('click', generateMarkdown);
+            copyBtn.addEventListener('click', copyToClipboard);
+
+            // --- Start the application ---
+            initialize();
+        });
+    </script>
+
+</body>
+</html>
