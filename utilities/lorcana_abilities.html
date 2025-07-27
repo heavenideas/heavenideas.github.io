@@ -167,6 +167,8 @@
                 <span class="text-lg font-medium text-slate-400">Loading card database...</span>
             </div>
         </div>
+        
+        <div id="warning-banner" class="hidden bg-yellow-900/50 border border-yellow-700 text-yellow-200 px-4 py-3 rounded-lg mb-6 text-center"></div>
 
         <main id="main-content" class="hidden">
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -261,10 +263,12 @@
             let lastRegexResults = [];
 
             const DB_URL = 'https://raw.githubusercontent.com/heavenideas/similcana/refs/heads/main/database/allCards.json';
+            const ABILITIES_URL = 'https://raw.githubusercontent.com/heavenideas/heavenideas.github.io/refs/heads/main/lorcanaUtils_MatchUpAnalyzer/lorcana_abilities.json';
 
             // --- UI ELEMENTS ---
             const loader = document.getElementById('loader');
             const mainContent = document.getElementById('main-content');
+            const warningBanner = document.getElementById('warning-banner');
             
             // Left Column
             const jsonFileInput = document.getElementById('json-file-input');
@@ -293,6 +297,8 @@
             // --- INITIALIZATION ---
             async function initializeApp() {
                 try {
+                    loadAbilitiesFromUrl(); // Attempt to load abilities from URL without blocking
+                    
                     const cardsResponse = await fetch(DB_URL);
                     if (!cardsResponse.ok) throw new Error(`Network response for cards was not ok: ${cardsResponse.statusText}`);
                     const cardsData = await cardsResponse.json();
@@ -312,7 +318,46 @@
                 fuse = new Fuse(allCards, options);
             }
 
-            // --- JSON FILE HANDLING ---
+            // --- ABILITY DATA HANDLING ---
+            async function loadAbilitiesFromUrl() {
+                try {
+                    const response = await fetch(ABILITIES_URL);
+                    if (!response.ok) {
+                        throw new Error(`Network response was not ok: ${response.statusText}`);
+                    }
+                    const data = await response.json();
+                    processLoadedAbilities(data, `From URL at ${new Date().toLocaleTimeString()}`);
+                } catch (error) {
+                    console.error("Failed to load abilities from URL:", error);
+                    warningBanner.innerHTML = `<strong>Could not auto-load abilities from the web.</strong> Please use the "Load lorcana_abilities.json" button to upload the file manually.`;
+                    warningBanner.classList.remove('hidden');
+                }
+            }
+
+            function processLoadedAbilities(data, timestampMessage) {
+                try {
+                    abilityPatterns = data;
+                    // Convert regex strings back to RegExp objects
+                    abilityPatterns.forEach(p => {
+                        if (p.regex) {
+                            const match = p.regex.match(/^\/(.*)\/([gimuy]*)$/);
+                            if (match) {
+                                p.regexObject = new RegExp(match[1], match[2]);
+                            } else {
+                                p.regexObject = new RegExp(p.regex, 'gi'); // Fallback
+                            }
+                        }
+                    });
+                    displayPatterns();
+                    buildAndRenderTree(abilityPatterns);
+                    lastLoadedTimestamp.textContent = `Last loaded: ${timestampMessage}`;
+                    if(selectedCard) displayCardDetails(selectedCard, false);
+                    warningBanner.classList.add('hidden'); // Hide warning on successful load
+                } catch (err) {
+                    alert('Error processing ability patterns: ' + err.message);
+                }
+            }
+
             jsonFileInput.addEventListener('change', (event) => {
                 const file = event.target.files[0];
                 if (!file) return;
@@ -321,21 +366,8 @@
                 reader.onload = (e) => {
                     try {
                         const content = e.target.result;
-                        abilityPatterns = JSON.parse(content);
-                        // Convert regex strings back to RegExp objects
-                        abilityPatterns.forEach(p => {
-                            const match = p.regex.match(/^\/(.*)\/([gimuy]*)$/);
-                            if (match) {
-                                p.regexObject = new RegExp(match[1], match[2]);
-                            } else {
-                                p.regexObject = new RegExp(p.regex, 'gi'); // Fallback
-                            }
-                        });
-                        displayPatterns();
-                        buildAndRenderTree(abilityPatterns);
-                        const now = new Date();
-                        lastLoadedTimestamp.textContent = `Last loaded: ${now.toLocaleTimeString()}`;
-                        if(selectedCard) displayCardDetails(selectedCard, false);
+                        const data = JSON.parse(content);
+                        processLoadedAbilities(data, `From file at ${new Date().toLocaleTimeString()}`);
                     } catch (err) {
                         alert('Error parsing JSON file: ' + err.message);
                     }
