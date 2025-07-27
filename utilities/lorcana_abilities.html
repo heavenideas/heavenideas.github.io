@@ -240,8 +240,10 @@
                                 <input type="text" id="custom-regex-flags" class="form-input regex-input w-20" placeholder="gi" value="gi" />
                             </div>
                             <button id="custom-regex-btn" class="px-5 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition w-full md:w-auto">Search</button>
+                            <button id="copy-results-btn" class="px-5 py-2 bg-teal-600 text-white font-semibold rounded-lg shadow-md hover:bg-teal-700 transition w-full md:w-auto hidden">Copy Names</button>
                         </div>
                         <div id="custom-regex-error" class="text-red-500 text-sm mt-2 hidden"></div>
+                        <div id="custom-regex-stats" class="mt-4 text-sm text-slate-400"></div>
                         <div id="custom-regex-results" class="mt-4 max-h-64 overflow-y-auto pr-2"></div>
                     </div>
                 </div>
@@ -256,6 +258,7 @@
             let abilityPatterns = []; // This will be our editable source of truth
             let fuse;
             let selectedCard = null;
+            let lastRegexResults = [];
 
             const DB_URL = 'https://raw.githubusercontent.com/heavenideas/similcana/refs/heads/main/database/allCards.json';
 
@@ -284,6 +287,8 @@
             const customRegexBtn = document.getElementById('custom-regex-btn');
             const customRegexResults = document.getElementById('custom-regex-results');
             const customRegexError = document.getElementById('custom-regex-error');
+            const customRegexStats = document.getElementById('custom-regex-stats');
+            const copyResultsBtn = document.getElementById('copy-results-btn');
 
             // --- INITIALIZATION ---
             async function initializeApp() {
@@ -879,11 +884,16 @@
                     return text && regex.test(text);
                 });
 
+                lastRegexResults = results; // Store results
+                displayRegexStats(results); // Display stats
+
                 if (results.length === 0) {
                     customRegexResults.innerHTML = '<div class="text-slate-500">No cards matched this regex.</div>';
+                    copyResultsBtn.classList.add('hidden');
                     return;
                 }
 
+                copyResultsBtn.classList.remove('hidden');
                 const fragment = document.createDocumentFragment();
                 results.forEach(card => {
                     const text = (card.fullText || '');
@@ -901,6 +911,76 @@
                     fragment.appendChild(cardDiv);
                 });
                 customRegexResults.appendChild(fragment);
+            });
+
+            function displayRegexStats(results) {
+                if (results.length === 0) {
+                    customRegexStats.innerHTML = '';
+                    return;
+                }
+
+                const total = results.length;
+                const inkCounts = results.reduce((acc, card) => {
+                    acc[card.color] = (acc[card.color] || 0) + 1;
+                    return acc;
+                }, {});
+
+                const typeCounts = results.reduce((acc, card) => {
+                    acc[card.type] = (acc[card.type] || 0) + 1;
+                    return acc;
+                }, {});
+
+                const inkOrder = ["Amber","Amethyst","Emerald","Ruby","Sapphire","Steel",
+                                "Amber-Steel","Amber-Sapphire","Amber-Emerald","Amber-Ruby","Amber-Amethyst",
+                                "Amethyst-Steel","Amethyst-Ruby","Amethyst-Emerald","Amethyst-Sapphire",
+                                "Emerald-Ruby","Emerald-Sapphire","Emerald-Steel",
+                                "Ruby-Steel","Ruby-Sapphire",
+                                "Sapphire-Steel"];
+                
+                const typeOrder = ['Character', 'Item', 'Action', 'Location', 'Song'];
+
+                let statsHtml = `<div class="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">`;
+                
+                statsHtml += `<div><h4 class="font-semibold text-slate-300 mb-1">Ink Distribution (${total} cards)</h4><div class="space-y-1">`;
+                inkOrder.forEach(ink => {
+                    if (inkCounts[ink]) {
+                        const perc = ((inkCounts[ink] / total) * 100).toFixed(1);
+                        statsHtml += `<div>${ink}: ${inkCounts[ink]} <span class="text-slate-500">(${perc}%)</span></div>`;
+                    }
+                });
+                statsHtml += `</div></div>`;
+
+                statsHtml += `<div><h4 class="font-semibold text-slate-300 mb-1">Card Type Distribution</h4><div class="space-y-1">`;
+                typeOrder.forEach(type => {
+                    if (typeCounts[type]) {
+                        const perc = ((typeCounts[type] / total) * 100).toFixed(1);
+                        statsHtml += `<div>${type}: ${typeCounts[type]} <span class="text-slate-500">(${perc}%)</span></div>`;
+                    }
+                });
+                statsHtml += `</div></div>`;
+
+                statsHtml += `</div>`;
+                customRegexStats.innerHTML = statsHtml;
+            }
+
+            copyResultsBtn.addEventListener('click', () => {
+                if (lastRegexResults.length === 0) return;
+
+                const cardNames = lastRegexResults.map(card => card.fullName).join('\n');
+                navigator.clipboard.writeText(cardNames).then(() => {
+                    const originalText = copyResultsBtn.textContent;
+                    copyResultsBtn.textContent = 'Copied!';
+                    copyResultsBtn.classList.add('bg-green-600', 'hover:bg-green-700');
+                    copyResultsBtn.classList.remove('bg-teal-600', 'hover:bg-teal-700');
+                    setTimeout(() => {
+                        copyResultsBtn.textContent = originalText;
+                        copyResultsBtn.classList.remove('bg-green-600', 'hover:bg-green-700');
+                        copyResultsBtn.classList.add('bg-teal-600', 'hover:bg-teal-700');
+                    }, 2000);
+                }).catch(err => {
+                    console.error('Failed to copy text: ', err);
+                    alert('Failed to copy card names.');
+                });
             });
 
             // --- START THE APP ---
