@@ -154,6 +154,7 @@
                             <input type="file" id="json-file-input" class="hidden" accept=".json">
                         </div>
                         <button id="save-json-btn" class="px-4 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 transition">Save JSON</button>
+                        <button id="save-md-btn" class="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition">Save Markdown</button>
                     </div>
                     <div class="flex justify-between items-center mb-4">
                         <div class="relative flex-grow">
@@ -225,6 +226,7 @@
             // Left Column
             const jsonFileInput = document.getElementById('json-file-input');
             const saveJsonBtn = document.getElementById('save-json-btn');
+            const saveMdBtn = document.getElementById('save-md-btn');
             const patternFilterInput = document.getElementById('pattern-filter-input');
             const patternListContainer = document.getElementById('pattern-list');
             const patternPlaceholder = document.getElementById('pattern-placeholder');
@@ -310,6 +312,72 @@
                 downloadAnchorNode.click();
                 downloadAnchorNode.remove();
             });
+
+            saveMdBtn.addEventListener('click', () => {
+                if(abilityPatterns.length === 0) {
+                    alert("No ability data loaded to save.");
+                    return;
+                }
+                const markdownContent = convertPatternsToMarkdown(abilityPatterns);
+                const dataStr = "data:text/markdown;charset=utf-8," + encodeURIComponent(markdownContent);
+                const downloadAnchorNode = document.createElement('a');
+                downloadAnchorNode.setAttribute("href", dataStr);
+                downloadAnchorNode.setAttribute("download", "lorcana_abilities.md");
+                document.body.appendChild(downloadAnchorNode);
+                downloadAnchorNode.click();
+                downloadAnchorNode.remove();
+            });
+
+            function convertPatternsToMarkdown(patterns) {
+                let md = '# Lorcana Ability Patterns\n\n';
+
+                patterns.forEach(p => {
+                    md += `## ${p.name || 'Unnamed Ability'}\n\n`;
+                    if (p.category) md += `**Category:** ${p.category}\n`;
+                    if (p.sub_type) md += `**Sub-type:** ${p.sub_type}\n`;
+                    if (p.quick_description) md += `**Quick Description:** ${p.quick_description}\n`;
+                    md += '\n';
+
+                    if (p.regex) {
+                        md += `### Regex\n`;
+                        md += '```\n';
+                        md += `${p.regex}\n`;
+                        md += '```\n\n';
+                    }
+
+                    if (p.explanation) {
+                        md += `### Explanation\n`;
+                        md += `${p.explanation}\n\n`;
+                    }
+
+                    if (p.justification) {
+                        md += `### Justification\n`;
+                        md += `${p.justification}\n\n`;
+                    }
+
+                    md += `### Scores\n\n`;
+                    const bc = p.scores?.board_control;
+                    const lv = p.scores?.lore_velocity;
+                    const rd = p.scores?.resource_dominance;
+
+                    if (bc && bc.value) {
+                        md += `- **Board Control:** ${bc.value}\n`;
+                        if (bc.notes) md += `  - *Notes:* ${bc.notes.replace(/\n/g, ' ')}\n`;
+                    }
+                    if (lv && lv.value) {
+                        md += `- **Lore Velocity:** ${lv.value}\n`;
+                        if (lv.notes) md += `  - *Notes:* ${lv.notes.replace(/\n/g, ' ')}\n`;
+                    }
+                    if (rd && rd.value) {
+                        md += `- **Resource Dominance:** ${rd.value}\n`;
+                        if (rd.notes) md += `  - *Notes:* ${rd.notes.replace(/\n/g, ' ')}\n`;
+                    }
+
+                    md += '\n---\n\n';
+                });
+
+                return md;
+            }
 
             // --- PATTERN EDITOR UI & LOGIC ---
             function displayPatterns() {
