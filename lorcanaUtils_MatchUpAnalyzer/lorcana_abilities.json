@@ -1,5 +1,28 @@
 [
     {
+      "name": "Condition: On Banish",
+      "category": "Condition",
+      "sub_type": "On Banish",
+      "quick_description": "other or your characters are banished",
+      "regex": "/when(?:ever)? (a character of yours|one of your (other )?characters|a(n other?) character) is banished/gi",
+      "explanation": "this is a bit different than than a trigger on banish",
+      "justification": "",
+      "scores": {
+        "board_control": {
+          "value": "TBD",
+          "notes": ""
+        },
+        "lore_velocity": {
+          "value": "TBD",
+          "notes": ""
+        },
+        "resource_dominance": {
+          "value": "TBD",
+          "notes": ""
+        }
+      }
+    },
+    {
       "name": "Condition: No Cards",
       "category": "Condition",
       "sub_type": "No Cards",
@@ -924,7 +947,7 @@
       "category": "Trigger",
       "sub_type": "On Banish",
       "regex": "/When (this character|he|she|it) is banished/gi",
-      "explanation": "This ability triggers when this character is banished which means that it's almost guarantied to trigger. It only doesn't trigger when your character is added to your inkwell or to the bottom of your deck for example.",
+      "explanation": "This ability triggers when this character is banished which means that it's almost guarantied to trigger. It only doesn't trigger when your character is added to your inkwell or to the bottom of your deck for example.\n\nEventhough the trigger itself doesn't have a BCR LVI RDS it provides a \"multiplier\" to those values.",
       "justification": "An effect that provides value when the character is removed.",
       "quick_description": "Triggers when this character is banished.",
       "scores": {

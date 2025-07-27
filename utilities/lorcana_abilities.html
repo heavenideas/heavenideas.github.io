@@ -920,8 +920,14 @@
                         results.push({ card, text });
                     }
                 });
+                const cardResults = results.map(r => r.card);
+                lastRegexResults = cardResults;
+                displayRegexStats(cardResults);
+                copyResultsBtn.classList.toggle('hidden', cardResults.length === 0);
+
                 if (results.length === 0) {
                     customRegexResults.innerHTML = '<div class="text-slate-500">No cards matched this regex.</div>';
+                    customRegexStats.innerHTML = ''; // Also clear stats display
                     return;
                 }
                 // Display results
