@@ -119,6 +119,34 @@
         .focus-animation {
             animation: focus-highlight 1.5s ease-out;
         }
+
+        .tree-nav-item {
+            padding: 6px 12px;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: background-color 0.2s, color 0.2s;
+            font-weight: 500;
+        }
+        .tree-nav-item:hover {
+            background-color: #334155; /* slate-700 */
+        }
+        .tree-nav-item.active {
+            background-color: #2563eb; /* blue-600 */
+            color: #f1f5f9; /* slate-100 */
+        }
+        .tree-nav-item.subtype {
+            padding-left: 28px;
+            font-size: 0.9rem;
+            font-weight: 400;
+        }
+        .tree-nav-item .count {
+            font-size: 0.8rem;
+            color: #94a3b8; /* slate-400 */
+            margin-left: 8px;
+        }
+        .tree-nav-item.active .count {
+            color: #dbeafe; /* blue-200 */
+        }
     </style>
 </head>
 
@@ -154,6 +182,7 @@
                             <input type="file" id="json-file-input" class="hidden" accept=".json">
                         </div>
                         <button id="save-json-btn" class="px-4 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 transition">Save JSON</button>
+                        <button id="new-ability-btn" class="px-4 py-2 bg-sky-600 text-white font-semibold rounded-lg shadow-md hover:bg-sky-700 transition">New Ability</button>
                         <button id="save-md-btn" class="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition">Save Markdown</button>
                     </div>
                     <div class="flex justify-between items-center mb-4">
@@ -164,10 +193,21 @@
                         <span id="last-loaded-timestamp" class="text-xs text-slate-500 ml-4 whitespace-nowrap"></span>
                     </div>
 
-                    <!-- Pattern List -->
-                    <div id="pattern-list" class="space-y-4 overflow-y-auto flex-grow pr-2">
-                         <div id="pattern-placeholder" class="text-center text-slate-500 py-10 border-2 border-dashed border-slate-700 rounded-lg">
-                            <p>Load `lorcana_abilities.json` to start editing.</p>
+                    <!-- Main Content Area -->
+                    <div class="flex-grow flex gap-4 overflow-hidden">
+                        <!-- Tree Navigation -->
+                        <div id="tree-nav-container" class="w-1/3 bg-slate-950 p-3 rounded-lg overflow-y-auto">
+                            <h3 class="text-lg font-semibold text-slate-200 mb-3">Categories</h3>
+                            <div id="tree-nav">
+                                <div class="text-center text-slate-500 text-sm py-6">Load a file to build navigation.</div>
+                            </div>
+                        </div>
+
+                        <!-- Pattern List -->
+                        <div id="pattern-list" class="space-y-4 overflow-y-auto flex-grow pr-2 w-2/3">
+                             <div id="pattern-placeholder" class="text-center text-slate-500 py-10 border-2 border-dashed border-slate-700 rounded-lg">
+                                <p>Load `lorcana_abilities.json` to start editing.</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -227,10 +267,12 @@
             const jsonFileInput = document.getElementById('json-file-input');
             const saveJsonBtn = document.getElementById('save-json-btn');
             const saveMdBtn = document.getElementById('save-md-btn');
+            const newAbilityBtn = document.getElementById('new-ability-btn');
             const patternFilterInput = document.getElementById('pattern-filter-input');
             const patternListContainer = document.getElementById('pattern-list');
             const patternPlaceholder = document.getElementById('pattern-placeholder');
             const lastLoadedTimestamp = document.getElementById('last-loaded-timestamp');
+            const treeNavContainer = document.getElementById('tree-nav');
 
             // Right Column
             const searchInput = document.getElementById('search-input');
@@ -285,6 +327,7 @@
                             }
                         });
                         displayPatterns();
+                        buildAndRenderTree(abilityPatterns);
                         const now = new Date();
                         lastLoadedTimestamp.textContent = `Last loaded: ${now.toLocaleTimeString()}`;
                         if(selectedCard) displayCardDetails(selectedCard, false);
@@ -311,6 +354,42 @@
                 document.body.appendChild(downloadAnchorNode);
                 downloadAnchorNode.click();
                 downloadAnchorNode.remove();
+            });
+
+            newAbilityBtn.addEventListener('click', () => {
+                const newAbility = {
+                    name: "New Ability",
+                    category: "Uncategorized",
+                    sub_type: "",
+                    quick_description: "",
+                    regex: "//",
+                    explanation: "",
+                    justification: "",
+                    scores: {
+                        board_control: { value: "", notes: "" },
+                        lore_velocity: { value: "", notes: "" },
+                        resource_dominance: { value: "", notes: "" }
+                    }
+                };
+                
+                // Add to the main list
+                abilityPatterns.unshift(newAbility);
+
+                // Re-render the editor list and the tree
+                displayPatterns();
+                buildAndRenderTree(abilityPatterns);
+
+                // Focus the new element
+                const firstPattern = patternListContainer.querySelector('[data-index="0"]');
+                if (firstPattern) {
+                    firstPattern.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    firstPattern.classList.add('focus-animation');
+                    const nameInput = firstPattern.querySelector('[data-field="name"]');
+                    if (nameInput) {
+                        nameInput.focus();
+                        nameInput.select();
+                    }
+                }
             });
 
             saveMdBtn.addEventListener('click', () => {
@@ -380,15 +459,23 @@
             }
 
             // --- PATTERN EDITOR UI & LOGIC ---
-            function displayPatterns() {
+            function displayPatterns(patternsToDisplay = abilityPatterns) {
                 patternListContainer.innerHTML = '';
+
+                if (patternsToDisplay.length === 0) {
+                    patternListContainer.innerHTML = `<div class="text-center text-slate-500 py-10 border-2 border-dashed border-slate-700 rounded-lg"><p>No patterns match the current filter.</p></div>`;
+                    return;
+                }
                 patternPlaceholder.classList.add('hidden');
 
-                abilityPatterns.forEach((pattern, index) => {
+                patternsToDisplay.forEach(pattern => {
+                    // Find the original index from the master list
+                    const originalIndex = abilityPatterns.findIndex(p => p === pattern);
+
                     const patternEl = document.createElement('div');
                     patternEl.className = 'p-4 bg-slate-800 rounded-lg border border-slate-700 transition-colors duration-300';
                     patternEl.setAttribute('data-pattern-name', pattern.name);
-                    patternEl.setAttribute('data-index', index);
+                    patternEl.setAttribute('data-index', originalIndex);
 
                     patternEl.innerHTML = `
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -490,6 +577,9 @@
                 if (selectedCard) {
                     displayCardDetails(selectedCard, false);
                 }
+                
+                // After any input, rebuild the tree to reflect potential name/category changes
+                buildAndRenderTree(abilityPatterns);
             });
 
             patternListContainer.addEventListener('click', (e) => {
@@ -506,10 +596,94 @@
                 }
             });
  
-             // --- CARD ANALYSIS & DISPLAY (Right Column) ---
-            searchInput.addEventListener('input', (e) => handleSearch(e.target.value));
-            searchInput.addEventListener('focus', (e) => { if (e.target.value) handleSearch(e.target.value); });
-            document.addEventListener('click', (e) => { if (!e.target.closest('#search-input, #search-results')) searchResultsContainer.classList.add('hidden'); });
+           // --- TREE NAVIGATION ---
+           function buildAndRenderTree(patterns) {
+               const tree = {};
+               patterns.forEach(p => {
+                   const category = p.category || 'Uncategorized';
+                   const subType = p.sub_type || 'General';
+                   if (!tree[category]) {
+                       tree[category] = {};
+                   }
+                   if (!tree[category][subType]) {
+                       tree[category][subType] = 0;
+                   }
+                   tree[category][subType]++;
+               });
+
+               treeNavContainer.innerHTML = '';
+               const fragment = document.createDocumentFragment();
+
+               // Add "Show All" button
+               const showAllEl = document.createElement('div');
+               showAllEl.className = 'tree-nav-item active';
+               showAllEl.textContent = 'Show All';
+               showAllEl.dataset.filterType = 'all';
+               const totalCount = document.createElement('span');
+               totalCount.className = 'count';
+               totalCount.textContent = `(${patterns.length})`;
+               showAllEl.appendChild(totalCount);
+               fragment.appendChild(showAllEl);
+
+               Object.keys(tree).sort().forEach(category => {
+                   const categoryEl = document.createElement('div');
+                   categoryEl.className = 'tree-nav-item';
+                   categoryEl.textContent = category;
+                   categoryEl.dataset.filterType = 'category';
+                   categoryEl.dataset.filterValue = category;
+                   
+                   const categoryCount = Object.values(tree[category]).reduce((sum, count) => sum + count, 0);
+                   const catCountSpan = document.createElement('span');
+                   catCountSpan.className = 'count';
+                   catCountSpan.textContent = `(${categoryCount})`;
+                   categoryEl.appendChild(catCountSpan);
+
+                   fragment.appendChild(categoryEl);
+
+                   if (Object.keys(tree[category]).length > 1 || !tree[category]['General']) {
+                       Object.keys(tree[category]).sort().forEach(subType => {
+                           const subTypeEl = document.createElement('div');
+                           subTypeEl.className = 'tree-nav-item subtype';
+                           subTypeEl.textContent = subType;
+                           subTypeEl.dataset.filterType = 'subtype';
+                           subTypeEl.dataset.category = category;
+                           subTypeEl.dataset.subType = subType;
+
+                           const subTypeCount = document.createElement('span');
+                           subTypeCount.className = 'count';
+                           subTypeCount.textContent = `(${tree[category][subType]})`;
+                           subTypeEl.appendChild(subTypeCount);
+                           
+                           fragment.appendChild(subTypeEl);
+                       });
+                   }
+               });
+               treeNavContainer.appendChild(fragment);
+           }
+
+           treeNavContainer.addEventListener('click', (e) => {
+               const target = e.target.closest('.tree-nav-item');
+               if (!target) return;
+
+               document.querySelectorAll('#tree-nav .tree-nav-item').forEach(el => el.classList.remove('active'));
+               target.classList.add('active');
+
+               const { filterType, filterValue, category, subType } = target.dataset;
+
+               let filteredPatterns = abilityPatterns;
+               if (filterType === 'category') {
+                   filteredPatterns = abilityPatterns.filter(p => (p.category || 'Uncategorized') === filterValue);
+               } else if (filterType === 'subtype') {
+                   filteredPatterns = abilityPatterns.filter(p => (p.category || 'Uncategorized') === category && (p.sub_type || 'General') === subType);
+               }
+               
+               displayPatterns(filteredPatterns);
+           });
+
+            // --- CARD ANALYSIS & DISPLAY (Right Column) ---
+           searchInput.addEventListener('input', (e) => handleSearch(e.target.value));
+           searchInput.addEventListener('focus', (e) => { if (e.target.value) handleSearch(e.target.value); });
+           document.addEventListener('click', (e) => { if (!e.target.closest('#search-input, #search-results')) searchResultsContainer.classList.add('hidden'); });
 
             function handleSearch(query) {
                 if (query.trim() === '') {
@@ -598,6 +772,18 @@
                 const target = event.target;
                 if (target.matches('[data-pattern-name]')) {
                     const patternName = target.dataset.patternName;
+
+                    // Reset the tree filter to "Show All" to ensure the element is visible
+                    document.querySelectorAll('#tree-nav .tree-nav-item').forEach(el => el.classList.remove('active'));
+                    const showAllBtn = document.querySelector('#tree-nav [data-filter-type="all"]');
+                    if (showAllBtn) {
+                        showAllBtn.classList.add('active');
+                    }
+                    
+                    // Re-display all patterns
+                    displayPatterns(abilityPatterns);
+
+                    // Now find the element and scroll to it
                     const patternEditorEl = document.querySelector(`#pattern-list [data-pattern-name="${patternName}"]`);
                     if (patternEditorEl) {
                         patternEditorEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
