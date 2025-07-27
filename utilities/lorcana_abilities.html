@@ -483,7 +483,7 @@
                             <div><label class="form-label">Category</label><input type="text" class="form-input" data-field="category" value="${pattern.category || ''}"></div>
                         </div>
                         <div class="mt-4"><label class="form-label">Sub-type</label><input type="text" class="form-input" data-field="sub_type" value="${pattern.sub_type || ''}"></div>
-                        <div class="mt-4"><label class="form-label">Regex</label><input type="text" class="form-input regex-input" data-field="regex" value="${pattern.regex || ''}" title="Click to load in Custom Regex Search"></div>
+                        <div class="mt-4"><label class="form-label cursor-pointer hover:text-blue-400 transition-colors" title="Click to copy this pattern to the Custom Regex Search below">Regex</label><input type="text" class="form-input regex-input" data-field="regex" value="${pattern.regex || ''}"></div>
                         <div class="mt-4"><label class="form-label">Quick Description</label><input type="text" class="form-input" data-field="quick_description" value="${pattern.quick_description || ''}"></div>
                         <div class="mt-4"><label class="form-label">Explanation</label><textarea class="form-textarea" rows="3" data-field="explanation">${pattern.explanation || ''}</textarea></div>
                         <div class="mt-4"><label class="form-label">Justification</label><textarea class="form-textarea" rows="2" data-field="justification">${pattern.justification || ''}</textarea></div>
@@ -584,14 +584,28 @@
 
             patternListContainer.addEventListener('click', (e) => {
                 const target = e.target;
-                if (target.matches('[data-field="regex"]')) {
-                    let regexString = target.value;
-                    // Remove starting/trailing slashes and flags
+                // New behavior: click the LABEL to copy regex
+                if (target.tagName === 'LABEL' && target.nextElementSibling && target.nextElementSibling.matches('[data-field="regex"]')) {
+                    const regexInput = target.nextElementSibling;
+                    let regexString = regexInput.value;
+                    
                     const match = regexString.match(/^\/(.*)\/([gimuy]*)$/);
+                    
                     if (match) {
-                        regexString = match[1];
+                        customRegexInput.value = match[1];
+                        customRegexFlags.value = match[2] || 'gi'; // Use found flags or default
+                    } else {
+                        customRegexInput.value = regexString; // Assume no slashes, copy as is
+                        customRegexFlags.value = 'gi'; // Default flags
                     }
-                    customRegexInput.value = regexString;
+                    
+                    // Focus the custom search section for better UX
+                    const customRegexSection = document.getElementById('custom-regex-section');
+                    if (customRegexSection) {
+                        customRegexSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        customRegexSection.classList.add('focus-animation');
+                        setTimeout(() => customRegexSection.classList.remove('focus-animation'), 1500);
+                    }
                     customRegexInput.focus();
                 }
             });
