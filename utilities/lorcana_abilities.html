@@ -910,35 +910,48 @@
                     return;
                 }
 
-                const results = allCards.filter(card => {
-                    const text = (card.fullText || '').replace(/\n/g, ' ').trim();
-                    regex.lastIndex = 0; // Reset regex state for global flag
-                    return text && regex.test(text);
+                // Search all cards for matches
+                const results = [];
+                allCards.forEach(card => {
+                    let text = card.fullText || '';
+                    text = (text).replace(/\n/g, ' ').trim();
+                    regex.lastIndex = 0;
+                    if (text && regex.test(text)) {
+                        results.push({ card, text });
+                    }
                 });
-
-                lastRegexResults = results; // Store results
-                displayRegexStats(results); // Display stats
-
                 if (results.length === 0) {
                     customRegexResults.innerHTML = '<div class="text-slate-500">No cards matched this regex.</div>';
-                    copyResultsBtn.classList.add('hidden');
                     return;
                 }
-
-                copyResultsBtn.classList.remove('hidden');
+                // Display results
                 const fragment = document.createDocumentFragment();
-                results.forEach(card => {
-                    const text = (card.fullText || '');
-                    regex.lastIndex = 0; // Reset regex state before replacing to ensure all matches are found
-                    const highlighted = text.replace(regex, `<span class="highlight bg-yellow-400">$&</span>`);
-                    
+                results.forEach(({ card, text }) => {
+                    // Highlight all matches in the text
+                    let highlighted = '';
+                    let lastIndex = 0;
+                    let match;
+                    regex.lastIndex = 0;
+                    const matches = [];
+                    while ((match = regex.exec(text)) !== null) {
+                        if (match[0].length === 0) break;
+                        matches.push({ start: match.index, end: match.index + match[0].length });
+                        if (!regex.global) break;
+                    }
+                    matches.forEach((m, i) => {
+                        highlighted += text.substring(lastIndex, m.start);
+                        highlighted += `<span class=\"highlight bg-yellow-200\">${text.substring(m.start, m.end)}</span>`;
+                        lastIndex = m.end;
+                    });
+                    highlighted += text.substring(lastIndex);
+
                     const cardDiv = document.createElement('div');
                     cardDiv.className = 'mb-4 p-3 bg-slate-800 rounded-lg border border-slate-700 shadow flex items-start';
                     cardDiv.innerHTML = `
                         <img src="${card.images.thumbnail}" alt="${card.fullName}" class="w-16 h-22 mr-4 rounded-md" onerror="this.style.display='none'">
                         <div>
                             <div class="font-bold text-blue-400 mb-2">${card.fullName}</div>
-                            <div class="prose prose-sm prose-invert">${highlighted.replace(/\n/gi, '<br>')}</div>
+                            <div class="prose prose-sm prose-invert">${highlighted.replace(/\n/g, '<br>')}</div>
                         </div>
                     `;
                     fragment.appendChild(cardDiv);
