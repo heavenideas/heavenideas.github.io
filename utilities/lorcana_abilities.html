@@ -86,6 +86,12 @@
             border-color: #3b82f6; /* blue-500 */
             box-shadow: 0 0 0 2px #1e40af; /* blue-800 */
         }
+
+        .form-textarea-auto {
+            min-height: 42px; /* Match input height */
+            resize: none;
+            overflow-y: hidden;
+        }
         
         .form-label {
             font-weight: 500;
@@ -322,34 +328,46 @@
                             <div><label class="form-label">Category</label><input type="text" class="form-input" data-field="category" value="${pattern.category || ''}"></div>
                         </div>
                         <div class="mt-4"><label class="form-label">Sub-type</label><input type="text" class="form-input" data-field="sub_type" value="${pattern.sub_type || ''}"></div>
-                        <div class="mt-4"><label class="form-label">Regex</label><input type="text" class="form-input regex-input" data-field="regex" value="${pattern.regex || ''}"></div>
+                        <div class="mt-4"><label class="form-label">Regex</label><input type="text" class="form-input regex-input" data-field="regex" value="${pattern.regex || ''}" title="Click to load in Custom Regex Search"></div>
                         <div class="mt-4"><label class="form-label">Quick Description</label><input type="text" class="form-input" data-field="quick_description" value="${pattern.quick_description || ''}"></div>
                         <div class="mt-4"><label class="form-label">Explanation</label><textarea class="form-textarea" rows="3" data-field="explanation">${pattern.explanation || ''}</textarea></div>
                         <div class="mt-4"><label class="form-label">Justification</label><textarea class="form-textarea" rows="2" data-field="justification">${pattern.justification || ''}</textarea></div>
                         
                         <h4 class="text-lg font-semibold mt-6 mb-2 text-slate-200 border-t border-slate-700 pt-3">Scores</h4>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
                             <div>
                                 <label class="form-label">Board Control</label>
-                                <input type="text" class="form-input" data-path="scores.board_control.value" value="${pattern.scores?.board_control?.value || ''}">
+                                <textarea class="form-textarea form-textarea-auto" data-path="scores.board_control.value" placeholder="Value...">${pattern.scores?.board_control?.value || ''}</textarea>
                                 <textarea class="form-textarea mt-2 text-sm" rows="2" data-path="scores.board_control.notes" placeholder="Notes...">${pattern.scores?.board_control?.notes || ''}</textarea>
                             </div>
                             <div>
                                 <label class="form-label">Lore Velocity</label>
-                                <input type="text" class="form-input" data-path="scores.lore_velocity.value" value="${pattern.scores?.lore_velocity?.value || ''}">
+                                <textarea class="form-textarea form-textarea-auto" data-path="scores.lore_velocity.value" placeholder="Value...">${pattern.scores?.lore_velocity?.value || ''}</textarea>
                                 <textarea class="form-textarea mt-2 text-sm" rows="2" data-path="scores.lore_velocity.notes" placeholder="Notes...">${pattern.scores?.lore_velocity?.notes || ''}</textarea>
                             </div>
                             <div>
                                 <label class="form-label">Resource Dominance</label>
-                                <input type="text" class="form-input" data-path="scores.resource_dominance.value" value="${pattern.scores?.resource_dominance?.value || ''}">
+                                <textarea class="form-textarea form-textarea-auto" data-path="scores.resource_dominance.value" placeholder="Value...">${pattern.scores?.resource_dominance?.value || ''}</textarea>
                                 <textarea class="form-textarea mt-2 text-sm" rows="2" data-path="scores.resource_dominance.notes" placeholder="Notes...">${pattern.scores?.resource_dominance?.notes || ''}</textarea>
                             </div>
                         </div>
                     `;
                     patternListContainer.appendChild(patternEl);
                 });
+
+                // Auto-resize all textareas on initial display
+                document.querySelectorAll('.form-textarea-auto').forEach(textarea => {
+                    if (textarea.value) {
+                        autoResizeTextarea(textarea);
+                    }
+                });
             }
 
+            function autoResizeTextarea(textarea) {
+                textarea.style.height = 'auto';
+                textarea.style.height = (textarea.scrollHeight) + 'px';
+            }
+ 
             patternFilterInput.addEventListener('input', (e) => {
                 const filterText = e.target.value.toLowerCase();
                 document.querySelectorAll('#pattern-list > div').forEach(el => {
@@ -364,9 +382,14 @@
 
             patternListContainer.addEventListener('input', (e) => {
                 const target = e.target;
+
+                if (target.matches('.form-textarea-auto')) {
+                    autoResizeTextarea(target);
+                }
+
                 const parentPattern = target.closest('[data-index]');
                 if (!parentPattern) return;
-
+ 
                 const index = parseInt(parentPattern.dataset.index, 10);
                 const patternToUpdate = abilityPatterns[index];
                 
@@ -401,7 +424,21 @@
                 }
             });
 
-            // --- CARD ANALYSIS & DISPLAY (Right Column) ---
+            patternListContainer.addEventListener('click', (e) => {
+                const target = e.target;
+                if (target.matches('[data-field="regex"]')) {
+                    let regexString = target.value;
+                    // Remove starting/trailing slashes and flags
+                    const match = regexString.match(/^\/(.*)\/([gimuy]*)$/);
+                    if (match) {
+                        regexString = match[1];
+                    }
+                    customRegexInput.value = regexString;
+                    customRegexInput.focus();
+                }
+            });
+ 
+             // --- CARD ANALYSIS & DISPLAY (Right Column) ---
             searchInput.addEventListener('input', (e) => handleSearch(e.target.value));
             searchInput.addEventListener('focus', (e) => { if (e.target.value) handleSearch(e.target.value); });
             document.addEventListener('click', (e) => { if (!e.target.closest('#search-input, #search-results')) searchResultsContainer.classList.add('hidden'); });

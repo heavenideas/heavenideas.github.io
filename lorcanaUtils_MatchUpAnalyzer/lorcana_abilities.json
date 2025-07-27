@@ -8,9 +8,18 @@
       "justification": "A fundamental way to win the game. The value is significant as it directly contributes to the primary win condition.",
       "quick_description": "Gain a specified amount of lore.",
       "scores": {
-        "board_control": { "value": "0", "notes": "No direct impact on the board state." },
-        "lore_velocity": { "value": "(1.5 * Lore Amount)", "notes": "High impact on lore velocity as it's a direct gain." },
-        "resource_dominance": { "value": "0", "notes": "No impact on card advantage or resources." }
+        "board_control": {
+          "value": "0",
+          "notes": "No direct impact on the board state."
+        },
+        "lore_velocity": {
+          "value": "(1.5 * Lore Amount)",
+          "notes": "High impact on lore velocity as it's a direct gain."
+        },
+        "resource_dominance": {
+          "value": "0",
+          "notes": "No impact on card advantage or resources."
+        }
       }
     },
     {
@@ -22,9 +31,18 @@
       "justification": "This slows down the opponent's victory progression, which is a form of control over the game's pace and indirectly protects your own lore lead.",
       "quick_description": "Make an opponent lose lore.",
       "scores": {
-        "board_control": { "value": "0", "notes": "Doesn't affect characters on board, but affects win-condition race." },
-        "lore_velocity": { "value": "(1.5 * Lore Amount)", "notes": "Considered a lore velocity swing in your favor." },
-        "resource_dominance": { "value": "0", "notes": "No impact on card advantage." }
+        "board_control": {
+          "value": "0",
+          "notes": "Doesn't affect characters on board, but affects win-condition race."
+        },
+        "lore_velocity": {
+          "value": "(1.5 * Lore Amount)",
+          "notes": "Considered a lore velocity swing in your favor."
+        },
+        "resource_dominance": {
+          "value": "0",
+          "notes": "No impact on card advantage."
+        }
       }
     },
     {
@@ -36,9 +54,18 @@
       "justification": "Card draw is the primary engine for resource advantage, giving players more options and answers.",
       "quick_description": "Draw one or more cards.",
       "scores": {
-        "board_control": { "value": "0", "notes": "Indirectly helps find board control answers." },
-        "lore_velocity": { "value": "0", "notes": "Indirectly helps find lore-gaining cards." },
-        "resource_dominance": { "value": "(Number of cards drawn) * 1.5", "notes": "The cornerstone of resource dominance." }
+        "board_control": {
+          "value": "0",
+          "notes": "Indirectly helps find board control answers."
+        },
+        "lore_velocity": {
+          "value": "0",
+          "notes": "Indirectly helps find lore-gaining cards."
+        },
+        "resource_dominance": {
+          "value": "(Number of cards drawn) * 1.5",
+          "notes": "The cornerstone of resource dominance."
+        }
       }
     },
     {
@@ -50,9 +77,18 @@
       "justification": "Directly attacks the opponent's resources, limiting their potential plays.",
       "quick_description": "Force an opponent to discard cards.",
       "scores": {
-        "board_control": { "value": "0", "notes": "Can prevent opponents from playing board threats." },
-        "lore_velocity": { "value": "0", "notes": "Can prevent opponents from playing lore-gaining cards." },
-        "resource_dominance": { "value": "1.5", "notes": "A key hand disruption tactic." }
+        "board_control": {
+          "value": "0",
+          "notes": "Can prevent opponents from playing board threats."
+        },
+        "lore_velocity": {
+          "value": "0",
+          "notes": "Can prevent opponents from playing lore-gaining cards."
+        },
+        "resource_dominance": {
+          "value": "1.5",
+          "notes": "A key hand disruption tactic."
+        }
       }
     },
     {
@@ -64,9 +100,18 @@
       "justification": "This is typically a cost or a downside, reducing the player's own resources.",
       "quick_description": "Discard one or more of your own cards.",
       "scores": {
-        "board_control": { "value": "0", "notes": "TBD" },
-        "lore_velocity": { "value": "0", "notes": "TBD" },
-        "resource_dominance": { "value": "TBD", "notes": "This is a cost, likely a negative value." }
+        "board_control": {
+          "value": "0",
+          "notes": "TBD"
+        },
+        "lore_velocity": {
+          "value": "0",
+          "notes": "TBD"
+        },
+        "resource_dominance": {
+          "value": "TBD",
+          "notes": "This is a cost, likely a negative value."
+        }
       }
     },
     {
@@ -78,9 +123,18 @@
       "justification": "Provides card selection and filters draws, which is a form of card advantage.",
       "quick_description": "Look at the top cards of your deck.",
       "scores": {
-        "board_control": { "value": "0", "notes": "TBD" },
-        "lore_velocity": { "value": "0", "notes": "TBD" },
-        "resource_dominance": { "value": "(Number of cards looked at) * 1.0", "notes": "Provides card selection." }
+        "board_control": {
+          "value": "0",
+          "notes": "TBD"
+        },
+        "lore_velocity": {
+          "value": "0",
+          "notes": "TBD"
+        },
+        "resource_dominance": {
+          "value": "(Number of cards looked at) * 1.0",
+          "notes": "Provides card selection."
+        }
       }
     },
     {
@@ -92,9 +146,18 @@
       "justification": "This is a direct tutor effect, guaranteeing the player gets a useful card. It's a very strong form of resource advantage.",
       "quick_description": "Take a card from your deck to your hand.",
       "scores": {
-        "board_control": { "value": "0", "notes": "TBD" },
-        "lore_velocity": { "value": "0", "notes": "TBD" },
-        "resource_dominance": { "value": "+ 2.5", "notes": "Strong tutoring effect." }
+        "board_control": {
+          "value": "0",
+          "notes": "TBD"
+        },
+        "lore_velocity": {
+          "value": "0",
+          "notes": "TBD"
+        },
+        "resource_dominance": {
+          "value": "+ 2.5",
+          "notes": "Strong tutoring effect."
+        }
       }
     },
     {
@@ -106,9 +169,18 @@
       "justification": "Improves the quality of future draws by removing less desirable cards from the top of the deck.",
       "quick_description": "Put unwanted cards on the bottom of your deck.",
       "scores": {
-        "board_control": { "value": "0", "notes": "TBD" },
-        "lore_velocity": { "value": "0", "notes": "TBD" },
-        "resource_dominance": { "value": "+ 1.0", "notes": "Improves draw quality." }
+        "board_control": {
+          "value": "0",
+          "notes": "TBD"
+        },
+        "lore_velocity": {
+          "value": "0",
+          "notes": "TBD"
+        },
+        "resource_dominance": {
+          "value": "+ 1.0",
+          "notes": "Improves draw quality."
+        }
       }
     },
     {
@@ -120,9 +192,18 @@
       "justification": "This is a form of card advantage, as it recovers a spent resource.",
       "quick_description": "Return a card from your discard to your hand.",
       "scores": {
-        "board_control": { "value": "0", "notes": "TBD" },
-        "lore_velocity": { "value": "0", "notes": "TBD" },
-        "resource_dominance": { "value": "1.5", "notes": "Card recursion." }
+        "board_control": {
+          "value": "0",
+          "notes": "TBD"
+        },
+        "lore_velocity": {
+          "value": "0",
+          "notes": "TBD"
+        },
+        "resource_dominance": {
+          "value": "1.5",
+          "notes": "Card recursion."
+        }
       }
     },
     {
@@ -134,9 +215,18 @@
       "justification": "Prevents decking out and allows for reuse of key cards, but doesn't provide immediate advantage.",
       "quick_description": "Shuffle cards from discard back into your deck.",
       "scores": {
-        "board_control": { "value": "0", "notes": "TBD" },
-        "lore_velocity": { "value": "0", "notes": "TBD" },
-        "resource_dominance": { "value": "TBD", "notes": "Less impactful than drawing or tutoring." }
+        "board_control": {
+          "value": "0",
+          "notes": "TBD"
+        },
+        "lore_velocity": {
+          "value": "0",
+          "notes": "TBD"
+        },
+        "resource_dominance": {
+          "value": "TBD",
+          "notes": "Less impactful than drawing or tutoring."
+        }
       }
     },
     {
@@ -148,9 +238,18 @@
       "justification": "Provides valuable information for strategic planning, but no direct impact on board, lore, or resources.",
       "quick_description": "Look at an opponent's hand.",
       "scores": {
-        "board_control": { "value": "0", "notes": "TBD" },
-        "lore_velocity": { "value": "0", "notes": "TBD" },
-        "resource_dominance": { "value": "TBD", "notes": "Information advantage." }
+        "board_control": {
+          "value": "0",
+          "notes": "TBD"
+        },
+        "lore_velocity": {
+          "value": "0",
+          "notes": "TBD"
+        },
+        "resource_dominance": {
+          "value": "TBD",
+          "notes": "Information advantage."
+        }
       }
     },
     {
@@ -162,9 +261,18 @@
       "justification": "Directly accelerates resources (ramp), which is a powerful effect.",
       "quick_description": "Add a card to your inkwell.",
       "scores": {
-        "board_control": { "value": "0", "notes": "TBD" },
-        "lore_velocity": { "value": "0", "notes": "TBD" },
-        "resource_dominance": { "value": "(Number of cards put in inkwell) * 2.0", "notes": "Powerful resource ramp." }
+        "board_control": {
+          "value": "0",
+          "notes": "TBD"
+        },
+        "lore_velocity": {
+          "value": "0",
+          "notes": "TBD"
+        },
+        "resource_dominance": {
+          "value": "(Number of cards put in inkwell) * 2.0",
+          "notes": "Powerful resource ramp."
+        }
       }
     },
     {
@@ -176,9 +284,18 @@
       "justification": "A tempo-positive play that removes a threat from the board, forcing the opponent to spend ink to play it again.",
       "quick_description": "Return an opponent's card to their hand.",
       "scores": {
-        "board_control": { "value": "3.5", "notes": "Temporary removal, good for tempo." },
-        "lore_velocity": { "value": "0", "notes": "TBD" },
-        "resource_dominance": { "value": "0", "notes": "Opponent doesn't lose the card." }
+        "board_control": {
+          "value": "3.5",
+          "notes": "Temporary removal, good for tempo."
+        },
+        "lore_velocity": {
+          "value": "0",
+          "notes": "TBD"
+        },
+        "resource_dominance": {
+          "value": "0",
+          "notes": "Opponent doesn't lose the card."
+        }
       }
     },
     {
@@ -190,9 +307,18 @@
       "justification": "A powerful form of removal that not only deals with a threat but also turns it into a resource for the opponent that they may not want.",
       "quick_description": "Put an opponent's card into their inkwell.",
       "scores": {
-        "board_control": { "value": "6.5", "notes": "Strong removal that disrupts opponent's resources." },
-        "lore_velocity": { "value": "0", "notes": "TBD" },
-        "resource_dominance": { "value": "0", "notes": "TBD" }
+        "board_control": {
+          "value": "6.5",
+          "notes": "Strong removal that disrupts opponent's resources."
+        },
+        "lore_velocity": {
+          "value": "0",
+          "notes": "TBD"
+        },
+        "resource_dominance": {
+          "value": "0",
+          "notes": "TBD"
+        }
       }
     },
     {
@@ -204,9 +330,18 @@
       "justification": "The most definitive form of single-target removal, permanently dealing with a threat.",
       "quick_description": "Permanently remove a chosen opponent's card.",
       "scores": {
-        "board_control": { "value": "7.0", "notes": "Premium single-target removal." },
-        "lore_velocity": { "value": "0", "notes": "No direct lore impact." },
-        "resource_dominance": { "value": "0", "notes": "Typically a one-for-one trade." }
+        "board_control": {
+          "value": "7.0",
+          "notes": "Premium single-target removal."
+        },
+        "lore_velocity": {
+          "value": "0",
+          "notes": "No direct lore impact."
+        },
+        "resource_dominance": {
+          "value": "0",
+          "notes": "Typically a one-for-one trade."
+        }
       }
     },
     {
@@ -218,9 +353,18 @@
       "justification": "The most powerful board control effect, resetting the entire character board state.",
       "quick_description": "Permanently remove all characters from play.",
       "scores": {
-        "board_control": { "value": "8.0", "notes": "The ultimate board reset." },
-        "lore_velocity": { "value": "0", "notes": "No direct lore impact." },
-        "resource_dominance": { "value": "0", "notes": "Can be a massive resource swing if it removes more cards than it cost." }
+        "board_control": {
+          "value": "8.0",
+          "notes": "The ultimate board reset."
+        },
+        "lore_velocity": {
+          "value": "0",
+          "notes": "No direct lore impact."
+        },
+        "resource_dominance": {
+          "value": "0",
+          "notes": "Can be a massive resource swing if it removes more cards than it cost."
+        }
       }
     },
     {
@@ -232,9 +376,18 @@
       "justification": "A significant cost.",
       "quick_description": "Your own character is banished.",
       "scores": {
-        "board_control": { "value": "TBD", "notes": "Negative value." },
-        "lore_velocity": { "value": "TBD", "notes": "Negative value." },
-        "resource_dominance": { "value": "TBD", "notes": "Negative value." }
+        "board_control": {
+          "value": "TBD",
+          "notes": "Negative value."
+        },
+        "lore_velocity": {
+          "value": "TBD",
+          "notes": "Negative value."
+        },
+        "resource_dominance": {
+          "value": "TBD",
+          "notes": "Negative value."
+        }
       }
     },
     {
@@ -246,9 +399,18 @@
       "justification": "Powerful removal, but weaker than choosing the target yourself as the opponent will choose their least valuable character.",
       "quick_description": "Opponent banishes one of their own characters.",
       "scores": {
-        "board_control": { "value": "7.0", "notes": "Slightly weaker than chosen banish." },
-        "lore_velocity": { "value": "0", "notes": "TBD" },
-        "resource_dominance": { "value": "0", "notes": "TBD" }
+        "board_control": {
+          "value": "7.0",
+          "notes": "Slightly weaker than chosen banish."
+        },
+        "lore_velocity": {
+          "value": "0",
+          "notes": "TBD"
+        },
+        "resource_dominance": {
+          "value": "0",
+          "notes": "TBD"
+        }
       }
     },
     {
@@ -260,9 +422,18 @@
       "justification": "The cost of banishing a character.",
       "quick_description": "Banish your character as a cost.",
       "scores": {
-        "board_control": { "value": "TBD", "notes": "Negative value." },
-        "lore_velocity": { "value": "TBD", "notes": "Negative value." },
-        "resource_dominance": { "value": "TBD", "notes": "Negative value." }
+        "board_control": {
+          "value": "TBD",
+          "notes": "Negative value."
+        },
+        "lore_velocity": {
+          "value": "TBD",
+          "notes": "Negative value."
+        },
+        "resource_dominance": {
+          "value": "TBD",
+          "notes": "Negative value."
+        }
       }
     },
     {
@@ -274,9 +445,18 @@
       "justification": "A flexible form of removal that can banish weakened characters or set them up for banishment via challenges.",
       "quick_description": "Deal damage to a single opponent's card.",
       "scores": {
-        "board_control": { "value": "4.0", "notes": "Flexible removal, but not guaranteed." },
-        "lore_velocity": { "value": "0", "notes": "No direct lore impact." },
-        "resource_dominance": { "value": "0", "notes": "No direct resource impact." }
+        "board_control": {
+          "value": "4.0",
+          "notes": "Flexible removal, but not guaranteed."
+        },
+        "lore_velocity": {
+          "value": "0",
+          "notes": "No direct lore impact."
+        },
+        "resource_dominance": {
+          "value": "0",
+          "notes": "No direct resource impact."
+        }
       }
     },
     {
@@ -288,9 +468,18 @@
       "justification": "Similar to dealing damage, this can remove or weaken characters.",
       "quick_description": "Put damage counters on a character.",
       "scores": {
-        "board_control": { "value": "4.5", "notes": "Slightly more versatile than dealing damage in some contexts." },
-        "lore_velocity": { "value": "0", "notes": "TBD" },
-        "resource_dominance": { "value": "0", "notes": "TBD" }
+        "board_control": {
+          "value": "4.5",
+          "notes": "Slightly more versatile than dealing damage in some contexts."
+        },
+        "lore_velocity": {
+          "value": "0",
+          "notes": "TBD"
+        },
+        "resource_dominance": {
+          "value": "0",
+          "notes": "TBD"
+        }
       }
     },
     {
@@ -302,9 +491,18 @@
       "justification": "An area-of-effect (AoE) ability that can control boards with many small characters.",
       "quick_description": "Deal damage to all opposing characters.",
       "scores": {
-        "board_control": { "value": "4.0", "notes": "Can be very effective against wide boards." },
-        "lore_velocity": { "value": "0", "notes": "TBD" },
-        "resource_dominance": { "value": "0", "notes": "TBD" }
+        "board_control": {
+          "value": "4.0",
+          "notes": "Can be very effective against wide boards."
+        },
+        "lore_velocity": {
+          "value": "0",
+          "notes": "TBD"
+        },
+        "resource_dominance": {
+          "value": "0",
+          "notes": "TBD"
+        }
       }
     },
     {
@@ -316,9 +514,18 @@
       "justification": "A very flexible form of removal that can take out multiple small threats or finish off one large one.",
       "quick_description": "Divide damage among multiple targets.",
       "scores": {
-        "board_control": { "value": "4.0", "notes": "Flexibility is its key strength." },
-        "lore_velocity": { "value": "0", "notes": "TBD" },
-        "resource_dominance": { "value": "0", "notes": "TBD" }
+        "board_control": {
+          "value": "4.0",
+          "notes": "Flexibility is its key strength."
+        },
+        "lore_velocity": {
+          "value": "0",
+          "notes": "TBD"
+        },
+        "resource_dominance": {
+          "value": "0",
+          "notes": "TBD"
+        }
       }
     },
     {
@@ -330,9 +537,18 @@
       "justification": "Increases the longevity of your characters, allowing them to quest or challenge more times.",
       "quick_description": "Remove damage from one of your cards.",
       "scores": {
-        "board_control": { "value": "0", "notes": "TBD" },
-        "lore_velocity": { "value": "(Heal Amount)", "notes": "Increases character survivability to quest more." },
-        "resource_dominance": { "value": "0", "notes": "TBD" }
+        "board_control": {
+          "value": "0",
+          "notes": "TBD"
+        },
+        "lore_velocity": {
+          "value": "(Heal Amount)",
+          "notes": "Increases character survivability to quest more."
+        },
+        "resource_dominance": {
+          "value": "0",
+          "notes": "TBD"
+        }
       }
     },
     {
@@ -344,9 +560,18 @@
       "justification": "A cost or downside.",
       "quick_description": "One of your cards takes damage.",
       "scores": {
-        "board_control": { "value": "TBD", "notes": "Negative value." },
-        "lore_velocity": { "value": "TBD", "notes": "Negative value." },
-        "resource_dominance": { "value": "TBD", "notes": "Negative value." }
+        "board_control": {
+          "value": "TBD",
+          "notes": "Negative value."
+        },
+        "lore_velocity": {
+          "value": "TBD",
+          "notes": "Negative value."
+        },
+        "resource_dominance": {
+          "value": "TBD",
+          "notes": "Negative value."
+        }
       }
     },
     {
@@ -358,9 +583,18 @@
       "justification": "Enables action advantage, effectively letting a character act twice in a turn cycle.",
       "quick_description": "Ready one of your exerted characters.",
       "scores": {
-        "board_control": { "value": "TBD", "notes": "Can enable an extra challenge." },
-        "lore_velocity": { "value": "+ (1.6)", "notes": "Can enable an extra quest." },
-        "resource_dominance": { "value": "0", "notes": "TBD" }
+        "board_control": {
+          "value": "TBD",
+          "notes": "Can enable an extra challenge."
+        },
+        "lore_velocity": {
+          "value": "+ (1.6)",
+          "notes": "Can enable an extra quest."
+        },
+        "resource_dominance": {
+          "value": "0",
+          "notes": "TBD"
+        }
       }
     },
     {
@@ -372,9 +606,18 @@
       "justification": "A soft form of removal that can prevent an opponent from using a key character for a turn.",
       "quick_description": "Exert an opponent's character.",
       "scores": {
-        "board_control": { "value": "2.5", "notes": "Disables an opponent's character for a turn." },
-        "lore_velocity": { "value": "0", "notes": "TBD" },
-        "resource_dominance": { "value": "0", "notes": "TBD" }
+        "board_control": {
+          "value": "2.5",
+          "notes": "Disables an opponent's character for a turn."
+        },
+        "lore_velocity": {
+          "value": "0",
+          "notes": "TBD"
+        },
+        "resource_dominance": {
+          "value": "0",
+          "notes": "TBD"
+        }
       }
     },
     {
@@ -386,9 +629,18 @@
       "justification": "A stronger form of soft removal than simply exerting a character.",
       "quick_description": "Prevent an opponent's character from readying.",
       "scores": {
-        "board_control": { "value": "TBD", "notes": "Stronger than exert." },
-        "lore_velocity": { "value": "0", "notes": "TBD" },
-        "resource_dominance": { "value": "0", "notes": "TBD" }
+        "board_control": {
+          "value": "TBD",
+          "notes": "Stronger than exert."
+        },
+        "lore_velocity": {
+          "value": "0",
+          "notes": "TBD"
+        },
+        "resource_dominance": {
+          "value": "0",
+          "notes": "TBD"
+        }
       }
     },
     {
@@ -400,9 +652,18 @@
       "justification": "Provides tempo and action efficiency.",
       "quick_description": "Move a character to a location for free.",
       "scores": {
-        "board_control": { "value": "TBD", "notes": "TBD" },
-        "lore_velocity": { "value": "TBD", "notes": "TBD" },
-        "resource_dominance": { "value": "TBD", "notes": "TBD" }
+        "board_control": {
+          "value": "TBD",
+          "notes": "TBD"
+        },
+        "lore_velocity": {
+          "value": "TBD",
+          "notes": "TBD"
+        },
+        "resource_dominance": {
+          "value": "TBD",
+          "notes": "TBD"
+        }
       }
     },
     {
@@ -414,9 +675,18 @@
       "justification": "Makes characters better in challenges, both offensively and defensively.",
       "quick_description": "Increase a character's Strength.",
       "scores": {
-        "board_control": { "value": "(1.5 * Buff Amount)", "notes": "Improves combat effectiveness." },
-        "lore_velocity": { "value": "0", "notes": "TBD" },
-        "resource_dominance": { "value": "0", "notes": "TBD" }
+        "board_control": {
+          "value": "(1.5 * Buff Amount)",
+          "notes": "Improves combat effectiveness."
+        },
+        "lore_velocity": {
+          "value": "0",
+          "notes": "TBD"
+        },
+        "resource_dominance": {
+          "value": "0",
+          "notes": "TBD"
+        }
       }
     },
     {
@@ -428,9 +698,18 @@
       "justification": "Makes opposing characters weaker in challenges.",
       "quick_description": "Decrease a character's Strength.",
       "scores": {
-        "board_control": { "value": "(1.5 * Debuff Amount)", "notes": "Reduces combat effectiveness of opponents." },
-        "lore_velocity": { "value": "0", "notes": "TBD" },
-        "resource_dominance": { "value": "0", "notes": "TBD" }
+        "board_control": {
+          "value": "(1.5 * Debuff Amount)",
+          "notes": "Reduces combat effectiveness of opponents."
+        },
+        "lore_velocity": {
+          "value": "0",
+          "notes": "TBD"
+        },
+        "resource_dominance": {
+          "value": "0",
+          "notes": "TBD"
+        }
       }
     },
     {
@@ -442,9 +721,18 @@
       "justification": "Increases survivability against damage-based removal and challenges.",
       "quick_description": "Increase a character's Willpower.",
       "scores": {
-        "board_control": { "value": "(1.5 * Buff Amount)", "notes": "Improves survivability in combat." },
-        "lore_velocity": { "value": "TBD", "notes": "Contributes to survivability modifier." },
-        "resource_dominance": { "value": "0", "notes": "TBD" }
+        "board_control": {
+          "value": "(1.5 * Buff Amount)",
+          "notes": "Improves survivability in combat."
+        },
+        "lore_velocity": {
+          "value": "TBD",
+          "notes": "Contributes to survivability modifier."
+        },
+        "resource_dominance": {
+          "value": "0",
+          "notes": "TBD"
+        }
       }
     },
     {
@@ -456,9 +744,18 @@
       "justification": "A form of resource advantage, allowing you to play more cards or more expensive cards sooner.",
       "quick_description": "Pay less ink for a card.",
       "scores": {
-        "board_control": { "value": "0", "notes": "TBD" },
-        "lore_velocity": { "value": "0", "notes": "TBD" },
-        "resource_dominance": { "value": "(Cost Reduced) * 1.0", "notes": "Resource ramp." }
+        "board_control": {
+          "value": "0",
+          "notes": "TBD"
+        },
+        "lore_velocity": {
+          "value": "0",
+          "notes": "TBD"
+        },
+        "resource_dominance": {
+          "value": "(Cost Reduced) * 1.0",
+          "notes": "Resource ramp."
+        }
       }
     },
     {
@@ -470,9 +767,18 @@
       "justification": "A powerful form of card advantage that circumvents the need to draw the card again.",
       "quick_description": "Play a card from your discard pile.",
       "scores": {
-        "board_control": { "value": "0", "notes": "TBD" },
-        "lore_velocity": { "value": "0", "notes": "TBD" },
-        "resource_dominance": { "value": "1.5", "notes": "Powerful recursion and card advantage." }
+        "board_control": {
+          "value": "0",
+          "notes": "TBD"
+        },
+        "lore_velocity": {
+          "value": "0",
+          "notes": "TBD"
+        },
+        "resource_dominance": {
+          "value": "1.5",
+          "notes": "Powerful recursion and card advantage."
+        }
       }
     },
     {
@@ -484,9 +790,18 @@
       "justification": "A massive tempo and resource advantage, often referred to as 'cheating' a card into play.",
       "quick_description": "Play a card for free.",
       "scores": {
-        "board_control": { "value": "0", "notes": "TBD" },
-        "lore_velocity": { "value": "0", "notes": "TBD" },
-        "resource_dominance": { "value": "(Max cost of free card) * (Trigger Reliability Multiplier)", "notes": "Ultimate resource advantage." }
+        "board_control": {
+          "value": "0",
+          "notes": "TBD"
+        },
+        "lore_velocity": {
+          "value": "0",
+          "notes": "TBD"
+        },
+        "resource_dominance": {
+          "value": "(Max cost of free card) * (Trigger Reliability Multiplier)",
+          "notes": "Ultimate resource advantage."
+        }
       }
     },
     {
@@ -498,9 +813,18 @@
       "justification": "A temporary form of cost reduction.",
       "quick_description": "Pay less for the next card you play.",
       "scores": {
-        "board_control": { "value": "0", "notes": "TBD" },
-        "lore_velocity": { "value": "0", "notes": "TBD" },
-        "resource_dominance": { "value": "(Cost Reduced) * 1.0", "notes": "Temporary resource ramp." }
+        "board_control": {
+          "value": "0",
+          "notes": "TBD"
+        },
+        "lore_velocity": {
+          "value": "0",
+          "notes": "TBD"
+        },
+        "resource_dominance": {
+          "value": "(Cost Reduced) * 1.0",
+          "notes": "Temporary resource ramp."
+        }
       }
     },
     {
@@ -512,9 +836,18 @@
       "justification": "A common trigger for 'Enter the Battlefield' (ETB) effects.",
       "quick_description": "Triggers when this card is played.",
       "scores": {
-        "board_control": { "value": "TBD", "notes": "Contextual" },
-        "lore_velocity": { "value": "TBD", "notes": "Contextual" },
-        "resource_dominance": { "value": "TBD", "notes": "Contextual" }
+        "board_control": {
+          "value": "TBD",
+          "notes": "Contextual"
+        },
+        "lore_velocity": {
+          "value": "TBD",
+          "notes": "Contextual"
+        },
+        "resource_dominance": {
+          "value": "TBD",
+          "notes": "Contextual"
+        }
       }
     },
     {
@@ -526,9 +859,18 @@
       "justification": "Provides value for performing the primary lore-gaining action.",
       "quick_description": "Triggers when this character quests.",
       "scores": {
-        "board_control": { "value": "TBD", "notes": "Contextual" },
-        "lore_velocity": { "value": "TBD", "notes": "Contextual" },
-        "resource_dominance": { "value": "TBD", "notes": "Contextual" }
+        "board_control": {
+          "value": "TBD",
+          "notes": "Contextual"
+        },
+        "lore_velocity": {
+          "value": "TBD",
+          "notes": "Contextual"
+        },
+        "resource_dominance": {
+          "value": "TBD",
+          "notes": "Contextual"
+        }
       }
     },
     {
@@ -536,13 +878,22 @@
       "category": "Trigger",
       "sub_type": "On Banish",
       "regex": "/When (this character|he|she|it) is banished/gi",
-      "explanation": "This ability triggers when this character is banished.",
-      "justification": "A 'deathrattle' or 'leaves play' effect that provides value when the character is removed.",
+      "explanation": "This ability triggers when this character is banished which means that it's almost guarantied to trigger. It only doesn't trigger when your character is added to your inkwell or to the bottom of your deck for example.",
+      "justification": "An effect that provides value when the character is removed.",
       "quick_description": "Triggers when this character is banished.",
       "scores": {
-        "board_control": { "value": "TBD", "notes": "Contextual" },
-        "lore_velocity": { "value": "TBD", "notes": "Contextual" },
-        "resource_dominance": { "value": "TBD", "notes": "Contextual" }
+        "board_control": {
+          "value": "TBD",
+          "notes": "Contextual"
+        },
+        "lore_velocity": {
+          "value": "TBD",
+          "notes": "Contextual"
+        },
+        "resource_dominance": {
+          "value": "TBD",
+          "notes": "Contextual"
+        }
       }
     },
     {
@@ -554,9 +905,18 @@
       "justification": "Evasive provides significant protection from challenges, making the character much more likely to survive to quest multiple times.",
       "quick_description": "Can only be challenged by Evasive characters.",
       "scores": {
-        "board_control": { "value": "0", "notes": "Primarily a defensive keyword for questing." },
-        "lore_velocity": { "value": "* 1.5 to Quest Safety Modifier", "notes": "Greatly increases the safety of questing." },
-        "resource_dominance": { "value": "0", "notes": "No direct resource impact." }
+        "board_control": {
+          "value": "0",
+          "notes": "Primarily a defensive keyword for questing."
+        },
+        "lore_velocity": {
+          "value": "* 1.5 to Quest Safety Modifier",
+          "notes": "Greatly increases the safety of questing."
+        },
+        "resource_dominance": {
+          "value": "0",
+          "notes": "No direct resource impact."
+        }
       }
     },
     {
@@ -568,9 +928,18 @@
       "justification": "Rush provides immediate board impact, allowing a character to act as removal on the turn it enters play.",
       "quick_description": "Can challenge the turn it's played.",
       "scores": {
-        "board_control": { "value": "(card.strength * 0.5)", "notes": "Provides immediate removal potential." },
-        "lore_velocity": { "value": "0", "notes": "Does not allow questing on the first turn." },
-        "resource_dominance": { "value": "0", "notes": "No direct resource impact." }
+        "board_control": {
+          "value": "(card.strength * 0.5)",
+          "notes": "Provides immediate removal potential."
+        },
+        "lore_velocity": {
+          "value": "0",
+          "notes": "Does not allow questing on the first turn."
+        },
+        "resource_dominance": {
+          "value": "0",
+          "notes": "No direct resource impact."
+        }
       }
     },
     {
@@ -582,9 +951,18 @@
       "justification": "Ward provides protection from targeted abilities, making the character resilient to many forms of removal and effects.",
       "quick_description": "Can't be chosen by opponent's abilities.",
       "scores": {
-        "board_control": { "value": "0", "notes": "Defensive ability." },
-        "lore_velocity": { "value": "* 1.4 to Survivability Modifier", "notes": "Significantly increases survivability against removal." },
-        "resource_dominance": { "value": "0", "notes": "No direct resource impact." }
+        "board_control": {
+          "value": "0",
+          "notes": "Defensive ability."
+        },
+        "lore_velocity": {
+          "value": "* 1.4 to Survivability Modifier",
+          "notes": "Significantly increases survivability against removal."
+        },
+        "resource_dominance": {
+          "value": "0",
+          "notes": "No direct resource impact."
+        }
       }
     },
     {
@@ -596,9 +974,18 @@
       "justification": "Increases survivability against damage-based removal and challenges.",
       "quick_description": "Takes less damage.",
       "scores": {
-        "board_control": { "value": "(1.5 * Resist Amount)", "notes": "Increases survivability in combat." },
-        "lore_velocity": { "value": "* 1.2 to Survivability Modifier", "notes": "Increases survivability to quest more." },
-        "resource_dominance": { "value": "0", "notes": "TBD" }
+        "board_control": {
+          "value": "(1.5 * Resist Amount)",
+          "notes": "Increases survivability in combat."
+        },
+        "lore_velocity": {
+          "value": "* 1.2 to Survivability Modifier",
+          "notes": "Increases survivability to quest more."
+        },
+        "resource_dominance": {
+          "value": "0",
+          "notes": "TBD"
+        }
       }
     },
     {
@@ -610,9 +997,18 @@
       "justification": "A form of resource ramp for playing song cards.",
       "quick_description": "Can sing songs for free.",
       "scores": {
-        "board_control": { "value": "(1.0 * Singer Value)", "notes": "Enables playing control-based songs." },
-        "lore_velocity": { "value": "0", "notes": "TBD" },
-        "resource_dominance": { "value": "TBD", "notes": "Related to the 'Songs' score." }
+        "board_control": {
+          "value": "(1.0 * Singer Value)",
+          "notes": "Enables playing control-based songs."
+        },
+        "lore_velocity": {
+          "value": "0",
+          "notes": "TBD"
+        },
+        "resource_dominance": {
+          "value": "TBD",
+          "notes": "Related to the 'Songs' score."
+        }
       }
     },
     {
@@ -624,10 +1020,18 @@
       "justification": "This is the core mechanic of song cards, providing resource advantage.",
       "quick_description": "Can be sung for free by a character.",
       "scores": {
-        "board_control": { "value": "TBD", "notes": "Contextual" },
-        "lore_velocity": { "value": "TBD", "notes": "Contextual" },
-        "resource_dominance": { "value": "(Max cost of free card) * (sing together? 1.5 : 1.0)", "notes": "Resource advantage from playing for free." }
+        "board_control": {
+          "value": "TBD",
+          "notes": "Contextual"
+        },
+        "lore_velocity": {
+          "value": "TBD",
+          "notes": "Contextual"
+        },
+        "resource_dominance": {
+          "value": "(Max cost of free card) * (sing together? 1.5 : 1.0)",
+          "notes": "Resource advantage from playing for free."
+        }
       }
     }
   ]
-  
