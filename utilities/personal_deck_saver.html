@@ -225,9 +225,14 @@
                     <div>
                         <div class="flex justify-between items-center mb-1">
                             <label for="decklist" class="block text-sm font-medium text-gray-300">Decklist</label>
-                            <button type="button" id="copyDecklistBtn" class="px-3 py-1 bg-gray-600 hover:bg-gray-500 text-xs rounded-md font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-purple-500">
-                                Copy Decklist
-                            </button>
+                           <div class="flex gap-2">
+                               <button type="button" id="generateLlmPromptBtn" class="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-xs rounded-md font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-purple-500">
+                                   Generate Deck Guide Prompt
+                               </button>
+                               <button type="button" id="copyDecklistBtn" class="px-3 py-1 bg-gray-600 hover:bg-gray-500 text-xs rounded-md font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-purple-500">
+                                   Copy Decklist
+                               </button>
+                           </div>
                         </div>
                         <textarea id="decklist" rows="10" required
                             class="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:outline-none font-mono text-sm"
@@ -332,6 +337,20 @@
         </div>
     </div>
 
+   <!-- LLM Prompt Modal -->
+   <div id="llmPromptModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 p-4 opacity-0 pointer-events-none">
+       <div class="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-4xl h-[90vh] flex flex-col">
+           <div class="flex justify-between items-center mb-4">
+               <h3 class="text-lg font-bold text-white">Generated LLM Prompt</h3>
+               <button id="closeLlmModalBtn" class="text-gray-400 hover:text-white">&times;</button>
+           </div>
+           <textarea id="llmPromptOutput" readonly class="w-full h-full bg-gray-900 border border-gray-700 rounded-md p-4 focus:ring-2 focus:ring-purple-500 focus:outline-none font-mono text-sm whitespace-pre-wrap"></textarea>
+           <div class="flex justify-end gap-4 mt-4">
+               <button id="copyLlmPromptBtn" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-md font-semibold transition-colors">Copy Prompt</button>
+           </div>
+       </div>
+   </div>
+
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             // --- GLOBAL STATE & CONFIG ---
@@ -381,6 +400,11 @@
             const cardSearchInput = document.getElementById('cardSearchInput');
             const cardSearchResults = document.getElementById('cardSearchResults');
             const copyDecklistBtn = document.getElementById('copyDecklistBtn');
+           const llmPromptModal = document.getElementById('llmPromptModal');
+           const closeLlmModalBtn = document.getElementById('closeLlmModalBtn');
+           const llmPromptOutput = document.getElementById('llmPromptOutput');
+           const copyLlmPromptBtn = document.getElementById('copyLlmPromptBtn');
+           const generateLlmPromptBtn = document.getElementById('generateLlmPromptBtn');
 
 
             // --- PROBABILITY FUNCTIONS ---
@@ -836,6 +860,33 @@
                 }
             });
 
+           // LLM Prompt Modal Listeners
+           generateLlmPromptBtn.addEventListener('click', generateLlmPrompt);
+           closeLlmModalBtn.addEventListener('click', () => {
+               llmPromptModal.classList.add('opacity-0', 'pointer-events-none');
+           });
+           llmPromptModal.addEventListener('click', (e) => {
+               if (e.target === llmPromptModal) {
+                   llmPromptModal.classList.add('opacity-0', 'pointer-events-none');
+               }
+           });
+           copyLlmPromptBtn.addEventListener('click', () => {
+               navigator.clipboard.writeText(llmPromptOutput.value).then(() => {
+                   const originalText = copyLlmPromptBtn.textContent;
+                   copyLlmPromptBtn.textContent = 'Copied!';
+                   copyLlmPromptBtn.classList.add('bg-green-500');
+                   copyLlmPromptBtn.classList.remove('bg-purple-600');
+                   setTimeout(() => {
+                       copyLlmPromptBtn.textContent = originalText;
+                       copyLlmPromptBtn.classList.remove('bg-green-500');
+                       copyLlmPromptBtn.classList.add('bg-purple-600');
+                   }, 2000);
+               }).catch(err => {
+                   console.error('Failed to copy LLM prompt: ', err);
+                   alert('Failed to copy prompt.');
+               });
+           });
+
             // Copy Decklist Button Functionality
             if (copyDecklistBtn && decklistTextarea) {
                 copyDecklistBtn.addEventListener('click', () => {
@@ -880,6 +931,100 @@
                     }
                 });
             }
+
+
+           // --- LLM PROMPT GENERATION ---
+           function generateLlmPrompt() {
+               if (currentDeck.length === 0) {
+                   alert("Please build a deck first.");
+                   return;
+               }
+
+               const totalCards = currentDeck.reduce((sum, item) => sum + item.count, 0);
+               const colorDistribution = {};
+               const cardTypes = {};
+               const costCurve = {};
+
+               currentDeck.forEach(({ count, card }) => {
+                   // Color Distribution
+                   (card.colors || [card.color]).forEach(color => {
+                       if (color) colorDistribution[color] = (colorDistribution[color] || 0) + count;
+                   });
+
+                   // Card Types
+                   const type = card.type || 'Unknown';
+                   cardTypes[type] = (cardTypes[type] || 0) + count;
+
+                   // Cost Curve
+                   const cost = card.cost || 0;
+                   costCurve[cost] = (costCurve[cost] || 0) + count;
+               });
+
+               const inkColors = Object.keys(colorDistribution).join(', ');
+               const colorDistText = Object.entries(colorDistribution).map(([k, v]) => `${k.toLowerCase()}: ${v}`).join(', ');
+               const cardTypesText = Object.entries(cardTypes).map(([k, v]) => `${k.toLowerCase()}: ${v}`).join(', ');
+               const costCurveText = Object.entries(costCurve).sort((a, b) => a[0] - b[0]).map(([k, v]) => `${k}: ${v}`).join(', ');
+
+               let decklistText = '';
+               currentDeck.sort((a, b) => a.card.cost - b.card.cost || a.card.fullName.localeCompare(b.card.fullName)).forEach(({ count, card }) => {
+                   const inkable = card.inkwell ? '(Inkable)' : '';
+                   const stats = card.strength !== undefined ? `${card.strength}/${card.willpower} - ${card.lore}L` : '';
+                   const cardText = (card.text || '').replace(/\n/g, '\n    ');
+                   decklistText += `${count}x ${card.fullName} (${card.cost} ink, ${card.colors ? card.colors.join('/') : card.color}) - ${stats} ${inkable}\n`;
+                   if (cardText) {
+                       decklistText += `    Text: "${cardText}"\n\n`;
+                   } else {
+                       decklistText += `\n`;
+                   }
+               });
+
+
+               const prompt = `You are an expert Disney Lorcana TCG coach focusing on optimizing gameplay and teaching strategic decision-making. I need a comprehensive strategy guide for playing my deck effectively.
+
+DECK COMPOSITION:
+
+Total cards: ${totalCards}
+
+Ink colors: ${inkColors}
+
+Color distribution: ${colorDistText}
+
+Card types: ${cardTypesText}
+
+Cost curve: ${costCurveText}
+
+DECKLIST:
+
+${decklistText.trim()}
+
+
+FOCUS YOUR ANALYSIS ON:
+
+1. DECK IDENTITY & CORE STRATEGY: What is my deck trying to accomplish? What's its primary win condition?
+
+2. KEY SYNERGIES: Identify the 3-5 most important card combinations and explain how to set them up
+
+3. MULLIGAN GUIDE: Which cards should I prioritize in my opening hand?
+
+4. TURN-BY-TURN GAMEPLAY:
+
+   - Early game (turns 1-2): What should be my priorities?
+
+   - Mid game (turns 3-5): How should I develop my board?
+
+   - Late game (turns 6+): How do I close out the game?
+
+5. MATCHUP TACTICS: How should I adapt my strategy against aggressive, control, or midrange opponents?
+
+6. COMMON PITFALLS: What mistakes should I avoid when playing this deck?
+
+7. POWER PLAYS: What are the strongest sequences or plays this deck can make?
+
+FORMAT YOUR RESPONSE as a structured, professional guide with clear headings. Include specific card references when explaining strategies.`;
+
+               llmPromptOutput.value = prompt;
+               llmPromptModal.classList.remove('opacity-0', 'pointer-events-none');
+           }
 
 
             // --- INITIALIZATION ---
