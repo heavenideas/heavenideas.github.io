@@ -1547,10 +1547,12 @@
                 }
             }
 
-            function loadState(state) {
-                clearBoard(full = true);
-                decklistInputEl.value = state.decklist || '';
-                decklistUrlInputEl.value = state.decklistUrl || '';
+            function loadState(state, fullClear = true) {
+                clearBoard(full = fullClear);
+                if (fullClear) {
+                    decklistInputEl.value = state.decklist || '';
+                    decklistUrlInputEl.value = state.decklistUrl || '';
+                }
                 if (decklistInputEl.value) loadDeck();
                 nextCardInstanceId = state.nextCardInstanceId || 0;
 
@@ -1952,7 +1954,7 @@
                 } else {
                     try {
                         const state = JSON.parse(atob(selectedValue));
-                        loadState(state);
+                        loadState(state, false);
                     } catch (e) {
                         alert('Invalid map data found in comments. Could not load.');
                         console.error('Comment import failed:', e);
