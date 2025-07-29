@@ -1,0 +1,649 @@
+{
+  "@constants": {
+    "cardDrawValue": 2.0,
+    "uninkableBurdenMultiplier": 0.15,
+    "dqi": {
+      "perCardLookedAt": 1.0,
+      "filterToBottom": 1.0,
+      "tutorToHand": 2.5,
+      "tutorBonus": 0.8
+    },
+    "lvi": {
+      "wardModifier": 1.4,
+      "resistModifier": 1.2,
+      "highWillpowerThreshold": 6,
+      "highWillpowerModifier": 1.1,
+      "evasiveModifier": 1.5,
+      "itemSurvivability": 3.0,
+      "readyCharacterValue": 1.6,
+      "directLoreGainMultiplier": 1.5,
+      "specialLoreGainMultiplier": 5.0,
+      "healValueMultiplier": 1.0,
+      "grantWardAuraValue": 1.5
+    },
+    "bcr": {
+      "rushStrengthMultiplier": 0.5,
+      "singerValueMultiplier": 1.0,
+      "statBuffMultiplier": 1.5,
+      "grantKeywordAuraValue": 1.5
+    },
+    "cev": {
+      "baseMultiplier": 1.0,
+      "triggerReliability": {
+        "OnPlay": 1.0,
+        "OnQuest": 0.65,
+        "Other": 0.5
+      }
+    }
+  },
+  "abilities": [
+    {
+      "name": "Base: Lore Potential",
+      "category": "Base",
+      "sub_type": "Stat",
+      "regex": "WILL_NOT_MATCH_TEXT",
+      "explanation": "Fundamental LVI score derived from a character's printed lore, modified by its survivability and safety.",
+      "justification": "This is the core calculation for LVI. It's defined as an ability so its formula can use the context modifiers created by other keywords.",
+      "calculation": {
+        "variables": [
+          { "name": "baseLore", "source": "card.lore", "type": "numeric" }
+        ],
+        "contextModifiers": [],
+        "scores": {
+          "lore_velocity": {
+            "condition": "baseLore > 0",
+            "value": "baseLore * @context.lvi.survivability * @context.lvi.questSafety",
+            "explanation": "Base Lore * Survivability Modifier * Quest Safety Modifier"
+          }
+        }
+      }
+    },
+    {
+      "name": "Base: Uninkable Burden",
+      "category": "Base",
+      "sub_type": "Penalty",
+      "regex": "WILL_NOT_MATCH_TEXT",
+      "explanation": "Applies a penalty to the RDS for cards that cannot be put into the inkwell, representing a loss of resource flexibility.",
+      "justification": "Uninkable cards can lead to inconsistent starts and are a liability in the early game. The penalty scales with the card's cost.",
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [],
+        "scores": {
+          "resource_dominance": {
+            "condition": "@card.isUninkable == true",
+            "value": "-(@card.cost * @constants.uninkableBurdenMultiplier)",
+            "explanation": "Uninkable Burden (- Cost * Multiplier)"
+          }
+        }
+      }
+    },
+    {
+      "name": "Card Effect: Draw",
+      "category": "Resource",
+      "sub_type": "Card Draw",
+      "regex": "Draw (a|one|two|three|\\d+) card(?:s)?",
+      "explanation": "Draws a specified number of cards from the deck.",
+      "justification": "Card advantage is a primary way to dominate resources. The value is anchored against benchmark cards.",
+      "calculation": {
+        "variables": [
+          { "name": "drawCount", "source": "regex", "group": 1, "type": "textOrNumber" }
+        ],
+        "contextModifiers": [],
+        "scores": {
+          "resource_dominance": {
+            "value": "drawCount * @constants.cardDrawValue",
+            "explanation": "Draw (drawCount)"
+          }
+        }
+      }
+    },
+    {
+      "name": "Card Effect: Hand to Inkwell",
+      "category": "Resource",
+      "sub_type": "Ink Acceleration",
+      "regex": "put the top card of your deck into your inkwell facedown",
+      "explanation": "Accelerates ink resources directly from the deck.",
+      "justification": "This provides both card advantage (a card from deck) and tempo advantage (extra ink). Valued highly at 2.0.",
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [],
+        "scores": {
+          "resource_dominance": {
+            "value": "2.0",
+            "explanation": "Hand to Inkwell"
+          }
+        }
+      }
+    },
+    {
+      "name": "Play: From Discard",
+      "category": "Resource",
+      "sub_type": "Recursion",
+      "regex": "play a character with cost (\\d+) or less for free from your discard pile",
+      "explanation": "Allows playing a character directly from the discard pile, generating card advantage.",
+      "justification": "This circumvents the normal draw step, effectively 'drawing' a card from the discard. Valued at 1.5.",
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [],
+        "scores": {
+          "resource_dominance": {
+            "value": "1.5",
+            "explanation": "Play from Discard"
+          }
+        }
+      }
+    },
+    {
+      "name": "Card Effect: Discard to Hand",
+      "category": "Resource",
+      "sub_type": "Recursion",
+      "regex": "return a card from your discard to your hand",
+      "explanation": "Returns a card from the discard pile to the hand.",
+      "justification": "Similar to drawing a card, but with the added flexibility of choosing the card. Valued at 1.5.",
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [],
+        "scores": {
+          "resource_dominance": {
+            "value": "1.5",
+            "explanation": "Discard to Hand"
+          }
+        }
+      }
+    },
+    {
+        "name": "Card Effect: Opponent Discards",
+        "category": "Resource",
+        "sub_type": "Hand Disruption",
+        "regex": "opponent chooses and discards a card",
+        "explanation": "Forces an opponent to discard a card, creating card disadvantage for them.",
+        "justification": "Directly impacts the opponent's resources. Valued at 1.5.",
+        "calculation": {
+            "variables": [],
+            "contextModifiers": [],
+            "scores": {
+                "resource_dominance": {
+                    "value": "1.5",
+                    "explanation": "Opponent Discards"
+                }
+            }
+        }
+    },
+    {
+        "name": "Stat: Cost Reduction",
+        "category": "Resource",
+        "sub_type": "Cost Evasion",
+        "regex": "The next character you play this turn costs (\\d+) less",
+        "explanation": "Reduces the ink cost of another card, providing a tempo advantage.",
+        "justification": "Effectively generates 'temporary' ink. Valued at 1.0.",
+        "calculation": {
+            "variables": [],
+            "contextModifiers": [],
+            "scores": {
+                "resource_dominance": {
+                    "value": "1.0",
+                    "explanation": "Cost Reduction"
+                }
+            }
+        }
+    },
+    {
+        "name": "Card Effect: DQI",
+        "category": "Resource",
+        "sub_type": "Deck Quality",
+        "regex": "Look at the top (\\d+|one|two|three) cards of your deck",
+        "explanation": "Improves draw quality by allowing the player to see and organize upcoming cards.",
+        "justification": "The total DQI score is a sum of looking, filtering, and tutoring.",
+        "calculation": {
+            "variables": [
+                { "name": "lookCount", "source": "regex", "group": 1, "type": "textOrNumber" }
+            ],
+            "contextModifiers": [],
+            "scores": {
+                "resource_dominance": {
+                    "value": "lookCount * @constants.dqi.perCardLookedAt + (@card.scryEffect.canFilterToBottom ? @constants.dqi.filterToBottom : 0) + (@card.scryEffect.canTutorToHand ? @constants.dqi.tutorToHand + @constants.dqi.tutorBonus : 0)",
+                    "explanation": "DQI (Scry)"
+                }
+            }
+        }
+    },
+    {
+        "name": "Play: For Free (CEV)",
+        "category": "Resource",
+        "sub_type": "Cost Evasion",
+        "regex": "play a character with cost (\\d+) or less for free",
+        "explanation": "Allows playing a card for free, representing a significant tempo and resource swing (Cost Evasion Value).",
+        "justification": "The value is the ink saved, modified by the reliability of the trigger condition.",
+        "calculation": {
+            "variables": [
+                { "name": "maxCost", "source": "card.freePlayEffect.maxCost", "type": "numeric" },
+                { "name": "trigger", "source": "card.freePlayEffect.trigger", "type": "string" }
+            ],
+            "contextModifiers": [],
+            "scores": {
+                "resource_dominance": {
+                    "condition": "maxCost > 0",
+                    "value": "maxCost * @constants.cev.baseMultiplier * @constants.cev.triggerReliability[trigger]",
+                    "explanation": "Cost Evasion Value (Play for Free)"
+                }
+            }
+        }
+    },
+    {
+        "name": "Keyword: Ward",
+        "category": "Keyword",
+        "sub_type": "Defensive",
+        "regex": "Ward",
+        "explanation": "Prevents this character from being chosen for abilities, increasing its survivability.",
+        "justification": "Makes the character immune to most single-target removal, significantly boosting its ability to stick to the board and quest.",
+        "calculation": {
+            "variables": [],
+            "contextModifiers": [
+                { "targetMetric": "lvi", "name": "survivability", "operation": "multiply", "value": "@constants.lvi.wardModifier" }
+            ],
+            "scores": {}
+        }
+    },
+    {
+        "name": "Keyword: Resist",
+        "category": "Keyword",
+        "sub_type": "Defensive",
+        "regex": "Resist \\+?(\\d+)",
+        "explanation": "Reduces damage taken from challenges.",
+        "justification": "Directly increases durability against combat-based removal.",
+        "calculation": {
+            "variables": [],
+            "contextModifiers": [
+                { "targetMetric": "lvi", "name": "survivability", "operation": "multiply", "value": "@constants.lvi.resistModifier" }
+            ],
+            "scores": {}
+        }
+    },
+    {
+        "name": "Base: High Willpower",
+        "category": "Base",
+        "sub_type": "Stat",
+        "regex": "WILL_NOT_MATCH_TEXT",
+        "explanation": "Grants a survivability bonus to characters with high willpower.",
+        "justification": "Characters with 6 or more willpower are naturally harder to remove through damage.",
+        "calculation": {
+            "variables": [],
+            "contextModifiers": [
+                { "targetMetric": "lvi", "name": "survivability", "operation": "multiply", "condition": "@card.willpower >= @constants.lvi.highWillpowerThreshold", "value": "@constants.lvi.highWillpowerModifier" }
+            ],
+            "scores": {}
+        }
+    },
+    {
+        "name": "Keyword: Evasive",
+        "category": "Keyword",
+        "sub_type": "Offensive",
+        "regex": "Evasive",
+        "explanation": "Can only be challenged by other characters with Evasive, increasing quest safety.",
+        "justification": "Dramatically reduces the pool of characters that can challenge it, making it much safer to quest.",
+        "calculation": {
+            "variables": [],
+            "contextModifiers": [
+                { "targetMetric": "lvi", "name": "questSafety", "operation": "multiply", "value": "@constants.lvi.evasiveModifier" }
+            ],
+            "scores": {}
+        }
+    },
+    {
+        "name": "Type: Item",
+        "category": "Base",
+        "sub_type": "Type",
+        "regex": "WILL_NOT_MATCH_TEXT",
+        "explanation": "Applies a survivability modifier to abilities on Item cards.",
+        "justification": "Items are generally harder to interact with than characters, making their abilities more reliable.",
+        "calculation": {
+            "variables": [],
+            "contextModifiers": [
+                { "targetMetric": "lvi", "name": "survivability", "operation": "set", "condition": "@card.type == 'Item'", "value": "@constants.lvi.itemSurvivability" }
+            ],
+            "scores": {}
+        }
+    },
+    {
+        "name": "State: Ready Character",
+        "category": "Lore",
+        "sub_type": "Utility",
+        "regex": "Ready your chosen character",
+        "explanation": "Readies a character, allowing it to act again or be safe from challenges.",
+        "justification": "This is a powerful utility effect that can protect a key quester or enable a surprise challenge. It contributes to lore velocity by ensuring characters survive.",
+        "calculation": {
+            "variables": [],
+            "contextModifiers": [],
+            "scores": {
+                "lore_velocity": {
+                    "value": "@constants.lvi.readyCharacterValue",
+                    "explanation": "Ready Chosen Character"
+                }
+            }
+        }
+    },
+    {
+        "name": "Lore: Gain",
+        "category": "Lore",
+        "sub_type": "Direct Gain",
+        "regex": "gain (\\d+) lore",
+        "explanation": "Directly gains a fixed amount of lore.",
+        "justification": "Unconditional lore gain is a powerful way to race to the win condition.",
+        "calculation": {
+            "variables": [
+                { "name": "loreAmount", "source": "regex", "group": 1, "type": "numeric" }
+            ],
+            "contextModifiers": [],
+            "scores": {
+                "lore_velocity": {
+                    "value": "loreAmount * @constants.lvi.directLoreGainMultiplier",
+                    "explanation": "Lore: Gain (loreAmount)"
+                }
+            }
+        }
+    },
+    {
+        "name": "Lore: Gain (Special)",
+        "category": "Lore",
+        "sub_type": "Conditional Gain",
+        "regex": "gain lore equal to",
+        "explanation": "Gains a variable amount of lore based on a condition (e.g., character's strength).",
+        "justification": "This is a more complex lore gain effect. We assign a value based on the card's survivability, assuming it will generate significant lore if it stays on board.",
+        "calculation": {
+            "variables": [],
+            "contextModifiers": [],
+            "scores": {
+                "lore_velocity": {
+                    "value": "@context.lvi.survivability * @constants.lvi.specialLoreGainMultiplier",
+                    "explanation": "Lore: Gain Special"
+                }
+            }
+        }
+    },
+    {
+        "name": "Lore: Lose",
+        "category": "Lore",
+        "sub_type": "Disruption",
+        "regex": "opponent loses (\\d+) lore",
+        "explanation": "Forces an opponent to lose lore.",
+        "justification": "Functionally equivalent to gaining lore yourself in a race to 20.",
+        "calculation": {
+            "variables": [
+                { "name": "loreAmount", "source": "regex", "group": 1, "type": "numeric" }
+            ],
+            "contextModifiers": [],
+            "scores": {
+                "lore_velocity": {
+                    "value": "loreAmount * @constants.lvi.directLoreGainMultiplier",
+                    "explanation": "Lore: Opponent Loses (loreAmount)"
+                }
+            }
+        }
+    },
+    {
+        "name": "Static: Stat Buff (Lore)",
+        "category": "Lore",
+        "sub_type": "Buff",
+        "regex": "get(?:s)? \\+(\\d+) ◊",
+        "explanation": "Passively increases the lore of other characters.",
+        "justification": "This is a powerful aura effect that increases the entire team's questing potential.",
+        "calculation": {
+            "variables": [
+                { "name": "loreAmount", "source": "regex", "group": 1, "type": "numeric" }
+            ],
+            "contextModifiers": [],
+            "scores": {
+                "lore_velocity": {
+                    "value": "loreAmount * @constants.lvi.directLoreGainMultiplier",
+                    "explanation": "Static Lore Buff (loreAmount)"
+                }
+            }
+        }
+    },
+    {
+        "name": "Damage: Heal",
+        "category": "Lore",
+        "sub_type": "Utility",
+        "regex": "remove up to (\\d+) damage",
+        "explanation": "Heals damage from a character, increasing its survivability.",
+        "justification": "Healing contributes to LVI by keeping key questers on the board longer.",
+        "calculation": {
+            "variables": [
+                { "name": "healAmount", "source": "regex", "group": 1, "type": "numeric" }
+            ],
+            "contextModifiers": [],
+            "scores": {
+                "lore_velocity": {
+                    "value": "healAmount * @constants.lvi.healValueMultiplier",
+                    "explanation": "Damage: Heal (healAmount)"
+                }
+            }
+        }
+    },
+    {
+        "name": "Static: Grant Keyword (Aura - Ward)",
+        "category": "Lore",
+        "sub_type": "Aura",
+        "regex": "gain(?:s)? Ward",
+        "explanation": "Grants the Ward keyword to other characters.",
+        "justification": "A powerful defensive aura that significantly boosts the LVI of the entire board.",
+        "calculation": {
+            "variables": [],
+            "contextModifiers": [],
+            "scores": {
+                "lore_velocity": {
+                    "value": "@constants.lvi.grantWardAuraValue",
+                    "explanation": "Grants others Ward"
+                }
+            }
+        }
+    },
+    {
+        "name": "Banish: All Characters",
+        "category": "Board Control",
+        "sub_type": "Board Wipe",
+        "regex": "Banish all characters",
+        "explanation": "The ultimate board clear, resetting the entire game state.",
+        "justification": "This is the most powerful control effect in the game, valued at 8.0.",
+        "calculation": {
+            "variables": [],
+            "contextModifiers": [],
+            "scores": { "board_control": { "value": "8.0", "explanation": "Banish All" } }
+        }
+    },
+    {
+        "name": "Banish: Chosen Target",
+        "category": "Board Control",
+        "sub_type": "Single Target Removal",
+        "regex": "Banish chosen character",
+        "explanation": "Removes a single, chosen character from the board.",
+        "justification": "Premium, unconditional single-target removal. Valued at 7.0.",
+        "calculation": {
+            "variables": [],
+            "contextModifiers": [],
+            "scores": { "board_control": { "value": "7.0", "explanation": "Banish Other Characters" } }
+        }
+    },
+    {
+        "name": "Add to Inkwell: Opposing Character",
+        "category": "Board Control",
+        "sub_type": "Single Target Removal",
+        "regex": "put chosen character into their player's inkwell",
+        "explanation": "Removes a character and gives the opponent an ink, a unique form of removal.",
+        "justification": "Slightly less powerful than banish as it ramps the opponent, but still excellent removal. Valued at 6.5.",
+        "calculation": {
+            "variables": [],
+            "contextModifiers": [],
+            "scores": { "board_control": { "value": "6.5", "explanation": "Add opposing character to inkwell" } }
+        }
+    },
+    {
+        "name": "Damage: Put Damage Counters",
+        "category": "Board Control",
+        "sub_type": "Damage",
+        "regex": "place (\\d+) damage counter",
+        "explanation": "Places damage counters, which bypasses the Resist keyword.",
+        "justification": "A flexible form of damage that gets around some defenses. Valued at 4.5.",
+        "calculation": {
+            "variables": [],
+            "contextModifiers": [],
+            "scores": { "board_control": { "value": "4.5", "explanation": "Put Damage Counters" } }
+        }
+    },
+    {
+        "name": "Damage: Deal to One/Many",
+        "category": "Board Control",
+        "sub_type": "Damage",
+        "regex": "deal (\\d+) damage to",
+        "explanation": "Deals direct damage to one or more characters.",
+        "justification": "The most common form of removal. Valued at 4.0.",
+        "calculation": {
+            "variables": [],
+            "contextModifiers": [],
+            "scores": { "board_control": { "value": "4.0", "explanation": "Deal Damage" } }
+        }
+    },
+    {
+        "name": "Bounce: Opposing Character",
+        "category": "Board Control",
+        "sub_type": "Tempo Removal",
+        "regex": "Return chosen character to their player's hand",
+        "explanation": "Temporarily removes a character by returning it to the hand.",
+        "justification": "A strong tempo play that forces the opponent to re-spend ink. Valued at 3.5.",
+        "calculation": {
+            "variables": [],
+            "contextModifiers": [],
+            "scores": { "board_control": { "value": "3.5", "explanation": "Bounce Opposing Character" } }
+        }
+    },
+    {
+        "name": "State: Exert Character",
+        "category": "Board Control",
+        "sub_type": "Tempo Removal",
+        "regex": "chosen character can't ready",
+        "explanation": "Exerts a character, preventing it from questing or challenging.",
+        "justification": "A soft form of removal that can disrupt the opponent's turn. Valued at 2.5.",
+        "calculation": {
+            "variables": [],
+            "contextModifiers": [],
+            "scores": { "board_control": { "value": "2.5", "explanation": "Exert Character" } }
+        }
+    },
+    {
+        "name": "Stat: Strength Buff/Debuff",
+        "category": "Board Control",
+        "sub_type": "Combat Modifier",
+        "regex": "get(?:s)? (?:\\+|\\-)(\\d+) ¤",
+        "explanation": "Modifies a character's strength, affecting combat outcomes.",
+        "justification": "Directly influences challenges and board control.",
+        "calculation": {
+            "variables": [
+                { "name": "strengthAmount", "source": "regex", "group": 1, "type": "numeric" }
+            ],
+            "contextModifiers": [],
+            "scores": {
+                "board_control": {
+                    "value": "strengthAmount * @constants.bcr.statBuffMultiplier",
+                    "explanation": "Strength Buff/Debuff (strengthAmount)"
+                }
+            }
+        }
+    },
+    {
+        "name": "Stat: Willpower Buff",
+        "category": "Board Control",
+        "sub_type": "Combat Modifier",
+        "regex": "get(?:s)? \\+(\\d+) ⛉",
+        "explanation": "Modifies a character's willpower, affecting combat outcomes.",
+        "justification": "Makes characters harder to banish through challenges.",
+        "calculation": {
+            "variables": [
+                { "name": "willpowerAmount", "source": "regex", "group": 1, "type": "numeric" }
+            ],
+            "contextModifiers": [],
+            "scores": {
+                "board_control": {
+                    "value": "willpowerAmount * @constants.bcr.statBuffMultiplier",
+                    "explanation": "Willpower Buff (willpowerAmount)"
+                }
+            }
+        }
+    },
+    {
+        "name": "Static: Grant Keyword (Aura - Resist)",
+        "category": "Board Control",
+        "sub_type": "Aura",
+        "regex": "gain(?:s)? Resist \\+(\\d+)",
+        "explanation": "Grants the Resist keyword to other characters.",
+        "justification": "A defensive aura that improves the durability of your board.",
+        "calculation": {
+            "variables": [
+                { "name": "resistAmount", "source": "regex", "group": 1, "type": "numeric" }
+            ],
+            "contextModifiers": [],
+            "scores": {
+                "board_control": {
+                    "value": "resistAmount * @constants.bcr.statBuffMultiplier",
+                    "explanation": "Grant Resist Aura (resistAmount)"
+                }
+            }
+        }
+    },
+    {
+        "name": "Keyword: Rush",
+        "category": "Keyword",
+        "sub_type": "Offensive",
+        "regex": "Rush",
+        "explanation": "Allows a character to challenge the turn it is played.",
+        "justification": "Provides immediate board control. The value is proportional to the character's strength.",
+        "calculation": {
+            "variables": [],
+            "contextModifiers": [],
+            "scores": {
+                "board_control": {
+                    "value": "@card.strength * @constants.bcr.rushStrengthMultiplier",
+                    "explanation": "Rush"
+                }
+            }
+        }
+    },
+    {
+        "name": "Static: Grant Keyword (Aura - Combat)",
+        "category": "Board Control",
+        "sub_type": "Aura",
+        "regex": "gain(?:s)? (Rush|Support|Reckless|Bodyguard)",
+        "explanation": "Grants a combat-oriented keyword to other characters.",
+        "justification": "These auras improve the board's ability to challenge and control the game.",
+        "calculation": {
+            "variables": [],
+            "contextModifiers": [],
+            "scores": {
+                "board_control": {
+                    "value": "@constants.bcr.grantKeywordAuraValue",
+                    "explanation": "Grants others Combat Keyword"
+                }
+            }
+        }
+    },
+    {
+        "name": "Keyword: Singer",
+        "category": "Keyword",
+        "sub_type": "Resource",
+        "regex": "Singer (\\d+)",
+        "explanation": "Allows this character to sing songs of a certain cost for free.",
+        "justification": "This is a form of cost evasion, generating tempo by playing songs without paying their ink cost.",
+        "calculation": {
+            "variables": [
+                { "name": "singerValue", "source": "regex", "group": 1, "type": "numeric" }
+            ],
+            "contextModifiers": [],
+            "scores": {
+                "board_control": {
+                    "value": "singerValue * @constants.bcr.singerValueMultiplier",
+                    "explanation": "Singer (singerValue)"
+                }
+            }
+        }
+    }
+  ]
+}
