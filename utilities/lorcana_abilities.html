@@ -185,6 +185,7 @@
                         </div>
                         <button id="save-json-btn" class="px-4 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 transition">Save JSON</button>
                         <button id="new-ability-btn" class="px-4 py-2 bg-sky-600 text-white font-semibold rounded-lg shadow-md hover:bg-sky-700 transition">New Ability</button>
+                        <button id="edit-constants-btn" class="px-4 py-2 bg-purple-600 text-white font-semibold rounded-lg shadow-md hover:bg-purple-700 transition">Edit Constants</button>
                         <button id="save-md-btn" class="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition">Save Markdown</button>
                     </div>
                     <div class="flex justify-between items-center mb-4">
@@ -251,6 +252,23 @@
                 </div>
             </div>
         </main>
+
+        <!-- Constants Editor Modal -->
+        <div id="constants-modal" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div class="bg-slate-900 border border-slate-700 rounded-2xl shadow-xl w-full max-w-2xl p-6 m-4 flex flex-col max-h-full">
+                <div class="flex-shrink-0">
+                    <h2 class="text-2xl font-bold text-slate-100 mb-4">Edit Constants</h2>
+                    <p class="text-slate-400 mb-4">Edit the JSON for the @constants object. Be careful with the structure.</p>
+                </div>
+                <div class="flex-grow overflow-y-auto pr-2">
+                    <textarea id="constants-textarea" class="form-input form-textarea w-full h-full font-mono text-sm" style="min-height: 300px;"></textarea>
+                </div>
+                <div class="mt-6 flex justify-end gap-4 flex-shrink-0">
+                    <button id="cancel-constants-btn" class="px-4 py-2 bg-slate-600 text-white font-semibold rounded-lg hover:bg-slate-700 transition">Cancel</button>
+                    <button id="save-constants-btn" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition">Save Constants</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -293,6 +311,13 @@
             const customRegexError = document.getElementById('custom-regex-error');
             const customRegexStats = document.getElementById('custom-regex-stats');
             const copyResultsBtn = document.getElementById('copy-results-btn');
+
+            // Constants Modal
+            const editConstantsBtn = document.getElementById('edit-constants-btn');
+            const constantsModal = document.getElementById('constants-modal');
+            const constantsTextarea = document.getElementById('constants-textarea');
+            const saveConstantsBtn = document.getElementById('save-constants-btn');
+            const cancelConstantsBtn = document.getElementById('cancel-constants-btn');
 
             // --- DATA-DRIVEN CALCULATION ENGINE ---
 
@@ -602,6 +627,37 @@
                 document.body.appendChild(downloadAnchorNode);
                 downloadAnchorNode.click();
                 downloadAnchorNode.remove();
+            });
+
+            // --- CONSTANTS EDITOR ---
+            editConstantsBtn.addEventListener('click', () => {
+                if (!ABILITIES_CONFIG['@constants']) {
+                    ABILITIES_CONFIG['@constants'] = {};
+                }
+                const constantsJSON = JSON.stringify(ABILITIES_CONFIG['@constants'], null, 2);
+                constantsTextarea.value = constantsJSON;
+                constantsModal.classList.remove('hidden');
+                constantsTextarea.focus();
+            });
+
+            cancelConstantsBtn.addEventListener('click', () => {
+                constantsModal.classList.add('hidden');
+            });
+
+            saveConstantsBtn.addEventListener('click', () => {
+                try {
+                    const newConstants = JSON.parse(constantsTextarea.value);
+                    ABILITIES_CONFIG['@constants'] = newConstants;
+                    constantsModal.classList.add('hidden');
+                    
+                    // Re-analyze card if one is selected
+                    if (selectedCard) {
+                        displayCardDetails(selectedCard, false);
+                    }
+                    alert('Constants saved successfully!');
+                } catch (e) {
+                    alert('Invalid JSON format: ' + e.message);
+                }
             });
 
             function convertPatternsToMarkdown(patterns) {
