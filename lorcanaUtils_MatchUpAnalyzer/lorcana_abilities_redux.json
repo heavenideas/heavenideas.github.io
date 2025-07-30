@@ -1,10 +1,10 @@
 {
   "@constants": {
-    "cardDrawValue": 2.0,
+    "cardDrawValue": 1.5,
     "uninkableBurdenMultiplier": 0.15,
     "dqi": {
-      "perCardLookedAt": 1.0,
-      "filterToBottom": 1.0,
+      "perCardLookedAt": 1,
+      "filterToBottom": 1,
       "tutorToHand": 2.5,
       "tutorBonus": 0.8
     },
@@ -14,23 +14,23 @@
       "highWillpowerThreshold": 6,
       "highWillpowerModifier": 1.1,
       "evasiveModifier": 1.5,
-      "itemSurvivability": 3.0,
+      "itemSurvivability": 3,
       "readyCharacterValue": 1.6,
       "directLoreGainMultiplier": 1.5,
-      "specialLoreGainMultiplier": 5.0,
-      "healValueMultiplier": 1.0,
+      "specialLoreGainMultiplier": 5,
+      "healValueMultiplier": 1,
       "grantWardAuraValue": 1.5
     },
     "bcr": {
       "rushStrengthMultiplier": 0.5,
-      "singerValueMultiplier": 1.0,
+      "singerValueMultiplier": 1,
       "statBuffMultiplier": 1.5,
       "grantKeywordAuraValue": 1.5
     },
     "cev": {
-      "baseMultiplier": 1.0,
+      "baseMultiplier": 1,
       "triggerReliability": {
-        "OnPlay": 1.0,
+        "OnPlay": 1,
         "OnQuest": 0.65,
         "Other": 0.5
       }
@@ -46,7 +46,11 @@
       "justification": "This is the core calculation for LVI. It's defined as an ability so its formula can use the context modifiers created by other keywords.",
       "calculation": {
         "variables": [
-          { "name": "baseLore", "source": "card.lore", "type": "numeric" }
+          {
+            "name": "baseLore",
+            "source": "card.lore",
+            "type": "numeric"
+          }
         ],
         "contextModifiers": [],
         "scores": {
@@ -78,34 +82,46 @@
       }
     },
     {
-        "name": "Base: High Willpower",
-        "category": "Base",
-        "sub_type": "Stat",
-        "regex": "WILL_NOT_MATCH_TEXT",
-        "explanation": "Grants a survivability bonus to characters with high willpower.",
-        "justification": "Characters with 6 or more willpower are naturally harder to remove through damage.",
-        "calculation": {
-            "variables": [],
-            "contextModifiers": [
-                { "targetMetric": "lvi", "name": "survivability", "operation": "multiply", "condition": "@card.willpower >= @constants.lvi.highWillpowerThreshold", "value": "@constants.lvi.highWillpowerModifier" }
-            ],
-            "scores": {}
-        }
+      "name": "Base: High Willpower",
+      "category": "Base",
+      "sub_type": "Stat",
+      "regex": "WILL_NOT_MATCH_TEXT",
+      "explanation": "Grants a survivability bonus to characters with high willpower.",
+      "justification": "Characters with 6 or more willpower are naturally harder to remove through damage.",
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [
+          {
+            "targetMetric": "lvi",
+            "name": "survivability",
+            "operation": "multiply",
+            "condition": "@card.willpower >= @constants.lvi.highWillpowerThreshold",
+            "value": "@constants.lvi.highWillpowerModifier"
+          }
+        ],
+        "scores": {}
+      }
     },
     {
-        "name": "Type: Item",
-        "category": "Base",
-        "sub_type": "Type",
-        "regex": "WILL_NOT_MATCH_TEXT",
-        "explanation": "Applies a survivability modifier to abilities on Item cards.",
-        "justification": "Items are generally harder to interact with than characters, making their abilities more reliable.",
-        "calculation": {
-            "variables": [],
-            "contextModifiers": [
-                { "targetMetric": "lvi", "name": "survivability", "operation": "set", "condition": "@card.type == 'Item'", "value": "@constants.lvi.itemSurvivability" }
-            ],
-            "scores": {}
-        }
+      "name": "Type: Item",
+      "category": "Base",
+      "sub_type": "Type",
+      "regex": "WILL_NOT_MATCH_TEXT",
+      "explanation": "Applies a survivability modifier to abilities on Item cards.",
+      "justification": "Items are generally harder to interact with than characters, making their abilities more reliable.",
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [
+          {
+            "targetMetric": "lvi",
+            "name": "survivability",
+            "operation": "set",
+            "condition": "@card.type == 'Item'",
+            "value": "@constants.lvi.itemSurvivability"
+          }
+        ],
+        "scores": {}
+      }
     },
     {
       "name": "State: Can't Exert",
@@ -115,7 +131,11 @@
       "regex": "/(all characters|characters|opponent's characters|other characters|opposing characters|chosen character) (?:can't|cannot) exert/gi",
       "explanation": "this is good for tempo as it blocks any abilities that would require exerting.",
       "justification": "",
-      "calculation": { "variables": [], "contextModifiers": [], "scores": {} }
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [],
+        "scores": {}
+      }
     },
     {
       "name": "Condition: On Banish",
@@ -125,7 +145,11 @@
       "regex": "/when(?:ever)? (a character of yours|one of your (other )?characters|a(n other?) character) is banished/gi",
       "explanation": "this is a bit different than than a trigger on banish",
       "justification": "",
-      "calculation": { "variables": [], "contextModifiers": [], "scores": {} }
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [],
+        "scores": {}
+      }
     },
     {
       "name": "Condition: No Cards",
@@ -135,7 +159,11 @@
       "regex": "/(while|if|and) you have no cards in (?:your )hand/gi",
       "explanation": "TODO: Have to decide what impact this have",
       "justification": "",
-      "calculation": { "variables": [], "contextModifiers": [], "scores": {} }
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [],
+        "scores": {}
+      }
     },
     {
       "name": "Condition: Character exerted",
@@ -145,7 +173,11 @@
       "regex": "/(while|if|and) (?:this character|one of your characters|all of your characters) (is|are) exerted/gi",
       "explanation": "this is a requirement of some cards.",
       "justification": "",
-      "calculation": { "variables": [], "contextModifiers": [], "scores": {} }
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [],
+        "scores": {}
+      }
     },
     {
       "name": "State: Can't play",
@@ -159,7 +191,10 @@
         "variables": [],
         "contextModifiers": [],
         "scores": {
-          "board_control": { "value": "3.0", "explanation": "Affects game tempo" }
+          "board_control": {
+            "value": "3.0",
+            "explanation": "Affects game tempo"
+          }
         }
       }
     },
@@ -172,7 +207,12 @@
       "justification": "A fundamental way to win the game.",
       "calculation": {
         "variables": [
-          { "name": "loreAmount", "source": "regex", "group": 1, "type": "numeric" }
+          {
+            "name": "loreAmount",
+            "source": "regex",
+            "group": 1,
+            "type": "numeric"
+          }
         ],
         "contextModifiers": [],
         "scores": {
@@ -192,7 +232,12 @@
       "justification": "This slows down the opponent's victory progression.",
       "calculation": {
         "variables": [
-          { "name": "loreAmount", "source": "regex", "group": 2, "type": "numeric" }
+          {
+            "name": "loreAmount",
+            "source": "regex",
+            "group": 2,
+            "type": "numeric"
+          }
         ],
         "contextModifiers": [],
         "scores": {
@@ -212,7 +257,12 @@
       "justification": "Card draw is the primary engine for resource advantage.",
       "calculation": {
         "variables": [
-          { "name": "drawCount", "source": "regex", "group": 1, "type": "textOrNumber" }
+          {
+            "name": "drawCount",
+            "source": "regex",
+            "group": 1,
+            "type": "textOrNumber"
+          }
         ],
         "contextModifiers": [],
         "scores": {
@@ -248,7 +298,11 @@
       "regex": "/discard (\\d+|a|one|two|three) card(s?)/gi",
       "explanation": "The player must discard one or more cards, usually as a cost.",
       "justification": "This is typically a cost, reducing the player's own resources.",
-      "calculation": { "variables": [], "contextModifiers": [], "scores": {} }
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [],
+        "scores": {}
+      }
     },
     {
       "name": "Card Effect: Look at Deck",
@@ -259,7 +313,12 @@
       "justification": "Provides card selection and filters draws.",
       "calculation": {
         "variables": [
-          { "name": "lookCount", "source": "regex", "group": 1, "type": "textOrNumber" }
+          {
+            "name": "lookCount",
+            "source": "regex",
+            "group": 1,
+            "type": "textOrNumber"
+          }
         ],
         "contextModifiers": [],
         "scores": {
@@ -277,7 +336,11 @@
       "regex": "/put (?:one of them|a (?:character|item|action|song) card|one) into your hand(.)? (and )?(?:put)? the rest on the bottom of your deck/gi",
       "explanation": "A powerful form of card selection where a player looks at cards from their deck, puts one into their hand, and the rest on the bottom.",
       "justification": "This is a direct tutor effect, guaranteeing the player gets a useful card.",
-      "calculation": { "variables": [], "contextModifiers": [], "scores": {} }
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [],
+        "scores": {}
+      }
     },
     {
       "name": "Card Effect: Filter to Bottom",
@@ -286,7 +349,11 @@
       "regex": "/put the rest on the bottom of your deck/gi",
       "explanation": "After looking at cards from the top of the deck, the player puts the unwanted cards on the bottom.",
       "justification": "Improves the quality of future draws.",
-      "calculation": { "variables": [], "contextModifiers": [], "scores": {} }
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [],
+        "scores": {}
+      }
     },
     {
       "name": "Card Effect: Discard to Hand",
@@ -313,7 +380,11 @@
       "regex": "/shuffle (\\d+|a|one|two|three) card(s?) from your discard into your deck/gi",
       "explanation": "Shuffles cards from the discard pile back into the deck.",
       "justification": "Prevents decking out and allows for reuse of key cards.",
-      "calculation": { "variables": [], "contextModifiers": [], "scores": {} }
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [],
+        "scores": {}
+      }
     },
     {
       "name": "Card Effect: Look at Opponent's Hand",
@@ -322,7 +393,11 @@
       "regex": "/(look at chosen opponent's hand|chosen opponent reveals their hand)/gi",
       "explanation": "The player gets to see the cards in an opponent's hand.",
       "justification": "Provides valuable information for strategic planning.",
-      "calculation": { "variables": [], "contextModifiers": [], "scores": {} }
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [],
+        "scores": {}
+      }
     },
     {
       "name": "Card Effect: Hand to Inkwell",
@@ -353,7 +428,10 @@
         "variables": [],
         "contextModifiers": [],
         "scores": {
-          "board_control": { "value": "3.5", "explanation": "Bounce Opposing Character" }
+          "board_control": {
+            "value": "3.5",
+            "explanation": "Bounce Opposing Character"
+          }
         }
       }
     },
@@ -368,7 +446,10 @@
         "variables": [],
         "contextModifiers": [],
         "scores": {
-          "board_control": { "value": "6.5", "explanation": "Add opposing character to inkwell" }
+          "board_control": {
+            "value": "6.5",
+            "explanation": "Add opposing character to inkwell"
+          }
         }
       }
     },
@@ -382,7 +463,12 @@
       "calculation": {
         "variables": [],
         "contextModifiers": [],
-        "scores": { "board_control": { "value": "7.0", "explanation": "Banish Other Characters" } }
+        "scores": {
+          "board_control": {
+            "value": "7.0",
+            "explanation": "Banish Other Characters"
+          }
+        }
       }
     },
     {
@@ -395,7 +481,12 @@
       "calculation": {
         "variables": [],
         "contextModifiers": [],
-        "scores": { "board_control": { "value": "8.0", "explanation": "Banish All" } }
+        "scores": {
+          "board_control": {
+            "value": "8.0",
+            "explanation": "Banish All"
+          }
+        }
       }
     },
     {
@@ -408,7 +499,12 @@
       "calculation": {
         "variables": [],
         "contextModifiers": [],
-        "scores": { "board_control": { "value": "7.0", "explanation": "Banish Other Characters" } }
+        "scores": {
+          "board_control": {
+            "value": "7.0",
+            "explanation": "Banish Other Characters"
+          }
+        }
       }
     },
     {
@@ -418,7 +514,11 @@
       "regex": "/You may banish (?:this character|one of your characters) to/gi",
       "explanation": "The player may choose to banish one of their own characters to trigger an effect.",
       "justification": "The cost of banishing a character.",
-      "calculation": { "variables": [], "contextModifiers": [], "scores": {} }
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [],
+        "scores": {}
+      }
     },
     {
       "name": "Damage: Deal to One",
@@ -430,7 +530,12 @@
       "calculation": {
         "variables": [],
         "contextModifiers": [],
-        "scores": { "board_control": { "value": "4.0", "explanation": "Deal Damage" } }
+        "scores": {
+          "board_control": {
+            "value": "4.0",
+            "explanation": "Deal Damage"
+          }
+        }
       }
     },
     {
@@ -443,7 +548,12 @@
       "calculation": {
         "variables": [],
         "contextModifiers": [],
-        "scores": { "board_control": { "value": "4.5", "explanation": "Put Damage Counters" } }
+        "scores": {
+          "board_control": {
+            "value": "4.5",
+            "explanation": "Put Damage Counters"
+          }
+        }
       }
     },
     {
@@ -456,7 +566,12 @@
       "calculation": {
         "variables": [],
         "contextModifiers": [],
-        "scores": { "board_control": { "value": "4.0", "explanation": "Deal Damage" } }
+        "scores": {
+          "board_control": {
+            "value": "4.0",
+            "explanation": "Deal Damage"
+          }
+        }
       }
     },
     {
@@ -469,7 +584,12 @@
       "calculation": {
         "variables": [],
         "contextModifiers": [],
-        "scores": { "board_control": { "value": "4.0", "explanation": "Deal Damage" } }
+        "scores": {
+          "board_control": {
+            "value": "4.0",
+            "explanation": "Deal Damage"
+          }
+        }
       }
     },
     {
@@ -481,7 +601,12 @@
       "justification": "Increases the longevity of your characters.",
       "calculation": {
         "variables": [
-          { "name": "healAmount", "source": "regex", "group": 1, "type": "numeric" }
+          {
+            "name": "healAmount",
+            "source": "regex",
+            "group": 1,
+            "type": "numeric"
+          }
         ],
         "contextModifiers": [],
         "scores": {
@@ -503,7 +628,10 @@
         "variables": [],
         "contextModifiers": [],
         "scores": {
-          "board_control": { "value": "-1.5", "explanation": "Negative Impact" }
+          "board_control": {
+            "value": "-1.5",
+            "explanation": "Negative Impact"
+          }
         }
       }
     },
@@ -535,7 +663,12 @@
       "calculation": {
         "variables": [],
         "contextModifiers": [],
-        "scores": { "board_control": { "value": "2.5", "explanation": "Exert Character" } }
+        "scores": {
+          "board_control": {
+            "value": "2.5",
+            "explanation": "Exert Character"
+          }
+        }
       }
     },
     {
@@ -545,7 +678,11 @@
       "regex": "/chosen (?:opposing )?character can't ready at the start of (?:their|your) next turn/gi",
       "explanation": "Prevents an opponent's character from readying.",
       "justification": "A stronger form of soft removal.",
-      "calculation": { "variables": [], "contextModifiers": [], "scores": {} }
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [],
+        "scores": {}
+      }
     },
     {
       "name": "Movement: To Location",
@@ -554,7 +691,11 @@
       "regex": "/move (?:one of )?your characters to a location for free/gi",
       "explanation": "Allows a character to move to a location without paying the move cost.",
       "justification": "Provides tempo and action efficiency.",
-      "calculation": { "variables": [], "contextModifiers": [], "scores": {} }
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [],
+        "scores": {}
+      }
     },
     {
       "name": "Stat: Strength Buff",
@@ -565,7 +706,12 @@
       "justification": "Makes characters better in challenges.",
       "calculation": {
         "variables": [
-          { "name": "strengthAmount", "source": "regex", "group": 1, "type": "numeric" }
+          {
+            "name": "strengthAmount",
+            "source": "regex",
+            "group": 1,
+            "type": "numeric"
+          }
         ],
         "contextModifiers": [],
         "scores": {
@@ -585,7 +731,12 @@
       "justification": "Makes opposing characters weaker in challenges.",
       "calculation": {
         "variables": [
-          { "name": "strengthAmount", "source": "regex", "group": 1, "type": "numeric" }
+          {
+            "name": "strengthAmount",
+            "source": "regex",
+            "group": 1,
+            "type": "numeric"
+          }
         ],
         "contextModifiers": [],
         "scores": {
@@ -605,7 +756,12 @@
       "justification": "Increases survivability against damage.",
       "calculation": {
         "variables": [
-          { "name": "willpowerAmount", "source": "regex", "group": 1, "type": "numeric" }
+          {
+            "name": "willpowerAmount",
+            "source": "regex",
+            "group": 1,
+            "type": "numeric"
+          }
         ],
         "contextModifiers": [],
         "scores": {
@@ -661,8 +817,16 @@
       "justification": "A massive tempo and resource advantage.",
       "calculation": {
         "variables": [
-          { "name": "maxCost", "source": "card.freePlayEffect.maxCost", "type": "numeric" },
-          { "name": "trigger", "source": "card.freePlayEffect.trigger", "type": "string" }
+          {
+            "name": "maxCost",
+            "source": "card.freePlayEffect.maxCost",
+            "type": "numeric"
+          },
+          {
+            "name": "trigger",
+            "source": "card.freePlayEffect.trigger",
+            "type": "string"
+          }
         ],
         "contextModifiers": [],
         "scores": {
@@ -699,7 +863,11 @@
       "regex": "/When you play this (?:character|item|action)/gi",
       "explanation": "This ability triggers when the card itself is played.",
       "justification": "A common trigger for 'Enter the Battlefield' (ETB) effects.",
-      "calculation": { "variables": [], "contextModifiers": [], "scores": {} }
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [],
+        "scores": {}
+      }
     },
     {
       "name": "Trigger: On Quest",
@@ -708,7 +876,11 @@
       "regex": "/Whenever (this character|he|she|it) quests/gi",
       "explanation": "This ability triggers whenever this character quests.",
       "justification": "Provides value for performing the primary lore-gaining action.",
-      "calculation": { "variables": [], "contextModifiers": [], "scores": {} }
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [],
+        "scores": {}
+      }
     },
     {
       "name": "Trigger: On Banish (Self)",
@@ -717,7 +889,11 @@
       "regex": "/When (this character|he|she|it) is banished/gi",
       "explanation": "This ability triggers when this character is banished.",
       "justification": "An effect that provides value when the character is removed.",
-      "calculation": { "variables": [], "contextModifiers": [], "scores": {} }
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [],
+        "scores": {}
+      }
     },
     {
       "name": "Keyword: Evasive",
@@ -729,7 +905,12 @@
       "calculation": {
         "variables": [],
         "contextModifiers": [
-          { "targetMetric": "lvi", "name": "questSafety", "operation": "multiply", "value": "@constants.lvi.evasiveModifier" }
+          {
+            "targetMetric": "lvi",
+            "name": "questSafety",
+            "operation": "multiply",
+            "value": "@constants.lvi.evasiveModifier"
+          }
         ],
         "scores": {}
       }
@@ -762,7 +943,12 @@
       "calculation": {
         "variables": [],
         "contextModifiers": [
-          { "targetMetric": "lvi", "name": "survivability", "operation": "multiply", "value": "@constants.lvi.wardModifier" }
+          {
+            "targetMetric": "lvi",
+            "name": "survivability",
+            "operation": "multiply",
+            "value": "@constants.lvi.wardModifier"
+          }
         ],
         "scores": {}
       }
@@ -776,10 +962,20 @@
       "justification": "Increases survivability against damage.",
       "calculation": {
         "variables": [
-          { "name": "resistAmount", "source": "regex", "group": 1, "type": "numeric" }
+          {
+            "name": "resistAmount",
+            "source": "regex",
+            "group": 1,
+            "type": "numeric"
+          }
         ],
         "contextModifiers": [
-          { "targetMetric": "lvi", "name": "survivability", "operation": "multiply", "value": "@constants.lvi.resistModifier" }
+          {
+            "targetMetric": "lvi",
+            "name": "survivability",
+            "operation": "multiply",
+            "value": "@constants.lvi.resistModifier"
+          }
         ],
         "scores": {
           "board_control": {
@@ -798,7 +994,12 @@
       "justification": "A form of resource ramp for playing song cards.",
       "calculation": {
         "variables": [
-          { "name": "singerValue", "source": "regex", "group": 1, "type": "numeric" }
+          {
+            "name": "singerValue",
+            "source": "regex",
+            "group": 1,
+            "type": "numeric"
+          }
         ],
         "contextModifiers": [],
         "scores": {
@@ -816,15 +1017,15 @@
       "regex": "/\\(A character with cost (\\d+) or more can ⟳ to sing this song for free\\.\\)/gi",
       "explanation": "The reminder text for songs, indicating they can be played for free by exerting a character of sufficient cost.",
       "justification": "This is the core mechanic of song cards, providing resource advantage.",
-      "calculation": { 
-        "variables": [], 
-        "contextModifiers": [], 
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [],
         "scores": {
           "resource_dominance": {
             "value": "1.5",
             "explanation": "Cost Reduction"
-          } 
-        } 
+          }
+        }
       }
     }
   ]

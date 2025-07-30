@@ -780,6 +780,48 @@
             }
 
             // --- EDITOR UI & LOGIC ---
+            const createField = (label, type, dataAttr, value, placeholder = '', className = '') => `
+                <div class="${className}">
+                    <label class="form-label">${label}</label>
+                    <${type === 'textarea' ? 'textarea' : 'input'}
+                        type="${type === 'textarea' ? '' : 'text'}"
+                        class="form-input ${type === 'textarea' ? 'form-textarea' : ''}"
+                        ${dataAttr}
+                        placeholder="${placeholder}"
+                        ${type === 'textarea' ? `rows="2">${value || ''}</textarea>` : `value="${value || ''}">`}
+                </div>`;
+
+            function renderVariables(pattern, patternEl) {
+                const container = patternEl.querySelector('.variables-container');
+                if (!container) return;
+                const originalIndex = patternEl.dataset.index;
+                container.innerHTML = (pattern.calculation?.variables || []).map((v, i) => `
+                    <div class="flex gap-2 items-end p-2 bg-slate-800 rounded" data-variable-index="${i}">
+                        ${createField('Name', 'input', `data-path="calculation.variables[${i}].name"`, v.name, 'e.g., drawCount', 'flex-1')}
+                        ${createField('Source', 'input', `data-path="calculation.variables[${i}].source"`, v.source, 'regex or card.strength', 'flex-1')}
+                        ${createField('Group', 'input', `data-path="calculation.variables[${i}].group"`, v.group, 'e.g., 1', 'w-16')}
+                        ${createField('Type', 'input', `data-path="calculation.variables[${i}].type"`, v.type, 'numeric/textOrNumber', 'flex-1')}
+                        <button class="px-2 py-1 bg-red-800 text-white rounded h-10" data-action="remove-variable" data-index="${i}">X</button>
+                    </div>
+                `).join('');
+            }
+
+            function renderModifiers(pattern, patternEl) {
+                const container = patternEl.querySelector('.modifiers-container');
+                if (!container) return;
+                const originalIndex = patternEl.dataset.index;
+                container.innerHTML = (pattern.calculation?.contextModifiers || []).map((m, i) => `
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2 p-2 bg-slate-800 rounded" data-modifier-index="${i}">
+                        ${createField('Target Metric', 'input', `data-path="calculation.contextModifiers[${i}].targetMetric"`, m.targetMetric, 'lvi, bcr, rds')}
+                        ${createField('Name', 'input', `data-path="calculation.contextModifiers[${i}].name"`, m.name, 'e.g., survivability')}
+                        ${createField('Operation', 'input', `data-path="calculation.contextModifiers[${i}].operation"`, m.operation, 'multiply, add, set')}
+                        ${createField('Value', 'input', `data-path="calculation.contextModifiers[${i}].value"`, m.value, 'e.g., 1.4 or @constants.lvi.wardModifier')}
+                        ${createField('Condition (Optional)', 'input', `data-path="calculation.contextModifiers[${i}].condition"`, m.condition, 'e.g., @card.willpower > 5', 'md:col-span-2')}
+                        <button class="px-2 py-1 bg-red-800 text-white rounded h-10" data-action="remove-modifier" data-index="${i}">X</button>
+                    </div>
+                `).join('');
+            }
+            
             function displayPatterns(patternsToDisplay = ABILITIES_CONFIG.abilities) {
                 patternListContainer.innerHTML = '';
                 if (patternsToDisplay.length === 0) {
@@ -793,18 +835,6 @@
                     patternEl.className = 'p-4 bg-slate-800 rounded-lg border border-slate-700 transition-colors duration-300';
                     patternEl.setAttribute('data-pattern-name', pattern.name);
                     patternEl.setAttribute('data-index', originalIndex);
-
-                    // A helper to generate form fields
-                    const createField = (label, type, dataAttr, value, placeholder = '', className = '') => `
-                        <div class="${className}">
-                            <label class="form-label">${label}</label>
-                            <${type === 'textarea' ? 'textarea' : 'input'}
-                                type="${type === 'textarea' ? '' : 'text'}"
-                                class="form-input ${type === 'textarea' ? 'form-textarea' : ''}"
-                                ${dataAttr}
-                                placeholder="${placeholder}"
-                                ${type === 'textarea' ? `rows="2">${value || ''}</textarea>` : `value="${value || ''}">`}
-                        </div>`;
 
                     patternEl.innerHTML = `
                         <div class="grid grid-cols-1 gap-4">
@@ -916,26 +946,39 @@
             
             patternListContainer.addEventListener('click', (e) => {
                 const target = e.target;
-                const parentPatternEl = target.closest('[data-index]');
+                const parentPatternEl = target.closest('[data-pattern-name]');
                 if (!parentPatternEl) return;
                 const patternIndex = parseInt(parentPatternEl.dataset.index, 10);
                 const pattern = ABILITIES_CONFIG.abilities[patternIndex];
                 
                 const action = target.dataset.action;
+                let wasModified = false;
+
                 if (action === 'add-variable') {
                     pattern.calculation.variables = pattern.calculation.variables || [];
                     pattern.calculation.variables.push({ name: "", source: "regex", group: 1, type: "textOrNumber" });
+                    renderVariables(pattern, parentPatternEl);
+                    wasModified = true;
                 } else if (action === 'remove-variable') {
-                    pattern.calculation.variables.splice(parseInt(target.dataset.index, 10), 1);
+                    const varIndex = parseInt(target.dataset.index, 10);
+                    pattern.calculation.variables.splice(varIndex, 1);
+                    renderVariables(pattern, parentPatternEl);
+                    wasModified = true;
                 } else if (action === 'add-modifier') {
                     pattern.calculation.contextModifiers = pattern.calculation.contextModifiers || [];
                     pattern.calculation.contextModifiers.push({ targetMetric: "lvi", name: "survivability", operation: "multiply", value: "1.0" });
+                    renderModifiers(pattern, parentPatternEl);
+                    wasModified = true;
                 } else if (action === 'remove-modifier') {
-                    pattern.calculation.contextModifiers.splice(parseInt(target.dataset.index, 10), 1);
+                    const modIndex = parseInt(target.dataset.index, 10);
+                    pattern.calculation.contextModifiers.splice(modIndex, 1);
+                    renderModifiers(pattern, parentPatternEl);
+                    wasModified = true;
                 }
 
-                if (action) {
-                    displayPatterns(ABILITIES_CONFIG.abilities.filter(p => p.category === pattern.category)); // Refresh view
+                if (wasModified) {
+                    if (selectedCard) displayCardDetails(selectedCard, false);
+                    // No full refresh, so focus is maintained.
                 }
 
                 // New behavior: click the LABEL to copy regex
