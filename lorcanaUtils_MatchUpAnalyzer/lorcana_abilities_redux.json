@@ -1,7 +1,7 @@
 {
   "@constants": {
     "cardDrawValue": 1.5,
-    "uninkableBurdenMultiplier": 0.15,
+    "uninkableBurdenMultiplier": 0.25,
     "dqi": {
       "perCardLookedAt": 1,
       "filterToBottom": 1,
@@ -38,6 +38,51 @@
   },
   "abilities": [
     {
+      "name": "Condition: For Each",
+      "category": "Condition",
+      "sub_type": "For Each",
+      "regex": "/for each (item|character|location|action|song)/gi",
+      "explanation": "Condition that might stack up substantially",
+      "justification": "This is the basis for cards that whole decks are built around, high risk high reward",
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [
+          {
+            "targetMetric": "lvi",
+            "name": "forEach",
+            "operation": "multiply",
+            "value": "1.5"
+          }
+        ],
+        "scores": {}
+      }
+    },
+    {
+      "name": "Stat: Lore Buff",
+      "category": "Stat",
+      "sub_type": "Buff",
+      "regex": "/(?:all characters )?(?:get|gets|has|chosen character(?:s)?) \\+(\\d+) (◊|lore)/gi",
+      "explanation": "Characters Gain Lore buff as a result of this ability",
+      "justification": "",
+      "calculation": {
+        "variables": [
+          {
+            "name": "loreAmount",
+            "source": "regex",
+            "group": 1,
+            "type": "textOrNumber"
+          }
+        ],
+        "contextModifiers": [],
+        "scores": {
+          "lore_velocity": {
+            "value": "loreAmount",
+            "explanation": "Lore Amount Buffed"
+          }
+        }
+      }
+    },
+    {
       "name": "Base: Lore Potential",
       "category": "Base",
       "sub_type": "Stat",
@@ -52,12 +97,20 @@
             "type": "numeric"
           }
         ],
-        "contextModifiers": [],
+        "contextModifiers": [
+          {
+            "targetMetric": "lvi",
+            "name": "highWillPower",
+            "operation": "multiply",
+            "value": "1.5",
+            "condition": "@card.willpower >= 6"
+          }
+        ],
         "scores": {
           "lore_velocity": {
             "condition": "baseLore > 0",
-            "value": "baseLore * @context.lvi.survivability * @context.lvi.questSafety",
-            "explanation": "Base Lore * Survivability * Quest Safety"
+            "value": "baseLore * @context.lvi.highWillPower",
+            "explanation": "Card Lore * High Willpower Multiplier (1.5)"
           }
         }
       }
@@ -74,8 +127,8 @@
         "contextModifiers": [],
         "scores": {
           "resource_dominance": {
-            "condition": "@card.isUninkable == true",
-            "value": "-(@card.cost * @constants.uninkableBurdenMultiplier)",
+            "condition": "@card.inkwell == false",
+            "value": "-(@card.cost * @uninkableBurdenMultiplier)",
             "explanation": "Uninkable Burden (- Cost * Multiplier)"
           }
         }
@@ -95,8 +148,8 @@
             "targetMetric": "lvi",
             "name": "survivability",
             "operation": "multiply",
-            "condition": "@card.willpower >= @constants.lvi.highWillpowerThreshold",
-            "value": "@constants.lvi.highWillpowerModifier"
+            "condition": "@card.willpower >= @lvi.highWillpowerThreshold",
+            "value": "@lvi.highWillpowerModifier"
           }
         ],
         "scores": {}
@@ -111,16 +164,18 @@
       "justification": "Items are generally harder to interact with than characters, making their abilities more reliable.",
       "calculation": {
         "variables": [],
-        "contextModifiers": [
-          {
-            "targetMetric": "lvi",
-            "name": "survivability",
-            "operation": "set",
+        "contextModifiers": [],
+        "scores": {
+          "board_control": {
+            "value": "",
+            "condition": ""
+          },
+          "resource_dominance": {
+            "value": "1.25",
             "condition": "@card.type == 'Item'",
-            "value": "@constants.lvi.itemSurvivability"
+            "explanation": "Items are hard to remove"
           }
-        ],
-        "scores": {}
+        }
       }
     },
     {
@@ -202,7 +257,7 @@
       "name": "Lore: Gain",
       "category": "Lore",
       "sub_type": "Direct Gain",
-      "regex": "/Gain (\\d+)?(?: )?(◊|lore)(?! equal to)/gi",
+      "regex": "/Gain (\\d+)?(?: )?(?:◊|lore)(?! equal to)/gi",
       "explanation": "Directly increases the player's lore total by a specified amount.",
       "justification": "A fundamental way to win the game.",
       "calculation": {
@@ -211,14 +266,14 @@
             "name": "loreAmount",
             "source": "regex",
             "group": 1,
-            "type": "numeric"
+            "type": "textOrNumber"
           }
         ],
         "contextModifiers": [],
         "scores": {
           "lore_velocity": {
-            "value": "loreAmount * @constants.lvi.directLoreGainMultiplier",
-            "explanation": "Lore: Gain (loreAmount)"
+            "value": "loreAmount * @lvi.directLoreGainMultiplier",
+            "explanation": "Lore Gained * Direct Lore Gain Multiplier"
           }
         }
       }
@@ -242,7 +297,7 @@
         "contextModifiers": [],
         "scores": {
           "lore_velocity": {
-            "value": "loreAmount * @constants.lvi.directLoreGainMultiplier",
+            "value": "loreAmount * @lvi.directLoreGainMultiplier",
             "explanation": "Lore: Opponent Loses (loreAmount)"
           }
         }
@@ -323,7 +378,7 @@
         "contextModifiers": [],
         "scores": {
           "resource_dominance": {
-            "value": "lookCount * @constants.dqi.perCardLookedAt + (@card.scryEffect.canFilterToBottom ? @constants.dqi.filterToBottom : 0) + (@card.scryEffect.canTutorToHand ? @constants.dqi.tutorToHand + @constants.dqi.tutorBonus : 0)",
+            "value": "lookCount * @dqi.perCardLookedAt + (@card.scryEffect.canFilterToBottom ? @dqi.filterToBottom : 0) + (@card.scryEffect.canTutorToHand ? @dqi.tutorToHand + @dqi.tutorBonus : 0)",
             "explanation": "DQI (Scry)"
           }
         }
@@ -367,7 +422,7 @@
         "contextModifiers": [],
         "scores": {
           "resource_dominance": {
-            "value": "1.5",
+            "value": "2.0",
             "explanation": "Discard to Hand"
           }
         }
@@ -390,13 +445,18 @@
       "name": "Card Effect: Look at Opponent's Hand",
       "category": "Resource",
       "sub_type": "Information",
-      "regex": "/(look at chosen opponent's hand|chosen opponent reveals their hand)/gi",
+      "regex": "/(look at (chosen|each) opponent's hand|chosen opponent reveals their hand)/gi",
       "explanation": "The player gets to see the cards in an opponent's hand.",
       "justification": "Provides valuable information for strategic planning.",
       "calculation": {
         "variables": [],
         "contextModifiers": [],
-        "scores": {}
+        "scores": {
+          "resource_dominance": {
+            "value": "0.5",
+            "explanation": "Information is power"
+          }
+        }
       }
     },
     {
@@ -611,7 +671,7 @@
         "contextModifiers": [],
         "scores": {
           "lore_velocity": {
-            "value": "healAmount * @constants.lvi.healValueMultiplier",
+            "value": "healAmount * @lvi.healValueMultiplier",
             "explanation": "Damage: Heal (healAmount)"
           }
         }
@@ -647,7 +707,7 @@
         "contextModifiers": [],
         "scores": {
           "lore_velocity": {
-            "value": "@constants.lvi.readyCharacterValue",
+            "value": "@lvi.readyCharacterValue",
             "explanation": "Ready Chosen Character"
           }
         }
@@ -716,7 +776,7 @@
         "contextModifiers": [],
         "scores": {
           "board_control": {
-            "value": "strengthAmount * @constants.bcr.statBuffMultiplier",
+            "value": "strengthAmount * @bcr.statBuffMultiplier",
             "explanation": "Strength Buff (strengthAmount)"
           }
         }
@@ -741,7 +801,7 @@
         "contextModifiers": [],
         "scores": {
           "board_control": {
-            "value": "strengthAmount * @constants.bcr.statBuffMultiplier",
+            "value": "strengthAmount * @bcr.statBuffMultiplier",
             "explanation": "Strength Debuff (strengthAmount)"
           }
         }
@@ -766,7 +826,7 @@
         "contextModifiers": [],
         "scores": {
           "board_control": {
-            "value": "willpowerAmount * @constants.bcr.statBuffMultiplier",
+            "value": "willpowerAmount * @bcr.statBuffMultiplier",
             "explanation": "Willpower Buff (willpowerAmount)"
           }
         }
@@ -832,7 +892,7 @@
         "scores": {
           "resource_dominance": {
             "condition": "maxCost > 0",
-            "value": "maxCost * @constants.cev.baseMultiplier * @constants.cev.triggerReliability[trigger]",
+            "value": "maxCost * @cev.baseMultiplier * @cev.triggerReliability[trigger]",
             "explanation": "Cost Evasion Value (Play for Free)"
           }
         }
@@ -909,7 +969,7 @@
             "targetMetric": "lvi",
             "name": "questSafety",
             "operation": "multiply",
-            "value": "@constants.lvi.evasiveModifier"
+            "value": "@lvi.evasiveModifier"
           }
         ],
         "scores": {}
@@ -927,7 +987,7 @@
         "contextModifiers": [],
         "scores": {
           "board_control": {
-            "value": "@card.strength * @constants.bcr.rushStrengthMultiplier",
+            "value": "@card.strength * @bcr.rushStrengthMultiplier",
             "explanation": "Rush"
           }
         }
@@ -947,7 +1007,7 @@
             "targetMetric": "lvi",
             "name": "survivability",
             "operation": "multiply",
-            "value": "@constants.lvi.wardModifier"
+            "value": "@lvi.wardModifier"
           }
         ],
         "scores": {}
@@ -974,12 +1034,12 @@
             "targetMetric": "lvi",
             "name": "survivability",
             "operation": "multiply",
-            "value": "@constants.lvi.resistModifier"
+            "value": "@lvi.resistModifier"
           }
         ],
         "scores": {
           "board_control": {
-            "value": "resistAmount * @constants.bcr.statBuffMultiplier",
+            "value": "resistAmount * @bcr.statBuffMultiplier",
             "explanation": "Resist Amount"
           }
         }
@@ -1004,7 +1064,7 @@
         "contextModifiers": [],
         "scores": {
           "board_control": {
-            "value": "singerValue * @constants.bcr.singerValueMultiplier",
+            "value": "singerValue * @bcr.singerValueMultiplier",
             "explanation": "Singer (singerValue)"
           }
         }
