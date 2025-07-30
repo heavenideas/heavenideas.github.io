@@ -499,21 +499,34 @@
                     });
                 });
 
+                // Initialize breakdown struct for both Context Modifiers and Scores
+                const breakdown = [];
+
                 // --- PHASE 3: Process context modifiers ---
                 matchedAbilities.forEach(({ def }) => {
                     (def.calculation.contextModifiers || []).forEach(modDef => {
+                        //should apply checks if the lvi bcr or rds metric defined in the abilities has a condintion
+                        //if it does have a condition (eg. willpower > 2) it checks that the condition is actually met
+                        //if it does NOT have a condition then it just makes sure that score is applied
                         let shouldApply = modDef.condition ? evaluateFormula(modDef.condition, cardContext) : true;
                         if (shouldApply) {
-                            const value = evaluateFormula(modDef.value, cardContext);
+                            let value = evaluateFormula(modDef.value, cardContext);
                             const metricContext = cardContext.context[modDef.targetMetric];
                             if (metricContext) {
                                 if (modDef.operation === 'multiply') {
+                                    if(value == 0.0) value = 1.0;
                                     metricContext[modDef.name] = (metricContext[modDef.name] || 1.0) * value;
                                 } else if (modDef.operation === 'add') {
                                     metricContext[modDef.name] = (metricContext[modDef.name] || 0) + value;
                                 } else if (modDef.operation === 'set') {
                                     metricContext[modDef.name] = value;
                                 }
+                                breakdown.push({
+                                    abilityName: modDef.name,
+                                    metric: modDef.targetMetric,
+                                    value: value,
+                                    explanation: `Context Modifier ${modDef.operation} ${def.justification}`
+                                });
                             }
                         }
                     });
@@ -521,11 +534,14 @@
 
                 // --- PHASE 4: Process scores ---
                 let rds = 0, lvi = 0, bcr = 0;
-                const breakdown = [];
+                
 
                 matchedAbilities.forEach(({ def }) => {
                     const scores = def.calculation.scores || {};
                     for (const [metric, scoreDef] of Object.entries(scores)) {
+                        //should apply checks if the lvi bcr or rds metric defined in the abilities has a condintion
+                        //if it does have a condition (eg. willpower > 2) it checks that the condition is actually met
+                        //if it does NOT have a condition then it just makes sure that score is applied
                         let shouldApply = scoreDef.condition ? evaluateFormula(scoreDef.condition, cardContext) : true;
                         if (shouldApply) {
                             const rawValue = evaluateFormula(scoreDef.value, cardContext);
