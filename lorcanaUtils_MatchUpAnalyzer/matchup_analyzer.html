@@ -324,6 +324,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0"></script>
+    <script src="../utilities/unified_win_probability_utilities.js"></script>
 
     <script>
         // --- Globals ---
@@ -1022,6 +1023,119 @@
         }
 
         /**
+         * Calculates unified metrics (RDS, LVI, BCR) for a deck using the new unified utilities system.
+         * @param {Array} deck - Array of card objects with count property
+         * @returns {Object} - Object containing rds, lvi, bcr totals and breakdowns
+         */
+        function calculateUnifiedMetrics(deck) {
+            const results = {
+                rds: { total: 0, breakdown: [] },
+                lvi: { total: 0, breakdown: [] },
+                bcr: { total: 0, breakdown: [] }
+            };
+            
+            // Check if unified utilities are available, fallback to legacy system if not
+            if (typeof UnifiedWinProbabiliyCalculation === 'undefined') {
+                console.warn('Unified utilities not available, falling back to legacy system');
+                return {
+                    rds: getRDS(deck),
+                    lvi: getLVI(deck),
+                    bcr: getBCR(deck)
+                };
+            }
+            
+            deck.forEach(card => {
+                try {
+                    const metrics = UnifiedWinProbabiliyCalculation.calculateCardMetrics(card);
+                    const count = card.count || 1;
+                    
+                    // Aggregate totals
+                    results.rds.total += metrics.rds * count;
+                    results.lvi.total += metrics.lvi * count;
+                    results.bcr.total += metrics.bcr * count;
+                    
+                    // Build breakdown arrays - only add cards with non-zero values
+                    if (metrics.rds > 0) {
+                        results.rds.breakdown.push({
+                            name: card.fullName,
+                            value: metrics.rds * count,
+                            explanation: getExplanationForMetric(metrics.breakdown, 'resource_dominance', metrics.rds, count)
+                        });
+                    }
+                    
+                    if (metrics.lvi > 0) {
+                        results.lvi.breakdown.push({
+                            name: card.fullName,
+                            value: metrics.lvi * count,
+                            explanation: getExplanationForMetric(metrics.breakdown, 'lore_velocity', metrics.lvi, count)
+                        });
+                    }
+                    
+                    if (metrics.bcr > 0) {
+                        results.bcr.breakdown.push({
+                            name: card.fullName,
+                            value: metrics.bcr * count,
+                            explanation: getExplanationForMetric(metrics.breakdown, 'board_control', metrics.bcr, count)
+                        });
+                    }
+                } catch (error) {
+                    console.error(`Error calculating unified metrics for card ${card.fullName}:`, error);
+                    // Continue with next card rather than failing completely
+                }
+            });
+            
+            return results;
+        }
+
+        /**
+         * Helper function to extract explanation for a specific metric from unified breakdown
+         * @param {Array} breakdown - The breakdown array from unified calculation
+         * @param {string} targetMetric - The metric to extract explanation for
+         * @param {number} totalValue - The total calculated value
+         * @param {number} count - The card count
+         * @returns {string} - Formatted explanation string
+         */
+        function getExplanationForMetric(breakdown, targetMetric, totalValue, count) {
+            const relevantEntries = breakdown.filter(entry => entry.metric === targetMetric);
+            if (relevantEntries.length === 0) {
+                return `Total: ${(totalValue * count).toFixed(2)} (${totalValue.toFixed(2)} × ${count})`;
+            }
+            
+            const explanations = relevantEntries.map(entry => entry.explanation).join(', ');
+            return `${explanations} | Total: ${(totalValue * count).toFixed(2)} (${totalValue.toFixed(2)} × ${count})`;
+        }
+
+        /**
+         * Backward compatibility adapter for getRDS - uses unified system
+         * @param {Array} deck - Array of card objects
+         * @returns {Object} - RDS result in original format
+         */
+        function getRDS_Unified(deck) {
+            const unified = calculateUnifiedMetrics(deck);
+            return unified.rds;
+        }
+
+        /**
+         * Backward compatibility adapter for getLVI - uses unified system
+         * @param {Array} deck - Array of card objects
+         * @returns {Object} - LVI result in original format
+         */
+        function getLVI_Unified(deck) {
+            const unified = calculateUnifiedMetrics(deck);
+            return unified.lvi;
+        }
+
+        /**
+         * Backward compatibility adapter for getBCR - uses unified system
+         * @param {Array} deck - Array of card objects
+         * @returns {Object} - BCR result in original format
+         */
+        function getBCR_Unified(deck) {
+            const unified = calculateUnifiedMetrics(deck);
+            return unified.bcr;
+        }
+
+        /**
          * Normalizes a raw score to a value between -1 and 1 using Math.tanh.
          * This prevents outlier scores from having an excessive impact.
          * @param {number} score - The raw score from a metric like RDS, LVI, or BCR.
@@ -1057,13 +1171,15 @@
                 kFactor: config.k,
                 probabilityCompression: config.probabilityCompression
             };
-            // 2. Calculate Intrinsic Scores for both decks
-            const rdsA = getRDS(deckA);
-            const lviA = getLVI(deckA);
-            const bcrA = getBCR(deckA);
-            const rdsB = getRDS(deckB);
-            const lviB = getLVI(deckB);
-            const bcrB = getBCR(deckB);
+            // 2. Calculate Intrinsic Scores for both decks using unified system
+            const unifiedA = calculateUnifiedMetrics(deckA);
+            const unifiedB = calculateUnifiedMetrics(deckB);
+            const rdsA = unifiedA.rds;
+            const lviA = unifiedA.lvi;
+            const bcrA = unifiedA.bcr;
+            const rdsB = unifiedB.rds;
+            const lviB = unifiedB.lvi;
+            const bcrB = unifiedB.bcr;
             // 3. Calculate Matchup-Specific Modifiers (now use provided TFA)
             const aim = 0; // Archetype Interaction Modifier
             const taes = 0; // Threat-Answer Efficiency Score
@@ -1106,6 +1222,10 @@
         async function initializeApp() {
             console.log("Initializing app...");
             try {
+                // Initialize unified utilities
+                await UnifiedWinProbabiliyCalculation.loadAbilitiesConfig();
+                console.log("Unified Win Probability utilities initialized successfully.");
+
                 // Fetch card data
                 const cardsResponse = await fetch(CARD_DATA_URL);
 
