@@ -421,7 +421,7 @@
                             current = current[part];
                         }
                     }
-                    return (typeof current === 'number') ? current : (typeof current === 'string' ? `'${current}'` : 0);
+                    return (typeof current === 'number') ? current : (typeof current === 'string') ? `'${current}'` : (typeof current === 'boolean') ? String(current) : 0;
                 });
                 
                 console.log(`Processed Formula ${processedFormula}`)
