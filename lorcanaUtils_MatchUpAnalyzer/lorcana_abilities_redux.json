@@ -2,6 +2,8 @@
   "@constants": {
     "cardDrawValue": 1.66,
     "uninkableBurdenMultiplier": 0.25,
+    "selfBanishBurden": 1.1,
+    "discardBurden": 1.5,
     "dqi": {
       "perCardLookedAt": 1,
       "filterToBottom": 1,
@@ -231,13 +233,19 @@
       "category": "Condition",
       "sub_type": "Exerted",
       "quick_description": "characters need to be exerted",
-      "regex": "/(while|if|and) (?:this character|one of your characters|all of your characters) (is|are) exerted/gi",
+      "regex": "/(while|if|and) (?:this character|one of your characters|all of your characters) (is|are) exerted|⟳.+—/gi",
       "explanation": "this is a requirement of some cards.",
       "justification": "",
       "calculation": {
         "variables": [],
         "contextModifiers": [],
-        "scores": {}
+        "scores": {
+          "board_control": {
+            "value": "-0.5",
+            "explanation": "Leaves your character unprotected to challenges - would be the same value as exerting an opposing character but in negative",
+            "condition": "@card.type == 'Character'"
+          }
+        }
       }
     },
     {
@@ -356,11 +364,18 @@
       "name": "Card Effect: Self Discard",
       "category": "Resource",
       "sub_type": "Cost",
-      "regex": "/discard (\\d+|a|one|two|three) card(s?)/gi",
+      "regex": "/discard (\\d+|a|one|two|three) (?:character|item|location|action|song)?(?: )?card(s?)/gi",
       "explanation": "The player must discard one or more cards, usually as a cost.",
       "justification": "This is typically a cost, reducing the player's own resources.",
       "calculation": {
-        "variables": [],
+        "variables": [
+          {
+            "name": "discardAmount",
+            "source": "regex",
+            "group": 1,
+            "type": "textOrNumber"
+          }
+        ],
         "contextModifiers": [],
         "scores": {}
       }
