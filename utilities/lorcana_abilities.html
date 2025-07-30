@@ -571,7 +571,7 @@
                 try {
                     loadAbilitiesFromUrl(); // Attempt to load abilities from URL without blocking
                     await loadAbilitiesFromUrl();
-                    
+
                     const cardsResponse = await fetch(DB_URL);
                     if (!cardsResponse.ok) throw new Error(`Network response for cards was not ok: ${cardsResponse.statusText}`);
                     const cardsData = await cardsResponse.json();
@@ -1202,20 +1202,20 @@
                         <div class="mb-3 prose prose-invert max-w-none">${highlightedHtml}</div>
                     </div>
                     <div class="grid grid-cols-4 gap-4 text-center mb-6 p-4 bg-slate-800 rounded-lg">
-                        <div>
-                            <div class="text-sm text-slate-400">Card Threat Level</div>
+                        <div class="bg-purple-900/40 hover:bg-purple-800/70 rounded-xl p-3 flex flex-col items-center justify-center transition-colors duration-200" title="Threat Level =  RDS + LVI + BCR">
+                            <div class="text-sm text-slate-400">(CTL) Card Threat Level</div>
                             <div class="text-3xl font-bold text-purple-400">${(rds + lvi + bcr).toFixed(3)}</div>
                         </div>
                         <div>
-                            <div class="text-sm text-slate-400">Resource Dominance</div>
+                            <div class="text-sm text-slate-400">(RDS) Resource Dominance Score</div>
                             <div class="text-3xl font-bold text-sky-400">${rds.toFixed(3)}</div>
                         </div>
                         <div>
-                            <div class="text-sm text-slate-400">Lore Velocity</div>
+                            <div class="text-sm text-slate-400">(LVI) Lore Velocity Index</div>
                             <div class="text-3xl font-bold text-amber-400">${lvi.toFixed(3)}</div>
                         </div>
                         <div>
-                            <div class="text-sm text-slate-400">Board Control</div>
+                            <div class="text-sm text-slate-400">(BCR) Board Control Rating</div>
                             <div class="text-3xl font-bold text-rose-400">${bcr.toFixed(3)}</div>
                         </div>
                     </div>
