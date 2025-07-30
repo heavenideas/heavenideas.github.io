@@ -334,6 +334,7 @@
             let allCards = [];
             let ABILITIES_CONFIG = { '@constants': {}, abilities: [] };
             let fuse;
+            let abilityFuse;
             let selectedCard = null;
             let lastRegexResults = [];
 
@@ -595,6 +596,13 @@
                     // Ensure abilities array exists
                     if (!ABILITIES_CONFIG.abilities) ABILITIES_CONFIG.abilities = [];
 
+                    const fuseOptions = {
+                        keys: ['name', 'category', 'sub_type'],
+                        threshold: 0.4,
+                        ignoreLocation: true,
+                    };
+                    abilityFuse = new Fuse(ABILITIES_CONFIG.abilities, fuseOptions);
+
                     ABILITIES_CONFIG.abilities.forEach(p => {
                         if (p.regex && p.regex !== "WILL_NOT_MATCH_TEXT") {
                             try {
@@ -665,6 +673,14 @@
                     }
                 };
                 ABILITIES_CONFIG.abilities.unshift(newAbility);
+                if (abilityFuse) {
+                    abilityFuse.setCollection(ABILITIES_CONFIG.abilities);
+                }
+                patternFilterInput.value = ''; // Clear filter
+                document.querySelectorAll('#tree-nav .tree-nav-item').forEach(el => el.classList.remove('active'));
+                const showAll = treeNavContainer.querySelector('[data-filter-type="all"]');
+                if (showAll) showAll.classList.add('active');
+
                 displayPatterns();
                 buildAndRenderTree(ABILITIES_CONFIG.abilities);
                 const firstPattern = patternListContainer.querySelector('[data-index="0"]');
@@ -903,6 +919,41 @@
                 });
             }
 
+            function applyFilters() {
+                let treeFilteredPatterns = ABILITIES_CONFIG.abilities;
+
+                // 1. Tree Nav filter
+                const activeNavItem = treeNavContainer.querySelector('.tree-nav-item.active');
+                if (activeNavItem) {
+                    const { filterType, filterValue, category, subType } = activeNavItem.dataset;
+                    if (filterType === 'category') {
+                        treeFilteredPatterns = ABILITIES_CONFIG.abilities.filter(p => (p.category || 'Uncategorized') === filterValue);
+                    } else if (filterType === 'subtype') {
+                        treeFilteredPatterns = ABILITIES_CONFIG.abilities.filter(p => (p.category || 'Uncategorized') === category && (p.sub_type || 'General') === subType);
+                    }
+                }
+
+                // 2. Search term filter
+                const searchTerm = patternFilterInput.value.trim();
+                if (searchTerm === '') {
+                    displayPatterns(treeFilteredPatterns);
+                    return;
+                }
+
+                if (!abilityFuse) {
+                    displayPatterns(treeFilteredPatterns);
+                    return;
+                }
+
+                const searchResults = abilityFuse.search(searchTerm).map(r => r.item);
+                
+                // Intersect searchResults with treeFilteredPatterns
+                const treeFilteredPatternsSet = new Set(treeFilteredPatterns);
+                const finalPatterns = searchResults.filter(p => treeFilteredPatternsSet.has(p));
+
+                displayPatterns(finalPatterns);
+            }
+
             patternListContainer.addEventListener('input', (e) => {
                 const target = e.target;
                 const parentPattern = target.closest('[data-index]');
@@ -915,6 +966,13 @@
                     const field = target.dataset.field;
                     patternToUpdate[field] = target.value;
                     if (field === 'name') parentPattern.dataset.patternName = target.value;
+                    
+                    if (['name', 'category', 'sub_type'].includes(field)) {
+                        if (abilityFuse) {
+                            abilityFuse.setCollection(ABILITIES_CONFIG.abilities);
+                        }
+                    }
+
                     if (field === 'regex') {
                         try {
                             const match = target.value.match(/^\/(.*)\/([gimuy]*)$/);
@@ -1067,14 +1125,11 @@
                if (!target) return;
                document.querySelectorAll('#tree-nav .tree-nav-item').forEach(el => el.classList.remove('active'));
                target.classList.add('active');
-               const { filterType, filterValue, category, subType } = target.dataset;
-               let filteredPatterns = ABILITIES_CONFIG.abilities;
-               if (filterType === 'category') {
-                   filteredPatterns = ABILITIES_CONFIG.abilities.filter(p => (p.category || 'Uncategorized') === filterValue);
-               } else if (filterType === 'subtype') {
-                   filteredPatterns = ABILITIES_CONFIG.abilities.filter(p => (p.category || 'Uncategorized') === category && (p.sub_type || 'General') === subType);
-               }
-               displayPatterns(filteredPatterns);
+               applyFilters();
+            });
+
+            patternFilterInput.addEventListener('input', () => {
+                applyFilters();
             });
 
             // --- CARD ANALYSIS & DISPLAY (Right Column) ---
