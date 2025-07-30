@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Unified Win Probability Utilities</title>
+</head>
+<body>
+    <h1>Testing Unified Win Probability Utilities</h1>
+    <div id="output"></div>
+    
+    <script src="unified_win_probability_utilities.js"></script>
+    <script>
+        const output = document.getElementById('output');
+        
+        async function testUtilities() {
+            try {
+                output.innerHTML += '<p>Testing utilities loading...</p>';
+                
+                // Test loading abilities config
+                const config = await UnifiedWinProbabiliyCalculation.loadAbilitiesConfig();
+                output.innerHTML += `<p>✅ Successfully loaded ${config.abilities.length} abilities</p>`;
+                
+                // Test getting config
+                const retrievedConfig = UnifiedWinProbabiliyCalculation.getAbilitiesConfig();
+                output.innerHTML += `<p>✅ Retrieved config has ${retrievedConfig.abilities.length} abilities</p>`;
+                
+                // Test with a sample card
+                const sampleCard = {
+                    fullName: "Test Card",
+                    fullTextSections: ["Draw 2 cards"],
+                    cost: 3,
+                    lore: 2,
+                    strength: 3,
+                    willpower: 4,
+                    type: "Character",
+                    inkwell: true
+                };
+                
+                const metrics = UnifiedWinProbabiliyCalculation.calculateCardMetrics(sampleCard);
+                output.innerHTML += `<p>✅ Card metrics calculated: RDS=${metrics.rds.toFixed(3)}, LVI=${metrics.lvi.toFixed(3)}, BCR=${metrics.bcr.toFixed(3)}</p>`;
+                output.innerHTML += `<p>✅ Breakdown has ${metrics.breakdown.length} entries</p>`;
+                
+                output.innerHTML += '<p><strong>✅ All tests passed! The utilities are self-contained and working correctly.</strong></p>';
+                
+            } catch (error) {
+                output.innerHTML += `<p>❌ Error: ${error.message}</p>`;
+                console.error('Test failed:', error);
+            }
+        }
+        
+        // Run tests when page loads
+        testUtilities();
+    </script>
+</body>
+</html>

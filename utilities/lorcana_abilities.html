@@ -340,7 +340,6 @@
             let lastRegexResults = [];
 
             const DB_URL = 'https://raw.githubusercontent.com/heavenideas/similcana/refs/heads/main/database/allCards.json';
-            const ABILITIES_URL = 'https://raw.githubusercontent.com/heavenideas/heavenideas.github.io/refs/heads/main/lorcanaUtils_MatchUpAnalyzer/lorcana_abilities_redux.json';
 
             // --- UI ELEMENTS ---
             const loader = document.getElementById('loader');
@@ -381,8 +380,9 @@
             // --- INITIALIZATION ---
             async function initializeApp() {
                 try {
-                    loadAbilitiesFromUrl(); // Attempt to load abilities from URL without blocking
-                    await loadAbilitiesFromUrl();
+                    // Load abilities using the self-contained utilities
+                    await UnifiedWinProbabiliyCalculation.loadAbilitiesConfig();
+                    ABILITIES_CONFIG = UnifiedWinProbabiliyCalculation.getAbilitiesConfig();
 
                     const cardsResponse = await fetch(DB_URL);
                     if (!cardsResponse.ok) throw new Error(`Network response for cards was not ok: ${cardsResponse.statusText}`);
@@ -391,10 +391,30 @@
                     allCards = cardsData.cards;
                     setupFuseSearch();
                     
+                    // Process abilities for the UI
+                    processLoadedAbilities(ABILITIES_CONFIG, `From utilities at ${new Date().toLocaleTimeString()}`);
+                    
                     loader.classList.add('hidden');
                     mainContent.classList.remove('hidden');
                 } catch (error) {
-                    loader.innerHTML = `<div class="text-red-500 font-bold">Failed to load card database. Please try refreshing the page.</div><p class="text-sm text-slate-500 mt-2">${error.message}</p>`;
+                    console.error("Failed to load from utilities, falling back to manual load:", error);
+                    // Fallback to manual loading if utilities fail
+                    try {
+                        const cardsResponse = await fetch(DB_URL);
+                        if (!cardsResponse.ok) throw new Error(`Network response for cards was not ok: ${cardsResponse.statusText}`);
+                        const cardsData = await cardsResponse.json();
+                        
+                        allCards = cardsData.cards;
+                        setupFuseSearch();
+                        
+                        loader.classList.add('hidden');
+                        mainContent.classList.remove('hidden');
+                        
+                        warningBanner.innerHTML = `<strong>Could not auto-load abilities from utilities.</strong> Please use the "Load lorcana_abilities.json" button to upload the file manually.`;
+                        warningBanner.classList.remove('hidden');
+                    } catch (fallbackError) {
+                        loader.innerHTML = `<div class="text-red-500 font-bold">Failed to load card database. Please try refreshing the page.</div><p class="text-sm text-slate-500 mt-2">${fallbackError.message}</p>`;
+                    }
                 }
             }
 
@@ -404,26 +424,16 @@
             }
 
             // --- ABILITY DATA HANDLING ---
-            async function loadAbilitiesFromUrl() {
-                try {
-                    const response = await fetch(ABILITIES_URL);
-                    if (!response.ok) {
-                        throw new Error(`Network response was not ok: ${response.statusText}`);
-                    }
-                    const data = await response.json();
-                    processLoadedAbilities(data, `From URL at ${new Date().toLocaleTimeString()}`);
-                } catch (error) {
-                    console.error("Failed to load abilities from URL:", error);
-                    warningBanner.innerHTML = `<strong>Could not auto-load abilities from the web.</strong> Please use the "Load lorcana_abilities.json" button to upload the file manually.`;
-                    warningBanner.classList.remove('hidden');
-                }
-            }
+            // loadAbilitiesFromUrl function removed - now handled by utilities
 
             function processLoadedAbilities(data, timestampMessage) {
                 try {
                     ABILITIES_CONFIG = data;
                     // Ensure abilities array exists
                     if (!ABILITIES_CONFIG.abilities) ABILITIES_CONFIG.abilities = [];
+
+                    // Update the utilities with the new config
+                    UnifiedWinProbabiliyCalculation.setAbilitiesConfig(ABILITIES_CONFIG);
 
                     const fuseOptions = {
                         keys: ['name', 'category', 'sub_type'],
@@ -432,6 +442,7 @@
                     };
                     abilityFuse = new Fuse(ABILITIES_CONFIG.abilities, fuseOptions);
 
+                    // Regex processing is now handled by utilities, but we still need it for UI
                     ABILITIES_CONFIG.abilities.forEach(p => {
                         if (p.regex && p.regex !== "WILL_NOT_MATCH_TEXT") {
                             try {
@@ -1005,7 +1016,7 @@
                 cardPlaceholder.classList.add('hidden');
                 cardDetailsContainer.innerHTML = '';
 
-                const { rds, lvi, bcr, breakdown } = UnifiedWinProbabiliyCalculation.calculateCardMetrics(card, ABILITIES_CONFIG);
+                const { rds, lvi, bcr, breakdown } = UnifiedWinProbabiliyCalculation.calculateCardMetrics(card);
                 const { highlightedHtml, foundPatterns } = analyzeAndHighlightText(card.fullText || (card.fullTextSections || []).join('\n'));
 
                 const resultsHtml = `

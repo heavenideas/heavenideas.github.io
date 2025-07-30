@@ -1,4 +1,79 @@
 const UnifiedWinProbabiliyCalculation = (function() {
+    
+    // Default abilities configuration - will be loaded from URL or provided externally
+    let ABILITIES_CONFIG = {
+        '@constants': {},
+        abilities: []
+    };
+
+    // URL for loading abilities JSON
+    const ABILITIES_URL = 'https://raw.githubusercontent.com/heavenideas/heavenideas.github.io/refs/heads/main/lorcanaUtils_MatchUpAnalyzer/lorcana_abilities_redux.json';
+
+    /**
+     * Loads abilities configuration from the remote URL
+     * @returns {Promise<object>} The loaded abilities configuration
+     */
+    async function loadAbilitiesConfig() {
+        try {
+            const response = await fetch(ABILITIES_URL);
+            if (!response.ok) {
+                throw new Error(`Network response was not ok: ${response.statusText}`);
+            }
+            const data = await response.json();
+            ABILITIES_CONFIG = data;
+            
+            // Process regex objects for abilities
+            if (ABILITIES_CONFIG.abilities) {
+                ABILITIES_CONFIG.abilities.forEach(ability => {
+                    if (ability.regex && ability.regex !== "WILL_NOT_MATCH_TEXT") {
+                        try {
+                            const match = ability.regex.match(/^\/(.*)\/([gimuy]*)$/);
+                            ability.regexObject = match ? new RegExp(match[1], match[2]) : new RegExp(ability.regex, 'gi');
+                        } catch (e) {
+                            console.error(`Invalid regex for pattern "${ability.name}": ${ability.regex}`);
+                            ability.regexObject = null;
+                        }
+                    }
+                });
+            }
+            
+            return ABILITIES_CONFIG;
+        } catch (error) {
+            console.error("Failed to load abilities from URL:", error);
+            throw error;
+        }
+    }
+
+    /**
+     * Sets the abilities configuration manually (for external use)
+     * @param {object} config - The abilities configuration object
+     */
+    function setAbilitiesConfig(config) {
+        ABILITIES_CONFIG = config;
+        
+        // Process regex objects for abilities
+        if (ABILITIES_CONFIG.abilities) {
+            ABILITIES_CONFIG.abilities.forEach(ability => {
+                if (ability.regex && ability.regex !== "WILL_NOT_MATCH_TEXT") {
+                    try {
+                        const match = ability.regex.match(/^\/(.*)\/([gimuy]*)$/);
+                        ability.regexObject = match ? new RegExp(match[1], match[2]) : new RegExp(ability.regex, 'gi');
+                    } catch (e) {
+                        console.error(`Invalid regex for pattern "${ability.name}": ${ability.regex}`);
+                        ability.regexObject = null;
+                    }
+                }
+            });
+        }
+    }
+
+    /**
+     * Gets the current abilities configuration
+     * @returns {object} The current abilities configuration
+     */
+    function getAbilitiesConfig() {
+        return ABILITIES_CONFIG;
+    }
 
     /**
      * Converts a string that might be a word ("one", "two") or a digit ("1", "2") into a number.
@@ -66,18 +141,21 @@ const UnifiedWinProbabiliyCalculation = (function() {
     /**
      * Calculates the RDS, LVI, and BCR scores for a single card based on the loaded ABILITIES_CONFIG.
      * @param {object} card - The card object from the main database.
-     * @param {object} ABILITIES_CONFIG - The configuration object with abilities and constants.
+     * @param {object} [externalConfig] - Optional external configuration object with abilities and constants.
      * @returns {{rds: number, lvi: number, bcr: number, breakdown: Array<object>}}
      */
-    function calculateCardMetrics(card, ABILITIES_CONFIG) {
-        if (!ABILITIES_CONFIG || !ABILITIES_CONFIG.abilities) {
+    function calculateCardMetrics(card, externalConfig = null) {
+        // Use external config if provided, otherwise use internal config
+        const configToUse = externalConfig || ABILITIES_CONFIG;
+        
+        if (!configToUse || !configToUse.abilities) {
             return { rds: 0, lvi: 0, bcr: 0, breakdown: [] };
         }
 
         const fullText = (card.fullTextSections || []).join(' ').replace(/\n/g, ' ');
         const cardContext = {
             card: card,
-            ...ABILITIES_CONFIG['@constants'],
+            ...configToUse['@constants'],
             context: {
                 lvi: { survivability: 1.0, questSafety: 1.0 },
                 bcr: {},
@@ -87,7 +165,7 @@ const UnifiedWinProbabiliyCalculation = (function() {
         
         // --- PHASE 1: Find all matching abilities ---
         const matchedAbilities = [];
-        ABILITIES_CONFIG.abilities.forEach(abilityDef => {
+        configToUse.abilities.forEach(abilityDef => {
             if (abilityDef.regex === "WILL_NOT_MATCH_TEXT") {
                 matchedAbilities.push({ def: abilityDef, match: null });
                 return;
@@ -182,7 +260,10 @@ const UnifiedWinProbabiliyCalculation = (function() {
     }
 
     return {
-        calculateCardMetrics
+        calculateCardMetrics,
+        loadAbilitiesConfig,
+        setAbilitiesConfig,
+        getAbilitiesConfig
     };
 
 })();
