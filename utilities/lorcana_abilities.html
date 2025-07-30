@@ -295,6 +295,7 @@
         </div>
     </div>
 
+    <script src="unified_win_probability_utilities.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             // --- SPLIT PANE LOGIC ---
@@ -376,195 +377,6 @@
             const constantsTextarea = document.getElementById('constants-textarea');
             const saveConstantsBtn = document.getElementById('save-constants-btn');
             const cancelConstantsBtn = document.getElementById('cancel-constants-btn');
-
-            // --- DATA-DRIVEN CALCULATION ENGINE ---
-
-            /**
-             * Converts a string that might be a word ("one", "two") or a digit ("1", "2") into a number.
-             * @param {string | number} text - The input string or number.
-             * @returns {number} The parsed number, or 0 if invalid.
-             */
-            function getNumberFromText(text) {
-                if (typeof text === 'number') return text;
-                if (!text || typeof text !== 'string') return 0;
-                const lowerText = text.toLowerCase().trim();
-                const wordMap = { 'a': 1, 'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5, 'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10 };
-                if (wordMap[lowerText] !== undefined) {
-                    return wordMap[lowerText];
-                }
-                const match = lowerText.match(/\d+/);
-                return match ? parseInt(match[0], 10) : 0;
-            }
-
-            /**
-             * Safely evaluates a mathematical formula string by replacing variable placeholders with values from a context object.
-             * @param {string} formula - The formula string (e.g., "baseLore * @context.lvi.survivability").
-             * @param {object} formulaContext - The object containing all possible variables (@card, @constants, etc.).
-             * @returns {number} The result of the calculation.
-             */
-            function evaluateFormula(formula, formulaContext) {
-                if (typeof formula !== 'string') return formula;
-                console.log(`Evaluating formula: "${formula}" with context`, formulaContext);
-
-                let processedFormula = formula.replace(/@([\w.\[\]]+)/g, (_, path) => {
-                    const parts = path.split('.');
-                    let current = formulaContext;
-                    for (const part of parts) {
-                        if (current === undefined || current === null) return 0;
-                        const arrayMatch = part.match(/(\w+)\[(\w+)\]/);
-                        if (arrayMatch) {
-                            const arrayName = arrayMatch[1];
-                            const keyName = arrayMatch[2];
-                            const key = formulaContext[keyName];
-                            current = current[arrayName] ? current[arrayName][key] : undefined;
-                        } else {
-                            current = current[part];
-                        }
-                    }
-                    return (typeof current === 'number') ? current : (typeof current === 'string') ? `'${current}'` : (typeof current === 'boolean') ? String(current) : 0;
-                });
-                
-                console.log(`Processed Formula ${processedFormula}`)
-
-                // Replace any remaining non-@ variables from the formulaContext
-                processedFormula = processedFormula.replace(/[a-zA-Z_]\w*/g, (match) => {
-                    if (formulaContext[match] !== undefined && typeof formulaContext[match] === 'number') {
-                        return formulaContext[match];
-                    }
-                    return match;
-                });
-
-                try {
-                    return new Function(`return ${processedFormula}`)();
-                } catch (e) {
-                    console.error(`Error evaluating formula: "${formula}" -> "${processedFormula}"`, e);
-                    return 0;
-                }
-            }
-            
-            /**
-             * Calculates the RDS, LVI, and BCR scores for a single card based on the loaded ABILITIES_CONFIG.
-             * @param {object} card - The card object from the main database.
-             * @returns {{rds: number, lvi: number, bcr: number, breakdown: Array<object>}}
-             */
-            function calculateCardMetrics(card) {
-                if (!ABILITIES_CONFIG || !ABILITIES_CONFIG.abilities) {
-                    return { rds: 0, lvi: 0, bcr: 0, breakdown: [] };
-                }
-
-                const fullText = (card.fullTextSections || []).join(' ').replace(/\n/g, ' ');
-                const cardContext = {
-                    card: card,
-                    ...ABILITIES_CONFIG['@constants'],
-                    context: {
-                        lvi: { survivability: 1.0, questSafety: 1.0 },
-                        bcr: {},
-                        rds: {}
-                    }
-                };
-                
-                // --- PHASE 1: Find all matching abilities ---
-                const matchedAbilities = [];
-                ABILITIES_CONFIG.abilities.forEach(abilityDef => {
-                    if (abilityDef.regex === "WILL_NOT_MATCH_TEXT") {
-                        matchedAbilities.push({ def: abilityDef, match: null });
-                        return;
-                    }
-                    if (!abilityDef.regexObject) return;
-                    abilityDef.regexObject.lastIndex = 0;
-                    const match = abilityDef.regexObject.exec(fullText);
-                    if (match) {
-                        matchedAbilities.push({ def: abilityDef, match });
-                    }
-                });
-
-                // --- PHASE 2: Extract all variables for all matched abilities ---
-                matchedAbilities.forEach(({ def, match }) => {
-                    (def.calculation.variables || []).forEach(variableDef => {
-                        let value;
-                        if (variableDef.source === 'regex' && match) {
-                            value = match[variableDef.group];
-                        } else if (variableDef.source && variableDef.source.startsWith('card.')) {
-                            const propName = variableDef.source.substring(5);
-                            value = card[propName];
-                        }
-
-                        if (variableDef.type === 'textOrNumber') {
-                            cardContext[variableDef.name] = getNumberFromText(value);
-                        } else if (variableDef.type === 'numeric') {
-                            cardContext[variableDef.name] = parseInt(value, 10) || 0;
-                        } else {
-                            cardContext[variableDef.name] = value;
-                        }
-                    });
-                });
-
-                // Initialize breakdown struct for both Context Modifiers and Scores
-                const breakdown = [];
-
-                // --- PHASE 3: Process context modifiers ---
-                matchedAbilities.forEach(({ def }) => {
-                    (def.calculation.contextModifiers || []).forEach(modDef => {
-                        //should apply checks if the lvi bcr or rds metric defined in the abilities has a condintion
-                        //if it does have a condition (eg. willpower > 2) it checks that the condition is actually met
-                        //if it does NOT have a condition then it just makes sure that score is applied
-                        let shouldApply = modDef.condition ? evaluateFormula(modDef.condition, cardContext) : true;
-                        if (shouldApply) {
-                            let value = evaluateFormula(modDef.value, cardContext);
-                            const metricContext = cardContext.context[modDef.targetMetric];
-                            if (metricContext) {
-                                if (modDef.operation === 'multiply') {
-                                    if(value == 0.0) value = 1.0;
-                                    metricContext[modDef.name] = (metricContext[modDef.name] || 1.0) * value;
-                                } else if (modDef.operation === 'add') {
-                                    metricContext[modDef.name] = (metricContext[modDef.name] || 0) + value;
-                                } else if (modDef.operation === 'set') {
-                                    metricContext[modDef.name] = value;
-                                }
-                                breakdown.push({
-                                    abilityName: `Context Modifier: ${modDef.name}`,
-                                    metric: modDef.targetMetric,
-                                    value: value,
-                                    explanation: `${modDef.operation} ${def.justification}`
-                                });
-                            }
-                        }
-                    });
-                });
-
-                // --- PHASE 4: Process scores ---
-                let rds = 0, lvi = 0, bcr = 0;
-                
-
-                matchedAbilities.forEach(({ def }) => {
-                    const scores = def.calculation.scores || {};
-                    for (const [metric, scoreDef] of Object.entries(scores)) {
-                        //should apply checks if the lvi bcr or rds metric defined in the abilities has a condintion
-                        //if it does have a condition (eg. willpower > 2) it checks that the condition is actually met
-                        //if it does NOT have a condition then it just makes sure that score is applied
-                        let shouldApply = scoreDef.condition ? evaluateFormula(scoreDef.condition, cardContext) : true;
-                        if (shouldApply) {
-                            const rawValue = evaluateFormula(scoreDef.value, cardContext);
-                            const inkCost = card.cost > 0 ? card.cost : 1;
-                            const finalValue = rawValue / inkCost;
-
-                            const explanation = scoreDef.explanation || def.name;
-                            breakdown.push({
-                                abilityName: def.name,
-                                metric: metric,
-                                value: finalValue,
-                                explanation: `${explanation} (Raw: ${rawValue.toFixed(2)} / Cost: ${inkCost} = ${finalValue.toFixed(2)})`
-                            });
-
-                            if (metric === 'resource_dominance') rds += finalValue;
-                            if (metric === 'lore_velocity') lvi += finalValue;
-                            if (metric === 'board_control') bcr += finalValue;
-                        }
-                    }
-                });
-
-                return { rds, lvi, bcr, breakdown };
-            }
 
             // --- INITIALIZATION ---
             async function initializeApp() {
@@ -1193,7 +1005,7 @@
                 cardPlaceholder.classList.add('hidden');
                 cardDetailsContainer.innerHTML = '';
 
-                const { rds, lvi, bcr, breakdown } = calculateCardMetrics(card);
+                const { rds, lvi, bcr, breakdown } = UnifiedWinProbabiliyCalculation.calculateCardMetrics(card, ABILITIES_CONFIG);
                 const { highlightedHtml, foundPatterns } = analyzeAndHighlightText(card.fullText || (card.fullTextSections || []).join('\n'));
 
                 const resultsHtml = `
