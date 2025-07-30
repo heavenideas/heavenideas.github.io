@@ -1,6 +1,6 @@
 {
   "@constants": {
-    "cardDrawValue": 1.5,
+    "cardDrawValue": 1.66,
     "uninkableBurdenMultiplier": 0.25,
     "dqi": {
       "perCardLookedAt": 1,
@@ -37,6 +37,26 @@
     }
   },
   "abilities": [
+    {
+      "name": "Trigger: Leaves Play",
+      "category": "Trigger",
+      "sub_type": "Leaves Play",
+      "regex": "/when(?:ever)? (?:they|he|she|it) leaves play/gi",
+      "explanation": "This trigger is the biggest catch-all since it means: Going back to hand, being banished, getting put into your inkwell etc..",
+      "justification": "Trigger: Leave Play is quite a iron clad trigger that is on par to On Play Triggers as it is almost guaranteed",
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [
+          {
+            "targetMetric": "rds",
+            "name": "trigger",
+            "operation": "multiply",
+            "value": "1.8"
+          }
+        ],
+        "scores": {}
+      }
+    },
     {
       "name": "Condition: For Each",
       "category": "Condition",
@@ -97,20 +117,12 @@
             "type": "numeric"
           }
         ],
-        "contextModifiers": [
-          {
-            "targetMetric": "lvi",
-            "name": "highWillPower",
-            "operation": "multiply",
-            "value": "1.5",
-            "condition": "@card.willpower >= 6"
-          }
-        ],
+        "contextModifiers": [],
         "scores": {
           "lore_velocity": {
             "condition": "baseLore > 0",
-            "value": "baseLore * @context.lvi.highWillPower",
-            "explanation": "Card Lore * High Willpower Multiplier (1.5)"
+            "value": "baseLore * @context.lvi.survivability * @context.lvi.questSafety",
+            "explanation": "Card Lore * Survivability * Quest Safety"
           }
         }
       }
@@ -143,16 +155,14 @@
       "justification": "Characters with 6 or more willpower are naturally harder to remove through damage.",
       "calculation": {
         "variables": [],
-        "contextModifiers": [
-          {
-            "targetMetric": "lvi",
-            "name": "survivability",
-            "operation": "multiply",
+        "contextModifiers": [],
+        "scores": {
+          "lore_velocity": {
             "condition": "@card.willpower >= @lvi.highWillpowerThreshold",
-            "value": "@lvi.highWillpowerModifier"
+            "value": "1.5",
+            "explanation": "High Will Power"
           }
-        ],
-        "scores": {}
+        }
       }
     },
     {
@@ -166,13 +176,9 @@
         "variables": [],
         "contextModifiers": [],
         "scores": {
-          "board_control": {
-            "value": "",
-            "condition": ""
-          },
           "resource_dominance": {
-            "value": "1.25",
             "condition": "@card.type == 'Item'",
+            "value": "1.25",
             "explanation": "Items are hard to remove"
           }
         }
@@ -322,8 +328,8 @@
         "contextModifiers": [],
         "scores": {
           "resource_dominance": {
-            "value": "drawCount * @cardDrawValue",
-            "explanation": "Draw (drawCount)"
+            "value": "drawCount * @cardDrawValue * @context.rds.trigger",
+            "explanation": "Draw (drawCount) * Card Draw Value (1.66) * Triggers"
           }
         }
       }
@@ -573,11 +579,16 @@
       "sub_type": "Cost",
       "regex": "/You may banish (?:this character|one of your characters) to/gi",
       "explanation": "The player may choose to banish one of their own characters to trigger an effect.",
-      "justification": "The cost of banishing a character.",
+      "justification": "The cost of banishing a character on your board.",
       "calculation": {
         "variables": [],
         "contextModifiers": [],
-        "scores": {}
+        "scores": {
+          "board_control": {
+            "value": "-1.5",
+            "explanation": "This negative value will be offset by the upside of a depending ability on this card"
+          }
+        }
       }
     },
     {
@@ -629,7 +640,7 @@
         "scores": {
           "board_control": {
             "value": "4.0",
-            "explanation": "Deal Damage"
+            "explanation": "Deal Damage to multiple characters"
           }
         }
       }
@@ -681,15 +692,22 @@
       "name": "Damage: Deal to Self",
       "category": "Board Control",
       "sub_type": "Cost",
-      "regex": "/(Deal|move)(?: up to)? (\\d+)?(:? )?damage( counters)?( from (chosen|another|another chosen)?( character| location| character or location)?( of yours)?)? to (chosen|another|another chosen) (?:opposing )?(character|location|character or location)( of yours)(?: with \\d+ (?:¤|⬡|⛉) or (?:less|more))?/gi",
+      "regex": "/(?:Deal|move)(?: up to)? (\\d+)?(:? )?damage( counters)?( from (chosen|another|another chosen)?( character| location| character or location)?( of yours)?)? to (chosen|another|another chosen) (?:opposing )?(character|location|character or location)( of yours)(?: with \\d+ (?:¤|⬡|⛉) or (?:less|more))?/gi",
       "explanation": "One of your own cards takes damage, usually as a cost or effect.",
       "justification": "Has potential to remove one of your characters.",
       "calculation": {
-        "variables": [],
+        "variables": [
+          {
+            "name": "damageAmount",
+            "source": "regex",
+            "group": "1",
+            "type": "textOrNumber"
+          }
+        ],
         "contextModifiers": [],
         "scores": {
           "board_control": {
-            "value": "-1.5",
+            "value": "-1.25 * damageAmount",
             "explanation": "Negative Impact"
           }
         }
@@ -920,12 +938,19 @@
       "name": "Trigger: On Play",
       "category": "Trigger",
       "sub_type": "On Play",
-      "regex": "/When you play this (?:character|item|action)/gi",
+      "regex": "/When you play this (?:character|item|action|location|song)/gi",
       "explanation": "This ability triggers when the card itself is played.",
-      "justification": "A common trigger for 'Enter the Battlefield' (ETB) effects.",
+      "justification": "Trigger: On Play Best as it's guaranteed and immediate effect",
       "calculation": {
         "variables": [],
-        "contextModifiers": [],
+        "contextModifiers": [
+          {
+            "targetMetric": "rds",
+            "name": "trigger",
+            "operation": "multiply",
+            "value": "2.0"
+          }
+        ],
         "scores": {}
       }
     },
@@ -935,10 +960,17 @@
       "sub_type": "On Quest",
       "regex": "/Whenever (this character|he|she|it) quests/gi",
       "explanation": "This ability triggers whenever this character quests.",
-      "justification": "Provides value for performing the primary lore-gaining action.",
+      "justification": "Trigger: On Quest Provides value for performing the primary lore-gaining action. But it has to survive",
       "calculation": {
         "variables": [],
-        "contextModifiers": [],
+        "contextModifiers": [
+          {
+            "targetMetric": "rds",
+            "name": "trigger",
+            "operation": "multiply",
+            "value": "1.25"
+          }
+        ],
         "scores": {}
       }
     },
@@ -948,10 +980,17 @@
       "sub_type": "On Banish",
       "regex": "/When (this character|he|she|it) is banished/gi",
       "explanation": "This ability triggers when this character is banished.",
-      "justification": "An effect that provides value when the character is removed.",
+      "justification": "Trigger: On Banish Better than Quest but worst than On Play or Leaves Play triggers",
       "calculation": {
         "variables": [],
-        "contextModifiers": [],
+        "contextModifiers": [
+          {
+            "targetMetric": "rds",
+            "name": "trigger",
+            "operation": "multiply",
+            "value": "1.5"
+          }
+        ],
         "scores": {}
       }
     },
@@ -1017,9 +1056,9 @@
       "name": "Keyword: Resist",
       "category": "Keyword",
       "sub_type": "Defensive",
-      "regex": "/(Resist \\+\\d+)/gi",
+      "regex": "/Resist \\+(\\d+)/gi",
       "explanation": "Reduces damage taken by this character by a specified amount.",
-      "justification": "Increases survivability against damage.",
+      "justification": "Increases survivability against damage. As well as improving Board Control",
       "calculation": {
         "variables": [
           {
@@ -1039,7 +1078,7 @@
         ],
         "scores": {
           "board_control": {
-            "value": "resistAmount * @bcr.statBuffMultiplier",
+            "value": "resistAmount",
             "explanation": "Resist Amount"
           }
         }
