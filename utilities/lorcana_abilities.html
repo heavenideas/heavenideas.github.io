@@ -1200,7 +1200,11 @@
                     <div class="p-4 bg-slate-800 rounded-lg border border-slate-700 mb-4">
                         <div class="mb-3 prose prose-invert max-w-none">${highlightedHtml}</div>
                     </div>
-                    <div class="grid grid-cols-3 gap-4 text-center mb-6 p-4 bg-slate-800 rounded-lg">
+                    <div class="grid grid-cols-4 gap-4 text-center mb-6 p-4 bg-slate-800 rounded-lg">
+                        <div>
+                            <div class="text-sm text-slate-400">Card Threat Level</div>
+                            <div class="text-3xl font-bold text-purple-400">${(rds + lvi + bcr).toFixed(3)}</div>
+                        </div>
                         <div>
                             <div class="text-sm text-slate-400">Resource Dominance</div>
                             <div class="text-3xl font-bold text-sky-400">${rds.toFixed(3)}</div>
