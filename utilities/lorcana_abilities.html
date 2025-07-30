@@ -7,6 +7,7 @@
     <title>Lorcana Ability Editor & Analyzer</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/fuse.js/dist/fuse.basic.min.js"></script>
+    <script src="https://unpkg.com/split.js/dist/split.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -147,18 +148,41 @@
         .tree-nav-item.active .count {
             color: #dbeafe; /* blue-200 */
         }
+
+        /* Splitter Styles */
+        .gutter {
+            background-color: #0f172a; /* slate-950 */
+        }
+        .gutter.gutter-horizontal {
+            cursor: col-resize;
+        }
+        .gutter.gutter-horizontal::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 4px;
+            height: 50px;
+            background-color: #334155; /* slate-700 */
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+        .gutter.gutter-horizontal:hover::before {
+            background-color: #475569; /* slate-600 */
+        }
     </style>
 </head>
 
 <body class="bg-slate-950 text-slate-300">
 
-    <div id="app" class="container mx-auto p-4 md:p-6">
-        <header class="text-center mb-6 border-b border-slate-800 pb-6">
+    <div id="app" class="h-screen w-screen p-4 md:p-6 flex flex-col">
+        <header class="text-center mb-6 border-b border-slate-800 pb-6 flex-shrink-0">
             <h1 class="text-4xl md:text-5xl font-bold text-slate-100">Lorcana Ability Editor & Analyzer</h1>
             <p class="text-slate-400 mt-2">Load, edit, and analyze ability patterns across all Disney Lorcana cards.</p>
         </header>
 
-        <div id="loader" class="text-center py-10">
+        <div id="loader" class="text-center py-10 flex-grow flex items-center justify-center">
             <div class="flex justify-center items-center space-x-2">
                 <svg class="animate-spin h-8 w-8 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -170,11 +194,11 @@
         
         <div id="warning-banner" class="hidden bg-yellow-900/50 border border-yellow-700 text-yellow-200 px-4 py-3 rounded-lg mb-6 text-center"></div>
 
-        <main id="main-content" class="hidden">
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <main id="main-content" class="hidden flex-grow overflow-hidden">
+            <div id="split-container" class="flex flex-col lg:flex-row w-full h-full gap-4 lg:gap-0">
                 
                 <!-- Left Column: Ability Editor -->
-                <div class="bg-slate-900 p-4 rounded-2xl shadow-lg flex flex-col h-[85vh]">
+                <div id="left-pane" class="bg-slate-900 p-4 rounded-2xl shadow-lg flex flex-col overflow-hidden">
                     <h2 class="text-2xl font-bold mb-4 text-slate-100 border-b border-slate-700 pb-3">Ability Pattern Editor</h2>
                     
                     <!-- Controls -->
@@ -216,7 +240,7 @@
                 </div>
 
                 <!-- Right Column: Card Analyzer -->
-                <div class="bg-slate-900 p-4 rounded-2xl shadow-lg flex flex-col h-[85vh]">
+                <div id="right-pane" class="bg-slate-900 p-4 rounded-2xl shadow-lg flex flex-col overflow-hidden">
                     <h2 class="text-2xl font-bold mb-4 text-slate-100 border-b border-slate-700 pb-3">Card Search & Analysis</h2>
                     <div class="relative">
                         <input type="text" id="search-input" placeholder="Search for a card (e.g., 'Elsa', 'Be Prepared')" class="form-input w-full">
@@ -273,6 +297,39 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            // --- SPLIT PANE LOGIC ---
+            let split = null;
+            const setupSplitView = () => {
+                const splitContainer = document.getElementById('split-container');
+                if (window.innerWidth >= 1024) { // Tailwind's lg breakpoint
+                    if (!split) {
+                        // Ensure horizontal layout for split view
+                        splitContainer.classList.remove('flex-col', 'gap-4');
+                        splitContainer.classList.add('flex-row');
+                        
+                        split = Split(['#left-pane', '#right-pane'], {
+                            sizes: [50, 50],
+                            minSize: 400,
+                            gutterSize: 12,
+                            elementStyle: (dimension, size, gutterSize) => ({
+                                'flex-basis': `calc(${size}% - ${gutterSize}px)`,
+                            }),
+                            gutterStyle: (dimension, gutterSize) => ({
+                                'flex-basis': `${gutterSize}px`,
+                            }),
+                        });
+                    }
+                } else {
+                    if (split) {
+                        split.destroy(true);
+                        split = null;
+                    }
+                    // Ensure vertical layout for mobile
+                    splitContainer.classList.remove('flex-row');
+                    splitContainer.classList.add('flex-col', 'gap-4');
+                }
+            };
+
             // --- GLOBAL STATE ---
             let allCards = [];
             let ABILITIES_CONFIG = { '@constants': {}, abilities: [] };
@@ -341,22 +398,23 @@
             /**
              * Safely evaluates a mathematical formula string by replacing variable placeholders with values from a context object.
              * @param {string} formula - The formula string (e.g., "baseLore * @context.lvi.survivability").
-             * @param {object} context - The object containing all possible variables (@card, @constants, etc.).
+             * @param {object} formulaContext - The object containing all possible variables (@card, @constants, etc.).
              * @returns {number} The result of the calculation.
              */
-            function evaluateFormula(formula, context) {
+            function evaluateFormula(formula, formulaContext) {
                 if (typeof formula !== 'string') return formula;
+                console.log(`Evaluating formula: "${formula}" with context`, formulaContext);
 
                 let processedFormula = formula.replace(/@([\w.\[\]]+)/g, (_, path) => {
                     const parts = path.split('.');
-                    let current = context;
+                    let current = formulaContext;
                     for (const part of parts) {
                         if (current === undefined || current === null) return 0;
                         const arrayMatch = part.match(/(\w+)\[(\w+)\]/);
                         if (arrayMatch) {
                             const arrayName = arrayMatch[1];
                             const keyName = arrayMatch[2];
-                            const key = context[keyName];
+                            const key = formulaContext[keyName];
                             current = current[arrayName] ? current[arrayName][key] : undefined;
                         } else {
                             current = current[part];
@@ -365,10 +423,12 @@
                     return (typeof current === 'number') ? current : (typeof current === 'string' ? `'${current}'` : 0);
                 });
                 
-                // Replace any remaining non-@ variables from the context
+                console.log(`Processed Formula ${processedFormula}`)
+
+                // Replace any remaining non-@ variables from the formulaContext
                 processedFormula = processedFormula.replace(/[a-zA-Z_]\w*/g, (match) => {
-                    if (context[match] !== undefined && typeof context[match] === 'number') {
-                        return context[match];
+                    if (formulaContext[match] !== undefined && typeof formulaContext[match] === 'number') {
+                        return formulaContext[match];
                     }
                     return match;
                 });
@@ -1266,6 +1326,10 @@
 
             // --- START THE APP ---
             initializeApp();
+            
+            // --- INITIALIZE AND MANAGE SPLIT VIEW ---
+            setupSplitView();
+            window.addEventListener('resize', setupSplitView);
         });
     </script>
 </body>
