@@ -570,6 +570,7 @@
             async function initializeApp() {
                 try {
                     loadAbilitiesFromUrl(); // Attempt to load abilities from URL without blocking
+                    await loadAbilitiesFromUrl();
                     
                     const cardsResponse = await fetch(DB_URL);
                     if (!cardsResponse.ok) throw new Error(`Network response for cards was not ok: ${cardsResponse.statusText}`);
