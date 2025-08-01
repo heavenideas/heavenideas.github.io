@@ -977,6 +977,30 @@
            searchInput.addEventListener('focus', (e) => { if (e.target.value) handleSearch(e.target.value); });
            document.addEventListener('click', (e) => { if (!e.target.closest('#search-input, #search-results')) searchResultsContainer.classList.add('hidden'); });
 
+            cardDetailsContainer.addEventListener('click', (e) => {
+                const row = e.target.closest('tr[data-ability-name]');
+                if (row) {
+                    const abilityName = row.dataset.abilityName;
+            
+                    // Reset filters to ensure the target ability is visible
+                    patternFilterInput.value = '';
+                    const activeNavItem = treeNavContainer.querySelector('.tree-nav-item.active');
+                    if (activeNavItem) activeNavItem.classList.remove('active');
+                    const showAll = treeNavContainer.querySelector('[data-filter-type="all"]');
+                    if (showAll) showAll.classList.add('active');
+                    
+                    applyFilters(); // Re-render the pattern list with all items
+            
+                    // Find the element in the now-visible list
+                    const patternEl = document.querySelector(`#pattern-list [data-pattern-name="${abilityName}"]`);
+                    if (patternEl) {
+                        patternEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        patternEl.classList.add('focus-animation');
+                        setTimeout(() => patternEl.classList.remove('focus-animation'), 1500);
+                    }
+                }
+            });
+
             function handleSearch(query) {
                 if (query.trim() === '') {
                     searchResultsContainer.classList.add('hidden');
@@ -1055,7 +1079,7 @@
                             </thead>
                             <tbody>
                                 ${breakdown.length > 0 ? breakdown.map(item => `
-                                    <tr class="border-b border-slate-800 hover:bg-slate-800/50">
+                                    <tr class="border-b border-slate-800 hover:bg-slate-800/50 cursor-pointer" data-ability-name="${item.abilityName}" title="Click to focus on this ability in the editor">
                                         <td class="p-2 font-medium text-slate-200">${item.abilityName}</td>
                                         <td class="p-2 capitalize">${item.metric.replace('_', ' ')}</td>
                                         <td class="text-right p-2 font-mono">${item.value.toFixed(3)}</td>
