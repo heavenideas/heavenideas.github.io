@@ -40,6 +40,32 @@
   },
   "abilities": [
     {
+      "name": "Card Effect: Put into hand",
+      "category": "Resource",
+      "sub_type": "Card Draw",
+      "regex": "/put (\\d+|a|one|two|three)(?: card)?s? into your hand/gi",
+      "explanation": "Same as draw if you are putting into hand",
+      "justification": "Card draw is the primary engine for resource advantage. (Put into Hand)",
+      "calculation": {
+        "variables": [
+          {
+            "name": "putCount",
+            "source": "regex",
+            "group": 1,
+            "type": "textOrNumber"
+          }
+        ],
+        "contextModifiers": [],
+        "scores": {
+          "resource_dominance": {
+            "value": "putCount * @cardDrawValue * @context.rds.trigger",
+            "explanation": "Draw (drawCount) * Card Draw Value (1.66) * Triggers",
+            "condition": ""
+          }
+        }
+      }
+    },
+    {
       "name": "Trigger: This Character Banishes",
       "category": "Trigger",
       "sub_type": "Your Character Banishes",
@@ -168,7 +194,7 @@
       "name": "Condition: For Each",
       "category": "Condition",
       "sub_type": "For Each",
-      "regex": "/for each (item|character|location|action|song)/gi",
+      "regex": "/for each (\\w+ )?(item|character|location|action|song)/gi",
       "explanation": "Condition that might stack up substantially",
       "justification": "This is the basis for cards that whole decks are built around, high risk high reward",
       "calculation": {
@@ -325,12 +351,17 @@
       "sub_type": "No Cards",
       "quick_description": "",
       "regex": "/(while|if|and) you have no cards in (?:your )hand/gi",
-      "explanation": "TODO: Have to decide what impact this have",
-      "justification": "",
+      "explanation": "This condition has a direct impact on resource dominance control as it does the opposite of generating resources. It looks for you to have no resources",
+      "justification": "Having an empty hand is generally a bad position to be in. This will be offset by other abilities in the",
       "calculation": {
         "variables": [],
         "contextModifiers": [],
-        "scores": {}
+        "scores": {
+          "resource_dominance": {
+            "value": "-1.0",
+            "explanation": "Having an empty hand is generally a bad position to be in. This will be offset by other abilities in the"
+          }
+        }
       }
     },
     {
@@ -339,15 +370,15 @@
       "sub_type": "Exerted",
       "quick_description": "characters need to be exerted",
       "regex": "/(while|if|and) (?:this character|one of your characters|all of your characters) (is|are) exerted|⟳.+—/gi",
-      "explanation": "this is a requirement of some cards.",
-      "justification": "",
+      "explanation": "Character has to be exerted",
+      "justification": "Leaves your character unprotected to challenges - would be the same value as exerting an opposing character but in negative",
       "calculation": {
         "variables": [],
         "contextModifiers": [],
         "scores": {
           "board_control": {
             "value": "-0.5",
-            "explanation": "Leaves your character unprotected to challenges - would be the same value as exerting an opposing character but in negative",
+            "explanation": "Leaves your character unprotected to challenges",
             "condition": "@card.type == 'Character'"
           }
         }
@@ -426,7 +457,7 @@
       "name": "Card Effect: Draw",
       "category": "Resource",
       "sub_type": "Card Draw",
-      "regex": "/Draw(?:s)? (\\d+|a|one|two|three) card(?:s?)|put (\\d+|a|one|two|three)(?: card)?s? into your hand/gi",
+      "regex": "/Draw(?:s)? (?:until you have )?(\\d+|a|one|two|three) card(?:s?)/gi",
       "explanation": "Allows the player to draw one or more cards from their deck.",
       "justification": "Card draw is the primary engine for resource advantage.",
       "calculation": {
