@@ -241,37 +241,55 @@
 
                 <!-- Right Column: Card Analyzer -->
                 <div id="right-pane" class="bg-slate-900 p-4 rounded-2xl shadow-lg flex flex-col overflow-hidden">
-                    <h2 class="text-2xl font-bold mb-4 text-slate-100 border-b border-slate-700 pb-3">Card Search & Analysis</h2>
-                    <div class="relative">
-                        <input type="text" id="search-input" placeholder="Search for a card (e.g., 'Elsa', 'Be Prepared')" class="form-input w-full">
-                        <div id="search-results" class="absolute z-10 w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-xl max-h-60 overflow-y-auto hidden"></div>
-                    </div>
-                    <div id="card-display" class="mt-4 overflow-y-auto flex-grow pr-2">
-                        <div id="card-placeholder" class="text-center text-slate-500 py-10 border-2 border-dashed border-slate-700 rounded-lg">
-                            <p>Select a card to see its ability analysis.</p>
-                            <p class="text-sm mt-1">Edits to abilities on the left will update the analysis here live.</p>
+                    <div id="card-search-container" class="flex flex-col overflow-hidden">
+                        <h2 id="toggle-card-search-section" class="text-2xl font-bold text-slate-100 border-b border-slate-700 pb-3 flex justify-between items-center cursor-pointer flex-shrink-0">
+                            <span>Card Search & Analysis</span>
+                            <svg id="card-search-chevron" class="w-6 h-6 transition-transform transform" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd"></path>
+                            </svg>
+                        </h2>
+                        <div id="card-search-wrapper" class="grid grid-rows-[0fr] transition-[grid-template-rows] duration-500 ease-in-out overflow-hidden">
+                            <div class="overflow-hidden flex flex-col min-h-0">
+                                <div class="relative mt-4">
+                                    <input type="text" id="search-input" placeholder="Search for a card (e.g., 'Elsa', 'Be Prepared')" class="form-input w-full">
+                                    <div id="search-results" class="absolute z-10 w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-xl max-h-60 overflow-y-auto hidden"></div>
+                                </div>
+                                <div id="card-display" class="mt-4 overflow-y-auto flex-grow pr-2">
+                                    <div id="card-placeholder" class="text-center text-slate-500 py-10 border-2 border-dashed border-slate-700 rounded-lg">
+                                        <p>Select a card to see its ability analysis.</p>
+                                        <p class="text-sm mt-1">Edits to abilities on the left will update the analysis here live.</p>
+                                    </div>
+                                    <div id="card-details" class="hidden"></div>
+                                </div>
+                            </div>
                         </div>
-                        <div id="card-details" class="hidden"></div>
                     </div>
                     
                     <!-- Custom Regex Search -->
-                    <div id="custom-regex-section" class="mt-4 p-4 bg-slate-950 rounded-xl border border-slate-800">
-                        <h3 class="text-lg font-bold text-slate-100 mb-2">Custom Regex Card Search</h3>
-                        <div class="flex flex-col md:flex-row gap-4 items-start md:items-end">
-                            <div class="flex-1">
-                                <label for="custom-regex-input" class="form-label">Regex Pattern</label>
-                                <input type="text" id="custom-regex-input" class="form-input regex-input" placeholder="e.g. draw 2 cards" />
+                    <div id="custom-regex-section" class="mt-4 p-4 bg-slate-950 rounded-xl border border-slate-800 flex flex-col">
+                        <h3 id="toggle-regex-section" class="text-lg font-bold text-slate-100 mb-2 flex justify-between items-center cursor-pointer flex-shrink-0">
+                            <span>Custom Regex Card Search</span>
+                            <svg id="regex-section-chevron" class="w-5 h-5 transition-transform transform" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd" />
+                            </svg>
+                        </h3>
+                        <div id="custom-regex-content" class="transition-all duration-500 ease-in-out overflow-hidden max-h-0 flex-grow">
+                            <div class="flex flex-col md:flex-row gap-4 items-start md:items-end pt-2">
+                                <div class="flex-1">
+                                    <label for="custom-regex-input" class="form-label">Regex Pattern</label>
+                                    <input type="text" id="custom-regex-input" class="form-input regex-input" placeholder="e.g. draw 2 cards" />
+                                </div>
+                                <div>
+                                    <label for="custom-regex-flags" class="form-label">Flags</label>
+                                    <input type="text" id="custom-regex-flags" class="form-input regex-input w-20" placeholder="gi" value="gi" />
+                                </div>
+                                <button id="custom-regex-btn" class="px-5 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition w-full md:w-auto">Search</button>
+                                <button id="copy-results-btn" class="px-5 py-2 bg-teal-600 text-white font-semibold rounded-lg shadow-md hover:bg-teal-700 transition w-full md:w-auto hidden">Copy Names</button>
                             </div>
-                            <div>
-                                <label for="custom-regex-flags" class="form-label">Flags</label>
-                                <input type="text" id="custom-regex-flags" class="form-input regex-input w-20" placeholder="gi" value="gi" />
-                            </div>
-                            <button id="custom-regex-btn" class="px-5 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition w-full md:w-auto">Search</button>
-                            <button id="copy-results-btn" class="px-5 py-2 bg-teal-600 text-white font-semibold rounded-lg shadow-md hover:bg-teal-700 transition w-full md:w-auto hidden">Copy Names</button>
+                            <div id="custom-regex-error" class="text-red-500 text-sm mt-2 hidden"></div>
+                            <div id="custom-regex-stats" class="mt-4 text-sm text-slate-400"></div>
+                            <div id="custom-regex-results" class="mt-4 max-h-64 overflow-y-auto pr-2"></div>
                         </div>
-                        <div id="custom-regex-error" class="text-red-500 text-sm mt-2 hidden"></div>
-                        <div id="custom-regex-stats" class="mt-4 text-sm text-slate-400"></div>
-                        <div id="custom-regex-results" class="mt-4 max-h-64 overflow-y-auto pr-2"></div>
                     </div>
                 </div>
             </div>
@@ -362,6 +380,10 @@
             const searchResultsContainer = document.getElementById('search-results');
             const cardDetailsContainer = document.getElementById('card-details');
             const cardPlaceholder = document.getElementById('card-placeholder');
+            const cardSearchContainer = document.getElementById('card-search-container');
+            const toggleCardSearchSection = document.getElementById('toggle-card-search-section');
+            const cardSearchWrapper = document.getElementById('card-search-wrapper');
+            const cardSearchChevron = document.getElementById('card-search-chevron');
             const customRegexInput = document.getElementById('custom-regex-input');
             const customRegexFlags = document.getElementById('custom-regex-flags');
             const customRegexBtn = document.getElementById('custom-regex-btn');
@@ -369,6 +391,9 @@
             const customRegexError = document.getElementById('custom-regex-error');
             const customRegexStats = document.getElementById('custom-regex-stats');
             const copyResultsBtn = document.getElementById('copy-results-btn');
+            const toggleRegexSection = document.getElementById('toggle-regex-section');
+            const customRegexContent = document.getElementById('custom-regex-content');
+            const regexSectionChevron = document.getElementById('regex-section-chevron');
 
             // Constants Modal
             const editConstantsBtn = document.getElementById('edit-constants-btn');
@@ -1289,6 +1314,42 @@
                     alert('Failed to copy card names.');
                 });
             });
+
+            // --- FOLDABLE SECTIONS LOGIC ---
+            function setCardSearchSectionState(expand) {
+                cardSearchContainer.classList.toggle('flex-grow', expand);
+                cardSearchWrapper.classList.toggle('grid-rows-[1fr]', expand);
+                cardSearchWrapper.classList.toggle('grid-rows-[0fr]', !expand);
+                cardSearchChevron.classList.toggle('rotate-180', expand);
+            }
+
+            function setRegexSectionState(expand) {
+                const regexSection = document.getElementById('custom-regex-section');
+                regexSection.classList.toggle('flex-grow', expand);
+                customRegexContent.classList.toggle('max-h-[1000px]', expand);
+                customRegexContent.classList.toggle('max-h-0', !expand);
+                regexSectionChevron.classList.toggle('rotate-180', expand);
+            }
+
+            if (toggleCardSearchSection) {
+                toggleCardSearchSection.addEventListener('click', () => {
+                    const isCardExpanded = cardSearchContainer.classList.contains('flex-grow');
+                    setCardSearchSectionState(!isCardExpanded);
+                    setRegexSectionState(isCardExpanded);
+                });
+            }
+
+            if (toggleRegexSection) {
+                toggleRegexSection.addEventListener('click', () => {
+                    const isRegexExpanded = customRegexContent.classList.contains('max-h-[1000px]');
+                    setRegexSectionState(!isRegexExpanded);
+                    setCardSearchSectionState(isRegexExpanded);
+                });
+            }
+
+            // Set initial state
+            setCardSearchSectionState(true);
+            setRegexSectionState(false);
 
             // --- START THE APP ---
             initializeApp();
