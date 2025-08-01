@@ -94,6 +94,7 @@ const UnifiedWinProbabiliyCalculation = (function() {
 
     /**
      * Safely evaluates a mathematical formula string by replacing variable placeholders with values from a context object.
+     * It intelligently defaults missing variables to 0 for addition/subtraction and 1 for multiplication/division.
      * @param {string} formula - The formula string (e.g., "baseLore * @context.lvi.survivability").
      * @param {object} formulaContext - The object containing all possible variables (@card, @constants, etc.).
      * @returns {number} The result of the calculation.
@@ -102,11 +103,14 @@ const UnifiedWinProbabiliyCalculation = (function() {
         if (typeof formula !== 'string') return formula;
         // console.log(`Evaluating formula: "${formula}" with context`, formulaContext);
 
-        let processedFormula = formula.replace(/@([\w.\[\]]+)/g, (_, path) => {
+        let processedFormula = formula.replace(/@([\w.\[\]]+)/g, (match, path, offset, originalFormula) => {
             const parts = path.split('.');
             let current = formulaContext;
             for (const part of parts) {
-                if (current === undefined || current === null) return 0;
+                if (current === undefined || current === null) {
+                    current = undefined; // Ensure we fall through to the default logic
+                    break;
+                }
                 const arrayMatch = part.match(/(\w+)\[(\w+)\]/);
                 if (arrayMatch) {
                     const arrayName = arrayMatch[1];
@@ -117,10 +121,43 @@ const UnifiedWinProbabiliyCalculation = (function() {
                     current = current[part];
                 }
             }
-            return (typeof current === 'number') ? current : (typeof current === 'string') ? `'${current}'` : (typeof current === 'boolean') ? String(current) : 0;
+
+            // If the variable resolved to a valid, existing value, use it.
+            if (typeof current === 'number') return current;
+            if (typeof current === 'string') return `'${current}'`;
+            if (typeof current === 'boolean') return String(current);
+
+            // --- NEW LOGIC ---
+            // If the variable is missing or not a number, default it to 0 or 1 based on the surrounding operators.
+            // This is a heuristic that works for most simple arithmetic.
+
+            // Find the last non-space character before the variable.
+            let prevOp = '';
+            for (let i = offset - 1; i >= 0; i--) {
+                if (originalFormula[i].trim() !== '') {
+                    prevOp = originalFormula[i];
+                    break;
+                }
+            }
+
+            // Find the first non-space character after the variable.
+            let nextOp = '';
+            for (let i = offset + match.length; i < originalFormula.length; i++) {
+                if (originalFormula[i].trim() !== '') {
+                    nextOp = originalFormula[i];
+                    break;
+                }
+            }
+
+            // If the variable is next to a multiplicative operator, its identity value is 1.
+            // This implicitly handles operator precedence for simple cases (e.g., "5 + @var * 2").
+            if (prevOp === '*' || prevOp === '/' || nextOp === '*' || nextOp === '/') {
+                return 1;
+            }
+
+            // Otherwise, for addition, subtraction, or as a standalone term, its identity value is 0.
+            return 0;
         });
-        
-        // console.log(`Processed Formula ${processedFormula}`)
 
         // Replace any remaining non-@ variables from the formulaContext
         processedFormula = processedFormula.replace(/[a-zA-Z_]\w*/g, (match) => {
@@ -130,6 +167,7 @@ const UnifiedWinProbabiliyCalculation = (function() {
             return match;
         });
 
+        console.log(`Processed Formula ${processedFormula}`)
         try {
             return new Function(`return ${processedFormula}`)();
         } catch (e) {

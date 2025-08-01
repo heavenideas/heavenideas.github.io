@@ -40,6 +40,111 @@
   },
   "abilities": [
     {
+      "name": "Trigger: This Character Banishes",
+      "category": "Trigger",
+      "sub_type": "Your Character Banishes",
+      "regex": "/When(?:ever)? (this character|he|she|it) banishes another character in a challenge/gi",
+      "explanation": "This abilitiy triggers on banishing another character in a challange",
+      "justification": "This is conditional on actually banishing the character challanged.",
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [
+          {
+            "targetMetric": "rds",
+            "name": "trigger",
+            "operation": "multiply",
+            "value": "1.2"
+          }
+        ],
+        "scores": {}
+      }
+    },
+    {
+      "name": "Trigger: Banished in a Challenge (Self)",
+      "category": "Trigger",
+      "sub_type": "On Banish",
+      "regex": "/When(?:ever)? (this character|he|she|it) is banished in a challenge/gi",
+      "explanation": "This ability triggers when this character is banished as a result of a challenge, either as the challenger or the one being challenged.",
+      "justification": "This trigger is more conditional than a simple 'On Banish' or 'Leaves Play' trigger because it requires combat. Its reliability is lower than being banished by any means, but it provides value from an otherwise negative board state event.",
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [
+          {
+            "targetMetric": "rds",
+            "name": "trigger",
+            "operation": "multiply",
+            "value": "1.35"
+          }
+        ],
+        "scores": {}
+      }
+    },
+    {
+      "name": "Trigger: On Challenge Start",
+      "category": "Trigger",
+      "sub_type": "On Challenge",
+      "regex": "/Whenever (this character|he|she|it) challenges another character/gi",
+      "explanation": "This ability triggers when this character initiates a challenge against another character, regardless of the outcome.",
+      "justification": "This is better than needing to banish the opposing character.",
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [
+          {
+            "targetMetric": "rds",
+            "name": "trigger",
+            "operation": "multiply",
+            "value": "1.3"
+          }
+        ],
+        "scores": {}
+      }
+    },
+    {
+      "name": "Trigger: You Play an Card Type",
+      "category": "Trigger",
+      "sub_type": "Play Card Type",
+      "regex": "/Whenever you play (?:an|a|another) (action|song|item|character|location)/gi",
+      "explanation": "This ability triggers whenever you play a card of a 'specific' type.",
+      "justification": "Its reliability is conditional and therefore it should be a multiplier that reduces the reliability of whatever it's triggering",
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [
+          {
+            "targetMetric": "lvi",
+            "name": "trigger",
+            "operation": "multiply",
+            "value": "0.75"
+          }
+        ],
+        "scores": {}
+      }
+    },
+    {
+      "name": "Keyword: Shift (Normal)",
+      "category": "Keyword",
+      "sub_type": "Tempo",
+      "regex": "/Shift (\\d+)/gi",
+      "explanation": "Shifting is a core mechanic that helps increase your tempo",
+      "justification": "you get to play a large character for less ink than it's cost",
+      "calculation": {
+        "variables": [
+          {
+            "name": "shiftAmount",
+            "source": "regex",
+            "group": 1,
+            "type": "textOrNumber"
+          }
+        ],
+        "contextModifiers": [],
+        "scores": {
+          "resource_dominance": {
+            "value": "@card.cost - shiftAmount",
+            "explanation": "Card Cost - Shift Amount"
+          }
+        }
+      }
+    },
+    {
       "name": "Trigger: Leaves Play",
       "category": "Trigger",
       "sub_type": "Leaves Play",
@@ -443,7 +548,7 @@
         "contextModifiers": [],
         "scores": {
           "resource_dominance": {
-            "value": "2.0",
+            "value": "2.0 * @context.rds.trigger",
             "explanation": "Discard to Hand"
           }
         }
@@ -1102,7 +1207,7 @@
     {
       "name": "Keyword: Singer",
       "category": "Keyword",
-      "sub_type": "Ramp",
+      "sub_type": "Tempo",
       "regex": "/\\b(Singer \\d+)\\b/gi",
       "explanation": "This character can exert to sing a song of a certain cost or less for free.",
       "justification": "A form of resource ramp for playing song cards.",
