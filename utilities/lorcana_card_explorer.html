@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lorcana Card Explorer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fuse.js/dist/fuse.basic.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        slate: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                            950: '#020617',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom Scrollbars */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b; /* slate-800 */
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569; /* slate-600 */
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b; /* slate-500 */
+        }
+        .form-input, .form-select, .form-checkbox {
+            background-color: #1e293b; /* slate-800 */
+            border: 1px solid #334155; /* slate-700 */
+            color: #e2e8f0; /* slate-200 */
+            border-radius: 0.375rem;
+            padding: 0.5rem 0.75rem;
+            width: 100%;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: #3b82f6; /* blue-500 */
+            box-shadow: 0 0 0 2px #1e40af; /* blue-800 */
+        }
+        .form-label {
+            font-weight: 500;
+            color: #94a3b8; /* slate-400 */
+            margin-bottom: 0.25rem;
+            display: block;
+            font-size: 0.875rem;
+        }
+        .filter-section .filter-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+        .filter-section.open .filter-content {
+            max-height: 500px; /* Adjust as needed */
+        }
+        .filter-section.open .chevron {
+            transform: rotate(180deg);
+        }
+    </style>
+</head>
+
+<body class="bg-slate-950 text-slate-300">
+
+    <div id="app" class="h-screen w-screen p-4 md:p-6 flex flex-col">
+        <header class="text-center mb-6 border-b border-slate-800 pb-6 flex-shrink-0">
+            <h1 class="text-4xl md:text-5xl font-bold text-slate-100">Lorcana Card Explorer</h1>
+            <p class="text-slate-400 mt-2">Filter and explore all Disney Lorcana cards with advanced metrics.</p>
+        </header>
+
+        <div id="loader" class="text-center py-10 flex-grow flex items-center justify-center">
+            <div class="flex justify-center items-center space-x-2">
+                <svg class="animate-spin h-8 w-8 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span class="text-lg font-medium text-slate-400">Loading card database and calculating metrics...</span>
+            </div>
+        </div>
+        
+        <main id="main-content" class="hidden flex-grow overflow-hidden flex gap-6">
+            <!-- Left Column: Filter Panel -->
+            <div id="filter-panel" class="w-1/4 bg-slate-900 p-4 rounded-2xl shadow-lg flex flex-col overflow-y-auto">
+                <h2 class="text-2xl font-bold mb-4 text-slate-100 border-b border-slate-700 pb-3">Filters</h2>
+                <div class="space-y-6">
+                    <!-- Will be populated by JS -->
+                </div>
+            </div>
+
+            <!-- Right Column: Card Display -->
+            <div id="card-display-area" class="w-3/4 flex flex-col overflow-hidden">
+                 <div class="flex-shrink-0 mb-4">
+                    <span id="card-count" class="font-bold text-slate-400"></span>
+                </div>
+                <div id="card-list-container" class="flex-grow overflow-y-auto pr-2 space-y-4">
+                    <!-- Card items will be populated by JS -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="unified_win_probability_utilities.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- GLOBAL STATE ---
+            let allCards = [];
+            let processedCards = []; // Cards with calculated metrics
+            let fuse;
+            const DB_URL = 'https://raw.githubusercontent.com/heavenideas/similcana/refs/heads/main/database/allCards.json';
+
+            // --- UI ELEMENTS ---
+            const loader = document.getElementById('loader');
+            const mainContent = document.getElementById('main-content');
+            const filterPanel = document.getElementById('filter-panel');
+            const cardGridContainer = document.getElementById('card-grid-container');
+            const cardCount = document.getElementById('card-count');
+
+            // --- INITIALIZATION ---
+            async function initializeApp() {
+                try {
+                    await UnifiedWinProbabiliyCalculation.loadAbilitiesConfig();
+                    
+                    const cardsResponse = await fetch(DB_URL);
+                    if (!cardsResponse.ok) throw new Error(`Network response for cards was not ok: ${cardsResponse.statusText}`);
+                    const cardsData = await cardsResponse.json();
+                    allCards = cardsData.cards;
+
+                    // Pre-calculate metrics for all cards
+                    processedCards = allCards.map(card => {
+                        const metrics = UnifiedWinProbabiliyCalculation.calculateCardMetrics(card);
+                        return { ...card, ...metrics };
+                    });
+                    
+                    setupFuseSearch();
+                    buildFilterPanel();
+                    displayCards(processedCards);
+                    
+                    loader.classList.add('hidden');
+                    mainContent.classList.remove('hidden');
+                } catch (error) {
+                    loader.innerHTML = `<div class="text-red-500 font-bold">Failed to initialize app. Please try refreshing the page.</div><p class="text-sm text-slate-500 mt-2">${error.message}</p>`;
+                }
+            }
+
+            function setupFuseSearch() {
+                const options = {
+                    includeScore: true,
+                    keys: ['fullName', 'simpleName', 'fullText'],
+                    threshold: 0.3
+                };
+                fuse = new Fuse(processedCards, options);
+            }
+
+            function buildFilterPanel() {
+                const inkColors = [...new Set(allCards.map(c => c.color).flat())].sort();
+                const cardTypes = [...new Set(allCards.map(c => c.type))].sort();
+                const abilities = UnifiedWinProbabiliyCalculation.getAbilitiesConfig().abilities.map(a => a.name).sort();
+
+                const createSlider = (id, label, min, max, step) => `
+                    <div class="px-2">
+                        <label for="${id}" class="form-label">${label} - <span id="${id}-value">Any</span></label>
+                        <input type="range" id="${id}" data-filter="${id}" min="${min}" max="${max}" step="${step}" class="w-full filter-slider">
+                    </div>
+                `;
+                
+                const createFilterSection = (title, content, isOpen = false) => `
+                    <div class="filter-section border-b border-slate-800 ${isOpen ? 'open' : ''}">
+                        <h3 class="filter-header cursor-pointer p-2 hover:bg-slate-800 rounded-md flex justify-between items-center">
+                            <span class="font-semibold text-slate-200">${title}</span>
+                            <svg class="chevron w-5 h-5 transition-transform" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                        </h3>
+                        <div class="filter-content py-4 space-y-4">${content}</div>
+                    </div>
+                `;
+
+                filterPanel.innerHTML = `
+                    <div class="flex justify-between items-center border-b border-slate-700 pb-3 mb-4">
+                        <h2 class="text-2xl font-bold text-slate-100">Filters</h2>
+                        <button id="reset-filters-btn" class="px-3 py-1 text-sm bg-slate-700 hover:bg-slate-600 rounded-lg">Reset</button>
+                    </div>
+                    <div class="space-y-1">
+                        ${createFilterSection('Search & Ability', `
+                            <div class="px-2">
+                                <label for="search-input" class="form-label">Search</label>
+                                <input type="text" id="search-input" class="form-input" placeholder="Card name or text...">
+                            </div>
+                            <div class="px-2">
+                                <label for="ability-select" class="form-label">Ability Match</label>
+                                <select id="ability-select" class="form-select">
+                                    <option value="">Any Ability</option>
+                                    ${abilities.map(ability => `<option value="${ability}">${ability}</option>`).join('')}
+                                </select>
+                            </div>
+                        `, true)}
+                        ${createFilterSection('Card Properties', `
+                            <div class="px-2">
+                                <label class="form-label">Ink Color</label>
+                                <div class="grid grid-cols-2 gap-2">
+                                    ${inkColors.map(ink => `
+                                        <label class="flex items-center space-x-2 text-sm">
+                                            <input type="checkbox" class="form-checkbox filter-checkbox" data-filter="color" value="${ink}">
+                                            <span>${ink}</span>
+                                        </label>
+                                    `).join('')}
+                                </div>
+                            </div>
+                            <div class="px-2">
+                                <label class="form-label">Card Type</label>
+                                <div class="grid grid-cols-2 gap-2">
+                                    ${cardTypes.map(type => `
+                                        <label class="flex items-center space-x-2 text-sm">
+                                            <input type="checkbox" class="form-checkbox filter-checkbox" data-filter="type" value="${type}">
+                                            <span>${type}</span>
+                                        </label>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        `)}
+                        ${createFilterSection('Card Stats', `
+                            ${createSlider('cost', 'Cost', 0, 10, 1)}
+                            ${createSlider('strength', 'Strength', 0, 10, 1)}
+                            ${createSlider('willpower', 'Willpower', 0, 10, 1)}
+                            ${createSlider('lore', 'Lore', 0, 5, 1)}
+                        `)}
+                        ${createFilterSection('Calculated Metrics', `
+                            ${createSlider('rds', 'RDS', 0, 5, 0.1)}
+                            ${createSlider('lvi', 'LVI', 0, 5, 0.1)}
+                            ${createSlider('bcr', 'BCR', 0, 5, 0.1)}
+                        `)}
+                    </div>
+                `;
+            }
+
+            function displayCards(cards) {
+                const cardListContainer = document.getElementById('card-list-container');
+                cardListContainer.innerHTML = '';
+                if (cards.length === 0) {
+                    cardListContainer.innerHTML = `<div class="text-slate-500 text-center py-10">No cards match the current filters.</div>`;
+                } else {
+                    cards.forEach(card => {
+                        const cardEl = document.createElement('div');
+                        cardEl.className = 'bg-slate-900 p-4 rounded-2xl shadow-lg flex gap-6';
+                        cardEl.innerHTML = `
+                            <div class="w-1/4 flex-shrink-0">
+                                <img src="${card.images.large}" alt="${card.fullName}" class="w-full rounded-lg">
+                            </div>
+                            <div class="w-3/4 space-y-3">
+                                <h3 class="text-2xl font-bold text-slate-100">${card.fullName}</h3>
+                                <div class="grid grid-cols-3 gap-4 text-center p-3 bg-slate-800 rounded-lg">
+                                    <div>
+                                        <div class="text-sm text-slate-400">RDS</div>
+                                        <div class="text-2xl font-bold text-sky-400">${card.rds.toFixed(3)}</div>
+                                    </div>
+                                    <div>
+                                        <div class="text-sm text-slate-400">LVI</div>
+                                        <div class="text-2xl font-bold text-amber-400">${card.lvi.toFixed(3)}</div>
+                                    </div>
+                                    <div>
+                                        <div class="text-sm text-slate-400">BCR</div>
+                                        <div class="text-2xl font-bold text-rose-400">${card.bcr.toFixed(3)}</div>
+                                    </div>
+                                </div>
+                                <div class="prose prose-sm prose-invert max-w-none text-slate-300">${(card.fullText || '').replace(/\n/g, '<br>')}</div>
+                                <h4 class="font-semibold text-slate-300 pt-3 border-t border-slate-700">Calculation Breakdown:</h4>
+                                <div class="overflow-y-auto" style="max-height: 150px;">
+                                    <table class="w-full text-xs">
+                                        <thead class="sticky top-0 bg-slate-900">
+                                            <tr class="border-b border-slate-700">
+                                                <th class="text-left p-1">Ability</th>
+                                                <th class="text-left p-1">Metric</th>
+                                                <th class="text-right p-1">Score</th>
+                                                <th class="text-left p-1">Explanation</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${card.breakdown.length > 0 ? card.breakdown.map(item => `
+                                                <tr class="border-b border-slate-800">
+                                                    <td class="p-1 font-medium text-slate-200">${item.abilityName}</td>
+                                                    <td class="p-1 capitalize">${item.metric.replace('_', ' ')}</td>
+                                                    <td class="text-right p-1 font-mono">${item.value.toFixed(3)}</td>
+                                                    <td class="p-1 text-slate-400">${item.explanation}</td>
+                                                </tr>
+                                            `).join('') : '<tr><td colspan="4" class="text-center p-2 text-slate-500">No matched abilities.</td></tr>'}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        `;
+                        cardListContainer.appendChild(cardEl);
+                    });
+                }
+                cardCount.textContent = `${cards.length} card(s) found.`;
+            }
+
+            function applyFiltersAndDisplay() {
+                const filters = {
+                    text: document.getElementById('search-input').value.trim(),
+                    ability: document.getElementById('ability-select').value,
+                    color: [...document.querySelectorAll('[data-filter="color"]:checked')].map(el => el.value),
+                    type: [...document.querySelectorAll('[data-filter="type"]:checked')].map(el => el.value),
+                    cost: document.getElementById('cost').value,
+                    strength: document.getElementById('strength').value,
+                    willpower: document.getElementById('willpower').value,
+                    lore: document.getElementById('lore').value,
+                    rds: document.getElementById('rds').value,
+                    lvi: document.getElementById('lvi').value,
+                    bcr: document.getElementById('bcr').value,
+                };
+
+                let filtered = processedCards;
+
+                // Text search
+                if (filters.text) {
+                    filtered = fuse.search(filters.text).map(result => result.item);
+                }
+
+                // Ability filter
+                if (filters.ability) {
+                    filtered = filtered.filter(card => card.breakdown.some(b => b.abilityName === filters.ability));
+                }
+
+                // Checkbox filters
+                if (filters.color.length > 0) {
+                    filtered = filtered.filter(card => filters.color.includes(card.color));
+                }
+                if (filters.type.length > 0) {
+                    filtered = filtered.filter(card => filters.type.includes(card.type));
+                }
+
+                // Slider filters
+                const sliderFilters = ['cost', 'strength', 'willpower', 'lore', 'rds', 'lvi', 'bcr'];
+                sliderFilters.forEach(key => {
+                    const value = parseFloat(filters[key]);
+                    if (value > document.getElementById(key).min) {
+                         filtered = filtered.filter(card => (card[key] || 0) >= value);
+                    }
+                });
+
+                displayCards(filtered);
+            }
+            
+            // --- EVENT LISTENERS ---
+            filterPanel.addEventListener('input', (e) => {
+                if (e.target.matches('.filter-slider')) {
+                    const valueEl = document.getElementById(`${e.target.id}-value`);
+                    if (e.target.value > e.target.min) {
+                        valueEl.textContent = `>= ${e.target.value}`;
+                    } else {
+                        valueEl.textContent = 'Any';
+                    }
+                }
+                applyFiltersAndDisplay();
+            });
+
+            filterPanel.addEventListener('click', (e) => {
+                if (e.target.id === 'reset-filters-btn') {
+                    document.getElementById('search-input').value = '';
+                    document.getElementById('ability-select').value = '';
+                    document.querySelectorAll('.filter-checkbox').forEach(cb => cb.checked = false);
+                    document.querySelectorAll('.filter-slider').forEach(slider => {
+                        slider.value = slider.min;
+                        document.getElementById(`${slider.id}-value`).textContent = 'Any';
+                    });
+                    applyFiltersAndDisplay();
+                }
+
+                const header = e.target.closest('.filter-header');
+                if (header) {
+                    header.parentElement.classList.toggle('open');
+                }
+            });
+
+            // --- START THE APP ---
+            initializeApp();
+        });
+    </script>
+</body>
+
+</html>

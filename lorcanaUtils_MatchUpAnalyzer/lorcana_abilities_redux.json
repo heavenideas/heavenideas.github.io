@@ -40,6 +40,24 @@
   },
   "abilities": [
     {
+      "name": "State: Can't Challange",
+      "category": "State",
+      "sub_type": "Control",
+      "regex": "/(chosen (opposing )?character(s)?) can't challenge/gi",
+      "explanation": "",
+      "justification": "",
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [],
+        "scores": {
+          "board_control": {
+            "value": "1.15",
+            "explanation": "Affects tempo - but characters can still quest"
+          }
+        }
+      }
+    },
+    {
       "name": "Card Effect: Put into hand",
       "category": "Resource",
       "sub_type": "Card Draw",
@@ -194,7 +212,7 @@
       "name": "Condition: For Each",
       "category": "Condition",
       "sub_type": "For Each",
-      "regex": "/for each (\\w+ )?(item|character|location|action|song)/gi",
+      "regex": "/for each (?:other )?(?:\\w+ )?(item|character|location|action|song|(\\d+) damage|card)/gi",
       "explanation": "Condition that might stack up substantially",
       "justification": "This is the basis for cards that whole decks are built around, high risk high reward",
       "calculation": {
@@ -328,7 +346,11 @@
       "calculation": {
         "variables": [],
         "contextModifiers": [],
-        "scores": {}
+        "scores": {
+          "board_control": {
+            "value": "1.5"
+          }
+        }
       }
     },
     {
@@ -818,7 +840,7 @@
       "name": "Damage: Heal",
       "category": "Lore",
       "sub_type": "Survivability",
-      "regex": "/Remove up to (\\d+) damage from (?:chosen )?(?:one of )?(?:your )?(character|location)/gi",
+      "regex": "/Remove(?: up to)? (\\d+) damage from (?:chosen |each of your |one of your )?(?:character(?:s)?|location)/gi",
       "explanation": "Removes damage from one of your cards, increasing its survivability.",
       "justification": "Increases the longevity of your characters.",
       "calculation": {
@@ -894,7 +916,7 @@
         "contextModifiers": [],
         "scores": {
           "board_control": {
-            "value": "2.5",
+            "value": "0.5",
             "explanation": "Exert Character"
           }
         }
@@ -910,7 +932,12 @@
       "calculation": {
         "variables": [],
         "contextModifiers": [],
-        "scores": {}
+        "scores": {
+          "board_control": {
+            "value": "1.0",
+            "explanation": "Affects Tempo"
+          }
+        }
       }
     },
     {
