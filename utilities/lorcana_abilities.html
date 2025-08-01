@@ -1231,12 +1231,21 @@
                     });
                     highlighted += text.substring(lastIndex);
 
+                    const { rds, lvi, bcr } = UnifiedWinProbabiliyCalculation.calculateCardMetrics(card);
+                    const ctl = rds + lvi + bcr;
+
                     const cardDiv = document.createElement('div');
                     cardDiv.className = 'mb-4 p-3 bg-slate-800 rounded-lg border border-slate-700 shadow flex items-start cursor-pointer hover:bg-slate-700 transition-colors';
                     cardDiv.innerHTML = `
                         <img src="${card.images.thumbnail}" alt="${card.fullName}" class="w-16 h-22 mr-4 rounded-md" onerror="this.style.display='none'">
                         <div>
-                            <div class="font-bold text-blue-400 mb-2">${card.fullName}</div>
+                            <div class="font-bold text-blue-400 mb-1">${card.fullName}</div>
+                            <div class="flex gap-3 text-xs mb-2">
+                                <span class="font-bold text-purple-400" title="Card Threat Level">CTL: ${ctl.toFixed(2)}</span>
+                                <span class="text-sky-400" title="Resource Dominance Score">RDS: ${rds.toFixed(2)}</span>
+                                <span class="text-amber-400" title="Lore Velocity Index">LVI: ${lvi.toFixed(2)}</span>
+                                <span class="text-rose-400" title="Board Control Rating">BCR: ${bcr.toFixed(2)}</span>
+                            </div>
                             <div class="prose prose-sm prose-invert">${highlighted.replace(/\n/g, '<br>')}</div>
                         </div>
                     `;
