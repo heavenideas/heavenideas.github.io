@@ -100,7 +100,7 @@
 
         .card-stack img {
             width: 100%;
-            height: 100%;
+            height: calc(100% - 20px);
             object-fit: contain;
             border-radius: 8px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
@@ -130,7 +130,7 @@
 
         .card-prob-overlay {
             position: absolute;
-            bottom: 4px;
+            bottom: 24px;
             right: 4px;
             background-color: rgba(17, 24, 39, 0.8);
             /* bg-gray-900 with opacity */
@@ -148,6 +148,32 @@
         .scenario-btn.active {
             background-color: #9333ea;
             color: white;
+        }
+.card-stats-overlay {
+            position: absolute;
+            bottom: -20px;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            font-size: 10px;
+            padding: 4px;
+            text-align: center;
+            border-bottom-left-radius: 8px;
+            border-bottom-right-radius: 8px;
+        }
+        .card-stats-overlay .ctl {
+            font-weight: bold;
+            color: #a855f7; /* purple-400 */
+        }
+        .card-stats-overlay .rds {
+            color: #38bdf8; /* sky-400 */
+        }
+        .card-stats-overlay .lvi {
+            color: #facc15; /* amber-400 */
+        }
+        .card-stats-overlay .bcr {
+            color: #f472b6; /* rose-400 */
         }
     </style>
 </head>
@@ -351,6 +377,7 @@
        </div>
    </div>
 
+<script src="unified_win_probability_utilities.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             // --- GLOBAL STATE & CONFIG ---
@@ -539,7 +566,22 @@
                             stackDiv.dataset.cardName = card.fullName;
                             const probOfFinding = 1 - probMiss(totalDeckSize, count, cardsSeenForMulligan);
                             const probText = (probOfFinding * 100).toFixed(1) + '%';
-                            stackDiv.innerHTML = `<div class="card-count-badge">${count}</div><img src="${card.images.full}" alt="${card.fullName}" loading="lazy" onerror="this.onerror=null;this.src='https://placehold.co/150x210/1f2937/9ca3af?text=${encodeURIComponent(card.name)}';"><div class="card-prob-overlay" title="Prob. in open hand + mulligan">${probText}</div>`;
+                            const { rds, lvi, bcr } = UnifiedWinProbabiliyCalculation.calculateCardMetrics(card);
+                            const ctl = rds + lvi + bcr;
+                            const statsHTML = `
+                                <div class="card-stats-overlay">
+                                    <span class="ctl" title="Card Threat Level">CTL: ${ctl.toFixed(2)}</span>
+                                    <span class="rds" title="Resource Dominance Score">RDS: ${rds.toFixed(2)}</span>
+                                    <span class="lvi" title="Lore Velocity Index">LVI: ${lvi.toFixed(2)}</span>
+                                    <span class="bcr" title="Board Control Rating">BCR: ${bcr.toFixed(2)}</span>
+                                </div>
+                            `;
+                            stackDiv.innerHTML = `
+                                <div class="card-count-badge">${count}</div>
+                                <img src="${card.images.full}" alt="${card.fullName}" loading="lazy" onerror="this.onerror=null;this.src='https://placehold.co/150x210/1f2937/9ca3af?text=${encodeURIComponent(card.name)}';">
+                                <div class="card-prob-overlay" title="Prob. in open hand + mulligan">${probText}</div>
+                                ${statsHTML}
+                            `;
                             stackDiv.addEventListener('click', () => handleCardSelection(card.fullName, count));
                             grid.appendChild(stackDiv);
                         });
@@ -1036,6 +1078,7 @@ FORMAT YOUR RESPONSE as a structured, professional guide with clear headings. In
                     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                     allCards = (await response.json()).cards;
                     cardFuse = new Fuse(allCards, { keys: ['fullName', 'simpleName', 'name', 'title'], includeScore: true, threshold: 0.3 });
+                    await UnifiedWinProbabiliyCalculation.loadAbilitiesConfig(); // Load abilities for CTL scores
                     await loadAndRenderDecks();
                     resetForm();
                 } catch (error) {
