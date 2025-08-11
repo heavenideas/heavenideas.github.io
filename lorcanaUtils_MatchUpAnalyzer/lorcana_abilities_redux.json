@@ -40,6 +40,45 @@
   },
   "abilities": [
     {
+      "name": "Bounce: Own Characters",
+      "category": "Board Control",
+      "sub_type": "Tempo",
+      "regex": "/return (?:another )?(?:chosen |(\\d+) chosen )?character(?:s)? of yours to your hand/gi",
+      "explanation": "Technically a bad tempo ability, but normally comes as part as a combined play.",
+      "justification": "Returning cards to your hand is negative tempo",
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [],
+        "scores": {
+          "board_control": {
+            "value": "-0.5",
+            "explanation": "Negative Tempo"
+          }
+        }
+      }
+    },
+    {
+      "name": "Type: Action",
+      "category": "Base",
+      "sub_type": "Type",
+      "regex": "WILL_NOT_MATCH_TEXT",
+      "explanation": "We treat this the same as having a charcter with an OnPlay Ability",
+      "justification": "This ability will trigger reliably same as playing a character with that ability",
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [
+          {
+            "targetMetric": "rds",
+            "name": "trigger",
+            "operation": "multiply",
+            "value": "2.0",
+            "condition": "@card.type == \"Action\""
+          }
+        ],
+        "scores": {}
+      }
+    },
+    {
       "name": "State: Can't Challange",
       "category": "State",
       "sub_type": "Control",
@@ -1036,11 +1075,18 @@
       "explanation": "Reduces the ink cost to play certain cards.",
       "justification": "A form of resource advantage.",
       "calculation": {
-        "variables": [],
+        "variables": [
+          {
+            "name": "costReduction",
+            "source": "regex",
+            "group": 1,
+            "type": "textOrNumber"
+          }
+        ],
         "contextModifiers": [],
         "scores": {
           "resource_dominance": {
-            "value": "1.0",
+            "value": "0.25 * @costReduction",
             "explanation": "Cost Reduction"
           }
         }
