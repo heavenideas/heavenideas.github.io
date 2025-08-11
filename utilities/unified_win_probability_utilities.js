@@ -190,6 +190,7 @@ const UnifiedWinProbabiliyCalculation = (function() {
             return { rds: 0, lvi: 0, bcr: 0, breakdown: [] };
         }
 
+        const fullText = (card.fullTextSections || []).join(' ').replace(/\n/g, ' ');
         const cardContext = {
             card: card,
             ...configToUse['@constants'],
@@ -202,67 +203,24 @@ const UnifiedWinProbabiliyCalculation = (function() {
         
         // --- PHASE 1: Find all matching abilities ---
         const matchedAbilities = [];
-
-        // New structured path (preferred)
-        if (card.abilities || card.effects) {
-            const abilitiesToProcess = card.abilities || [];
-            const effectsToProcess = card.effects || [];
-
-            // Process abilities for Characters, Items, and Locations
-            abilitiesToProcess.forEach(ability => {
-                const abilityText = ability.fullText || `${ability.name} - ${ability.effect}`;
-                configToUse.abilities.forEach(abilityDef => {
-                    if (!abilityDef.regexObject) return;
-                    abilityDef.regexObject.lastIndex = 0;
-                    const match = abilityDef.regexObject.exec(abilityText);
-                    if (match) {
-                        matchedAbilities.push({ def: abilityDef, match, sourceAbility: ability });
-                    }
-                });
-            });
-
-            // Process effects for Actions
-            effectsToProcess.forEach(effect => {
-                configToUse.abilities.forEach(abilityDef => {
-                    if (!abilityDef.regexObject) return;
-                    abilityDef.regexObject.lastIndex = 0;
-                    const match = abilityDef.regexObject.exec(effect);
-                    if (match) {
-                        matchedAbilities.push({ def: abilityDef, match, sourceAbility: { fullText: effect } });
-                    }
-                });
-            });
-        } else {
-            // Fallback to legacy text processing
-            const fullText = (card.fullTextSections || []).join(' ').replace(/\n/g, ' ');
-            configToUse.abilities.forEach(abilityDef => {
-                if (abilityDef.regex === "WILL_NOT_MATCH_TEXT") {
-                    return; // Skip non-matching abilities in legacy mode
-                }
-                if (!abilityDef.regexObject) return;
-                abilityDef.regexObject.lastIndex = 0;
-                const match = abilityDef.regexObject.exec(fullText);
-                if (match) {
-                    matchedAbilities.push({ def: abilityDef, match, sourceAbility: null });
-                }
-            });
-        }
-
-        // Handle abilities that don't rely on text matching (applies to both paths)
         configToUse.abilities.forEach(abilityDef => {
             if (abilityDef.regex === "WILL_NOT_MATCH_TEXT") {
-                matchedAbilities.push({ def: abilityDef, match: null, sourceAbility: null });
+                matchedAbilities.push({ def: abilityDef, match: null });
+                return;
+            }
+            if (!abilityDef.regexObject) return;
+            abilityDef.regexObject.lastIndex = 0;
+            const match = abilityDef.regexObject.exec(fullText);
+            if (match) {
+                matchedAbilities.push({ def: abilityDef, match });
             }
         });
 
         // --- PHASE 2: Extract all variables for all matched abilities ---
-        matchedAbilities.forEach(({ def, match, sourceAbility }) => {
+        matchedAbilities.forEach(({ def, match }) => {
             (def.calculation.variables || []).forEach(variableDef => {
                 let value;
-                // New logic: Prioritize extracting from the sourceAbility object if it exists
-                if (sourceAbility && sourceAbility[variableDef.source]) {
-                    value = sourceAbility[variableDef.source];
-                } else if (variableDef.source === 'regex' && match) {
+                if (variableDef.source === 'regex' && match) {
                     value = match[variableDef.group];
                 } else if (variableDef.source && variableDef.source.startsWith('card.')) {
                     const propName = variableDef.source.substring(5);
@@ -312,8 +270,7 @@ const UnifiedWinProbabiliyCalculation = (function() {
         // --- PHASE 4: Process scores ---
         let rds = 0, lvi = 0, bcr = 0;
         
-        matchedAbilities.forEach(matchedAbility => {
-            const { def, sourceAbility } = matchedAbility;
+        matchedAbilities.forEach(({ def }) => {
             const scores = def.calculation.scores || {};
             for (const [metric, scoreDef] of Object.entries(scores)) {
                 let shouldApply = scoreDef.condition ? evaluateFormula(scoreDef.condition, cardContext) : true;
@@ -327,8 +284,7 @@ const UnifiedWinProbabiliyCalculation = (function() {
                         abilityName: def.name,
                         metric: metric,
                         value: finalValue,
-                        explanation: `${explanation} (Raw: ${rawValue.toFixed(2)} / Cost: ${inkCost} = ${finalValue.toFixed(2)})`,
-                        sourceAbility: sourceAbility // For debugging
+                        explanation: `${explanation} (Raw: ${rawValue.toFixed(2)} / Cost: ${inkCost} = ${finalValue.toFixed(2)})`
                     });
 
                     if (metric === 'resource_dominance') rds += finalValue;
