@@ -1,6 +1,6 @@
 {
   "@constants": {
-    "cardDrawValue": 1.66,
+    "cardDrawValue": 2.0,
     "uninkableBurdenMultiplier": 0.25,
     "selfBanishBurden": 1.1,
     "discardBurden": 1.5,
@@ -735,7 +735,7 @@
       "name": "Banish: Chosen Target",
       "category": "Board Control",
       "sub_type": "Targeted Removal",
-      "regex": "/banish chosen (?:opposing |opponent's )?(character|item|location|character or item|character, item or location)(?! of yours)(?: with \\d+ (?:¤|⬡|⛉) or (?:less|more))?/gi",
+      "regex": "/banish chosen (?:opposing |opponent's )?(?:damaged )?(character(?:s)?|item|location|character or item|character, item or location)(?! of yours)(?: with \\d+ (?:¤|⬡|⛉) or (?:less|more))?/gi",
       "explanation": "Permanently removes a chosen opponent's card from play.",
       "justification": "The most definitive form of single-target removal.",
       "calculation": {
