@@ -176,7 +176,7 @@
 
 <body class="bg-slate-950 text-slate-300">
 
-    <div id="app" class="h-screen w-screen p-4 md:p-6 flex flex-col">
+    <div id="app" class="min-h-screen w-screen p-4 md:p-6 flex flex-col">
         <header class="text-center mb-6 border-b border-slate-800 pb-6 flex-shrink-0">
             <h1 class="text-4xl md:text-5xl font-bold text-slate-100">Lorcana Ability Editor & Analyzer</h1>
             <p class="text-slate-400 mt-2">Load, edit, and analyze ability patterns across all Disney Lorcana cards.</p>
@@ -194,12 +194,17 @@
         
         <div id="warning-banner" class="hidden bg-yellow-900/50 border border-yellow-700 text-yellow-200 px-4 py-3 rounded-lg mb-6 text-center"></div>
 
-        <main id="main-content" class="hidden flex-grow overflow-hidden">
+        <main id="main-content" class="hidden flex-grow lg:overflow-hidden">
             <div id="split-container" class="flex flex-col lg:flex-row w-full h-full gap-4 lg:gap-0">
                 
                 <!-- Left Column: Ability Editor -->
-                <div id="left-pane" class="bg-slate-900 p-4 rounded-2xl shadow-lg flex flex-col overflow-hidden">
-                    <h2 class="text-2xl font-bold mb-4 text-slate-100 border-b border-slate-700 pb-3">Ability Pattern Editor</h2>
+                <div id="left-pane" class="bg-slate-900 p-4 rounded-2xl shadow-lg flex flex-col lg:overflow-hidden">
+                    <h2 id="toggle-editor-section" class="text-2xl font-bold mb-4 text-slate-100 border-b border-slate-700 pb-3 flex justify-between items-center lg:cursor-default cursor-pointer">
+                        <span>Ability Pattern Editor</span>
+                        <svg id="editor-section-chevron" class="w-6 h-6 transition-transform transform lg:hidden" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd"></path>
+                        </svg>
+                    </h2>
                     
                     <!-- Controls -->
                     <div class="flex flex-wrap gap-4 items-center mb-4">
@@ -221,7 +226,7 @@
                     </div>
 
                     <!-- Main Content Area -->
-                    <div class="flex-grow flex gap-4 overflow-hidden">
+                    <div id="editor-content-wrapper" class="flex-grow flex gap-4 overflow-hidden transition-all duration-500 ease-in-out">
                         <!-- Tree Navigation -->
                         <div id="tree-nav-container" class="w-1/3 bg-slate-950 p-3 rounded-lg overflow-y-auto">
                             <h3 class="text-lg font-semibold text-slate-200 mb-3">Categories</h3>
@@ -240,7 +245,7 @@
                 </div>
 
                 <!-- Right Column: Card Analyzer -->
-                <div id="right-pane" class="bg-slate-900 p-4 rounded-2xl shadow-lg flex flex-col overflow-hidden">
+                <div id="right-pane" class="bg-slate-900 p-4 rounded-2xl shadow-lg flex flex-col lg:overflow-hidden">
                     <div id="card-search-container" class="flex flex-col overflow-hidden">
                         <h2 id="toggle-card-search-section" class="text-2xl font-bold text-slate-100 border-b border-slate-700 pb-3 flex justify-between items-center cursor-pointer flex-shrink-0">
                             <span>Card Search & Analysis</span>
@@ -286,9 +291,20 @@
                                 <button id="custom-regex-btn" class="px-5 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition w-full md:w-auto">Search</button>
                                 <button id="copy-results-btn" class="px-5 py-2 bg-teal-600 text-white font-semibold rounded-lg shadow-md hover:bg-teal-700 transition w-full md:w-auto hidden">Copy Names</button>
                             </div>
+                            <div class="mt-4 flex items-center space-x-4">
+                                <label class="form-label !mb-0">Filter by Format:</label>
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="format-filter-core" name="format-filter" value="Core" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 bg-slate-700 border-slate-600">
+                                    <label for="format-filter-core" class="ml-2 block text-sm text-slate-300">Core</label>
+                                </div>
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="format-filter-infinity" name="format-filter" value="Infinity" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 bg-slate-700 border-slate-600">
+                                    <label for="format-filter-infinity" class="ml-2 block text-sm text-slate-300">Infinity</label>
+                                </div>
+                            </div>
                             <div id="custom-regex-error" class="text-red-500 text-sm mt-2 hidden"></div>
                             <div id="custom-regex-stats" class="mt-4 text-sm text-slate-400"></div>
-                            <div id="custom-regex-results" class="mt-4 overflow-auto pr-2 flex-grow"></div>
+                            <div id="custom-regex-results" class="mt-4 overflow-auto pr-2 flex-grow min-h-[50vh]"></div>
                         </div>
                     </div>
                 </div>
@@ -394,9 +410,12 @@
             const toggleRegexSection = document.getElementById('toggle-regex-section');
             const customRegexContent = document.getElementById('custom-regex-content');
             const regexSectionChevron = document.getElementById('regex-section-chevron');
-
-            // Constants Modal
-            const editConstantsBtn = document.getElementById('edit-constants-btn');
+            const toggleEditorSection = document.getElementById('toggle-editor-section');
+            const editorContentWrapper = document.getElementById('editor-content-wrapper');
+            const editorSectionChevron = document.getElementById('editor-section-chevron');
+ 
+             // Constants Modal
+             const editConstantsBtn = document.getElementById('edit-constants-btn');
             const constantsModal = document.getElementById('constants-modal');
             const constantsTextarea = document.getElementById('constants-textarea');
             const saveConstantsBtn = document.getElementById('save-constants-btn');
@@ -1192,7 +1211,19 @@
 
                 // Search all cards for matches
                 const results = [];
-                allCards.forEach(card => {
+                const coreFilter = document.getElementById('format-filter-core').checked;
+                const infinityFilter = document.getElementById('format-filter-infinity').checked;
+
+                let filteredCards = allCards;
+
+                if (coreFilter) {
+                   filteredCards = filteredCards.filter(card => card.allowedInFormats && card.allowedInFormats.Core);
+                }
+                if (infinityFilter) {
+                   filteredCards = filteredCards.filter(card => card.allowedInFormats && card.allowedInFormats.Infinity);
+                }
+
+                filteredCards.forEach(card => {
                     let text = card.fullText || '';
                     text = (text).replace(/\n/g, ' ').trim();
                     regex.lastIndex = 0;
@@ -1326,6 +1357,16 @@
             });
 
             // --- FOLDABLE SECTIONS LOGIC ---
+            function setEditorSectionState(expand) {
+                if (window.innerWidth < 1024) { // Only apply on mobile
+                    editorContentWrapper.classList.toggle('max-h-[2000px]', expand); // A large enough max-height
+                    editorContentWrapper.classList.toggle('max-h-0', !expand);
+                    editorContentWrapper.classList.toggle('py-4', expand);
+                    editorContentWrapper.classList.toggle('invisible', !expand);
+                    editorSectionChevron.classList.toggle('rotate-180', expand);
+                }
+            }
+
             function setCardSearchSectionState(expand) {
                 cardSearchContainer.classList.toggle('flex-grow', expand);
                 cardSearchWrapper.classList.toggle('grid-rows-[1fr]', expand);
@@ -1357,8 +1398,18 @@
                 });
             }
 
-            // Set initial state
-            setCardSearchSectionState(true);
+            if (toggleEditorSection) {
+                toggleEditorSection.addEventListener('click', () => {
+                    if (window.innerWidth < 1024) {
+                        const isEditorExpanded = editorContentWrapper.classList.contains('max-h-[2000px]');
+                        setEditorSectionState(!isEditorExpanded);
+                    }
+                });
+            }
+ 
+             // Set initial state
+             setEditorSectionState(true);
+             setCardSearchSectionState(true);
             setRegexSectionState(false);
 
             // --- START THE APP ---
