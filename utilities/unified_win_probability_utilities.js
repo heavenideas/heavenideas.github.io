@@ -84,11 +84,15 @@ const UnifiedWinProbabiliyCalculation = (function() {
         if (typeof text === 'number') return text;
         if (!text || typeof text !== 'string') return 0;
         const lowerText = text.toLowerCase().trim();
-        const wordMap = { 'a': 1, 'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5, 'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10 };
+        const wordMap = { 'another':1, 'an': 1, 'a': 1, 'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5, 'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10 };
         if (wordMap[lowerText] !== undefined) {
             return wordMap[lowerText];
         }
-        const match = lowerText.match(/\d+/);
+        let match = lowerText.match(/up to (\d+)/);
+        if (match) {
+            return parseInt(match[1], 10);
+        }
+        match = lowerText.match(/\d+/);
         return match ? parseInt(match[0], 10) : 0;
     }
 

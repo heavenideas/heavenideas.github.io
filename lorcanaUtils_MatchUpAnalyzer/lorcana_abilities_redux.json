@@ -1,6 +1,6 @@
 {
   "@constants": {
-    "cardDrawValue": 2.0,
+    "cardDrawValue": 2,
     "uninkableBurdenMultiplier": 0.25,
     "selfBanishBurden": 1.1,
     "discardBurden": 1.5,
@@ -8,7 +8,8 @@
       "perCardLookedAt": 1,
       "filterToBottom": 1,
       "tutorToHand": 2.5,
-      "tutorBonus": 0.8
+      "tutorBonus": 0.8,
+      "tutorBonusValue": 2.75
     },
     "lvi": {
       "wardModifier": 1.4,
@@ -27,7 +28,8 @@
       "rushStrengthMultiplier": 0.5,
       "singerValueMultiplier": 1,
       "statBuffMultiplier": 1.5,
-      "grantKeywordAuraValue": 1.5
+      "grantKeywordAuraValue": 1.5,
+      "banishCharacterValue": 7
     },
     "cev": {
       "baseMultiplier": 1,
@@ -83,8 +85,8 @@
       "category": "State",
       "sub_type": "Control",
       "regex": "/(chosen (opposing )?character(s)?) can't challenge/gi",
-      "explanation": "",
-      "justification": "",
+      "explanation": "Narrow form of control",
+      "justification": "Affects tempo - but characters can still quest",
       "calculation": {
         "variables": [],
         "contextModifiers": [],
@@ -380,14 +382,14 @@
       "sub_type": "Control",
       "quick_description": "Characters can't exert",
       "regex": "/(all characters|characters|opponent's characters|other characters|opposing characters|chosen character) (?:can't|cannot) exert/gi",
-      "explanation": "this is good for tempo as it blocks any abilities that would require exerting.",
-      "justification": "",
+      "explanation": "The value is slightly increased to create more separation from Can't Challenge. Preventing all forms of exertion (questing, singing, etc.) is significantly more powerful than just preventing challenges.",
+      "justification": "Good for tempo as it blocks any abilities that would require exerting.",
       "calculation": {
         "variables": [],
         "contextModifiers": [],
         "scores": {
           "board_control": {
-            "value": "1.5"
+            "value": "1.75"
           }
         }
       }
@@ -632,7 +634,7 @@
       "name": "Card Effect: Discard to Hand",
       "category": "Resource",
       "sub_type": "Recursion",
-      "regex": "/return (?:a|another|an|up to (\\d+))? (?:character|item|action|song|card)(?: card(?:s)?)?(?: with \\d+ (?:¤|⬡|⛉) or (?:less|more))? from your discard (?:pile )?to your hand/gi",
+      "regex": "/return (a|another|an|up to \\d+) (?:character|item|action|song|card)(?: card(?:s)?)?(?: with \\d+ (?:¤|⬡|⛉) or (?:less|more))? from your discard (?:pile )?to your hand/gi",
       "explanation": "Allows a player to return a card from their discard pile to their hand.",
       "justification": "This is a form of card advantage, as it recovers a spent resource.",
       "calculation": {
@@ -725,7 +727,7 @@
         "contextModifiers": [],
         "scores": {
           "board_control": {
-            "value": "6.5",
+            "value": "@bcr.banishCharacterValue * 0.93",
             "explanation": "Add opposing character to inkwell"
           }
         }
@@ -743,7 +745,7 @@
         "contextModifiers": [],
         "scores": {
           "board_control": {
-            "value": "7.0",
+            "value": "@bcr.banishCharacterValue * 1.0",
             "explanation": "Banish Other Characters"
           }
         }
@@ -761,7 +763,7 @@
         "contextModifiers": [],
         "scores": {
           "board_control": {
-            "value": "8.0",
+            "value": "@bcr.banishCharacterValue * 1.15",
             "explanation": "Banish All"
           }
         }
@@ -779,7 +781,7 @@
         "contextModifiers": [],
         "scores": {
           "board_control": {
-            "value": "7.0",
+            "value": "@bcr.banishCharacterValue * 0.85",
             "explanation": "Banish Other Characters"
           }
         }
@@ -789,7 +791,7 @@
       "name": "Banish: As a Cost/Choice",
       "category": "Board Control",
       "sub_type": "Cost",
-      "regex": "/You may banish (?:this character|one of your characters) to/gi",
+      "regex": "/(?:You may)? banish (?:this character|one of your characters)/gi",
       "explanation": "The player may choose to banish one of their own characters to trigger an effect.",
       "justification": "The cost of banishing a character on your board.",
       "calculation": {
@@ -797,7 +799,7 @@
         "contextModifiers": [],
         "scores": {
           "board_control": {
-            "value": "-1.5",
+            "value": "@bcr.banishCharacterValue * -0.2",
             "explanation": "This negative value will be offset by the upside of a depending ability on this card"
           }
         }
@@ -948,14 +950,14 @@
       "category": "State",
       "sub_type": "Control",
       "regex": "/Exert chosen (?:opposing |opponent's )?(character|item)(?: with \\d+ (?:¤|⬡|⛉) or (?:less|more))?/gi",
-      "explanation": "Forces an opponent's character to exert.",
-      "justification": "A soft form of removal.",
+      "explanation": "Significant tempo advantage gained by neutralizing a character for a turn, preventing questing, challenging, or singing. And leaving him open to challenges.",
+      "justification": "Tempo advantage gained by neutralizing a character for a turn, Leaving him open to challenges.",
       "calculation": {
         "variables": [],
         "contextModifiers": [],
         "scores": {
           "board_control": {
-            "value": "0.5",
+            "value": "2.5",
             "explanation": "Exert Character"
           }
         }
