@@ -1,0 +1,4 @@
+- [ ] Card Effect: Look at Deck needs to have a better way of capturing how many 
+
+
+/put (?:one of them|a (?:character|item|action|song) card|one) into your hand(.)? (and )?(?:put)? the rest on the bottom of your deck/gi
