@@ -742,6 +742,7 @@
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 ${createField('Category', 'input', `data-field="category"`, pattern.category)}
                                 ${createField('Sub-type', 'input', `data-field="sub_type"`, pattern.sub_type)}
+                                ${createField('Value Type', 'input', `data-field="value_type"`, pattern.value_type || 'raw', 'raw or net_advantage')}
                             </div>
                             <div class="mt-4"><label class="form-label cursor-pointer hover:text-blue-400 transition-colors" title="Click to copy this pattern to the Custom Regex Search below">Regex</label><input type="text" class="form-input regex-input" data-field="regex" value="${pattern.regex || ''}" placeholder="e.g., /Draw (\\d+) cards/gi or WILL_NOT_MATCH_TEXT"></div>
                             ${createField('Explanation', 'textarea', `data-field="explanation"`, pattern.explanation)}
