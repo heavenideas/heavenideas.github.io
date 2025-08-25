@@ -236,8 +236,8 @@
       "sub_type": "Tempo",
       "regex": "/Shift (\\d+)/gi",
       "value_type": "net_advantage",
-      "explanation": "Shifting is a core mechanic that helps increase your tempo",
-      "justification": "you get to play a large character for less ink than it's cost",
+      "explanation": "Shifting is a core mechanic that helps increase your RDS but penalises your BCR as it removes the character you shifted onto",
+      "justification": "you get to play a large character for less ink than it's cost The penalty for Shift is now explicitly defined as 50% of the cost of self-banishing.",
       "calculation": {
         "variables": [
           {
@@ -252,6 +252,10 @@
           "resource_dominance": {
             "value": "@card.cost - shiftAmount",
             "explanation": "Card Cost - Shift Amount"
+          },
+          "board_control": {
+            "value": "((@bcr.banishCharacterValue * -0.2) * 0.5)",
+            "explanation": "penalizing the lack of board development"
           }
         }
       }
@@ -609,7 +613,7 @@
       "regex": "/discard (\\d+|a|one|two|three) (?:character|item|location|action|song)?(?: )?card(s?)/gi",
       "value_type": "raw",
       "explanation": "The player must discard one or more cards, usually as a cost.",
-      "justification": "This is typically a cost, reducing the player's own resources.",
+      "justification": "The penalty for discarding a card is now logically mirrored to the value of drawing a card, making the cost a -2.0 to RDS.",
       "calculation": {
         "variables": [
           {
@@ -620,7 +624,12 @@
           }
         ],
         "contextModifiers": [],
-        "scores": {}
+        "scores": {
+          "resource_dominance": {
+            "value": "discardAmount * -(@cardDrawValue)",
+            "explanation": "opposite of drawing a card - discardAmount * -(@cardDrawValue)"
+          }
+        }
       }
     },
     {
