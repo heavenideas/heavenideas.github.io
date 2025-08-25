@@ -42,10 +42,29 @@
   },
   "abilities": [
     {
+      "name": "Card Effect: Bottom of Opponents deck",
+      "category": "Board Control",
+      "sub_type": "Bottom Deck",
+      "regex": "/bottom of (their|their opponent's|their players') deck/gi",
+      "explanation": "Putting a card at the bottom of ",
+      "justification": "",
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [],
+        "scores": {
+          "resource_dominance": {
+            "value": "1.0",
+            "explanation": "opposite of putting it on the bottom of your deck"
+          }
+        }
+      }
+    },
+    {
       "name": "Bounce: Own Characters",
       "category": "Board Control",
       "sub_type": "Tempo",
       "regex": "/return (?:another )?(?:chosen |(\\d+) chosen )?character(?:s)? of yours to your hand/gi",
+      "value_type": "raw",
       "explanation": "Technically a bad tempo ability, but normally comes as part as a combined play.",
       "justification": "Returning cards to your hand is negative tempo",
       "calculation": {
@@ -64,6 +83,7 @@
       "category": "Base",
       "sub_type": "Type",
       "regex": "WILL_NOT_MATCH_TEXT",
+      "value_type": "raw",
       "explanation": "We treat this the same as having a charcter with an OnPlay Ability",
       "justification": "This ability will trigger reliably same as playing a character with that ability",
       "calculation": {
@@ -85,6 +105,7 @@
       "category": "State",
       "sub_type": "Control",
       "regex": "/(chosen (opposing )?character(s)?) can't challenge/gi",
+      "value_type": "raw",
       "explanation": "Narrow form of control",
       "justification": "Affects tempo - but characters can still quest",
       "calculation": {
@@ -102,7 +123,8 @@
       "name": "Card Effect: Put into hand",
       "category": "Resource",
       "sub_type": "Card Draw",
-      "regex": "/put (\\d+|a|one|two|three)(?: card)?s? into your hand/gi",
+      "regex": "/put (\\d+|a|one|two|three|it)(?: card)?s? into your hand/gi",
+      "value_type": "raw",
       "explanation": "Same as draw if you are putting into hand",
       "justification": "Card draw is the primary engine for resource advantage. (Put into Hand)",
       "calculation": {
@@ -118,7 +140,7 @@
         "scores": {
           "resource_dominance": {
             "value": "putCount * @cardDrawValue * @context.rds.trigger",
-            "explanation": "Draw (drawCount) * Card Draw Value (1.66) * Triggers",
+            "explanation": "Draw (drawCount) * Card Draw Value (2.0) * Triggers",
             "condition": ""
           }
         }
@@ -129,6 +151,7 @@
       "category": "Trigger",
       "sub_type": "Your Character Banishes",
       "regex": "/When(?:ever)? (this character|he|she|it) banishes another character in a challenge/gi",
+      "value_type": "raw",
       "explanation": "This abilitiy triggers on banishing another character in a challange",
       "justification": "This is conditional on actually banishing the character challanged.",
       "calculation": {
@@ -149,6 +172,7 @@
       "category": "Trigger",
       "sub_type": "On Banish",
       "regex": "/When(?:ever)? (this character|he|she|it) is banished in a challenge/gi",
+      "value_type": "raw",
       "explanation": "This ability triggers when this character is banished as a result of a challenge, either as the challenger or the one being challenged.",
       "justification": "This trigger is more conditional than a simple 'On Banish' or 'Leaves Play' trigger because it requires combat. Its reliability is lower than being banished by any means, but it provides value from an otherwise negative board state event.",
       "calculation": {
@@ -169,6 +193,7 @@
       "category": "Trigger",
       "sub_type": "On Challenge",
       "regex": "/Whenever (this character|he|she|it) challenges another character/gi",
+      "value_type": "raw",
       "explanation": "This ability triggers when this character initiates a challenge against another character, regardless of the outcome.",
       "justification": "This is better than needing to banish the opposing character.",
       "calculation": {
@@ -189,6 +214,7 @@
       "category": "Trigger",
       "sub_type": "Play Card Type",
       "regex": "/Whenever you play (?:an|a|another) (action|song|item|character|location)/gi",
+      "value_type": "raw",
       "explanation": "This ability triggers whenever you play a card of a 'specific' type.",
       "justification": "Its reliability is conditional and therefore it should be a multiplier that reduces the reliability of whatever it's triggering",
       "calculation": {
@@ -209,6 +235,7 @@
       "category": "Keyword",
       "sub_type": "Tempo",
       "regex": "/Shift (\\d+)/gi",
+      "value_type": "net_advantage",
       "explanation": "Shifting is a core mechanic that helps increase your tempo",
       "justification": "you get to play a large character for less ink than it's cost",
       "calculation": {
@@ -234,6 +261,7 @@
       "category": "Trigger",
       "sub_type": "Leaves Play",
       "regex": "/when(?:ever)? (?:they|he|she|it) leaves play/gi",
+      "value_type": "raw",
       "explanation": "This trigger is the biggest catch-all since it means: Going back to hand, being banished, getting put into your inkwell etc..",
       "justification": "Trigger: Leave Play is quite a iron clad trigger that is on par to On Play Triggers as it is almost guaranteed",
       "calculation": {
@@ -254,6 +282,7 @@
       "category": "Condition",
       "sub_type": "For Each",
       "regex": "/for each (?:other )?(?:\\w+ )?(item|character|location|action|song|(\\d+) damage|card)/gi",
+      "value_type": "raw",
       "explanation": "Condition that might stack up substantially",
       "justification": "This is the basis for cards that whole decks are built around, high risk high reward",
       "calculation": {
@@ -274,6 +303,7 @@
       "category": "Stat",
       "sub_type": "Buff",
       "regex": "/(?:all characters )?(?:get|gets|has|chosen character(?:s)?) \\+(\\d+) (◊|lore)/gi",
+      "value_type": "raw",
       "explanation": "Characters Gain Lore buff as a result of this ability",
       "justification": "",
       "calculation": {
@@ -299,6 +329,7 @@
       "category": "Base",
       "sub_type": "Stat",
       "regex": "WILL_NOT_MATCH_TEXT",
+      "value_type": "raw",
       "explanation": "Fundamental LVI score derived from a character's printed lore, modified by its survivability and safety.",
       "justification": "This is the core calculation for LVI. It's defined as an ability so its formula can use the context modifiers created by other keywords.",
       "calculation": {
@@ -324,6 +355,7 @@
       "category": "Base",
       "sub_type": "Penalty",
       "regex": "WILL_NOT_MATCH_TEXT",
+      "value_type": "raw",
       "explanation": "Applies a penalty to the RDS for cards that cannot be put into the inkwell.",
       "justification": "Uninkable cards can lead to inconsistent starts. The penalty scales with the card's cost.",
       "calculation": {
@@ -343,6 +375,7 @@
       "category": "Base",
       "sub_type": "Stat",
       "regex": "WILL_NOT_MATCH_TEXT",
+      "value_type": "raw",
       "explanation": "Grants a survivability bonus to characters with high willpower.",
       "justification": "Characters with 6 or more willpower are naturally harder to remove through damage.",
       "calculation": {
@@ -362,6 +395,7 @@
       "category": "Base",
       "sub_type": "Type",
       "regex": "WILL_NOT_MATCH_TEXT",
+      "value_type": "raw",
       "explanation": "Applies a survivability modifier to abilities on Item cards.",
       "justification": "Items are generally harder to interact with than characters, making their abilities more reliable.",
       "calculation": {
@@ -382,6 +416,7 @@
       "sub_type": "Control",
       "quick_description": "Characters can't exert",
       "regex": "/(all characters|characters|opponent's characters|other characters|opposing characters|chosen character) (?:can't|cannot) exert/gi",
+      "value_type": "raw",
       "explanation": "The value is slightly increased to create more separation from Can't Challenge. Preventing all forms of exertion (questing, singing, etc.) is significantly more powerful than just preventing challenges.",
       "justification": "Good for tempo as it blocks any abilities that would require exerting.",
       "calculation": {
@@ -400,6 +435,7 @@
       "sub_type": "On Banish",
       "quick_description": "other or your characters are banished",
       "regex": "/when(?:ever)? (a character of yours|one of your (other )?characters|a(n other?) character) is banished/gi",
+      "value_type": "raw",
       "explanation": "this is a bit different than than a trigger on banish",
       "justification": "",
       "calculation": {
@@ -414,6 +450,7 @@
       "sub_type": "No Cards",
       "quick_description": "",
       "regex": "/(while|if|and) you have no cards in (?:your )hand/gi",
+      "value_type": "raw",
       "explanation": "This condition has a direct impact on resource dominance control as it does the opposite of generating resources. It looks for you to have no resources",
       "justification": "Having an empty hand is generally a bad position to be in. This will be offset by other abilities in the",
       "calculation": {
@@ -433,6 +470,7 @@
       "sub_type": "Exerted",
       "quick_description": "characters need to be exerted",
       "regex": "/(while|if|and) (?:this character|one of your characters|all of your characters) (is|are) exerted|⟳.+—/gi",
+      "value_type": "raw",
       "explanation": "Character has to be exerted",
       "justification": "Leaves your character unprotected to challenges - would be the same value as exerting an opposing character but in negative",
       "calculation": {
@@ -453,6 +491,7 @@
       "sub_type": "Control",
       "quick_description": "Can't play a type of card",
       "regex": "/opponents (?:can't|cannot) play (?:actions|songs|items|locations|characters)/gi",
+      "value_type": "raw",
       "explanation": "Opponents are prevented from playing a specific type of card",
       "justification": "This affects the tempo of the game enormously",
       "calculation": {
@@ -471,6 +510,7 @@
       "category": "Lore",
       "sub_type": "Direct Gain",
       "regex": "/Gain (\\d+)?(?: )?(?:◊|lore)(?! equal to)/gi",
+      "value_type": "raw",
       "explanation": "Directly increases the player's lore total by a specified amount.",
       "justification": "A fundamental way to win the game.",
       "calculation": {
@@ -496,6 +536,7 @@
       "category": "Lore",
       "sub_type": "Opponent Loss",
       "regex": "/(chosen opponent(?:s?)|each opponent) loses (\\d+) (◊|lore)/gi",
+      "value_type": "raw",
       "explanation": "Causes one or more opponents to lose a specified amount of lore.",
       "justification": "This slows down the opponent's victory progression.",
       "calculation": {
@@ -521,6 +562,7 @@
       "category": "Resource",
       "sub_type": "Card Draw",
       "regex": "/Draw(?:s)? (?:until you have )?(\\d+|a|one|two|three) card(?:s?)/gi",
+      "value_type": "raw",
       "explanation": "Allows the player to draw one or more cards from their deck.",
       "justification": "Card draw is the primary engine for resource advantage.",
       "calculation": {
@@ -536,7 +578,7 @@
         "scores": {
           "resource_dominance": {
             "value": "drawCount * @cardDrawValue * @context.rds.trigger",
-            "explanation": "Draw (drawCount) * Card Draw Value (1.66) * Triggers"
+            "explanation": "Draw (drawCount) * Card Draw Value (2.0) * Triggers"
           }
         }
       }
@@ -546,6 +588,7 @@
       "category": "Resource",
       "sub_type": "Hand Disruption",
       "regex": "/(chosen opponent|each opponent) (chooses and |reveals their hand and )?discard(?:s)? (\\d+|a|one|two|three) (song|item|character|action|location)?(?: )?card(?:s?)( at random)?/gi",
+      "value_type": "raw",
       "explanation": "Forces an opponent to discard one or more cards from their hand.",
       "justification": "Directly attacks the opponent's resources.",
       "calculation": {
@@ -564,6 +607,7 @@
       "category": "Resource",
       "sub_type": "Cost",
       "regex": "/discard (\\d+|a|one|two|three) (?:character|item|location|action|song)?(?: )?card(s?)/gi",
+      "value_type": "raw",
       "explanation": "The player must discard one or more cards, usually as a cost.",
       "justification": "This is typically a cost, reducing the player's own resources.",
       "calculation": {
@@ -584,6 +628,7 @@
       "category": "Resource",
       "sub_type": "Scry",
       "regex": "/Look at the top (\\d+|one|two|three|four|five)?(?: )?card(?:s?) of your deck/gi",
+      "value_type": "raw",
       "explanation": "Allows the player to look at the top cards of their deck to gain information and potentially organize them.",
       "justification": "Provides card selection and filters draws.",
       "calculation": {
@@ -598,36 +643,47 @@
         "contextModifiers": [],
         "scores": {
           "resource_dominance": {
-            "value": "lookCount * @dqi.perCardLookedAt + (@card.scryEffect.canFilterToBottom ? @dqi.filterToBottom : 0) + (@card.scryEffect.canTutorToHand ? @dqi.tutorToHand + @dqi.tutorBonus : 0)",
-            "explanation": "DQI (Scry)"
+            "value": "lookCount * @dqi.perCardLookedAt",
+            "explanation": "Scry Effect : (Deck Quality Improvement DQI)"
           }
         }
       }
     },
     {
-      "name": "Card Effect: Deck to Hand/Bottom",
+      "name": "Card Effect: Tutor",
       "category": "Resource",
       "sub_type": "Tutor",
-      "regex": "/put (?:one of them|a (?:character|item|action|song) card|one) into your hand(.)? (and )?(?:put)? the rest on the bottom of your deck/gi",
-      "explanation": "A powerful form of card selection where a player looks at cards from their deck, puts one into their hand, and the rest on the bottom.",
-      "justification": "This is a direct tutor effect, guaranteeing the player gets a useful card.",
+      "regex": "/Search your deck for .*? card/gi",
+      "value_type": "raw",
+      "explanation": "A powerful form of card selection where a player looks at cards from their deck, puts them into their hand",
+      "justification": "This is a direct tutor effect, guaranteeing the player gets a useful card. It is the single most effective way of getting the card you want.",
       "calculation": {
         "variables": [],
         "contextModifiers": [],
-        "scores": {}
+        "scores": {
+          "resource_dominance": {
+            "value": "3.5",
+            "explanation": "You get that exact card that you want"
+          }
+        }
       }
     },
     {
       "name": "Card Effect: Filter to Bottom",
       "category": "Resource",
-      "sub_type": "Scry",
-      "regex": "/put the rest on the bottom of your deck/gi",
-      "explanation": "After looking at cards from the top of the deck, the player puts the unwanted cards on the bottom.",
+      "sub_type": "Filter",
+      "regex": "/bottom of (your|the) deck/gi",
+      "value_type": "raw",
+      "explanation": "After looking at cards from the top of the deck, the player puts the unwanted cards on the bottom. (You lose a card, but with the slim theoretical possibility of getting it back after a shuffle, making it the least severe of the three major costs).",
       "justification": "Improves the quality of future draws.",
       "calculation": {
         "variables": [],
         "contextModifiers": [],
-        "scores": {}
+        "scores": {
+          "resource_dominance": {
+            "value": "-1.0"
+          }
+        }
       }
     },
     {
@@ -635,15 +691,23 @@
       "category": "Resource",
       "sub_type": "Recursion",
       "regex": "/return (a|another|an|up to \\d+) (?:character|item|action|song|card)(?: card(?:s)?)?(?: with \\d+ (?:¤|⬡|⛉) or (?:less|more))? from your discard (?:pile )?to your hand/gi",
+      "value_type": "raw",
       "explanation": "Allows a player to return a card from their discard pile to their hand.",
       "justification": "This is a form of card advantage, as it recovers a spent resource.",
       "calculation": {
-        "variables": [],
+        "variables": [
+          {
+            "name": "drawCount",
+            "source": "regex",
+            "group": 1,
+            "type": "textOrNumber"
+          }
+        ],
         "contextModifiers": [],
         "scores": {
           "resource_dominance": {
-            "value": "2.0 * @context.rds.trigger",
-            "explanation": "Discard to Hand"
+            "value": "3.0 * drawCount * @context.rds.trigger",
+            "explanation": "Discard to Hand 3 * drawCount "
           }
         }
       }
@@ -652,13 +716,19 @@
       "name": "Card Effect: Discard to Deck",
       "category": "Resource",
       "sub_type": "Recursion",
-      "regex": "/shuffle (\\d+|a|one|two|three) card(s?) from your discard into your deck/gi",
+      "regex": "shuffle (\\d+|a|one|two|three|all|chosen)(.*?)? card(s?) from your discard into your deck",
+      "value_type": "raw",
       "explanation": "Shuffles cards from the discard pile back into the deck.",
-      "justification": "Prevents decking out and allows for reuse of key cards.",
+      "justification": "Prevents decking out and allows for reuse of key cards. Potentially doesn't do much",
       "calculation": {
         "variables": [],
         "contextModifiers": [],
-        "scores": {}
+        "scores": {
+          "resource_dominance": {
+            "value": "0.25",
+            "explanation": "Some value but potentially does not much"
+          }
+        }
       }
     },
     {
@@ -666,6 +736,7 @@
       "category": "Resource",
       "sub_type": "Information",
       "regex": "/(look at (chosen|each) opponent's hand|chosen opponent reveals their hand)/gi",
+      "value_type": "raw",
       "explanation": "The player gets to see the cards in an opponent's hand.",
       "justification": "Provides valuable information for strategic planning.",
       "calculation": {
@@ -684,15 +755,16 @@
       "category": "Resource",
       "sub_type": "Ramp",
       "regex": "/put (a|an additional|the top|any|chosen)(?: character| item | location| action| song| item or location)?(?: card)? (?:from your discard|from your hand|of your deck)?(?: )?into (your|its player's) inkwell( facedown)?( and exerted)?/gi",
+      "value_type": "raw",
       "explanation": "Allows a player to place a card into their inkwell, accelerating their ink resources.",
-      "justification": "Directly accelerates resources (ramp), which is a powerful effect.",
+      "justification": "Directly accelerates resources (ramp), which is a powerful effect.\n25% better than just drawing a random card",
       "calculation": {
         "variables": [],
         "contextModifiers": [],
         "scores": {
           "resource_dominance": {
-            "value": "2.0",
-            "explanation": "Hand to Inkwell"
+            "value": "@cardDrawValue * 1.25",
+            "explanation": "Hand to Inkwell - permanent gain "
           }
         }
       }
@@ -702,6 +774,7 @@
       "category": "Board Control",
       "sub_type": "Tempo",
       "regex": "/Return chosen (?:opposing |opponent's )?(?:exerted )?(character|item|location|character or item|character, item or location)(?: with (?:cost )?\\d+ (?:¤|⬡|⛉| )?or (?:less|more))? to (its|their|the) player's hand/gi",
+      "value_type": "raw",
       "explanation": "Returns an opponent's card from the board to their hand.",
       "justification": "A tempo-positive play that removes a threat from the board.",
       "calculation": {
@@ -720,6 +793,7 @@
       "category": "Board Control",
       "sub_type": "Removal",
       "regex": "/(put|add|move) chosen (?:opposing |opponent's )?(?:exerted )?(character|item|location|character or item|character, item or location)(?: with \\d+ (?:¤|⬡|⛉) or (?:less|more))? into (its|their|the) player's inkwell/gi",
+      "value_type": "raw",
       "explanation": "Moves an opponent's card from the board into their inkwell.",
       "justification": "A powerful form of removal that also ramps the opponent.",
       "calculation": {
@@ -738,6 +812,7 @@
       "category": "Board Control",
       "sub_type": "Targeted Removal",
       "regex": "/banish chosen (?:opposing |opponent's )?(?:damaged )?(character(?:s)?|item|location|character or item|character, item or location)(?! of yours)(?: with \\d+ (?:¤|⬡|⛉) or (?:less|more))?/gi",
+      "value_type": "raw",
       "explanation": "Permanently removes a chosen opponent's card from play.",
       "justification": "The most definitive form of single-target removal.",
       "calculation": {
@@ -756,6 +831,7 @@
       "category": "Board Control",
       "sub_type": "Board Wipe",
       "regex": "/Banish all (opposing )?(ready |damaged )?characters(?: with \\d+ (?:¤|⬡|⛉) or (?:less|more))?/gi",
+      "value_type": "raw",
       "explanation": "Permanently removes all characters from the board.",
       "justification": "The most powerful board control effect, resetting the board state.",
       "calculation": {
@@ -774,6 +850,7 @@
       "category": "Board Control",
       "sub_type": "Removal",
       "regex": "/((?:An|Each) opponent chooses and banishes one of their characters)/gi",
+      "value_type": "raw",
       "explanation": "The opponent chooses one of their own characters to banish.",
       "justification": "Powerful removal, but weaker than choosing the target yourself.",
       "calculation": {
@@ -792,6 +869,7 @@
       "category": "Board Control",
       "sub_type": "Cost",
       "regex": "/(?:You may)? banish (?:this character|one of your characters)/gi",
+      "value_type": "raw",
       "explanation": "The player may choose to banish one of their own characters to trigger an effect.",
       "justification": "The cost of banishing a character on your board.",
       "calculation": {
@@ -810,6 +888,7 @@
       "category": "Board Control",
       "sub_type": "Direct Damage",
       "regex": "/(Deal|move)(?: up to)? (\\d+)?(:? )?damage( counters)?( from (chosen|another|another chosen)?( character| location| character or location)?( of yours)?)? to (chosen|another|another chosen) (?:opposing )?(character|location|character or location)(?! of yours)(?: with \\d+ (?:¤|⬡|⛉) or (?:less|more))?/gi",
+      "value_type": "raw",
       "explanation": "Deals a specified amount of damage to a single opposing card.",
       "justification": "A flexible form of removal that can banish weakened cards.",
       "calculation": {
@@ -828,6 +907,7 @@
       "category": "Board Control",
       "sub_type": "Direct Damage",
       "regex": "/(put .*? damage counter(s?) on .*? character)/gi",
+      "value_type": "raw",
       "explanation": "Places a number of damage counters on a character.",
       "justification": "Similar to dealing damage, this can remove or weaken characters.",
       "calculation": {
@@ -846,6 +926,7 @@
       "category": "Board Control",
       "sub_type": "Area of Effect",
       "regex": "/(Deal|move)( up to)? (\\d+) damage( counter(s)?)? to each opposing (character|location)/gi",
+      "value_type": "raw",
       "explanation": "Deals damage to all opposing characters or locations.",
       "justification": "An area-of-effect (AoE) ability that can control wide boards.",
       "calculation": {
@@ -864,6 +945,7 @@
       "category": "Board Control",
       "sub_type": "Flexible Damage",
       "regex": "/(Deal|move) (\\d+) damage divided as you choose among any number of chosen opposing characters/gi",
+      "value_type": "raw",
       "explanation": "Deals a total amount of damage that can be split among multiple targets.",
       "justification": "A very flexible form of removal.",
       "calculation": {
@@ -882,6 +964,7 @@
       "category": "Lore",
       "sub_type": "Survivability",
       "regex": "/Remove(?: up to)? (\\d+) damage from (?:chosen |each of your |one of your )?(?:character(?:s)?|location)/gi",
+      "value_type": "raw",
       "explanation": "Removes damage from one of your cards, increasing its survivability.",
       "justification": "Increases the longevity of your characters.",
       "calculation": {
@@ -907,6 +990,7 @@
       "category": "Board Control",
       "sub_type": "Cost",
       "regex": "/(?:Deal|move)(?: up to)? (\\d+)?(:? )?damage( counters)?( from (chosen|another|another chosen)?( character| location| character or location)?( of yours)?)? to (chosen|another|another chosen) (?:opposing )?(character|location|character or location)( of yours)(?: with \\d+ (?:¤|⬡|⛉) or (?:less|more))?/gi",
+      "value_type": "raw",
       "explanation": "One of your own cards takes damage, usually as a cost or effect.",
       "justification": "Has potential to remove one of your characters.",
       "calculation": {
@@ -932,6 +1016,7 @@
       "category": "State",
       "sub_type": "Action",
       "regex": "/Ready chosen (?:your |another )?(character|item)/gi",
+      "value_type": "raw",
       "explanation": "Readies one of your exerted characters.",
       "justification": "Enables action advantage.",
       "calculation": {
@@ -950,6 +1035,7 @@
       "category": "State",
       "sub_type": "Control",
       "regex": "/Exert chosen (?:opposing |opponent's )?(character|item)(?: with \\d+ (?:¤|⬡|⛉) or (?:less|more))?/gi",
+      "value_type": "raw",
       "explanation": "Significant tempo advantage gained by neutralizing a character for a turn, preventing questing, challenging, or singing. And leaving him open to challenges.",
       "justification": "Tempo advantage gained by neutralizing a character for a turn, Leaving him open to challenges.",
       "calculation": {
@@ -968,6 +1054,7 @@
       "category": "State",
       "sub_type": "Control",
       "regex": "/chosen (?:opposing )?character can't ready at the start of (?:their|your) next turn/gi",
+      "value_type": "raw",
       "explanation": "Prevents an opponent's character from readying.",
       "justification": "A stronger form of soft removal.",
       "calculation": {
@@ -986,6 +1073,7 @@
       "category": "Movement",
       "sub_type": "Action",
       "regex": "/move (?:one of )?your characters to a location for free/gi",
+      "value_type": "raw",
       "explanation": "Allows a character to move to a location without paying the move cost.",
       "justification": "Provides tempo and action efficiency.",
       "calculation": {
@@ -999,6 +1087,7 @@
       "category": "Stat",
       "sub_type": "Buff",
       "regex": "/(?:all characters )?(?:get|gets|has|chosen character(?:s)?) \\+(\\d+) (¤|strength)/gi",
+      "value_type": "raw",
       "explanation": "Increases the Strength of one or more characters.",
       "justification": "Makes characters better in challenges.",
       "calculation": {
@@ -1024,6 +1113,7 @@
       "category": "Stat",
       "sub_type": "Debuff",
       "regex": "/(?:all characters )?(?:get|gets|has|chosen character(?:s)?) -(\\d+) (¤|strength)/gi",
+      "value_type": "raw",
       "explanation": "Decreases the Strength of one or more characters.",
       "justification": "Makes opposing characters weaker in challenges.",
       "calculation": {
@@ -1049,6 +1139,7 @@
       "category": "Stat",
       "sub_type": "Buff",
       "regex": "/(?:all characters )?(?:get|gets|has|chosen character(?:s)?) \\+(\\d+) (⛉|Willpower)/gi",
+      "value_type": "raw",
       "explanation": "Increases the Willpower of one or more characters.",
       "justification": "Increases survivability against damage.",
       "calculation": {
@@ -1074,6 +1165,7 @@
       "category": "Stat",
       "sub_type": "Ramp",
       "regex": "/pay (\\d+) ⬡ less/gi",
+      "value_type": "raw",
       "explanation": "Reduces the ink cost to play certain cards.",
       "justification": "A form of resource advantage.",
       "calculation": {
@@ -1099,6 +1191,7 @@
       "category": "Play",
       "sub_type": "Recursion",
       "regex": "/You may play a (character|item) card(?: with \\d+ (?:¤|⬡|⛉) or (?:less|more))? from your discard/gi",
+      "value_type": "raw",
       "explanation": "Allows the player to play a card directly from their discard pile.",
       "justification": "A powerful form of card advantage.",
       "calculation": {
@@ -1117,6 +1210,7 @@
       "category": "Play",
       "sub_type": "Cheat",
       "regex": "/(You may)? play (a|this|an) (character|item|location|action|song|card)( card)? (with cost (\\d+) or less )?for free/gi",
+      "value_type": "net_advantage",
       "explanation": "Allows the player to play a card without paying its ink cost.",
       "justification": "A massive tempo and resource advantage.",
       "calculation": {
@@ -1147,6 +1241,7 @@
       "category": "Play",
       "sub_type": "Ramp",
       "regex": "/The next time you play a (?:character|item|action|song) card this turn, pay (\\d+) ⬡ less/gi",
+      "value_type": "raw",
       "explanation": "Reduces the ink cost of the next card played this turn.",
       "justification": "A temporary form of cost reduction.",
       "calculation": {
@@ -1165,6 +1260,7 @@
       "category": "Trigger",
       "sub_type": "On Play",
       "regex": "/When you play this (?:character|item|action|location|song)/gi",
+      "value_type": "raw",
       "explanation": "This ability triggers when the card itself is played.",
       "justification": "Trigger: On Play Best as it's guaranteed and immediate effect",
       "calculation": {
@@ -1185,6 +1281,7 @@
       "category": "Trigger",
       "sub_type": "On Quest",
       "regex": "/Whenever (this character|he|she|it) quests/gi",
+      "value_type": "raw",
       "explanation": "This ability triggers whenever this character quests.",
       "justification": "Trigger: On Quest Provides value for performing the primary lore-gaining action. But it has to survive",
       "calculation": {
@@ -1205,6 +1302,7 @@
       "category": "Trigger",
       "sub_type": "On Banish",
       "regex": "/When (this character|he|she|it) is banished/gi",
+      "value_type": "raw",
       "explanation": "This ability triggers when this character is banished.",
       "justification": "Trigger: On Banish Better than Quest but worst than On Play or Leaves Play triggers",
       "calculation": {
@@ -1225,6 +1323,7 @@
       "category": "Keyword",
       "sub_type": "Defensive",
       "regex": "/\\b(Evasive)\\b/gi",
+      "value_type": "raw",
       "explanation": "This character can only be challenged by other characters with Evasive.",
       "justification": "Evasive provides significant protection from challenges.",
       "calculation": {
@@ -1245,6 +1344,7 @@
       "category": "Keyword",
       "sub_type": "Offensive",
       "regex": "/\\b(Rush)\\b/gi",
+      "value_type": "raw",
       "explanation": "Allows a character to challenge the turn it is played.",
       "justification": "Rush provides immediate board impact.",
       "calculation": {
@@ -1263,6 +1363,7 @@
       "category": "Keyword",
       "sub_type": "Defensive",
       "regex": "/\\b(Ward)\\b/gi",
+      "value_type": "raw",
       "explanation": "Opponents can't choose this character except to challenge.",
       "justification": "Ward provides protection from targeted abilities.",
       "calculation": {
@@ -1283,6 +1384,7 @@
       "category": "Keyword",
       "sub_type": "Defensive",
       "regex": "/Resist \\+(\\d+)/gi",
+      "value_type": "raw",
       "explanation": "Reduces damage taken by this character by a specified amount.",
       "justification": "Increases survivability against damage. As well as improving Board Control",
       "calculation": {
@@ -1314,7 +1416,8 @@
       "name": "Keyword: Singer",
       "category": "Keyword",
       "sub_type": "Tempo",
-      "regex": "/\\b(Singer \\d+)\\b/gi",
+      "regex": "/\\bSinger (\\d+)\\b/gi",
+      "value_type": "net_advantage",
       "explanation": "This character can exert to sing a song of a certain cost or less for free.",
       "justification": "A form of resource ramp for playing song cards.",
       "calculation": {
@@ -1328,9 +1431,9 @@
         ],
         "contextModifiers": [],
         "scores": {
-          "board_control": {
-            "value": "singerValue * @bcr.singerValueMultiplier",
-            "explanation": "Singer (singerValue)"
+          "resource_dominance": {
+            "value": "singerValue - @card.cost",
+            "explanation": "Net ink advantage"
           }
         }
       }
@@ -1340,6 +1443,7 @@
       "category": "Play",
       "sub_type": "Song",
       "regex": "/\\(A character with cost (\\d+) or more can ⟳ to sing this song for free\\.\\)/gi",
+      "value_type": "raw",
       "explanation": "The reminder text for songs, indicating they can be played for free by exerting a character of sufficient cost.",
       "justification": "This is the core mechanic of song cards, providing resource advantage.",
       "calculation": {

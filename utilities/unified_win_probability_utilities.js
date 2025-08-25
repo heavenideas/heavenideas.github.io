@@ -281,14 +281,22 @@ const UnifiedWinProbabiliyCalculation = (function() {
                 if (shouldApply) {
                     const rawValue = evaluateFormula(scoreDef.value, cardContext);
                     const inkCost = card.cost > 0 ? card.cost : 1;
-                    const finalValue = rawValue / inkCost;
+                    let finalValue;
+                    let explanationText;
 
-                    const explanation = scoreDef.explanation || def.name;
+                    if (def.value_type === 'net_advantage') {
+                        finalValue = rawValue;
+                        explanationText = `${scoreDef.explanation || def.name} (Net Advantage: ${rawValue.toFixed(2)})`;
+                    } else { // Default to 'raw' calculation
+                        finalValue = rawValue / inkCost;
+                        explanationText = `${scoreDef.explanation || def.name} (Raw: ${rawValue.toFixed(2)} / Cost: ${inkCost} = ${finalValue.toFixed(2)})`;
+                    }
+
                     breakdown.push({
                         abilityName: def.name,
                         metric: metric,
                         value: finalValue,
-                        explanation: `${explanation} (Raw: ${rawValue.toFixed(2)} / Cost: ${inkCost} = ${finalValue.toFixed(2)})`
+                        explanation: explanationText
                     });
 
                     if (metric === 'resource_dominance') rds += finalValue;
