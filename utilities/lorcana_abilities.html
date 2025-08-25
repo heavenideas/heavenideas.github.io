@@ -1022,9 +1022,9 @@
            document.addEventListener('click', (e) => { if (!e.target.closest('#search-input, #search-results')) searchResultsContainer.classList.add('hidden'); });
 
             cardDetailsContainer.addEventListener('click', (e) => {
-                const row = e.target.closest('tr[data-ability-name]');
-                if (row) {
-                    const abilityName = row.dataset.abilityName;
+                const clickableElement = e.target.closest('[data-ability-name]');
+                if (clickableElement) {
+                    const abilityName = clickableElement.dataset.abilityName;
             
                     // Reset filters to ensure the target ability is visible
                     patternFilterInput.value = '';
@@ -1185,7 +1185,7 @@
                 filteredMatches.forEach(match => {
                     highlightedHtml += originalText.substring(lastIndex, match.start);
                     const color = patternColors[match.name];
-                    highlightedHtml += `<span class="highlight" style="background-color: ${color};">${match.text}</span>`;
+                    highlightedHtml += `<span class="highlight cursor-pointer" style="background-color: ${color};" data-ability-name="${match.name}" title="Click to focus on this ability in the editor">${match.text}</span>`;
                     lastIndex = match.end;
                 });
                 highlightedHtml += originalText.substring(lastIndex);
