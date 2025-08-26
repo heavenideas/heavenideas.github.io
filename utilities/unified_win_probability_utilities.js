@@ -108,15 +108,20 @@ const UnifiedWinProbabiliyCalculation = (function() {
         // console.log(`Evaluating formula: "${formula}" with context`, formulaContext);
 
         let processedFormula = formula.replace(/@([\w.\[\]]+)/g, (match, path, offset, originalFormula) => {
+            // Split the path by '.' to traverse the context object.
             const parts = path.split('.');
             let current = formulaContext;
+            // Traverse the context object based on the path parts.
             for (const part of parts) {
+                // If any part of the path is undefined or null, the variable doesn't exist.
                 if (current === undefined || current === null) {
                     current = undefined; // Ensure we fall through to the default logic
                     break;
                 }
+                // Check if the part is an array access (e.g., 'abilities[someKey]')
                 const arrayMatch = part.match(/(\w+)\[(\w+)\]/);
                 if (arrayMatch) {
+                    // Extract the array name and the key name.
                     const arrayName = arrayMatch[1];
                     const keyName = arrayMatch[2];
                     const key = formulaContext[keyName];
@@ -124,10 +129,12 @@ const UnifiedWinProbabiliyCalculation = (function() {
                 } else {
                     current = current[part];
                 }
+                // If the variable has been found and is not null/undefined, continue traversal.
             }
 
             // If the variable resolved to a valid, existing value, use it.
             if (typeof current === 'number') return current;
+            // If it's a string or boolean, return a representation that can be evaluated.
             if (typeof current === 'string') return `'${current}'`;
             if (typeof current === 'boolean') return String(current);
 
@@ -165,6 +172,7 @@ const UnifiedWinProbabiliyCalculation = (function() {
 
         // Replace any remaining non-@ variables from the formulaContext
         processedFormula = processedFormula.replace(/[a-zA-Z_]\w*/g, (match) => {
+            // If a word matches a numeric property in the context, use that value.
             if (formulaContext[match] !== undefined && typeof formulaContext[match] === 'number') {
                 return formulaContext[match];
             }
@@ -172,6 +180,7 @@ const UnifiedWinProbabiliyCalculation = (function() {
         });
 
         console.log(`Processed Formula ${processedFormula}`)
+        // Use the Function constructor to safely evaluate the processed formula string.
         try {
             return new Function(`return ${processedFormula}`)();
         } catch (e) {

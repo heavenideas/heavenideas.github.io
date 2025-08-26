@@ -1,7 +1,7 @@
 {
   "@constants": {
     "cardDrawValue": 2,
-    "uninkableBurdenMultiplier": 0.25,
+    "uninkableBurdenMultiplier": 0.15,
     "selfBanishBurden": 1.1,
     "discardBurden": 1.5,
     "dqi": {
@@ -41,6 +41,74 @@
     }
   },
   "abilities": [
+    {
+      "name": "State: Ready Ink",
+      "category": "State",
+      "sub_type": "Inkwell",
+      "regex": "/ready (\\d+|a|one|all) card(?:s)? in your inkwell/gi",
+      "explanation": "Readying cards from your inkwell allows you to essentially \"play for free\"",
+      "justification": "This ability effectively doubles your available ink for a turn, which is an incredibly powerful tempo swing.\n\nComparison to Standard Ramp: We established that a one-time effect of putting a single card into your inkwell (Hand to Inkwell) is worth +2.5. This is because it provides a permanent +1 ink advantage for every subsequent turn.\n\nValuing the Tempo Swing: \"Readying\" all your ink is not a permanent ramp, but a massive, repeatable burst of temporary ramp. If you quest on turn 5 with 5 ink in your inkwell, this ability gives you 5 extra ink to use that turn. This allows you to play a 5-cost card for essentially free. We've established that \"Play for Free\" effects are valued by the cost of the card being cheated.\n\nThe Value Proposition: A repeatable ability to generate ~5 ink's worth of tempo each turn is arguably more powerful than a one-time permanent ramp effect. Assigning it a value of +4.0 places it higher than our standard ramp ability (+2.5), correctly identifying it as one of the most powerful resource-generating abilities in the game. It is balanced by the fact that it is an \"On Quest\" trigger, which is less reliable than an \"On Play\" trigger.",
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [],
+        "scores": {
+          "resource_dominance": {
+            "value": "4",
+            "explanation": "More than Ramp effect (should be similar to play for Free)"
+          }
+        }
+      },
+      "value_type": "net_advantage"
+    },
+    {
+      "name": "Card Effect: Card from Inkwell to Hand",
+      "category": "Resource",
+      "sub_type": "Card Draw",
+      "regex": "/return (one|a|\\d+) card(?:s)? (at random )?from your inkwell to your hand/gi",
+      "explanation": "This is the reverse of our \"Ramp\" ability (Hand to Inkwell), which we valued at +2.5. The value is high because the effect is permanent and compounds over time.",
+      "justification": "Losing a ramped resource is, therefore, a permanent penalty of equal magnitude. Losing two such resources is a massive drawback.\nDownside Value = -5.0 (2 * -2.5).",
+      "calculation": {
+        "variables": [
+          {
+            "name": "cardCount",
+            "source": "regex",
+            "group": 1,
+            "type": "textOrNumber"
+          }
+        ],
+        "contextModifiers": [],
+        "scores": {
+          "resource_dominance": {
+            "value": "(cardCount * @cardDrawValue) + (cardCount * -2.5)"
+          }
+        }
+      }
+    },
+    {
+      "name": "Play: Sing Together Song",
+      "category": "Play",
+      "sub_type": "Song",
+      "regex": "/Sing together (\\d+)/gi",
+      "explanation": "Sing together allows more flexibility when singing as you can pool multiple characters to sing the song.",
+      "justification": " It allows players to swarm the board with low-cost characters and still play high-impact songs, generating a massive tempo advantage that standard songs cannot match.",
+      "calculation": {
+        "variables": [
+          {
+            "name": "songValue",
+            "source": "regex",
+            "group": 1,
+            "type": "textOrNumber"
+          }
+        ],
+        "contextModifiers": [],
+        "scores": {
+          "resource_dominance": {
+            "value": "2.0",
+            "explanation": "Higher impact than traditional songs"
+          }
+        }
+      }
+    },
     {
       "name": "Card Effect: Bottom of Opponents deck",
       "category": "Board Control",
@@ -359,7 +427,7 @@
       "category": "Base",
       "sub_type": "Penalty",
       "regex": "WILL_NOT_MATCH_TEXT",
-      "value_type": "raw",
+      "value_type": "net_advantage",
       "explanation": "Applies a penalty to the RDS for cards that cannot be put into the inkwell.",
       "justification": "Uninkable cards can lead to inconsistent starts. The penalty scales with the card's cost.",
       "calculation": {
@@ -368,7 +436,7 @@
         "scores": {
           "resource_dominance": {
             "condition": "@card.inkwell == false",
-            "value": "-(@card.cost * @uninkableBurdenMultiplier)",
+            "value": "-( @card.cost * @uninkableBurdenMultiplier )",
             "explanation": "Uninkable Burden (- Cost * Multiplier)"
           }
         }
@@ -542,7 +610,7 @@
       "regex": "/(chosen opponent(?:s?)|each opponent) loses (\\d+) (◊|lore)/gi",
       "value_type": "raw",
       "explanation": "Causes one or more opponents to lose a specified amount of lore.",
-      "justification": "This slows down the opponent's victory progression.",
+      "justification": "This slows down the opponent's victory progression.\nThe multiplier is slightly reduced to reflect the strategic principle that proactively advancing your own win condition (Gain) is superior to reactively slowing down your opponent's (Lose).",
       "calculation": {
         "variables": [
           {
@@ -555,7 +623,7 @@
         "contextModifiers": [],
         "scores": {
           "lore_velocity": {
-            "value": "loreAmount * @lvi.directLoreGainMultiplier",
+            "value": "loreAmount * (@lvi.directLoreGainMultiplier * 0.8)",
             "explanation": "Lore: Opponent Loses (loreAmount)"
           }
         }
