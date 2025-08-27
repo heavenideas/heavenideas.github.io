@@ -489,7 +489,17 @@
                     const cardsResponse = await fetch('https://cdn.jsdelivr.net/gh/heavenideas/similcana@main/database/allCards.json');
                     if (!cardsResponse.ok) throw new Error(`HTTP error! status: ${cardsResponse.status}`);
                     const allCardsData = await cardsResponse.json();
-                    state.allCards = allCardsData.cards.filter(c => c.type === "Character" || c.type === "Action" || c.type === "Item");
+                    
+                    // Deduplicate cards based on fullName
+                    const uniqueCards = new Map();
+                    allCardsData.cards.forEach(card => {
+                        if (!uniqueCards.has(card.fullName)) {
+                            uniqueCards.set(card.fullName, card);
+                        }
+                    });
+                    const deduplicatedCards = Array.from(uniqueCards.values());
+
+                    state.allCards = deduplicatedCards.filter(c => c.type === "Character" || c.type === "Action" || c.type === "Item");
                     state.characterCards = state.allCards.filter(c => c.type === 'Character');
                     state.totalCardCount = state.allCards.length;
                     state.totalCharacterCount = state.characterCards.length;
