@@ -226,7 +226,7 @@
         
         .stat-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
             gap: 15px;
         }
 
@@ -237,6 +237,8 @@
             border: 1px solid var(--border-color);
             cursor: pointer;
             transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            flex-direction: column;
         }
         
         .stat-item:hover {
@@ -248,17 +250,37 @@
         .stat-item-header {
             font-weight: bold;
             font-size: 1.1rem;
+            margin-bottom: 5px;
+        }
+
+        .stat-item-explanation {
+            font-size: 0.8rem;
+            color: var(--text-muted);
             margin-bottom: 10px;
+            font-style: italic;
         }
         
+        .stat-item-value-container {
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+        }
+
         .stat-item-value {
             font-size: 2rem;
             font-weight: bold;
             color: var(--accent-color);
         }
+
+        .stat-item-percentage {
+            font-size: 1rem;
+            font-weight: normal;
+            color: var(--text-muted);
+        }
         
         .stat-breakdown {
-            margin-top: 10px;
+            margin-top: auto; /* Pushes to the bottom */
+            padding-top: 10px;
             display: flex;
             gap: 8px;
             flex-wrap: wrap;
@@ -270,6 +292,11 @@
             border-radius: 4px;
             color: #fff;
             text-shadow: 1px 1px 2px #000;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .color-chip:hover {
+            transform: scale(1.1);
         }
 
         /* Modal */
@@ -424,8 +451,12 @@
         document.addEventListener('DOMContentLoaded', () => {
             const state = {
                 allCards: [],
+                characterCards: [],
+                totalCardCount: 0,
+                totalCharacterCount: 0,
                 fuse: null,
                 abilitiesConfig: null,
+                currentCardMetrics: null,
                 cardAbilityMap: new Map(), // card.id -> [abilityName, ...]
                 abilityStats: {}, // abilityName -> { total, byColor: { Amber, ... } }
                 COLORS: ["Amber", "Amethyst", "Emerald", "Ruby", "Sapphire", "Steel"],
@@ -458,7 +489,11 @@
                     const cardsResponse = await fetch('https://cdn.jsdelivr.net/gh/heavenideas/similcana@main/database/allCards.json');
                     if (!cardsResponse.ok) throw new Error(`HTTP error! status: ${cardsResponse.status}`);
                     const allCardsData = await cardsResponse.json();
-                    state.allCards = allCardsData.cards.filter(c => c.type === "Character" || c.type === "Action" || c.type === "Item"); // Filter for relevant cards
+                    state.allCards = allCardsData.cards.filter(c => c.type === "Character" || c.type === "Action" || c.type === "Item");
+                    state.characterCards = state.allCards.filter(c => c.type === 'Character');
+                    state.totalCardCount = state.allCards.length;
+                    state.totalCharacterCount = state.characterCards.length;
+
 
                     // 2. Load abilities library
                     ui.loaderText.textContent = 'Initializing Analysis Engine...';
@@ -492,12 +527,7 @@
             function preprocessData() {
                 for (const card of state.allCards) {
                     try {
-                        // Ensure fullTextSections exists and is an array
-                        const cardToProcess = {
-                            ...card,
-                            fullTextSections: card.fullTextSections || []
-                        };
-
+                        const cardToProcess = { ...card, fullTextSections: card.fullTextSections || [] };
                         const metrics = UnifiedWinProbabiliyCalculation.calculateCardMetrics(cardToProcess);
                         const cardAbilities = metrics.breakdown.map(b => b.abilityName);
                         state.cardAbilityMap.set(card.id, cardAbilities);
@@ -515,7 +545,6 @@
                             });
                         }
                     } catch (e) {
-                        // This can be noisy if many cards lack expected properties.
                         // console.warn(`Could not process card ${card.fullName}: ${e.message}`);
                     }
                 }
@@ -533,6 +562,26 @@
                 window.addEventListener('click', (e) => {
                     if (e.target == ui.modal) {
                         ui.modal.style.display = 'none';
+                    }
+                });
+
+                // Event delegation for analysis panel clicks
+                ui.analysisPanel.addEventListener('click', (e) => {
+                    const colorChip = e.target.closest('.color-chip');
+                    const statItem = e.target.closest('.stat-item');
+
+                    if (!statItem || !state.currentCardMetrics) return;
+
+                    const criteria = JSON.parse(statItem.dataset.criteria);
+                    const title = statItem.querySelector('.stat-item-header').textContent;
+                    const analyzedCard = state.allCards.find(c => c.id === state.currentCardMetrics.card.id);
+
+                    if (colorChip) {
+                        e.stopPropagation();
+                        const colorFilter = colorChip.dataset.color;
+                        showDrillDownResults(criteria, title, analyzedCard, colorFilter);
+                    } else {
+                        showDrillDownResults(criteria, title, analyzedCard, null);
                     }
                 });
             }
@@ -576,58 +625,54 @@
                 const card = state.allCards.find(c => c.id === cardId);
                 if (!card) return;
                 
-                // Hide welcome/prompt messages
                 if (ui.welcomeMessage) ui.welcomeMessage.style.display = 'none';
                 if (ui.analysisPrompt) ui.analysisPrompt.style.display = 'none';
 
-                // Display card image
                 ui.cardImageContainer.innerHTML = `<img src="${card.images.full}" alt="${card.fullName}" id="current-card-image">`;
-
-                // Render analysis
-                renderAnalysis(card);
                 
-                // Scroll to the top of analysis on smaller screens
+                const cardToProcess = { ...card, fullTextSections: card.fullTextSections || [] };
+                state.currentCardMetrics = { ...UnifiedWinProbabiliyCalculation.calculateCardMetrics(cardToProcess), card: card };
+
+                renderAnalysis(card, state.currentCardMetrics);
+                
                 if (window.innerWidth <= 900) {
                    ui.analysisPanel.scrollIntoView({ behavior: 'smooth' });
                 }
             }
             
-            function renderAnalysis(card) {
+            function renderAnalysis(card, metrics) {
                 ui.analysisPanel.innerHTML = `
-                    ${renderAbilityAnalysis(card)}
+                    ${renderAbilityAnalysis(card, metrics)}
                     ${renderStaticStatAnalysis(card)}
                     ${renderComparativeStatAnalysis(card)}
                 `;
-                // Add event listeners to the new stat items
-                document.querySelectorAll('.stat-item[data-criteria]').forEach(item => {
-                   item.addEventListener('click', () => {
-                       const criteria = JSON.parse(item.dataset.criteria);
-                       const title = item.querySelector('.stat-item-header').textContent;
-                       showDrillDownResults(criteria, title, card);
-                   })
-                });
             }
             
-            function renderAbilityAnalysis(card) {
-                 const cardAbilities = state.cardAbilityMap.get(card.id) || [];
-                 if (cardAbilities.length === 0) return '';
+            function renderAbilityAnalysis(card, metrics) {
+                 if (!metrics || metrics.breakdown.length === 0) return '';
                  
-                 const abilityItems = cardAbilities.map(abilityName => {
+                 const abilityItems = metrics.breakdown.map(breakdownItem => {
+                     const abilityName = breakdownItem.abilityName;
                      const stats = state.abilityStats[abilityName];
                      if (!stats) return '';
                      
                      const breakdownChips = Object.entries(stats.byColor)
                         .filter(([_, count]) => count > 0)
-                        .map(([color, count]) => `<div class="color-chip" style="background-color:${state.COLOR_HEX[color]}">${count}</div>`)
+                        .map(([color, count]) => `<div class="color-chip" data-color="${color}" style="background-color:${state.COLOR_HEX[color]}">${count}</div>`)
                         .join('');
                      
                      const criteria = { type: 'ability', value: abilityName };
-                     const otherCardsCount = stats.total > 0 ? stats.total -1 : 0;
+                     const otherCardsCount = stats.total > 0 ? stats.total - 1 : 0;
+                     const percentage = ((otherCardsCount / state.totalCardCount) * 100).toFixed(1);
 
                      return `
                         <div class="stat-item" data-criteria='${JSON.stringify(criteria)}'>
                            <div class="stat-item-header">${abilityName.replace(/keyword: /i, '')}</div>
-                           <div class="stat-item-value">${otherCardsCount}</div>
+                           <div class="stat-item-explanation">${breakdownItem.explanation}</div>
+                           <div class="stat-item-value-container">
+                                <div class="stat-item-value">${otherCardsCount}</div>
+                                <div class="stat-item-percentage">(${percentage}%)</div>
+                           </div>
                            <div class="stat-item-header" style="font-size:0.9rem; margin-top:5px; color:var(--text-muted)">Other cards with this ability</div>
                            <div class="stat-breakdown">${breakdownChips}</div>
                         </div>
@@ -653,11 +698,12 @@
                 const matchingCards = findMatchingCards(criteria, card);
                 const otherCards = matchingCards.filter(c => c.id !== card.id);
                 const count = otherCards.length;
+                const percentage = ((count / state.totalCharacterCount) * 100).toFixed(1);
                 
                 const breakdown = countByColor(otherCards);
                 const breakdownChips = Object.entries(breakdown)
                     .filter(([_, num]) => num > 0)
-                    .map(([color, num]) => `<div class="color-chip" style="background-color:${state.COLOR_HEX[color]}">${num}</div>`)
+                    .map(([color, num]) => `<div class="color-chip" data-color="${color}" style="background-color:${state.COLOR_HEX[color]}">${num}</div>`)
                     .join('');
 
                 return `
@@ -666,7 +712,10 @@
                         <div class="stat-grid">
                             <div class="stat-item" data-criteria='${JSON.stringify(criteria)}'>
                                <div class="stat-item-header">Cost ${card.cost} | Str ${card.strength} | Wp ${card.willpower} | Lore ${card.lore || 0}</div>
-                               <div class="stat-item-value">${count}</div>
+                               <div class="stat-item-value-container">
+                                    <div class="stat-item-value">${count}</div>
+                                    <div class="stat-item-percentage">(${percentage}%)</div>
+                               </div>
                                <div class="stat-item-header" style="font-size:0.9rem; margin-top:5px; color:var(--text-muted)">Other cards with identical stats</div>
                                <div class="stat-breakdown">${breakdownChips}</div>
                             </div>
@@ -679,35 +728,43 @@
                  if(card.type !== 'Character') return '';
 
                  const statsToCompare = ['strength', 'willpower', 'lore'];
-                 let html = '<div class="analysis-section"><h2>Comparative Stat Analysis (at same cost)</h2><div class="stat-grid">';
+                 let html = `<div class="analysis-section"><h2>Comparative Stat Analysis</h2><div class="stat-grid">`;
 
                  statsToCompare.forEach(stat => {
                      // MORE THAN
-                     const moreCriteria = { type: 'comparative', cost: card.cost, stat: stat, comparison: '>' };
+                     const moreCriteria = { type: 'comparative', stat: stat, comparison: '>' };
                      const moreCards = findMatchingCards(moreCriteria, card);
+                     const morePercentage = ((moreCards.length / state.totalCharacterCount) * 100).toFixed(1);
                      const moreBreakdown = countByColor(moreCards);
                      const moreChips = Object.entries(moreBreakdown)
-                        .filter(([_, num]) => num > 0).map(([color, num]) => `<div class="color-chip" style="background-color:${state.COLOR_HEX[color]}">${num}</div>`).join('');
+                        .filter(([_, num]) => num > 0).map(([color, num]) => `<div class="color-chip" data-color="${color}" style="background-color:${state.COLOR_HEX[color]}">${num}</div>`).join('');
                      
                      html += `
                         <div class="stat-item" data-criteria='${JSON.stringify(moreCriteria)}'>
-                            <div class="stat-item-header">Higher ${stat.charAt(0).toUpperCase() + stat.slice(1)}</div>
-                            <div class="stat-item-value">${moreCards.length}</div>
+                            <div class="stat-item-header">Higher ${stat.charAt(0).toUpperCase() + stat.slice(1)} ${stat === 'lore' ? '(at same cost)' : ''}</div>
+                            <div class="stat-item-value-container">
+                                <div class="stat-item-value">${moreCards.length}</div>
+                                <div class="stat-item-percentage">(${morePercentage}%)</div>
+                            </div>
                             <div class="stat-breakdown">${moreChips}</div>
                         </div>
                      `;
 
                      // LESS THAN
-                     const lessCriteria = { type: 'comparative', cost: card.cost, stat: stat, comparison: '<' };
+                     const lessCriteria = { type: 'comparative', stat: stat, comparison: '<' };
                      const lessCards = findMatchingCards(lessCriteria, card);
+                     const lessPercentage = ((lessCards.length / state.totalCharacterCount) * 100).toFixed(1);
                      const lessBreakdown = countByColor(lessCards);
                      const lessChips = Object.entries(lessBreakdown)
-                        .filter(([_, num]) => num > 0).map(([color, num]) => `<div class="color-chip" style="background-color:${state.COLOR_HEX[color]}">${num}</div>`).join('');
+                        .filter(([_, num]) => num > 0).map(([color, num]) => `<div class="color-chip" data-color="${color}" style="background-color:${state.COLOR_HEX[color]}">${num}</div>`).join('');
 
                      html += `
                         <div class="stat-item" data-criteria='${JSON.stringify(lessCriteria)}'>
-                            <div class="stat-item-header">Lower ${stat.charAt(0).toUpperCase() + stat.slice(1)}</div>
-                            <div class="stat-item-value">${lessCards.length}</div>
+                            <div class="stat-item-header">Lower ${stat.charAt(0).toUpperCase() + stat.slice(1)} ${stat === 'lore' ? '(at same cost)' : ''}</div>
+                             <div class="stat-item-value-container">
+                                <div class="stat-item-value">${lessCards.length}</div>
+                                <div class="stat-item-percentage">(${lessPercentage}%)</div>
+                            </div>
                             <div class="stat-breakdown">${lessChips}</div>
                         </div>
                      `;
@@ -719,9 +776,6 @@
 
             function findMatchingCards(criteria, analyzedCard) {
                 return state.allCards.filter(c => {
-                    // Always exclude the card being analyzed from comparative searches
-                    if (criteria.type === 'comparative' && c.id === analyzedCard.id) return false;
-
                     switch (criteria.type) {
                         case 'ability':
                             return (state.cardAbilityMap.get(c.id) || []).includes(criteria.value);
@@ -732,12 +786,13 @@
                                    c.willpower === criteria.stats.willpower &&
                                    (c.lore || 0) === (criteria.stats.lore || 0);
                         case 'comparative':
-                            if (c.type !== 'Character') return false;
-                            if (c.cost !== criteria.cost) return false;
+                            if (c.type !== 'Character' || c.id === analyzedCard.id) return false;
+                            
+                            // Apply cost constraint ONLY for lore comparison
+                            if (criteria.stat === 'lore' && c.cost !== analyzedCard.cost) return false;
 
                             const cardStat = c[criteria.stat] || 0;
                             const analyzedStat = analyzedCard[criteria.stat] || 0;
-
                             if (criteria.comparison === '>') return cardStat > analyzedStat;
                             if (criteria.comparison === '<') return cardStat < analyzedStat;
                             return false;
@@ -758,14 +813,20 @@
                 return counts;
             }
 
-            function showDrillDownResults(criteria, title, analyzedCard) {
+            function showDrillDownResults(criteria, title, analyzedCard, colorFilter = null) {
                  const matchingCards = findMatchingCards(criteria, analyzedCard);
-                 // For ability and static searches, we want to show other cards, so we filter out the current one.
-                 const cardsToShow = (criteria.type === 'ability' || criteria.type === 'static') 
+                 
+                 let cardsToShow = (criteria.type === 'ability' || criteria.type === 'static') 
                     ? matchingCards.filter(c => c.id !== analyzedCard.id) 
                     : matchingCards;
 
-                 ui.modalTitle.textContent = `${title} (${cardsToShow.length} cards)`;
+                 let modalTitleText = `${title}`;
+                 if (colorFilter) {
+                    cardsToShow = cardsToShow.filter(c => getCardColors(c).includes(colorFilter));
+                    modalTitleText += ` (${colorFilter})`;
+                 }
+                 modalTitleText += ` (${cardsToShow.length} cards)`;
+                 ui.modalTitle.textContent = modalTitleText;
                  
                  ui.modalCardGrid.innerHTML = cardsToShow.map(card => `
                     <div class="modal-card" data-card-id="${card.id}">
