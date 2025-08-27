@@ -182,7 +182,7 @@
             "name": "trigger",
             "operation": "multiply",
             "value": "2.0",
-            "condition": "@card.type == Action"
+            "condition": "@card.type == 'Action'"
           }
         ],
         "scores": {}
