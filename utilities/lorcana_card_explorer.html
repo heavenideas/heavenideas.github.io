@@ -711,7 +711,7 @@
                         <h2>Identical Stats Profile</h2>
                         <div class="stat-grid">
                             <div class="stat-item" data-criteria='${JSON.stringify(criteria)}'>
-                               <div class="stat-item-header">Cost ${card.cost} | Str ${card.strength} | Wp ${card.willpower} | Lore ${card.lore || 0}</div>
+                               <div class="stat-item-header">Cost ${card.cost} | ¤ ${card.strength} | ⛉ ${card.willpower} | ◊ ${card.lore || 0}</div>
                                <div class="stat-item-value-container">
                                     <div class="stat-item-value">${count}</div>
                                     <div class="stat-item-percentage">(${percentage}%)</div>
@@ -728,7 +728,7 @@
                  if(card.type !== 'Character') return '';
 
                  const statsToCompare = ['strength', 'willpower', 'lore'];
-                 let html = `<div class="analysis-section"><h2>Comparative Stat Analysis</h2><div class="stat-grid">`;
+                 let html = `<div class="analysis-section"><h2>Combat & Stat Analysis</h2><div class="stat-grid">`;
 
                  statsToCompare.forEach(stat => {
                      // MORE THAN
@@ -770,31 +770,150 @@
                      `;
                  });
 
+                // --- Favorable Trades ---
+                const favorableCriteria = { type: 'trade', comparison: 'favorable' };
+                const favorableCards = findMatchingCards(favorableCriteria, card);
+                const favorablePercentage = ((favorableCards.length / state.totalCharacterCount) * 100).toFixed(1);
+                const favorableBreakdown = countByColor(favorableCards);
+                const favorableChips = Object.entries(favorableBreakdown)
+                    .filter(([_, num]) => num > 0).map(([color, num]) => `<div class="color-chip" data-color="${color}" style="background-color:${state.COLOR_HEX[color]}">${num}</div>`).join('');
+
+                html += `
+                    <div class="stat-item" data-criteria='${JSON.stringify(favorableCriteria)}'>
+                        <div class="stat-item-header">Favorable Trades (Banish & Survive)</div>
+                        <div class="stat-item-value-container">
+                            <div class="stat-item-value">${favorableCards.length}</div>
+                            <div class="stat-item-percentage">(${favorablePercentage}%)</div>
+                        </div>
+                        <div class="stat-breakdown">${favorableChips}</div>
+                    </div>
+                `;
+
+                // --- Unfavorable Trades ---
+                const unfavorableCriteria = { type: 'trade', comparison: 'unfavorable' };
+                const unfavorableCards = findMatchingCards(unfavorableCriteria, card);
+                const unfavorablePercentage = ((unfavorableCards.length / state.totalCharacterCount) * 100).toFixed(1);
+                const unfavorableBreakdown = countByColor(unfavorableCards);
+                const unfavorableChips = Object.entries(unfavorableBreakdown)
+                    .filter(([_, num]) => num > 0).map(([color, num]) => `<div class="color-chip" data-color="${color}" style="background-color:${state.COLOR_HEX[color]}">${num}</div>`).join('');
+
+                html += `
+                    <div class="stat-item" data-criteria='${JSON.stringify(unfavorableCriteria)}'>
+                        <div class="stat-item-header">Unfavorable Trades (Get Banished & Opponent Survives)</div>
+                        <div class="stat-item-value-container">
+                            <div class="stat-item-value">${unfavorableCards.length}</div>
+                            <div class="stat-item-percentage">(${unfavorablePercentage}%)</div>
+                        </div>
+                        <div class="stat-breakdown">${unfavorableChips}</div>
+                    </div>
+                `;
+
+                // --- Mutual Banish Favorable Ink ---
+                const mutualFavCriteria = { type: 'mutual_trade', comparison: 'favorable_ink' };
+                const mutualFavCards = findMatchingCards(mutualFavCriteria, card);
+                const mutualFavPercentage = ((mutualFavCards.length / state.totalCharacterCount) * 100).toFixed(1);
+                const mutualFavBreakdown = countByColor(mutualFavCards);
+                const mutualFavChips = Object.entries(mutualFavBreakdown)
+                    .filter(([_, num]) => num > 0).map(([color, num]) => `<div class="color-chip" data-color="${color}" style="background-color:${state.COLOR_HEX[color]}">${num}</div>`).join('');
+
+                html += `
+                    <div class="stat-item" data-criteria='${JSON.stringify(mutualFavCriteria)}'>
+                        <div class="stat-item-header">Mutual Banish (Favorable ⬡)</div>
+                        <div class="stat-item-value-container">
+                            <div class="stat-item-value">${mutualFavCards.length}</div>
+                            <div class="stat-item-percentage">(${mutualFavPercentage}%)</div>
+                        </div>
+                        <div class="stat-breakdown">${mutualFavChips}</div>
+                    </div>
+                `;
+                
+                // --- Mutual Banish Neutral Ink ---
+                const mutualNeuCriteria = { type: 'mutual_trade', comparison: 'neutral_ink' };
+                const mutualNeuCards = findMatchingCards(mutualNeuCriteria, card);
+                const mutualNeuPercentage = ((mutualNeuCards.length / state.totalCharacterCount) * 100).toFixed(1);
+                const mutualNeuBreakdown = countByColor(mutualNeuCards);
+                const mutualNeuChips = Object.entries(mutualNeuBreakdown)
+                    .filter(([_, num]) => num > 0).map(([color, num]) => `<div class="color-chip" data-color="${color}" style="background-color:${state.COLOR_HEX[color]}">${num}</div>`).join('');
+
+                html += `
+                    <div class="stat-item" data-criteria='${JSON.stringify(mutualNeuCriteria)}'>
+                        <div class="stat-item-header">Mutual Banish (Neutral ⬡)</div>
+                        <div class="stat-item-value-container">
+                            <div class="stat-item-value">${mutualNeuCards.length}</div>
+                            <div class="stat-item-percentage">(${mutualNeuPercentage}%)</div>
+                        </div>
+                        <div class="stat-breakdown">${mutualNeuChips}</div>
+                    </div>
+                `;
+
+                // --- Mutual Banish Unfavorable Ink ---
+                const mutualUnfavCriteria = { type: 'mutual_trade', comparison: 'unfavorable_ink' };
+                const mutualUnfavCards = findMatchingCards(mutualUnfavCriteria, card);
+                const mutualUnfavPercentage = ((mutualUnfavCards.length / state.totalCharacterCount) * 100).toFixed(1);
+                const mutualUnfavBreakdown = countByColor(mutualUnfavCards);
+                const mutualUnfavChips = Object.entries(mutualUnfavBreakdown)
+                    .filter(([_, num]) => num > 0).map(([color, num]) => `<div class="color-chip" data-color="${color}" style="background-color:${state.COLOR_HEX[color]}">${num}</div>`).join('');
+
+                html += `
+                    <div class="stat-item" data-criteria='${JSON.stringify(mutualUnfavCriteria)}'>
+                        <div class="stat-item-header">Mutual Banish (Unfavorable ⬡)</div>
+                        <div class="stat-item-value-container">
+                            <div class="stat-item-value">${mutualUnfavCards.length}</div>
+                            <div class="stat-item-percentage">(${mutualUnfavPercentage}%)</div>
+                        </div>
+                        <div class="stat-breakdown">${mutualUnfavChips}</div>
+                    </div>
+                `;
+
+
                  html += '</div></div>';
                  return html;
             }
 
             function findMatchingCards(criteria, analyzedCard) {
-                return state.allCards.filter(c => {
+                // Ability search needs to check all cards, not just characters
+                const cardPool = criteria.type === 'ability' ? state.allCards : state.characterCards;
+
+                return cardPool.filter(c => {
+                    if (c.id === analyzedCard.id && criteria.type !== 'ability') return false;
+
+                    const opponentWillpower = c.willpower || 0;
+                    const opponentStrength = c.strength || 0;
+                    const opponentCost = c.cost || 0;
+                    const yourWillpower = analyzedCard.willpower || 0;
+                    const yourStrength = analyzedCard.strength || 0;
+                    const yourCost = analyzedCard.cost || 0;
+
                     switch (criteria.type) {
                         case 'ability':
                             return (state.cardAbilityMap.get(c.id) || []).includes(criteria.value);
                         case 'static':
-                             if (c.type !== 'Character') return false;
                              return c.cost === criteria.stats.cost &&
                                    c.strength === criteria.stats.strength &&
                                    c.willpower === criteria.stats.willpower &&
                                    (c.lore || 0) === (criteria.stats.lore || 0);
                         case 'comparative':
-                            if (c.type !== 'Character' || c.id === analyzedCard.id) return false;
-                            
-                            // Apply cost constraint ONLY for lore comparison
                             if (criteria.stat === 'lore' && c.cost !== analyzedCard.cost) return false;
-
                             const cardStat = c[criteria.stat] || 0;
                             const analyzedStat = analyzedCard[criteria.stat] || 0;
                             if (criteria.comparison === '>') return cardStat > analyzedStat;
                             if (criteria.comparison === '<') return cardStat < analyzedStat;
+                            return false;
+                        case 'trade':
+                            if (criteria.comparison === 'favorable') {
+                                return opponentWillpower <= yourStrength && yourWillpower > opponentStrength;
+                            }
+                            if (criteria.comparison === 'unfavorable') {
+                                return opponentStrength >= yourWillpower && yourStrength < opponentWillpower;
+                            }
+                            return false;
+                        case 'mutual_trade':
+                            const isMutualBanish = opponentWillpower > 0 && opponentWillpower <= yourStrength && yourWillpower <= opponentStrength;
+                            if (!isMutualBanish) return false;
+
+                            if (criteria.comparison === 'favorable_ink') return yourCost < opponentCost;
+                            if (criteria.comparison === 'neutral_ink') return yourCost === opponentCost;
+                            if (criteria.comparison === 'unfavorable_ink') return yourCost > opponentCost;
                             return false;
                         default:
                             return false;
