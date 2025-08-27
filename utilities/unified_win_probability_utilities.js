@@ -1,3 +1,11 @@
+/**
+ * A full explanation of this library can be found here:
+ * https://raw.githubusercontent.com/heavenideas/heavenideas.github.io/refs/heads/main/utilities/unified_win_probability_utilities_explanation.md
+ * 
+ * And A full explanation of how the lorcana_abilities JSON structure works can be found here:
+ * https://raw.githubusercontent.com/heavenideas/heavenideas.github.io/refs/heads/main/lorcanaUtils_MatchUpAnalyzer/lorcana_abilities_JSON_structure_explanation.md
+ */
+
 const UnifiedWinProbabiliyCalculation = (function() {
     
     // Default abilities configuration - will be loaded from URL or provided externally
