@@ -1,407 +1,791 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
-
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lorcana Card Explorer</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/fuse.js/dist/fuse.basic.min.js"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        slate: {
-                            50: '#f8fafc',
-                            100: '#f1f5f9',
-                            200: '#e2e8f0',
-                            300: '#cbd5e1',
-                            400: '#94a3b8',
-                            500: '#64748b',
-                            600: '#475569',
-                            700: '#334155',
-                            800: '#1e293b',
-                            900: '#0f172a',
-                            950: '#020617',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
+    <title>Disney Lorcana - Ultimate Card Analyzer</title>
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
+        :root {
+            --bg-color: #1a1a2e;
+            --primary-color: #16213e;
+            --secondary-color: #0f3460;
+            --accent-color: #e94560;
+            --text-color: #dcdcdc;
+            --text-muted: #888;
+            --border-color: #3a3a5a;
+            --amber: #fecb00;
+            --amethyst: #9754cb;
+            --emerald: #00975e;
+            --ruby: #d40026;
+            --sapphire: #0072b1;
+            --steel: #465568;
+            --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-        /* Custom Scrollbars */
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
         ::-webkit-scrollbar {
             width: 8px;
-            height: 8px;
         }
+
         ::-webkit-scrollbar-track {
-            background: #1e293b; /* slate-800 */
+            background: var(--primary-color);
         }
+
         ::-webkit-scrollbar-thumb {
-            background: #475569; /* slate-600 */
+            background: var(--accent-color);
             border-radius: 4px;
         }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #64748b; /* slate-500 */
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
         }
-        .form-input, .form-select, .form-checkbox {
-            background-color: #1e293b; /* slate-800 */
-            border: 1px solid #334155; /* slate-700 */
-            color: #e2e8f0; /* slate-200 */
-            border-radius: 0.375rem;
-            padding: 0.5rem 0.75rem;
+
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 1rem;
+        }
+
+        header h1 {
+            color: var(--accent-color);
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            font-size: 1.1rem;
+            color: var(--text-muted);
+        }
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 370px 1fr;
+            gap: 30px;
+            align-items: flex-start;
+        }
+
+        /* Loading Spinner */
+        #loader-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
             width: 100%;
-            transition: border-color 0.2s, box-shadow 0.2s;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            flex-direction: column;
+            gap: 20px;
         }
-        .form-input:focus, .form-select:focus {
+        
+        .loader {
+            border: 8px solid var(--primary-color);
+            border-top: 8px solid var(--accent-color);
+            border-radius: 50%;
+            width: 80px;
+            height: 80px;
+            animation: spin 1s linear infinite;
+        }
+
+        #loader-overlay p {
+            font-size: 1.2rem;
+            color: var(--text-color);
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Left Panel - Search and Card Display */
+        .left-panel {
+            position: sticky;
+            top: 20px;
+        }
+        
+        #search-container {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        
+        #search-box {
+            width: 100%;
+            padding: 12px 15px;
+            background-color: var(--primary-color);
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            color: var(--text-color);
+            font-size: 1rem;
             outline: none;
-            border-color: #3b82f6; /* blue-500 */
-            box-shadow: 0 0 0 2px #1e40af; /* blue-800 */
+            transition: border-color 0.3s, box-shadow 0.3s;
         }
-        .form-label {
-            font-weight: 500;
-            color: #94a3b8; /* slate-400 */
-            margin-bottom: 0.25rem;
-            display: block;
-            font-size: 0.875rem;
+        
+        #search-box:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 10px rgba(233, 69, 96, 0.3);
         }
-        .filter-section .filter-content {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.3s ease-out;
+
+        #search-results {
+            position: absolute;
+            width: 100%;
+            background-color: var(--secondary-color);
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            margin-top: 5px;
+            max-height: 400px;
+            overflow-y: auto;
+            z-index: 100;
         }
-        .filter-section.open .filter-content {
-            max-height: 500px; /* Adjust as needed */
+        
+        .search-result-item {
+            padding: 10px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border-color);
+            transition: background-color 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
-        .filter-section.open .chevron {
-            transform: rotate(180deg);
+
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
+
+        .search-result-item:hover {
+            background-color: var(--accent-color);
+        }
+        
+        .search-result-item .ink-icon {
+            width: 20px;
+            height: 20px;
+        }
+        
+        #card-display {
+            background-color: var(--primary-color);
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            text-align: center;
+        }
+        
+        #card-image-container {
+            width: 100%;
+            max-width: 300px;
+            margin: 0 auto;
+            position: relative;
+        }
+        
+        #card-image-container img {
+            width: 100%;
+            border-radius: 10px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+        }
+        
+        #welcome-message {
+            color: var(--text-muted);
+        }
+
+        /* Right Panel - Analysis */
+        #analysis-panel {
+            background-color: var(--primary-color);
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            min-height: 500px;
+        }
+
+        .analysis-section {
+            margin-bottom: 2rem;
+        }
+
+        .analysis-section h2 {
+            font-size: 1.5rem;
+            color: var(--accent-color);
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .stat-item {
+            background: var(--secondary-color);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .stat-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            border-color: var(--accent-color);
+        }
+
+        .stat-item-header {
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+        }
+        
+        .stat-item-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--accent-color);
+        }
+        
+        .stat-breakdown {
+            margin-top: 10px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .color-chip {
+            font-size: 0.8rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #fff;
+            text-shadow: 1px 1px 2px #000;
+        }
+
+        /* Modal */
+        #results-modal {
+            position: fixed;
+            z-index: 1001;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        #modal-content {
+            background-color: var(--bg-color);
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            width: 90%;
+            max-width: 1400px;
+            max-height: 90vh;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        #modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        #modal-title {
+            color: var(--accent-color);
+            font-size: 1.5rem;
+        }
+        
+        #close-modal {
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        
+        #close-modal:hover {
+            color: var(--accent-color);
+        }
+
+        #modal-body {
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+
+        #modal-card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 20px;
+        }
+        
+        .modal-card {
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .modal-card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px var(--accent-color);
+        }
+
+        .modal-card img {
+            width: 100%;
+            border-radius: 8px;
+        }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+            .left-panel {
+                position: static;
+            }
+        }
+        @media (max-width: 500px) {
+            header h1 {
+                font-size: 1.8rem;
+            }
+            .stat-grid {
+                grid-template-columns: 1fr;
+            }
+            #modal-card-grid {
+                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            }
         }
     </style>
 </head>
+<body>
 
-<body class="bg-slate-950 text-slate-300">
+    <div id="loader-overlay">
+        <div class="loader"></div>
+        <p id="loader-text">Loading Lorcana Database...</p>
+    </div>
 
-    <div id="app" class="h-screen w-screen p-4 md:p-6 flex flex-col">
-        <header class="text-center mb-6 border-b border-slate-800 pb-6 flex-shrink-0">
-            <h1 class="text-4xl md:text-5xl font-bold text-slate-100">Lorcana Card Explorer</h1>
-            <p class="text-slate-400 mt-2">Filter and explore all Disney Lorcana cards with advanced metrics.</p>
+    <div class="container">
+        <header>
+            <h1>Ultimate Lorcana Card Analyzer</h1>
+            <p>Fuzzy search for a card to begin a deep-dive statistical analysis.</p>
         </header>
 
-        <div id="loader" class="text-center py-10 flex-grow flex items-center justify-center">
-            <div class="flex justify-center items-center space-x-2">
-                <svg class="animate-spin h-8 w-8 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                <span class="text-lg font-medium text-slate-400">Loading card database and calculating metrics...</span>
-            </div>
-        </div>
-        
-        <main id="main-content" class="hidden flex-grow overflow-hidden flex gap-6">
-            <!-- Left Column: Filter Panel -->
-            <div id="filter-panel" class="w-1/4 bg-slate-900 p-4 rounded-2xl shadow-lg flex flex-col overflow-y-auto">
-                <h2 class="text-2xl font-bold mb-4 text-slate-100 border-b border-slate-700 pb-3">Filters</h2>
-                <div class="space-y-6">
-                    <!-- Will be populated by JS -->
+        <main class="main-layout">
+            <div class="left-panel">
+                <div id="search-container">
+                    <input type="text" id="search-box" placeholder="Search for a card (e.g., 'mickey brave')">
+                    <div id="search-results"></div>
+                </div>
+                <div id="card-display">
+                    <div id="card-image-container">
+                         <p id="welcome-message">Search for a card to display it here.</p>
+                    </div>
                 </div>
             </div>
-
-            <!-- Right Column: Card Display -->
-            <div id="card-display-area" class="w-3/4 flex flex-col overflow-hidden">
-                 <div class="flex-shrink-0 mb-4">
-                    <span id="card-count" class="font-bold text-slate-400"></span>
-                </div>
-                <div id="card-list-container" class="flex-grow overflow-y-auto pr-2 space-y-4">
-                    <!-- Card items will be populated by JS -->
-                </div>
+            <div id="analysis-panel">
+                <p id="analysis-prompt">Analysis results will appear here once a card is selected.</p>
             </div>
         </main>
     </div>
 
-    <script src="unified_win_probability_utilities.js"></script>
+    <div id="results-modal">
+        <div id="modal-content">
+            <div id="modal-header">
+                <h2 id="modal-title">Matching Cards</h2>
+                <span id="close-modal">&times;</span>
+            </div>
+            <div id="modal-body">
+                <div id="modal-card-grid"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- External Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0"></script>
+    <script src="https://cdn.jsdelivr.net/gh/heavenideas/heavenideas.github.io@main/utilities/unified_win_probability_utilities.js"></script>
+
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // --- GLOBAL STATE ---
-            let allCards = [];
-            let processedCards = []; // Cards with calculated metrics
-            let fuse;
-            const DB_URL = 'https://raw.githubusercontent.com/heavenideas/similcana/refs/heads/main/database/allCards.json';
+            const state = {
+                allCards: [],
+                fuse: null,
+                abilitiesConfig: null,
+                cardAbilityMap: new Map(), // card.id -> [abilityName, ...]
+                abilityStats: {}, // abilityName -> { total, byColor: { Amber, ... } }
+                COLORS: ["Amber", "Amethyst", "Emerald", "Ruby", "Sapphire", "Steel"],
+                COLOR_HEX: {
+                    Amber: '#fecb00', Amethyst: '#9754cb', Emerald: '#00975e',
+                    Ruby: '#d40026', Sapphire: '#0072b1', Steel: '#465568'
+                }
+            };
 
-            // --- UI ELEMENTS ---
-            const loader = document.getElementById('loader');
-            const mainContent = document.getElementById('main-content');
-            const filterPanel = document.getElementById('filter-panel');
-            const cardGridContainer = document.getElementById('card-grid-container');
-            const cardCount = document.getElementById('card-count');
+            const ui = {
+                loaderOverlay: document.getElementById('loader-overlay'),
+                loaderText: document.getElementById('loader-text'),
+                searchBox: document.getElementById('search-box'),
+                searchResults: document.getElementById('search-results'),
+                searchContainer: document.getElementById('search-container'),
+                cardDisplay: document.getElementById('card-display'),
+                cardImageContainer: document.getElementById('card-image-container'),
+                analysisPanel: document.getElementById('analysis-panel'),
+                modal: document.getElementById('results-modal'),
+                modalTitle: document.getElementById('modal-title'),
+                modalCardGrid: document.getElementById('modal-card-grid'),
+                closeModalBtn: document.getElementById('close-modal'),
+                welcomeMessage: document.getElementById('welcome-message'),
+                analysisPrompt: document.getElementById('analysis-prompt'),
+            };
 
-            // --- INITIALIZATION ---
-            async function initializeApp() {
+            async function initialize() {
                 try {
+                    // 1. Fetch all cards data
+                    const cardsResponse = await fetch('https://cdn.jsdelivr.net/gh/heavenideas/similcana@main/database/allCards.json');
+                    if (!cardsResponse.ok) throw new Error(`HTTP error! status: ${cardsResponse.status}`);
+                    const allCardsData = await cardsResponse.json();
+                    state.allCards = allCardsData.cards.filter(c => c.type === "Character" || c.type === "Action" || c.type === "Item"); // Filter for relevant cards
+
+                    // 2. Load abilities library
+                    ui.loaderText.textContent = 'Initializing Analysis Engine...';
                     await UnifiedWinProbabiliyCalculation.loadAbilitiesConfig();
-                    
-                    const cardsResponse = await fetch(DB_URL);
-                    if (!cardsResponse.ok) throw new Error(`Network response for cards was not ok: ${cardsResponse.statusText}`);
-                    const cardsData = await cardsResponse.json();
-                    allCards = cardsData.cards;
+                    state.abilitiesConfig = UnifiedWinProbabiliyCalculation.getAbilitiesConfig();
 
-                    // Pre-calculate metrics for all cards
-                    processedCards = allCards.map(card => {
-                        const metrics = UnifiedWinProbabiliyCalculation.calculateCardMetrics(card);
-                        return { ...card, ...metrics };
-                    });
-                    
-                    setupFuseSearch();
-                    buildFilterPanel();
-                    displayCards(processedCards);
-                    
-                    loader.classList.add('hidden');
-                    mainContent.classList.remove('hidden');
+                    // 3. Pre-process data for performance
+                    ui.loaderText.textContent = 'Analyzing the Multiverse (this may take a moment)...';
+                    await new Promise(resolve => setTimeout(() => {
+                        preprocessData();
+                        resolve();
+                    }, 10));
+
+
+                    // 4. Setup search
+                    const options = {
+                        includeScore: true,
+                        keys: ['simpleName', 'fullName'],
+                        threshold: 0.4
+                    };
+                    state.fuse = new Fuse(state.allCards, options);
+
+                    ui.loaderOverlay.style.display = 'none';
+                    setupEventListeners();
                 } catch (error) {
-                    loader.innerHTML = `<div class="text-red-500 font-bold">Failed to initialize app. Please try refreshing the page.</div><p class="text-sm text-slate-500 mt-2">${error.message}</p>`;
+                    console.error("Initialization failed:", error);
+                    ui.loaderText.innerHTML = `Failed to load resources. <br>Please check your connection and refresh the page. Details: ${error.message}`;
                 }
             }
 
-            function setupFuseSearch() {
-                const options = {
-                    includeScore: true,
-                    keys: ['fullName', 'simpleName', 'fullText'],
-                    threshold: 0.3
-                };
-                fuse = new Fuse(processedCards, options);
+            function preprocessData() {
+                for (const card of state.allCards) {
+                    try {
+                        // Ensure fullTextSections exists and is an array
+                        const cardToProcess = {
+                            ...card,
+                            fullTextSections: card.fullTextSections || []
+                        };
+
+                        const metrics = UnifiedWinProbabiliyCalculation.calculateCardMetrics(cardToProcess);
+                        const cardAbilities = metrics.breakdown.map(b => b.abilityName);
+                        state.cardAbilityMap.set(card.id, cardAbilities);
+                        
+                        for (const abilityName of cardAbilities) {
+                            if (!state.abilityStats[abilityName]) {
+                                state.abilityStats[abilityName] = { total: 0, byColor: {} };
+                                state.COLORS.forEach(c => state.abilityStats[abilityName].byColor[c] = 0);
+                            }
+                            state.abilityStats[abilityName].total++;
+                            getCardColors(card).forEach(color => {
+                                if (state.abilityStats[abilityName].byColor[color] !== undefined) {
+                                    state.abilityStats[abilityName].byColor[color]++;
+                                }
+                            });
+                        }
+                    } catch (e) {
+                        // This can be noisy if many cards lack expected properties.
+                        // console.warn(`Could not process card ${card.fullName}: ${e.message}`);
+                    }
+                }
             }
 
-            function buildFilterPanel() {
-                const inkColors = [...new Set(allCards.map(c => c.color).flat())].sort();
-                const cardTypes = [...new Set(allCards.map(c => c.type))].sort();
-                const abilities = UnifiedWinProbabiliyCalculation.getAbilitiesConfig().abilities.map(a => a.name).sort();
 
-                const createSlider = (id, label, min, max, step) => `
-                    <div class="px-2">
-                        <label for="${id}" class="form-label">${label} - <span id="${id}-value">Any</span></label>
-                        <input type="range" id="${id}" data-filter="${id}" min="${min}" max="${max}" step="${step}" class="w-full filter-slider">
-                    </div>
-                `;
-                
-                const createFilterSection = (title, content, isOpen = false) => `
-                    <div class="filter-section border-b border-slate-800 ${isOpen ? 'open' : ''}">
-                        <h3 class="filter-header cursor-pointer p-2 hover:bg-slate-800 rounded-md flex justify-between items-center">
-                            <span class="font-semibold text-slate-200">${title}</span>
-                            <svg class="chevron w-5 h-5 transition-transform" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
-                        </h3>
-                        <div class="filter-content py-4 space-y-4">${content}</div>
-                    </div>
-                `;
-
-                filterPanel.innerHTML = `
-                    <div class="flex justify-between items-center border-b border-slate-700 pb-3 mb-4">
-                        <h2 class="text-2xl font-bold text-slate-100">Filters</h2>
-                        <button id="reset-filters-btn" class="px-3 py-1 text-sm bg-slate-700 hover:bg-slate-600 rounded-lg">Reset</button>
-                    </div>
-                    <div class="space-y-1">
-                        ${createFilterSection('Search & Ability', `
-                            <div class="px-2">
-                                <label for="search-input" class="form-label">Search</label>
-                                <input type="text" id="search-input" class="form-input" placeholder="Card name or text...">
-                            </div>
-                            <div class="px-2">
-                                <label for="ability-select" class="form-label">Ability Match</label>
-                                <select id="ability-select" class="form-select">
-                                    <option value="">Any Ability</option>
-                                    ${abilities.map(ability => `<option value="${ability}">${ability}</option>`).join('')}
-                                </select>
-                            </div>
-                        `, true)}
-                        ${createFilterSection('Card Properties', `
-                            <div class="px-2">
-                                <label class="form-label">Ink Color</label>
-                                <div class="grid grid-cols-2 gap-2">
-                                    ${inkColors.map(ink => `
-                                        <label class="flex items-center space-x-2 text-sm">
-                                            <input type="checkbox" class="form-checkbox filter-checkbox" data-filter="color" value="${ink}">
-                                            <span>${ink}</span>
-                                        </label>
-                                    `).join('')}
-                                </div>
-                            </div>
-                            <div class="px-2">
-                                <label class="form-label">Card Type</label>
-                                <div class="grid grid-cols-2 gap-2">
-                                    ${cardTypes.map(type => `
-                                        <label class="flex items-center space-x-2 text-sm">
-                                            <input type="checkbox" class="form-checkbox filter-checkbox" data-filter="type" value="${type}">
-                                            <span>${type}</span>
-                                        </label>
-                                    `).join('')}
-                                </div>
-                            </div>
-                        `)}
-                        ${createFilterSection('Card Stats', `
-                            ${createSlider('cost', 'Cost', 0, 10, 1)}
-                            ${createSlider('strength', 'Strength', 0, 10, 1)}
-                            ${createSlider('willpower', 'Willpower', 0, 10, 1)}
-                            ${createSlider('lore', 'Lore', 0, 5, 1)}
-                        `)}
-                        ${createFilterSection('Calculated Metrics', `
-                            ${createSlider('rds', 'RDS', 0, 5, 0.1)}
-                            ${createSlider('lvi', 'LVI', 0, 5, 0.1)}
-                            ${createSlider('bcr', 'BCR', 0, 5, 0.1)}
-                        `)}
-                    </div>
-                `;
-            }
-
-            function displayCards(cards) {
-                const cardListContainer = document.getElementById('card-list-container');
-                cardListContainer.innerHTML = '';
-                if (cards.length === 0) {
-                    cardListContainer.innerHTML = `<div class="text-slate-500 text-center py-10">No cards match the current filters.</div>`;
-                } else {
-                    cards.forEach(card => {
-                        const cardEl = document.createElement('div');
-                        cardEl.className = 'bg-slate-900 p-4 rounded-2xl shadow-lg flex gap-6';
-                        cardEl.innerHTML = `
-                            <div class="w-1/4 flex-shrink-0">
-                                <img src="${card.images.large}" alt="${card.fullName}" class="w-full rounded-lg">
-                            </div>
-                            <div class="w-3/4 space-y-3">
-                                <h3 class="text-2xl font-bold text-slate-100">${card.fullName}</h3>
-                                <div class="grid grid-cols-3 gap-4 text-center p-3 bg-slate-800 rounded-lg">
-                                    <div>
-                                        <div class="text-sm text-slate-400">RDS</div>
-                                        <div class="text-2xl font-bold text-sky-400">${card.rds.toFixed(3)}</div>
-                                    </div>
-                                    <div>
-                                        <div class="text-sm text-slate-400">LVI</div>
-                                        <div class="text-2xl font-bold text-amber-400">${card.lvi.toFixed(3)}</div>
-                                    </div>
-                                    <div>
-                                        <div class="text-sm text-slate-400">BCR</div>
-                                        <div class="text-2xl font-bold text-rose-400">${card.bcr.toFixed(3)}</div>
-                                    </div>
-                                </div>
-                                <div class="prose prose-sm prose-invert max-w-none text-slate-300">${(card.fullText || '').replace(/\n/g, '<br>')}</div>
-                                <h4 class="font-semibold text-slate-300 pt-3 border-t border-slate-700">Calculation Breakdown:</h4>
-                                <div class="overflow-y-auto" style="max-height: 150px;">
-                                    <table class="w-full text-xs">
-                                        <thead class="sticky top-0 bg-slate-900">
-                                            <tr class="border-b border-slate-700">
-                                                <th class="text-left p-1">Ability</th>
-                                                <th class="text-left p-1">Metric</th>
-                                                <th class="text-right p-1">Score</th>
-                                                <th class="text-left p-1">Explanation</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            ${card.breakdown.length > 0 ? card.breakdown.map(item => `
-                                                <tr class="border-b border-slate-800">
-                                                    <td class="p-1 font-medium text-slate-200">${item.abilityName}</td>
-                                                    <td class="p-1 capitalize">${item.metric.replace('_', ' ')}</td>
-                                                    <td class="text-right p-1 font-mono">${item.value.toFixed(3)}</td>
-                                                    <td class="p-1 text-slate-400">${item.explanation}</td>
-                                                </tr>
-                                            `).join('') : '<tr><td colspan="4" class="text-center p-2 text-slate-500">No matched abilities.</td></tr>'}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        `;
-                        cardListContainer.appendChild(cardEl);
-                    });
-                }
-                cardCount.textContent = `${cards.length} card(s) found.`;
-            }
-
-            function applyFiltersAndDisplay() {
-                const filters = {
-                    text: document.getElementById('search-input').value.trim(),
-                    ability: document.getElementById('ability-select').value,
-                    color: [...document.querySelectorAll('[data-filter="color"]:checked')].map(el => el.value),
-                    type: [...document.querySelectorAll('[data-filter="type"]:checked')].map(el => el.value),
-                    cost: document.getElementById('cost').value,
-                    strength: document.getElementById('strength').value,
-                    willpower: document.getElementById('willpower').value,
-                    lore: document.getElementById('lore').value,
-                    rds: document.getElementById('rds').value,
-                    lvi: document.getElementById('lvi').value,
-                    bcr: document.getElementById('bcr').value,
-                };
-
-                let filtered = processedCards;
-
-                // Text search
-                if (filters.text) {
-                    filtered = fuse.search(filters.text).map(result => result.item);
-                }
-
-                // Ability filter
-                if (filters.ability) {
-                    filtered = filtered.filter(card => card.breakdown.some(b => b.abilityName === filters.ability));
-                }
-
-                // Checkbox filters
-                if (filters.color.length > 0) {
-                    filtered = filtered.filter(card => filters.color.includes(card.color));
-                }
-                if (filters.type.length > 0) {
-                    filtered = filtered.filter(card => filters.type.includes(card.type));
-                }
-
-                // Slider filters
-                const sliderFilters = ['cost', 'strength', 'willpower', 'lore', 'rds', 'lvi', 'bcr'];
-                sliderFilters.forEach(key => {
-                    const value = parseFloat(filters[key]);
-                    if (value > document.getElementById(key).min) {
-                         filtered = filtered.filter(card => (card[key] || 0) >= value);
+            function setupEventListeners() {
+                ui.searchBox.addEventListener('input', handleSearchInput);
+                document.addEventListener('click', (e) => {
+                    if (!ui.searchContainer.contains(e.target)) {
+                        ui.searchResults.innerHTML = '';
                     }
                 });
-
-                displayCards(filtered);
+                ui.closeModalBtn.addEventListener('click', () => ui.modal.style.display = 'none');
+                window.addEventListener('click', (e) => {
+                    if (e.target == ui.modal) {
+                        ui.modal.style.display = 'none';
+                    }
+                });
             }
             
-            // --- EVENT LISTENERS ---
-            filterPanel.addEventListener('input', (e) => {
-                if (e.target.matches('.filter-slider')) {
-                    const valueEl = document.getElementById(`${e.target.id}-value`);
-                    if (e.target.value > e.target.min) {
-                        valueEl.textContent = `>= ${e.target.value}`;
-                    } else {
-                        valueEl.textContent = 'Any';
-                    }
-                }
-                applyFiltersAndDisplay();
-            });
+            function getCardColors(card) {
+                return card.colors || (card.color ? [card.color] : []);
+            }
 
-            filterPanel.addEventListener('click', (e) => {
-                if (e.target.id === 'reset-filters-btn') {
-                    document.getElementById('search-input').value = '';
-                    document.getElementById('ability-select').value = '';
-                    document.querySelectorAll('.filter-checkbox').forEach(cb => cb.checked = false);
-                    document.querySelectorAll('.filter-slider').forEach(slider => {
-                        slider.value = slider.min;
-                        document.getElementById(`${slider.id}-value`).textContent = 'Any';
+            function handleSearchInput(e) {
+                const query = e.target.value;
+                if (query.length < 3) {
+                    ui.searchResults.innerHTML = '';
+                    return;
+                }
+                const results = state.fuse.search(query).slice(0, 7);
+                ui.searchResults.innerHTML = results.map(result => {
+                    const card = result.item;
+                    const colors = getCardColors(card);
+                    const colorIcons = colors.map(color => 
+                        `<div style="width:20px; height:20px; background-color:${state.COLOR_HEX[color] || '#ccc'}; border-radius:50%;" title="${color}"></div>`
+                    ).join('');
+                    return `
+                        <div class="search-result-item" data-card-id="${card.id}">
+                            <div style="display: flex; gap: 5px;">${colorIcons}</div>
+                            <span>${card.fullName}</span>
+                        </div>
+                    `;
+                }).join('');
+
+                document.querySelectorAll('.search-result-item').forEach(item => {
+                    item.addEventListener('click', () => {
+                        const cardId = parseInt(item.dataset.cardId);
+                        analyzeCard(cardId);
+                        ui.searchResults.innerHTML = '';
+                        ui.searchBox.value = '';
                     });
-                    applyFiltersAndDisplay();
-                }
+                });
+            }
 
-                const header = e.target.closest('.filter-header');
-                if (header) {
-                    header.parentElement.classList.toggle('open');
-                }
-            });
+            function analyzeCard(cardId) {
+                const card = state.allCards.find(c => c.id === cardId);
+                if (!card) return;
+                
+                // Hide welcome/prompt messages
+                if (ui.welcomeMessage) ui.welcomeMessage.style.display = 'none';
+                if (ui.analysisPrompt) ui.analysisPrompt.style.display = 'none';
 
-            // --- START THE APP ---
-            initializeApp();
+                // Display card image
+                ui.cardImageContainer.innerHTML = `<img src="${card.images.full}" alt="${card.fullName}" id="current-card-image">`;
+
+                // Render analysis
+                renderAnalysis(card);
+                
+                // Scroll to the top of analysis on smaller screens
+                if (window.innerWidth <= 900) {
+                   ui.analysisPanel.scrollIntoView({ behavior: 'smooth' });
+                }
+            }
+            
+            function renderAnalysis(card) {
+                ui.analysisPanel.innerHTML = `
+                    ${renderAbilityAnalysis(card)}
+                    ${renderStaticStatAnalysis(card)}
+                    ${renderComparativeStatAnalysis(card)}
+                `;
+                // Add event listeners to the new stat items
+                document.querySelectorAll('.stat-item[data-criteria]').forEach(item => {
+                   item.addEventListener('click', () => {
+                       const criteria = JSON.parse(item.dataset.criteria);
+                       const title = item.querySelector('.stat-item-header').textContent;
+                       showDrillDownResults(criteria, title, card);
+                   })
+                });
+            }
+            
+            function renderAbilityAnalysis(card) {
+                 const cardAbilities = state.cardAbilityMap.get(card.id) || [];
+                 if (cardAbilities.length === 0) return '';
+                 
+                 const abilityItems = cardAbilities.map(abilityName => {
+                     const stats = state.abilityStats[abilityName];
+                     if (!stats) return '';
+                     
+                     const breakdownChips = Object.entries(stats.byColor)
+                        .filter(([_, count]) => count > 0)
+                        .map(([color, count]) => `<div class="color-chip" style="background-color:${state.COLOR_HEX[color]}">${count}</div>`)
+                        .join('');
+                     
+                     const criteria = { type: 'ability', value: abilityName };
+                     const otherCardsCount = stats.total > 0 ? stats.total -1 : 0;
+
+                     return `
+                        <div class="stat-item" data-criteria='${JSON.stringify(criteria)}'>
+                           <div class="stat-item-header">${abilityName.replace(/keyword: /i, '')}</div>
+                           <div class="stat-item-value">${otherCardsCount}</div>
+                           <div class="stat-item-header" style="font-size:0.9rem; margin-top:5px; color:var(--text-muted)">Other cards with this ability</div>
+                           <div class="stat-breakdown">${breakdownChips}</div>
+                        </div>
+                     `;
+                 }).join('');
+                 
+                 return `
+                    <div class="analysis-section">
+                        <h2>Ability Analysis</h2>
+                        <div class="stat-grid">${abilityItems}</div>
+                    </div>
+                 `;
+            }
+            
+            function renderStaticStatAnalysis(card) {
+                if(card.type !== 'Character') return '';
+
+                const criteria = { 
+                    type: 'static', 
+                    stats: { cost: card.cost, strength: card.strength, willpower: card.willpower, lore: card.lore } 
+                };
+
+                const matchingCards = findMatchingCards(criteria, card);
+                const otherCards = matchingCards.filter(c => c.id !== card.id);
+                const count = otherCards.length;
+                
+                const breakdown = countByColor(otherCards);
+                const breakdownChips = Object.entries(breakdown)
+                    .filter(([_, num]) => num > 0)
+                    .map(([color, num]) => `<div class="color-chip" style="background-color:${state.COLOR_HEX[color]}">${num}</div>`)
+                    .join('');
+
+                return `
+                    <div class="analysis-section">
+                        <h2>Identical Stats Profile</h2>
+                        <div class="stat-grid">
+                            <div class="stat-item" data-criteria='${JSON.stringify(criteria)}'>
+                               <div class="stat-item-header">Cost ${card.cost} | Str ${card.strength} | Wp ${card.willpower} | Lore ${card.lore || 0}</div>
+                               <div class="stat-item-value">${count}</div>
+                               <div class="stat-item-header" style="font-size:0.9rem; margin-top:5px; color:var(--text-muted)">Other cards with identical stats</div>
+                               <div class="stat-breakdown">${breakdownChips}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            function renderComparativeStatAnalysis(card) {
+                 if(card.type !== 'Character') return '';
+
+                 const statsToCompare = ['strength', 'willpower', 'lore'];
+                 let html = '<div class="analysis-section"><h2>Comparative Stat Analysis (at same cost)</h2><div class="stat-grid">';
+
+                 statsToCompare.forEach(stat => {
+                     // MORE THAN
+                     const moreCriteria = { type: 'comparative', cost: card.cost, stat: stat, comparison: '>' };
+                     const moreCards = findMatchingCards(moreCriteria, card);
+                     const moreBreakdown = countByColor(moreCards);
+                     const moreChips = Object.entries(moreBreakdown)
+                        .filter(([_, num]) => num > 0).map(([color, num]) => `<div class="color-chip" style="background-color:${state.COLOR_HEX[color]}">${num}</div>`).join('');
+                     
+                     html += `
+                        <div class="stat-item" data-criteria='${JSON.stringify(moreCriteria)}'>
+                            <div class="stat-item-header">Higher ${stat.charAt(0).toUpperCase() + stat.slice(1)}</div>
+                            <div class="stat-item-value">${moreCards.length}</div>
+                            <div class="stat-breakdown">${moreChips}</div>
+                        </div>
+                     `;
+
+                     // LESS THAN
+                     const lessCriteria = { type: 'comparative', cost: card.cost, stat: stat, comparison: '<' };
+                     const lessCards = findMatchingCards(lessCriteria, card);
+                     const lessBreakdown = countByColor(lessCards);
+                     const lessChips = Object.entries(lessBreakdown)
+                        .filter(([_, num]) => num > 0).map(([color, num]) => `<div class="color-chip" style="background-color:${state.COLOR_HEX[color]}">${num}</div>`).join('');
+
+                     html += `
+                        <div class="stat-item" data-criteria='${JSON.stringify(lessCriteria)}'>
+                            <div class="stat-item-header">Lower ${stat.charAt(0).toUpperCase() + stat.slice(1)}</div>
+                            <div class="stat-item-value">${lessCards.length}</div>
+                            <div class="stat-breakdown">${lessChips}</div>
+                        </div>
+                     `;
+                 });
+
+                 html += '</div></div>';
+                 return html;
+            }
+
+            function findMatchingCards(criteria, analyzedCard) {
+                return state.allCards.filter(c => {
+                    // Always exclude the card being analyzed from comparative searches
+                    if (criteria.type === 'comparative' && c.id === analyzedCard.id) return false;
+
+                    switch (criteria.type) {
+                        case 'ability':
+                            return (state.cardAbilityMap.get(c.id) || []).includes(criteria.value);
+                        case 'static':
+                             if (c.type !== 'Character') return false;
+                             return c.cost === criteria.stats.cost &&
+                                   c.strength === criteria.stats.strength &&
+                                   c.willpower === criteria.stats.willpower &&
+                                   (c.lore || 0) === (criteria.stats.lore || 0);
+                        case 'comparative':
+                            if (c.type !== 'Character') return false;
+                            if (c.cost !== criteria.cost) return false;
+
+                            const cardStat = c[criteria.stat] || 0;
+                            const analyzedStat = analyzedCard[criteria.stat] || 0;
+
+                            if (criteria.comparison === '>') return cardStat > analyzedStat;
+                            if (criteria.comparison === '<') return cardStat < analyzedStat;
+                            return false;
+                        default:
+                            return false;
+                    }
+                });
+            }
+            
+            function countByColor(cards) {
+                const counts = {};
+                state.COLORS.forEach(c => counts[c] = 0);
+                cards.forEach(card => {
+                    getCardColors(card).forEach(color => {
+                        if (counts[color] !== undefined) counts[color]++;
+                    });
+                });
+                return counts;
+            }
+
+            function showDrillDownResults(criteria, title, analyzedCard) {
+                 const matchingCards = findMatchingCards(criteria, analyzedCard);
+                 // For ability and static searches, we want to show other cards, so we filter out the current one.
+                 const cardsToShow = (criteria.type === 'ability' || criteria.type === 'static') 
+                    ? matchingCards.filter(c => c.id !== analyzedCard.id) 
+                    : matchingCards;
+
+                 ui.modalTitle.textContent = `${title} (${cardsToShow.length} cards)`;
+                 
+                 ui.modalCardGrid.innerHTML = cardsToShow.map(card => `
+                    <div class="modal-card" data-card-id="${card.id}">
+                        <img src="${card.images.thumbnail}" alt="${card.fullName}" loading="lazy">
+                    </div>
+                 `).join('');
+
+                 document.querySelectorAll('.modal-card').forEach(cardElement => {
+                     cardElement.addEventListener('click', () => {
+                         const cardId = parseInt(cardElement.dataset.cardId);
+                         ui.modal.style.display = 'none';
+                         analyzeCard(cardId);
+                     });
+                 });
+
+                 ui.modal.style.display = 'flex';
+            }
+
+            initialize();
         });
     </script>
 </body>
-
 </html>

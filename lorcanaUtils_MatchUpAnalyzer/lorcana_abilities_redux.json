@@ -42,6 +42,26 @@
   },
   "abilities": [
     {
+      "name": "Trigger: Remove Damage",
+      "category": "Trigger",
+      "sub_type": "Damage",
+      "regex": "/Whenever you remove (\\d+) (or more )?damage/gi",
+      "explanation": "Removing damage as a condition is specific",
+      "justification": "Should provide a penalizing as by itself it's a hard condition to satisfy without other cards",
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [
+          {
+            "targetMetric": "lvi",
+            "name": "trigger",
+            "operation": "multiply",
+            "value": "0.5"
+          }
+        ],
+        "scores": {}
+      }
+    },
+    {
       "name": "State: Ready Ink",
       "category": "State",
       "sub_type": "Inkwell",
@@ -162,7 +182,7 @@
             "name": "trigger",
             "operation": "multiply",
             "value": "2.0",
-            "condition": "@card.type == \"Action\""
+            "condition": "@card.type == Action"
           }
         ],
         "scores": {}
@@ -633,7 +653,7 @@
       "name": "Card Effect: Draw",
       "category": "Resource",
       "sub_type": "Card Draw",
-      "regex": "/Draw(?:s)? (?:until you have )?(\\d+|a|one|two|three) card(?:s?)/gi",
+      "regex": "/(?<!Whenever you )draws?\\s+(?:until you have\\s+)?(\\d+|a|one|two|three)\\s+cards?/gi",
       "value_type": "raw",
       "explanation": "Allows the player to draw one or more cards from their deck.",
       "justification": "Card draw is the primary engine for resource advantage.",
@@ -1092,7 +1112,7 @@
       "name": "State: Ready Character",
       "category": "State",
       "sub_type": "Action",
-      "regex": "/Ready chosen (?:your |another )?(character|item)/gi",
+      "regex": "/Ready (chosen|this)? (?:your |another )?(character|item)/gi",
       "value_type": "raw",
       "explanation": "Readies one of your exerted characters.",
       "justification": "Enables action advantage.",
@@ -1101,8 +1121,8 @@
         "contextModifiers": [],
         "scores": {
           "lore_velocity": {
-            "value": "@lvi.readyCharacterValue",
-            "explanation": "Ready Chosen Character"
+            "value": "@lvi.readyCharacterValue * @context.lvi.trigger",
+            "explanation": "Ready Chosen Character * LVI Trigger"
           }
         }
       }
