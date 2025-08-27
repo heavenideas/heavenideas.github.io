@@ -23,6 +23,7 @@ Each ability object has the following top-level keys:
 * justification (String): The reasoning behind the scoring values assigned to the ability.  
 * quick\_description (String): A brief, one-sentence summary of the ability.  
 * scores (Object): An object containing the quantitative scoring data for the ability.
+* value_type (String): it can be either `raw` or `net_advantage`. Raw means that the calculations results will get divided by the cost of the card while net_advantage will NOT get divided by the cost
 
 ### **The** scores **Object**
 
