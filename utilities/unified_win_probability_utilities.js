@@ -105,15 +105,14 @@ const UnifiedWinProbabiliyCalculation = (function() {
     }
 
     /**
-     * Safely evaluates a mathematical formula string by replacing variable placeholders with values from a context object.
-     * It intelligently defaults missing variables to 0 for addition/subtraction and 1 for multiplication/division.
+     * Resolves variable placeholders in a formula string and returns the processed formula.
      * @param {string} formula - The formula string (e.g., "baseLore * @context.lvi.survivability").
      * @param {object} formulaContext - The object containing all possible variables (@card, @constants, etc.).
-     * @returns {number} The result of the calculation.
+     * @param {boolean} forExplanation - If true, format variables as "name (value)" for explanations.
+     * @returns {string} The processed formula string.
      */
-    function evaluateFormula(formula, formulaContext) {
+    function resolveFormulaVariables(formula, formulaContext, forExplanation = false) {
         if (typeof formula !== 'string') return formula;
-        // console.log(`Evaluating formula: "${formula}" with context`, formulaContext);
 
         let processedFormula = formula.replace(/@([\w.\[\]]+)/g, (match, path, offset, originalFormula) => {
             // Split the path by '.' to traverse the context object.
@@ -141,15 +140,18 @@ const UnifiedWinProbabiliyCalculation = (function() {
             }
 
             // If the variable resolved to a valid, existing value, use it.
-            if (typeof current === 'number') return current;
+            if (typeof current === 'number') {
+                return forExplanation ? `${path} (${current.toFixed(2)})` : current;
+            }
             // If it's a string or boolean, return a representation that can be evaluated.
-            if (typeof current === 'string') return `'${current}'`;
-            if (typeof current === 'boolean') return String(current);
+            if (typeof current === 'string') {
+                return forExplanation ? `${path} ('${current}')` : `'${current}'`;
+            }
+            if (typeof current === 'boolean') {
+                return forExplanation ? `${path} (${String(current)})` : String(current);
+            }
 
-            // --- NEW LOGIC ---
-            // If the variable is missing or not a number, default it to 0 or 1 based on the surrounding operators.
-            // This is a heuristic that works for most simple arithmetic.
-
+            // --- DEFAULT LOGIC FOR MISSING VARIABLES ---
             // Find the last non-space character before the variable.
             let prevOp = '';
             for (let i = offset - 1; i >= 0; i--) {
@@ -169,23 +171,35 @@ const UnifiedWinProbabiliyCalculation = (function() {
             }
 
             // If the variable is next to a multiplicative operator, its identity value is 1.
-            // This implicitly handles operator precedence for simple cases (e.g., "5 + @var * 2").
             if (prevOp === '*' || prevOp === '/' || nextOp === '*' || nextOp === '/') {
-                return 1;
+                return forExplanation ? `${path} (1.00)` : 1;
             }
 
             // Otherwise, for addition, subtraction, or as a standalone term, its identity value is 0.
-            return 0;
+            return forExplanation ? `${path} (0.00)` : 0;
         });
 
         // Replace any remaining non-@ variables from the formulaContext
         processedFormula = processedFormula.replace(/[a-zA-Z_]\w*/g, (match) => {
             // If a word matches a numeric property in the context, use that value.
             if (formulaContext[match] !== undefined && typeof formulaContext[match] === 'number') {
-                return formulaContext[match];
+                return forExplanation ? `${match} (${formulaContext[match].toFixed(2)})` : formulaContext[match];
             }
             return match;
         });
+
+        return processedFormula;
+    }
+
+    /**
+     * Safely evaluates a mathematical formula string by replacing variable placeholders with values from a context object.
+     * It intelligently defaults missing variables to 0 for addition/subtraction and 1 for multiplication/division.
+     * @param {string} formula - The formula string (e.g., "baseLore * @context.lvi.survivability").
+     * @param {object} formulaContext - The object containing all possible variables (@card, @constants, etc.).
+     * @returns {number} The result of the calculation.
+     */
+    function evaluateFormula(formula, formulaContext) {
+        const processedFormula = resolveFormulaVariables(formula, formulaContext, false);
 
         console.log(`Processed Formula ${processedFormula}`)
         // Use the Function constructor to safely evaluate the processed formula string.
@@ -195,6 +209,16 @@ const UnifiedWinProbabiliyCalculation = (function() {
             console.error(`Error evaluating formula: "${formula}" -> "${processedFormula}"`, e);
             return 0;
         }
+    }
+
+    /**
+     * Generates a detailed explanation string showing each component of a formula with its resolved value.
+     * @param {string} formula - The formula string (e.g., "baseLore * @context.lvi.survivability").
+     * @param {object} formulaContext - The object containing all possible variables (@card, @constants, etc.).
+     * @returns {string} The explanation string showing each component with its value.
+     */
+    function generateFormulaExplanation(formula, formulaContext) {
+        return resolveFormulaVariables(formula, formulaContext, true);
     }
     
     /**
@@ -226,6 +250,15 @@ const UnifiedWinProbabiliyCalculation = (function() {
             if (match) {
                 matchedAbilities.push({ def: abilityDef, match });
             }
+        });
+
+        // Sort matched abilities by their position in the text (earliest first)
+        matchedAbilities.sort((a, b) => {
+            // Abilities with no match (WILL_NOT_MATCH_TEXT) go to the end
+            if (!a.match && !b.match) return 0;
+            if (!a.match) return 1;
+            if (!b.match) return -1;
+            return a.match.index - b.match.index;
         });
 
         // --- PHASE 2: Create per-ability contexts with isolated variables and modifiers ---
@@ -307,12 +340,14 @@ const UnifiedWinProbabiliyCalculation = (function() {
                     let finalValue;
                     let explanationText;
 
+                    const formulaBreakdown = generateFormulaExplanation(scoreDef.value, abilityContext);
+
                     if (def.value_type === 'net_advantage') {
                         finalValue = rawValue;
-                        explanationText = `${scoreDef.explanation || def.name} (Net Advantage: ${rawValue.toFixed(2)})`;
+                        explanationText = `${scoreDef.explanation || def.name} (${formulaBreakdown} = Net Advantage: ${rawValue.toFixed(2)})`;
                     } else { // Default to 'raw' calculation
                         finalValue = rawValue / inkCost;
-                        explanationText = `${scoreDef.explanation || def.name} (Raw: ${rawValue.toFixed(2)} / Cost: ${inkCost} = ${finalValue.toFixed(2)})`;
+                        explanationText = `${scoreDef.explanation || def.name} (${formulaBreakdown} = Raw (${rawValue.toFixed(2)}) / Cost (${inkCost}) = ${finalValue.toFixed(2)})`;
                     }
 
                     breakdown.push({
