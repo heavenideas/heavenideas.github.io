@@ -206,22 +206,13 @@ const UnifiedWinProbabiliyCalculation = (function() {
     function calculateCardMetrics(card, externalConfig = null) {
         // Use external config if provided, otherwise use internal config
         const configToUse = externalConfig || ABILITIES_CONFIG;
-        
+
         if (!configToUse || !configToUse.abilities) {
             return { rds: 0, lvi: 0, bcr: 0, breakdown: [] };
         }
 
         const fullText = (card.fullTextSections || []).join(' ').replace(/\n/g, ' ');
-        const cardContext = {
-            card: card,
-            ...configToUse['@constants'],
-            context: {
-                lvi: { survivability: 1.0, questSafety: 1.0 },
-                bcr: {},
-                rds: {}
-            }
-        };
-        
+
         // --- PHASE 1: Find all matching abilities ---
         const matchedAbilities = [];
         configToUse.abilities.forEach(abilityDef => {
@@ -237,8 +228,21 @@ const UnifiedWinProbabiliyCalculation = (function() {
             }
         });
 
-        // --- PHASE 2: Extract all variables for all matched abilities ---
+        // --- PHASE 2: Create per-ability contexts with isolated variables and modifiers ---
+        const abilityContexts = [];
         matchedAbilities.forEach(({ def, match }) => {
+            // Create a fresh context for this ability
+            const abilityContext = {
+                card: card,
+                ...configToUse['@constants'],
+                context: {
+                    lvi: { survivability: 1.0, questSafety: 1.0 },
+                    bcr: {},
+                    rds: {}
+                }
+            };
+
+            // Extract ONLY this ability's variables into its isolated context
             (def.calculation.variables || []).forEach(variableDef => {
                 let value;
                 if (variableDef.source === 'regex' && match) {
@@ -249,25 +253,27 @@ const UnifiedWinProbabiliyCalculation = (function() {
                 }
 
                 if (variableDef.type === 'textOrNumber') {
-                    cardContext[variableDef.name] = getNumberFromText(value);
+                    abilityContext[variableDef.name] = getNumberFromText(value);
                 } else if (variableDef.type === 'numeric') {
-                    cardContext[variableDef.name] = parseInt(value, 10) || 0;
+                    abilityContext[variableDef.name] = parseInt(value, 10) || 0;
                 } else {
-                    cardContext[variableDef.name] = value;
+                    abilityContext[variableDef.name] = value;
                 }
             });
+
+            abilityContexts.push({ def, match, context: abilityContext });
         });
 
         // Initialize breakdown struct for both Context Modifiers and Scores
         const breakdown = [];
 
-        // --- PHASE 3: Process context modifiers ---
-        matchedAbilities.forEach(({ def }) => {
+        // --- PHASE 3: Process context modifiers (isolated per ability) ---
+        abilityContexts.forEach(({ def, context: abilityContext }) => {
             (def.calculation.contextModifiers || []).forEach(modDef => {
-                let shouldApply = modDef.condition ? evaluateFormula(modDef.condition, cardContext) : true;
+                let shouldApply = modDef.condition ? evaluateFormula(modDef.condition, abilityContext) : true;
                 if (shouldApply) {
-                    let value = evaluateFormula(modDef.value, cardContext);
-                    const metricContext = cardContext.context[modDef.targetMetric];
+                    let value = evaluateFormula(modDef.value, abilityContext);
+                    const metricContext = abilityContext.context[modDef.targetMetric];
                     if (metricContext) {
                         if (modDef.operation === 'multiply') {
                             if(value == 0.0) value = 1.0;
@@ -288,15 +294,15 @@ const UnifiedWinProbabiliyCalculation = (function() {
             });
         });
 
-        // --- PHASE 4: Process scores ---
+        // --- PHASE 4: Process scores using per-ability contexts ---
         let rds = 0, lvi = 0, bcr = 0;
-        
-        matchedAbilities.forEach(({ def }) => {
+
+        abilityContexts.forEach(({ def, context: abilityContext }) => {
             const scores = def.calculation.scores || {};
             for (const [metric, scoreDef] of Object.entries(scores)) {
-                let shouldApply = scoreDef.condition ? evaluateFormula(scoreDef.condition, cardContext) : true;
+                let shouldApply = scoreDef.condition ? evaluateFormula(scoreDef.condition, abilityContext) : true;
                 if (shouldApply) {
-                    const rawValue = evaluateFormula(scoreDef.value, cardContext);
+                    const rawValue = evaluateFormula(scoreDef.value, abilityContext);
                     const inkCost = card.cost > 0 ? card.cost : 1;
                     let finalValue;
                     let explanationText;

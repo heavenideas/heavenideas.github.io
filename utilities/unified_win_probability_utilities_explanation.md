@@ -12,7 +12,52 @@ Welcome to the Unified Win Probability Utilities library! This JavaScript librar
 
 The library achieves this by parsing a card's text, matching it against a predefined set of abilities, and applying scoring formulas. The entire logic is driven by an external JSON configuration file, making the scoring system flexible and easy to update.
 
-## 2\. Core Dependency: 
+## 1.5\. Ability Isolation and Scoping
+
+**Important Update (v2.0)**: The library now implements complete ability isolation to prevent cross-contamination between different abilities on the same card.
+
+### The Problem Solved
+
+Previously, when a card had multiple abilities, variables extracted from one ability could interfere with calculations for other abilities. For example:
+
+- **Ability 1**: "When this character is played, you gain 1 lore" → extracts `loreAmount = 1`
+- **Ability 2**: "When this character is banished, draw a card" → extracts `drawCount = 1`
+
+If both abilities used similar variable names or if formulas referenced variables from other abilities, this could lead to incorrect calculations.
+
+### The Solution: Per-Ability Contexts
+
+The library now creates **isolated contexts** for each ability:
+
+#### Variable Isolation
+- Each ability gets its own context containing only the variables it extracted
+- Variables from one ability cannot affect calculations for other abilities
+- No cross-ability variable contamination
+
+#### Context Modifier Isolation
+- **Triggers are now ability-specific**: A "Trigger: On Play" found in one ability only affects that ability's calculations
+- **No shared modifiers**: Context modifiers (like trigger reliability multipliers) are scoped to the ability where they are found
+- **Complete independence**: Each ability operates in its own isolated environment
+
+### Example Behavior
+
+For a card with two abilities:
+
+```
+Ability 1: "When this character is played, you gain 1 lore"
+- Finds: "Trigger: On Play" → Only affects this ability's lore calculation
+- Finds: "Lore: Gain" → Uses its own `loreAmount = 1`
+- Result: Lore calculation uses On Play trigger multiplier
+
+Ability 2: "When this character is banished, draw a card"
+- Finds: "Trigger: Banish Self" → Only affects this ability's draw calculation
+- Finds: "Card Effect: Draw" → Uses its own `drawCount = 1`
+- Result: Draw calculation uses Banish Self trigger multiplier
+```
+
+Each ability's triggers, variables, and calculations are completely independent.
+
+## 2\. Core Dependency:
 ```
 lorcana_abilities_redux.json
 ```
