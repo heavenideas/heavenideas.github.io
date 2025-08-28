@@ -175,6 +175,13 @@
         .card-stats-overlay .bcr {
             color: #f472b6; /* rose-400 */
         }
+
+        .highlight {
+            padding: 2px 4px;
+            border-radius: 4px;
+            font-weight: 600;
+            color: #1e293b; /* slate-800 */
+        }
     </style>
 </head>
 
@@ -313,6 +320,10 @@
                 <!-- Mulligan Probability -->
                 <div id="mulliganCalculator" class="bg-gray-700 p-4 rounded-lg shadow-inner w-full">
                     <h3 class="text-lg font-semibold text-center mb-2">Mulligan Helper</h3>
+                    <div class="flex justify-center items-center mb-3">
+                        <label for="hoverPopupToggle" class="text-sm text-gray-300 mr-2">Enable Card Threat Level inspector</label>
+                        <input type="checkbox" id="hoverPopupToggle" class="h-4 w-4 rounded border-gray-500 bg-gray-600 focus:ring-purple-500" checked>
+                    </div>
                     <div class="grid grid-cols-2 gap-2 mb-3">
                         <button id="onThePlayBtn"
                             class="scenario-btn w-full px-3 py-1.5 bg-gray-600 hover:bg-gray-500 rounded-md font-semibold text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-700 focus:ring-purple-500 active">On
@@ -346,6 +357,19 @@
                     <canvas id="cardTypeChart"></canvas>
                 </div>
             </aside>
+        </div>
+    </div>
+
+    <!-- Card Threat Level Inspector Modal -->
+    <div id="cardHoverPopup" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 p-4 opacity-0 pointer-events-none">
+        <div class="bg-gray-800 border border-gray-700 rounded-lg shadow-xl w-full max-w-4xl h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center mb-4 flex-shrink-0">
+                <h3 class="text-xl font-bold text-slate-100">Card Threat Level Inspector</h3>
+                <button id="closeCardInspectorBtn" class="text-gray-400 hover:text-white">&times;</button>
+            </div>
+            <div id="cardInspectorContent" class="flex-grow overflow-y-auto pr-2">
+                <!-- Content will be filled by JS -->
+            </div>
         </div>
     </div>
 
@@ -432,6 +456,10 @@
            const llmPromptOutput = document.getElementById('llmPromptOutput');
            const copyLlmPromptBtn = document.getElementById('copyLlmPromptBtn');
            const generateLlmPromptBtn = document.getElementById('generateLlmPromptBtn');
+           const hoverPopupToggle = document.getElementById('hoverPopupToggle');
+           const cardHoverPopup = document.getElementById('cardHoverPopup');
+           const closeCardInspectorBtn = document.getElementById('closeCardInspectorBtn');
+           const cardInspectorContent = document.getElementById('cardInspectorContent');
 
 
             // --- PROBABILITY FUNCTIONS ---
@@ -475,6 +503,115 @@
                 const finalProb = 1 - probUnionOfMissing;
                 mulliganResultEl.textContent = `${(finalProb * 100).toFixed(2)}%`;
                 mulliganDetailsEl.textContent = `(Hand of 7 + Mulligan of ${7 - numSelected} + ${drawBonus} draw = ${n} cards seen)`;
+            }
+
+            function analyzeAndHighlightText(originalText) {
+                if (!originalText || originalText.trim() === '') {
+                    return { highlightedHtml: '', foundPatterns: new Set() };
+                }
+                const sanitizedText = originalText.replace(/\n/g, ' ');
+                let allMatches = [];
+                const abilitiesConfig = UnifiedWinProbabiliyCalculation.getAbilitiesConfig();
+                abilitiesConfig.abilities.forEach(pattern => {
+                    if (!pattern.regexObject) return;
+                    pattern.regexObject.lastIndex = 0;
+                    let match;
+                    while ((match = pattern.regexObject.exec(sanitizedText)) !== null) {
+                        if (match[0].length === 0) continue;
+                        allMatches.push({ name: pattern.name, text: match[0], start: match.index, end: match.index + match[0].length });
+                    }
+                });
+
+                allMatches.sort((a, b) => a.start - b.start || b.end - a.end);
+                const filteredMatches = [];
+                let lastEnd = -1;
+                for (const match of allMatches) {
+                    if (match.start >= lastEnd) {
+                        filteredMatches.push(match);
+                        lastEnd = match.end;
+                    }
+                }
+
+                const foundPatterns = new Set(filteredMatches.map(m => m.name));
+                const patternColors = {};
+                const colorPool = ['#fef9c3', '#dbeafe', '#dcfce7', '#fee2e2', '#e0f2fe', '#f3e8ff', '#ffe4e6', '#d1fae5', '#fae8ff', '#e0e7ff'];
+                let colorIndex = 0;
+                foundPatterns.forEach(name => {
+                    patternColors[name] = colorPool[colorIndex % colorPool.length];
+                    colorIndex++;
+                });
+
+                let highlightedHtml = "";
+                let lastIndex = 0;
+                filteredMatches.forEach(match => {
+                    highlightedHtml += originalText.substring(lastIndex, match.start);
+                    const color = patternColors[match.name];
+                    highlightedHtml += `<span class="highlight" style="background-color: ${color};" title="${match.name}">${match.text}</span>`;
+                    lastIndex = match.end;
+                });
+                highlightedHtml += originalText.substring(lastIndex);
+                return { highlightedHtml: highlightedHtml.replace(/\n/g, '<br>'), foundPatterns };
+            }
+
+            function showCardPopup(card) {
+                const { rds, lvi, bcr, breakdown } = UnifiedWinProbabiliyCalculation.calculateCardMetrics(card);
+                const { highlightedHtml } = analyzeAndHighlightText(card.fullText || (card.fullTextSections || []).join('\n'));
+                const ctl = rds + lvi + bcr;
+
+                const popupHtml = `
+                    <h3 class="text-xl font-bold text-slate-100 mb-4">${card.fullName}</h3>
+                    <div class="p-4 bg-slate-800 rounded-lg border border-slate-700 mb-4 flex gap-4 items-start">
+                        <img src="${card.images.thumbnail}" alt="${card.fullName}" class="w-32 rounded-lg">
+                        <div class="flex-1 prose prose-invert max-w-none">${highlightedHtml}</div>
+                    </div>
+                    <div class="grid grid-cols-4 gap-4 text-center mb-6 p-4 bg-slate-800 rounded-lg">
+                        <div class="bg-purple-900/40 rounded-xl p-3 flex flex-col items-center justify-center" title="Threat Level = RDS + LVI + BCR">
+                            <div class="text-sm text-slate-400">(CTL) Card Threat Level</div>
+                            <div class="text-2xl font-bold text-purple-400">${ctl.toFixed(3)}</div>
+                        </div>
+                        <div>
+                            <div class="text-sm text-slate-400">(RDS) Resource Dominance Score</div>
+                            <div class="text-2xl font-bold text-sky-400">${rds.toFixed(3)}</div>
+                        </div>
+                        <div>
+                            <div class="text-sm text-slate-400">(LVI) Lore Velocity Index</div>
+                            <div class="text-2xl font-bold text-amber-400">${lvi.toFixed(3)}</div>
+                        </div>
+                        <div>
+                            <div class="text-sm text-slate-400">(BCR) Board Control Rating</div>
+                            <div class="text-2xl font-bold text-rose-400">${bcr.toFixed(3)}</div>
+                        </div>
+                    </div>
+                    <h4 class="font-semibold text-slate-300 mb-2">Calculation Breakdown:</h4>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead class="sticky top-0 bg-slate-900">
+                                <tr class="border-b border-slate-700">
+                                    <th class="text-left p-2">Ability</th>
+                                    <th class="text-left p-2">Metric</th>
+                                    <th class="text-right p-2">Score</th>
+                                    <th class="text-left p-2">Explanation</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${breakdown.length > 0 ? breakdown.map(item => `
+                                    <tr class="border-b border-slate-800 hover:bg-slate-800/50">
+                                        <td class="p-2 font-medium text-slate-200">${item.abilityName}</td>
+                                        <td class="p-2 capitalize">${item.metric.replace('_', ' ')}</td>
+                                        <td class="text-right p-2 font-mono">${item.value.toFixed(3)}</td>
+                                        <td class="p-2 text-slate-400">${item.explanation}</td>
+                                    </tr>
+                                `).join('') : '<tr><td colspan="4" class="text-center p-4 text-slate-500">No abilities matched this card.</td></tr>'}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                cardInspectorContent.innerHTML = popupHtml;
+                cardHoverPopup.classList.remove('opacity-0', 'pointer-events-none');
+            }
+
+            function hideCardPopup() {
+                cardHoverPopup.classList.add('opacity-0', 'pointer-events-none');
             }
 
             function handleCardSelection(cardName, cardCount) {
@@ -582,7 +719,13 @@
                                 <div class="card-prob-overlay" title="Prob. in open hand + mulligan">${probText}</div>
                                 ${statsHTML}
                             `;
-                            stackDiv.addEventListener('click', () => handleCardSelection(card.fullName, count));
+                            stackDiv.addEventListener('click', () => {
+                                if (hoverPopupToggle.checked) {
+                                    showCardPopup(card);
+                                } else {
+                                    handleCardSelection(card.fullName, count);
+                                }
+                            });
                             grid.appendChild(stackDiv);
                         });
                         section.appendChild(grid);
@@ -890,6 +1033,14 @@
 
             const showConfirmationModal = () => confirmationModal.classList.remove('opacity-0', 'pointer-events-none');
             const hideConfirmationModal = () => confirmationModal.classList.add('opacity-0', 'pointer-events-none');
+
+            // Card Inspector Modal Listeners
+            closeCardInspectorBtn.addEventListener('click', hideCardPopup);
+            cardHoverPopup.addEventListener('click', (e) => {
+                if (e.target === cardHoverPopup) {
+                    hideCardPopup();
+                }
+            });
             deleteDeckBtn.addEventListener('click', () => { if (deckIdInput.value) showConfirmationModal(); });
             cancelDeleteBtn.addEventListener('click', hideConfirmationModal);
             confirmDeleteBtn.addEventListener('click', async () => {
