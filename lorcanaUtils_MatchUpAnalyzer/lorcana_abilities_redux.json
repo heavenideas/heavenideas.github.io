@@ -44,6 +44,26 @@
   },
   "abilities": [
     {
+      "name": "Condition",
+      "category": "Opponent",
+      "sub_type": "Exerted",
+      "regex": "/if an opponent has an exerted character in play/gi",
+      "explanation": "This is likely but can be played around",
+      "justification": "This is likely but should essentially penalise other triggers like on play",
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [
+          {
+            "targetMetric": "all",
+            "name": "trigger",
+            "operation": "multiply",
+            "value": "0.75"
+          }
+        ],
+        "scores": {}
+      }
+    },
+    {
       "name": "Trigger: During Your Turn",
       "category": "Trigger",
       "sub_type": "Turn",
@@ -308,7 +328,7 @@
         "variables": [],
         "contextModifiers": [
           {
-            "targetMetric": "lvi",
+            "targetMetric": "all",
             "name": "trigger",
             "operation": "multiply",
             "value": "1.2"
@@ -350,7 +370,7 @@
         "variables": [],
         "contextModifiers": [
           {
-            "targetMetric": "rds",
+            "targetMetric": "all",
             "name": "trigger",
             "operation": "multiply",
             "value": "1.3"
@@ -371,7 +391,7 @@
         "variables": [],
         "contextModifiers": [
           {
-            "targetMetric": "lvi",
+            "targetMetric": "all",
             "name": "trigger",
             "operation": "multiply",
             "value": "0.75"
@@ -422,7 +442,7 @@
         "variables": [],
         "contextModifiers": [
           {
-            "targetMetric": "rds",
+            "targetMetric": "all",
             "name": "trigger",
             "operation": "multiply",
             "value": "1.8"
@@ -776,7 +796,7 @@
         "contextModifiers": [],
         "scores": {
           "resource_dominance": {
-            "value": "discardAmount * -(@cardDrawValue)",
+            "value": "2",
             "explanation": "opposite of drawing a card - discardAmount * -(@cardDrawValue)"
           }
         }
@@ -1028,7 +1048,7 @@
       "category": "Board Control",
       "sub_type": "Cost",
       "regex": "/(?:You may)? banish (?:this |one of your|chosen) (characters?|items?|locations?)(?: of yours)?/gi",
-      "value_type": "raw",
+      "value_type": "net_advantage",
       "explanation": "The player may choose to banish one of their own characters to trigger an effect.",
       "justification": "The cost of banishing a character on your board.",
       "calculation": {
@@ -1053,7 +1073,7 @@
       "name": "Damage: Deal to One",
       "category": "Board Control",
       "sub_type": "Direct Damage",
-      "regex": "/(Deal|move)(?: up to)? (\\d+)?(:? )?damage( counters)?( from (chosen|another|another chosen)?( character| location| character or location)?( of yours)?)? to (chosen|another|another chosen) (?:opposing )?(character|location|character or location)(?! of yours)(?: with \\d+ (?:¤|⬡|⛉) or (?:less|more))?/gi",
+      "regex": "/(Deal|move)(?: up to)? (\\d+)?(:? )?damage( counters?)?( from (chosen|another|another chosen)?( character| location| character or location)?( of yours)?)? to (chosen|another|another chosen) (?:opposing )?(character|location|character or location)(?! of yours)(?: with \\d+ (?:¤|⬡|⛉) or (?:less|more))?/gi",
       "value_type": "raw",
       "explanation": "Deals a specified amount of damage to a single opposing card.",
       "justification": "A flexible form of removal that can banish weakened cards.",
@@ -1441,7 +1461,7 @@
         "variables": [],
         "contextModifiers": [
           {
-            "targetMetric": "rds",
+            "targetMetric": "all",
             "name": "trigger",
             "operation": "multiply",
             "value": "2.0"
@@ -1462,7 +1482,7 @@
         "variables": [],
         "contextModifiers": [
           {
-            "targetMetric": "rds",
+            "targetMetric": "all",
             "name": "trigger",
             "operation": "multiply",
             "value": "1.25"
@@ -1483,7 +1503,7 @@
         "variables": [],
         "contextModifiers": [
           {
-            "targetMetric": "rds",
+            "targetMetric": "all",
             "name": "trigger",
             "operation": "multiply",
             "value": "1.5"
