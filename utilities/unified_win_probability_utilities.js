@@ -309,22 +309,46 @@ const UnifiedWinProbabiliyCalculation = (function() {
                 let shouldApply = modDef.condition ? evaluateFormula(modDef.condition, abilityContext) : true;
                 if (shouldApply) {
                     let value = evaluateFormula(modDef.value, abilityContext);
-                    const metricContext = abilityContext.context[modDef.targetMetric];
-                    if (metricContext) {
-                        if (modDef.operation === 'multiply') {
-                            if(value == 0.0) value = 1.0;
-                            metricContext[modDef.name] = (metricContext[modDef.name] || 1.0) * value;
-                        } else if (modDef.operation === 'add') {
-                            metricContext[modDef.name] = (metricContext[modDef.name] || 0) + value;
-                        } else if (modDef.operation === 'set') {
-                            metricContext[modDef.name] = value;
-                        }
+                    if (modDef.targetMetric === 'all') {
+                        // Apply to all contexts
+                        ['rds', 'lvi', 'bcr'].forEach(metric => {
+                            const metricContext = abilityContext.context[metric];
+                            if (metricContext) {
+                                if (modDef.operation === 'multiply') {
+                                    if(value == 0.0) value = 1.0;
+                                    metricContext[modDef.name] = (metricContext[modDef.name] || 1.0) * value;
+                                } else if (modDef.operation === 'add') {
+                                    metricContext[modDef.name] = (metricContext[modDef.name] || 0) + value;
+                                } else if (modDef.operation === 'set') {
+                                    metricContext[modDef.name] = value;
+                                }
+                            }
+                        });
+                        // Add single breakdown entry for 'all'
                         breakdown.push({
                             abilityName: `Context Modifier: ${modDef.name}`,
-                            metric: modDef.targetMetric,
+                            metric: 'all',
                             value: value,
                             explanation: `${modDef.operation} ${def.justification}`
                         });
+                    } else {
+                        const metricContext = abilityContext.context[modDef.targetMetric];
+                        if (metricContext) {
+                            if (modDef.operation === 'multiply') {
+                                if(value == 0.0) value = 1.0;
+                                metricContext[modDef.name] = (metricContext[modDef.name] || 1.0) * value;
+                            } else if (modDef.operation === 'add') {
+                                metricContext[modDef.name] = (metricContext[modDef.name] || 0) + value;
+                            } else if (modDef.operation === 'set') {
+                                metricContext[modDef.name] = value;
+                            }
+                            breakdown.push({
+                                abilityName: `Context Modifier: ${modDef.name}`,
+                                metric: modDef.targetMetric,
+                                value: value,
+                                explanation: `${modDef.operation} ${def.justification}`
+                            });
+                        }
                     }
                 }
             });
@@ -434,22 +458,46 @@ const UnifiedWinProbabiliyCalculation = (function() {
                     let shouldApply = modDef.condition ? evaluateFormula(modDef.condition, abilityContext) : true;
                     if (shouldApply) {
                         let value = evaluateFormula(modDef.value, abilityContext);
-                        const metricContext = abilityContext.context[modDef.targetMetric];
-                        if (metricContext) {
-                            if (modDef.operation === 'multiply') {
-                                if(value == 0.0) value = 1.0;
-                                metricContext[modDef.name] = (metricContext[modDef.name] || 1.0) * value;
-                            } else if (modDef.operation === 'add') {
-                                metricContext[modDef.name] = (metricContext[modDef.name] || 0) + value;
-                            } else if (modDef.operation === 'set') {
-                                metricContext[modDef.name] = value;
-                            }
+                        if (modDef.targetMetric === 'all') {
+                            // Apply to all contexts
+                            ['rds', 'lvi', 'bcr'].forEach(metric => {
+                                const metricContext = abilityContext.context[metric];
+                                if (metricContext) {
+                                    if (modDef.operation === 'multiply') {
+                                        if(value == 0.0) value = 1.0;
+                                        metricContext[modDef.name] = (metricContext[modDef.name] || 1.0) * value;
+                                    } else if (modDef.operation === 'add') {
+                                        metricContext[modDef.name] = (metricContext[modDef.name] || 0) + value;
+                                    } else if (modDef.operation === 'set') {
+                                        metricContext[modDef.name] = value;
+                                    }
+                                }
+                            });
+                            // Add single breakdown entry for 'all'
                             breakdown.push({
                                 abilityName: `Context Modifier: ${modDef.name} (Ability ${abilityIndex + 1})`,
-                                metric: modDef.targetMetric,
+                                metric: 'all',
                                 value: value,
                                 explanation: `${modDef.operation} ${def.justification}`
                             });
+                        } else {
+                            const metricContext = abilityContext.context[modDef.targetMetric];
+                            if (metricContext) {
+                                if (modDef.operation === 'multiply') {
+                                    if(value == 0.0) value = 1.0;
+                                    metricContext[modDef.name] = (metricContext[modDef.name] || 1.0) * value;
+                                } else if (modDef.operation === 'add') {
+                                    metricContext[modDef.name] = (metricContext[modDef.name] || 0) + value;
+                                } else if (modDef.operation === 'set') {
+                                    metricContext[modDef.name] = value;
+                                }
+                                breakdown.push({
+                                    abilityName: `Context Modifier: ${modDef.name} (Ability ${abilityIndex + 1})`,
+                                    metric: modDef.targetMetric,
+                                    value: value,
+                                    explanation: `${modDef.operation} ${def.justification}`
+                                });
+                            }
                         }
                     }
                 });
