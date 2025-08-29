@@ -44,6 +44,33 @@
   },
   "abilities": [
     {
+      "name": "Trigger: Draw Card",
+      "category": "Trigger",
+      "sub_type": "Draw",
+      "regex": "/when(?:ever)? you draw (an?|one|two|three|\\d+)\\s*(?:character|item|action|song|location)?\\s+cards?/gi",
+      "explanation": "This is a common trigger and can be achieved easily if played correctly",
+      "justification": "Trigger: Draw Card -> can be easy to achieve but requires setup",
+      "calculation": {
+        "variables": [
+          {
+            "name": "cardAmount",
+            "source": "regex",
+            "group": 1,
+            "type": "textOrNumber"
+          }
+        ],
+        "contextModifiers": [
+          {
+            "targetMetric": "all",
+            "name": "trigger",
+            "operation": "multiply",
+            "value": "cardAmount * 0.8"
+          }
+        ],
+        "scores": {}
+      }
+    },
+    {
       "name": "Trigger: Character Challenges",
       "category": "Trigger",
       "sub_type": "Challenge",
