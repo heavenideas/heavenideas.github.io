@@ -238,8 +238,24 @@ const UnifiedWinProbabiliyCalculation = (function() {
         // --- PHASE 0: Determine ability texts based on card type ---
         let abilityTexts = [];
 
-        // For Action cards (not Song subtype), use effects array
-        if (card.type === 'Action' && (!card.subtypes || !card.subtypes.includes('Song'))) {
+        // For Song cards (Action with Song subtype), combine abilities and effects
+        if (card.type === 'Action' && card.subtypes && card.subtypes.includes('Song')) {
+            abilityTexts = [
+                ...(card.abilities || []).map((ability, index) => ({
+                    text: ability.type === 'keyword' ? ability.fullText : ability.effect,
+                    type: ability.type,
+                    index: index,
+                    ability: ability
+                })),
+                ...(card.effects || []).map(effect => ({
+                    text: effect,
+                    type: 'effect',
+                    index: 0 // Not used for effects
+                }))
+            ];
+        } else if (card.type === 'Action' && (!card.subtypes || !card.subtypes.includes('Song'))) {
+
+            // For other Action cards, use effects array
             abilityTexts = (card.effects || []).map(effect => ({
                 text: effect,
                 type: 'effect',
