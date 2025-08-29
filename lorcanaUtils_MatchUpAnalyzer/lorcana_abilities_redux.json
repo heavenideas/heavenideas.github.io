@@ -26,6 +26,7 @@
     },
     "bcr": {
       "rushStrengthMultiplier": 0.5,
+      "highStrengthThreshold": 5,
       "singerValueMultiplier": 1,
       "statBuffMultiplier": 1.5,
       "grantKeywordAuraValue": 1.5,
@@ -40,9 +41,81 @@
         "OnQuest": 0.65,
         "Other": 0.5
       }
+    },
+    "keywords": {
+      "Vanish": 1,
+      "Ward": 1.5,
+      "Evasive": 1.5,
+      "Resist": 1.25,
+      "Challenger": 1.25,
+      "Bodyguard": 1.4,
+      "Reckless": -1.2,
+      "Rush": 1.75,
+      "Singer": 1.25,
+      "Support": 1.25
     }
   },
   "abilities": [
+    {
+      "name": "Keyword: Gain",
+      "category": "Keyword",
+      "sub_type": "Gain",
+      "regex": "/(?:your other characters|this character|chosen character) gains? (Vanish|Ward|Evasive|Resist|Challenger|Bodyguard|Reckless|Rush|Singer|Support)/gi",
+      "explanation": "",
+      "justification": "",
+      "calculation": {
+        "variables": [
+          {
+            "name": "auraGained",
+            "source": "regex",
+            "group": 1,
+            "type": "string"
+          }
+        ],
+        "contextModifiers": [],
+        "scores": {
+          "resource_dominance": {
+            "value": "@keywords[@auraGained]"
+          }
+        }
+      }
+    },
+    {
+      "name": "Base: High Strength",
+      "category": "Base",
+      "sub_type": "Stat",
+      "regex": "WILL_NOT_MATCH_TEXT",
+      "explanation": "High strength allows board control easier than lower strength",
+      "justification": "Mirrors the high Willpower",
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [],
+        "scores": {
+          "board_control": {
+            "value": "1.5",
+            "condition": "@card.strength >= @bcr.highStrengthThreshold"
+          }
+        }
+      }
+    },
+    {
+      "name": "Card Effect: Opponent Discards Hand",
+      "category": "Resource",
+      "sub_type": "Hand Disruption",
+      "regex": "/(Each opponent|they) discards?(?: all cards)?(?: in)? their hands?/gi",
+      "explanation": "This is extremely disruptive if timed correctly",
+      "justification": "Which turn the card can be played has a direct impact on how disruptive it can be.",
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [],
+        "scores": {
+          "resource_dominance": {
+            "value": "8.0 * @context.rds.trigger",
+            "explanation": "Potential for being very disruptive"
+          }
+        }
+      }
+    },
     {
       "name": "Trigger: Draw Card",
       "category": "Trigger",
@@ -1550,15 +1623,17 @@
       "justification": "Evasive provides significant protection from challenges.",
       "calculation": {
         "variables": [],
-        "contextModifiers": [
-          {
-            "targetMetric": "lvi",
-            "name": "questSafety",
-            "operation": "multiply",
-            "value": "@lvi.evasiveModifier"
+        "contextModifiers": [],
+        "scores": {
+          "lore_velocity": {
+            "value": "1.5",
+            "explanation": "Can evade any non-Evasive characters to quest freely"
+          },
+          "board_control": {
+            "value": "1.5",
+            "explanation": "Can contest Evasive Characters"
           }
-        ],
-        "scores": {}
+        }
       }
     },
     {
