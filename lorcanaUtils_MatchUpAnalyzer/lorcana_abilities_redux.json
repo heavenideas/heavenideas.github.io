@@ -816,7 +816,7 @@
         "contextModifiers": [],
         "scores": {
           "resource_dominance": {
-            "value": "2",
+            "value": "discardAmount * -(@cardDrawValue)",
             "explanation": "opposite of drawing a card - discardAmount * -(@cardDrawValue)"
           }
         }
