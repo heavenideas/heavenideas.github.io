@@ -44,6 +44,26 @@
   },
   "abilities": [
     {
+      "name": "Trigger: Character Challenges",
+      "category": "Trigger",
+      "sub_type": "Challenge",
+      "regex": "/Whenever one of your characters challenges/gi",
+      "explanation": "This is a condition that is easy to meet, but exposes the character and deals damage. so it's not a massive win",
+      "justification": "Trigger: On of your Character Challenges -> Easy to trigger but downsides for the character that challenges",
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [
+          {
+            "targetMetric": "all",
+            "name": "trigger",
+            "operation": "multiply",
+            "value": "0.8"
+          }
+        ],
+        "scores": {}
+      }
+    },
+    {
       "name": "Condition",
       "category": "Opponent",
       "sub_type": "Exerted",
@@ -999,7 +1019,7 @@
         "contextModifiers": [],
         "scores": {
           "board_control": {
-            "value": "@bcr.banishCharacterValue * 1.0",
+            "value": "@bcr.banishCharacterValue * 1.0 * @context.bcr.trigger",
             "explanation": "Banish Other Characters"
           }
         }
@@ -1037,7 +1057,7 @@
         "contextModifiers": [],
         "scores": {
           "board_control": {
-            "value": "@bcr.banishCharacterValue * 0.85",
+            "value": "@bcr.banishCharacterValue * 0.85 * @context.bcr.trigger",
             "explanation": "Banish Other Characters"
           }
         }
@@ -1063,7 +1083,7 @@
         "contextModifiers": [],
         "scores": {
           "board_control": {
-            "value": "(@cardType === 'character' ? @bcr.banishCharacterValue : @cardType === 'item' ? @bcr.banishItemValue : @cardType === 'location' ? @bcr.banishLocationValue : -99 ) * -0.2",
+            "value": "(@cardType === 'character' ? @bcr.banishCharacterValue : @cardType === 'item' ? @bcr.banishItemValue : @cardType === 'location' ? @bcr.banishLocationValue : -99 ) * -0.2 * @context.bcr.trigger",
             "explanation": "This negative value will be offset by the upside of a depending ability on this card"
           }
         }
@@ -1082,7 +1102,7 @@
         "contextModifiers": [],
         "scores": {
           "board_control": {
-            "value": "4.0",
+            "value": "4.0 * @context.bcr.trigger",
             "explanation": "Deal Damage"
           }
         }
@@ -1101,7 +1121,7 @@
         "contextModifiers": [],
         "scores": {
           "board_control": {
-            "value": "4.5",
+            "value": "4.5 * @context.bcr.trigger",
             "explanation": "Put Damage Counters"
           }
         }
@@ -1139,7 +1159,7 @@
         "contextModifiers": [],
         "scores": {
           "board_control": {
-            "value": "4.0",
+            "value": "4.0 * @context.bcr.trigger",
             "explanation": "Deal Damage"
           }
         }
@@ -1165,7 +1185,7 @@
         "contextModifiers": [],
         "scores": {
           "lore_velocity": {
-            "value": "healAmount * @lvi.healValueMultiplier",
+            "value": "healAmount * @lvi.healValueMultiplier * @context.lvi.trigger",
             "explanation": "Damage: Heal (healAmount)"
           }
         }
@@ -1191,7 +1211,7 @@
         "contextModifiers": [],
         "scores": {
           "board_control": {
-            "value": "-1.25 * damageAmount",
+            "value": "-1.25 * damageAmount * @context.bcr.trigger",
             "explanation": "Negative Impact"
           }
         }
@@ -1248,7 +1268,7 @@
         "contextModifiers": [],
         "scores": {
           "board_control": {
-            "value": "1.0",
+            "value": "1.1 * @context.bcr.trigger",
             "explanation": "Affects Tempo"
           }
         }
@@ -1288,7 +1308,7 @@
         "contextModifiers": [],
         "scores": {
           "board_control": {
-            "value": "strengthAmount * @bcr.statBuffMultiplier",
+            "value": "strengthAmount * @bcr.statBuffMultiplier * @context.bcr.trigger",
             "explanation": "Strength Buff -> "
           }
         }
@@ -1314,7 +1334,7 @@
         "contextModifiers": [],
         "scores": {
           "board_control": {
-            "value": "strengthAmount * @bcr.statBuffMultiplier",
+            "value": "strengthAmount * @bcr.statBuffMultiplier * @context.bcr.trigger",
             "explanation": "Strength Debuff -> "
           }
         }
@@ -1340,7 +1360,7 @@
         "contextModifiers": [],
         "scores": {
           "board_control": {
-            "value": "willpowerAmount * @bcr.statBuffMultiplier",
+            "value": "willpowerAmount * @bcr.statBuffMultiplier * @context.bcr.trigger",
             "explanation": "Willpower Buff -> "
           }
         }
@@ -1366,7 +1386,7 @@
         "contextModifiers": [],
         "scores": {
           "resource_dominance": {
-            "value": "0.25 * @costReduction",
+            "value": "0.25 * @costReduction * @context.rds.trigger",
             "explanation": "Cost Reduction -> "
           }
         }
@@ -1385,7 +1405,7 @@
         "contextModifiers": [],
         "scores": {
           "resource_dominance": {
-            "value": "1.5",
+            "value": "1.5 * @context.rds.trigger",
             "explanation": "Play from Discard"
           }
         }
@@ -1424,27 +1444,8 @@
         "scores": {
           "resource_dominance": {
             "condition": "",
-            "value": "@thisCard === 'this' ? @card.cost : maxCost",
+            "value": "(@thisCard === 'this' ? @card.cost : maxCost) * @context.rds.trigger",
             "explanation": "Play for Free"
-          }
-        }
-      }
-    },
-    {
-      "name": "Play: Cheaper",
-      "category": "Play",
-      "sub_type": "Ramp",
-      "regex": "/The next time you play a (?:character|item|action|song) card this turn, pay (\\d+) ⬡ less/gi",
-      "value_type": "raw",
-      "explanation": "Reduces the ink cost of the next card played this turn.",
-      "justification": "A temporary form of cost reduction.",
-      "calculation": {
-        "variables": [],
-        "contextModifiers": [],
-        "scores": {
-          "resource_dominance": {
-            "value": "1.0",
-            "explanation": "Cost Reduction"
           }
         }
       }
