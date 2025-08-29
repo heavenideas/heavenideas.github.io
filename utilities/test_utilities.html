@@ -25,21 +25,70 @@
                 const retrievedConfig = UnifiedWinProbabiliyCalculation.getAbilitiesConfig();
                 output.innerHTML += `<p>✅ Retrieved config has ${retrievedConfig.abilities.length} abilities</p>`;
                 
-                // Test with a sample card
-                const sampleCard = {
-                    fullName: "Test Card",
-                    fullTextSections: ["Draw 2 cards"],
+                // Test with a sample Character card with multiple abilities (to test isolation)
+                const sampleCharacterCard = {
+                    fullName: "Test Character",
                     cost: 3,
                     lore: 2,
                     strength: 3,
                     willpower: 4,
                     type: "Character",
-                    inkwell: true
+                    inkwell: true,
+                    abilities: [
+                        {
+                            type: "triggered",
+                            fullText: "When this character is banished in a challenge, you may draw a card.",
+                            effect: "When this character is banished in a challenge, you may draw a card.",
+                            name: "Banish Trigger"
+                        },
+                        {
+                            type: "static",
+                            fullText: "This character gets +2 ◊.",
+                            effect: "This character gets +2 ◊.",
+                            name: "Lore Boost"
+                        }
+                    ]
                 };
-                
-                const metrics = UnifiedWinProbabiliyCalculation.calculateCardMetrics(sampleCard);
-                output.innerHTML += `<p>✅ Card metrics calculated: RDS=${metrics.rds.toFixed(3)}, LVI=${metrics.lvi.toFixed(3)}, BCR=${metrics.bcr.toFixed(3)}</p>`;
-                output.innerHTML += `<p>✅ Breakdown has ${metrics.breakdown.length} entries</p>`;
+
+                const charMetrics = UnifiedWinProbabiliyCalculation.calculateCardMetrics(sampleCharacterCard);
+                output.innerHTML += `<p>✅ Character card with 2 abilities: RDS=${charMetrics.rds.toFixed(3)}, LVI=${charMetrics.lvi.toFixed(3)}, BCR=${charMetrics.bcr.toFixed(3)}</p>`;
+                output.innerHTML += `<p>✅ Character breakdown has ${charMetrics.breakdown.length} entries</p>`;
+
+                // Check for proper isolation - each ability should have its own context modifiers/scores
+                const abilityBreakdowns = charMetrics.breakdown.filter(entry =>
+                    entry.abilityName.includes('Ability 1') || entry.abilityName.includes('Ability 2')
+                );
+                output.innerHTML += `<p>✅ Found ${abilityBreakdowns.length} ability-specific entries (should be isolated per ability)</p>`;
+
+                // Test with a sample Action card (using effects array)
+                const sampleActionCard = {
+                    fullName: "Test Action",
+                    cost: 2,
+                    type: "Action",
+                    subtypes: [], // Not a Song
+                    effects: [
+                        "Draw 2 cards"
+                    ]
+                };
+
+                const actionMetrics = UnifiedWinProbabiliyCalculation.calculateCardMetrics(sampleActionCard);
+                output.innerHTML += `<p>✅ Action card metrics: RDS=${actionMetrics.rds.toFixed(3)}, LVI=${actionMetrics.lvi.toFixed(3)}, BCR=${actionMetrics.bcr.toFixed(3)}</p>`;
+                output.innerHTML += `<p>✅ Action breakdown has ${actionMetrics.breakdown.length} entries</p>`;
+
+                // Test with a sample Song Action card (should use effects but be treated differently)
+                const sampleSongCard = {
+                    fullName: "Test Song",
+                    cost: 2,
+                    type: "Action",
+                    subtypes: ["Song"],
+                    effects: [
+                        "Draw 2 cards"
+                    ]
+                };
+
+                const songMetrics = UnifiedWinProbabiliyCalculation.calculateCardMetrics(sampleSongCard);
+                output.innerHTML += `<p>✅ Song card metrics: RDS=${songMetrics.rds.toFixed(3)}, LVI=${songMetrics.lvi.toFixed(3)}, BCR=${songMetrics.bcr.toFixed(3)}</p>`;
+                output.innerHTML += `<p>✅ Song breakdown has ${songMetrics.breakdown.length} entries</p>`;
                 
                 output.innerHTML += '<p><strong>✅ All tests passed! The utilities are self-contained and working correctly.</strong></p>';
                 

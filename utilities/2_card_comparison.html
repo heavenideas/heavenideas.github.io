@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lorcana Card Browser</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fuse.js/dist/fuse.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom scrollbar for webkit browsers */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        .dark ::-webkit-scrollbar-track {
+            background: #2d3748;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        .dark ::-webkit-scrollbar-thumb {
+            background: #a0aec0;
+        }
+        .dark ::-webkit-scrollbar-thumb:hover {
+            background: #718096;
+        }
+        /* Simple modal styles */
+        #selection-modal {
+            transition: opacity 0.3s ease;
+        }
+        /* Prevent layout shift */
+        #search-results {
+            min-height: 200px; /* Adjust as needed */
+        }
+    </style>
+    <script>
+        // Tailwind dark mode configuration
+        tailwind.config = {
+            darkMode: 'class',
+        }
+    </script>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 transition-colors duration-300">
+
+    <!-- Main Container -->
+    <div class="container mx-auto p-4 md:p-8">
+        
+        <!-- Header -->
+        <header class="flex justify-between items-center mb-6">
+            <div>
+                <h1 class="text-3xl md:text-4xl font-bold text-blue-600 dark:text-blue-400">Lorcana Card Browser</h1>
+                <p class="text-gray-600 dark:text-gray-400">Fuzzy search and compare cards.</p>
+            </div>
+            <!-- Dark Mode Toggle -->
+            <div class="flex items-center">
+                <span class="mr-2 text-sm font-medium">Dark Mode</span>
+                <label for="dark-mode-toggle" class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="dark-mode-toggle" class="sr-only peer">
+                    <div class="w-11 h-6 bg-gray-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                </label>
+            </div>
+        </header>
+
+        <!-- Search Section -->
+        <div class="mb-8">
+            <label for="search-input" class="block text-lg font-medium mb-2">Search for a card</label>
+            <input type="text" id="search-input" placeholder="e.g., 'mickey brave'" class="w-full p-3 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+            <div id="search-results" class="mt-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg max-h-64 overflow-y-auto"></div>
+            <div id="loader" class="text-center p-4 hidden">Loading card database...</div>
+        </div>
+
+        <!-- Comparison Section -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- Card Slot 1 -->
+            <div id="card-slot-1" class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg">
+                <div class="text-center text-gray-500 dark:text-gray-400 h-full flex flex-col justify-center items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mb-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h14a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2z" /></svg>
+                    <h3 class="text-xl font-semibold">Card Slot 1</h3>
+                    <p>Search for a card to display its details here.</p>
+                </div>
+            </div>
+            <!-- Card Slot 2 -->
+            <div id="card-slot-2" class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg">
+                <div class="text-center text-gray-500 dark:text-gray-400 h-full flex flex-col justify-center items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mb-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h14a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2z" /></svg>
+                    <h3 class="text-xl font-semibold">Card Slot 2</h3>
+                    <p>Search for a second card to compare.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Selection Modal -->
+    <div id="selection-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden opacity-0">
+        <div class="bg-white dark:bg-gray-800 rounded-lg p-8 shadow-2xl text-center">
+            <h2 class="text-2xl font-bold mb-4">Add to Comparison</h2>
+            <p class="mb-6">Select a slot to display <strong id="modal-card-name"></strong>.</p>
+            <div class="flex justify-center gap-4">
+                <button id="modal-slot-1-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition">Slot 1</button>
+                <button id="modal-slot-2-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg transition">Slot 2</button>
+                <button id="modal-cancel-btn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg transition">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- DOM Elements ---
+            const searchInput = document.getElementById('search-input');
+            const searchResultsContainer = document.getElementById('search-results');
+            const cardSlot1 = document.getElementById('card-slot-1');
+            const cardSlot2 = document.getElementById('card-slot-2');
+            const loader = document.getElementById('loader');
+            const darkModeToggle = document.getElementById('dark-mode-toggle');
+            const selectionModal = document.getElementById('selection-modal');
+            const modalCardName = document.getElementById('modal-card-name');
+            const modalSlot1Btn = document.getElementById('modal-slot-1-btn');
+            const modalSlot2Btn = document.getElementById('modal-slot-2-btn');
+            const modalCancelBtn = document.getElementById('modal-cancel-btn');
+
+            // --- State ---
+            let allCards = [];
+            let allSets = {}; // To store set information
+            let fuse;
+            let selectedCardForModal = null;
+
+            // --- Fuzzy Search Options ---
+            const fuseOptions = {
+                includeScore: true,
+                keys: ['simpleName', 'fullName', 'name', 'version'],
+                threshold: 0.4, // Adjust for more/less fuzzy matching
+            };
+
+            // --- Dark Mode Logic ---
+            const applyDarkMode = (isDark) => {
+                if (isDark) {
+                    document.documentElement.classList.add('dark');
+                    localStorage.setItem('darkMode', 'true');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                    localStorage.setItem('darkMode', 'false');
+                }
+            };
+
+            darkModeToggle.addEventListener('change', (e) => {
+                applyDarkMode(e.target.checked);
+            });
+
+            // Check for saved preference on load
+            if (localStorage.getItem('darkMode') === 'true' || 
+               (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches && !localStorage.getItem('darkMode'))) {
+                darkModeToggle.checked = true;
+                applyDarkMode(true);
+            }
+
+            // --- Data Fetching ---
+            const fetchCardData = async () => {
+                loader.classList.remove('hidden');
+                try {
+                    const response = await fetch('https://raw.githubusercontent.com/heavenideas/similcana/refs/heads/main/database/allCards.json');
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    const data = await response.json();
+                    allCards = data.cards;
+                    allSets = data.sets; // Store the sets object
+                    fuse = new Fuse(allCards, fuseOptions);
+                    console.log('Card database loaded successfully.');
+                } catch (error) {
+                    console.error("Failed to fetch card data:", error);
+                    searchResultsContainer.innerHTML = `<div class="p-4 text-red-500">Failed to load card database. Please try refreshing the page.</div>`;
+                } finally {
+                    loader.classList.add('hidden');
+                }
+            };
+
+            // --- Search Logic ---
+            const handleSearch = (e) => {
+                const query = e.target.value;
+                if (query.length < 2) {
+                    searchResultsContainer.innerHTML = '';
+                    return;
+                }
+                if (!fuse) return;
+
+                const results = fuse.search(query).slice(0, 10); // Limit to top 10 results
+                displaySearchResults(results);
+            };
+
+            const displaySearchResults = (results) => {
+                if (!results.length) {
+                    searchResultsContainer.innerHTML = `<div class="p-3 text-gray-500">No matches found.</div>`;
+                    return;
+                }
+                searchResultsContainer.innerHTML = results.map(result => {
+                    const card = result.item;
+                    return `
+                        <div class="p-3 hover:bg-blue-100 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-200 dark:border-gray-700 last:border-b-0" data-card-id="${card.id}">
+                            <p class="font-semibold">${card.fullName}</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">${card.type} - Set: ${card.setCode}</p>
+                        </div>
+                    `;
+                }).join('');
+            };
+
+            // --- Card Selection & Display ---
+            const openSelectionModal = (card) => {
+                selectedCardForModal = card;
+                modalCardName.textContent = card.fullName;
+                selectionModal.classList.remove('hidden');
+                setTimeout(() => selectionModal.classList.remove('opacity-0'), 10);
+            };
+
+            const closeSelectionModal = () => {
+                selectionModal.classList.add('opacity-0');
+                setTimeout(() => selectionModal.classList.add('hidden'), 300);
+                selectedCardForModal = null;
+            };
+
+            const displayCard = (card, slotElement) => {
+                // Helper to create a data row, skipping undefined/null values
+                const createRow = (label, value, jsonKey) => {
+                    if (value === undefined || value === null || value === '') return '';
+                    let displayValue = value;
+                    if (typeof value === 'boolean') {
+                        displayValue = value ? 'Yes' : 'No';
+                    } else if (Array.isArray(value)) {
+                        displayValue = value.join(', ');
+                    }
+                    return `
+                        <div class="flex justify-between items-start py-2.5 border-b border-gray-200 dark:border-gray-700">
+                            <span class="font-semibold text-gray-600 dark:text-gray-300 mr-4">${label}</span>
+                            <div class="text-right">
+                                <span class="text-gray-900 dark:text-white">${displayValue}</span>
+                                <code class="block text-xs text-blue-400 dark:text-blue-500 mt-1">${jsonKey}</code>
+                            </div>
+                        </div>
+                    `;
+                };
+                
+                // Helper for complex objects like abilities
+                const createSection = (title, content, titleJsonKey = '') => {
+                    if (!content) return '';
+                    return `
+                        <div class="mt-4">
+                            <h4 class="text-lg font-bold mb-2 text-blue-500 dark:text-blue-400">${title} ${titleJsonKey ? `<code class="text-xs font-mono">${titleJsonKey}</code>` : ''}</h4>
+                            <div class="p-3 bg-gray-100 dark:bg-gray-700 rounded-md space-y-2 text-sm">
+                                ${content}
+                            </div>
+                        </div>
+                    `;
+                };
+
+                // --- Build Rules Text (Abilities or Effects) ---
+                let rulesTextHtml = '';
+                if (card.abilities && card.abilities.length > 0) {
+                    const abilitiesContent = card.abilities.map(ability => {
+                        let abilityDetails = `
+                            <div class="p-2 border-b border-gray-300 dark:border-gray-600 last:border-0">
+                                <p class="italic mb-2">${ability.fullText} <code class="text-xs text-blue-400">fullText</code></p>
+                                <div class="pl-2 border-l-2 border-blue-300 dark:border-blue-700 text-xs space-y-1">
+                        `;
+                        const addDetail = (label, value, key) => {
+                            if (value === undefined || value === null || value === '') return '';
+                            return `<div><strong class="text-gray-600 dark:text-gray-300">${label}:</strong> ${value} <code class="text-blue-400">${key}</code></div>`;
+                        };
+                        abilityDetails += addDetail('Type', ability.type, 'type');
+                        abilityDetails += addDetail('Name', ability.name, 'name');
+                        abilityDetails += addDetail('Effect', ability.effect, 'effect');
+                        abilityDetails += addDetail('Keyword', ability.keyword, 'keyword');
+                        abilityDetails += addDetail('Keyword Value', ability.keywordValue, 'keywordValue');
+                        abilityDetails += addDetail('Keyword Number', ability.keywordValueNumber, 'keywordValueNumber');
+                        abilityDetails += addDetail('Reminder', ability.reminderText, 'reminderText');
+                        abilityDetails += addDetail('Cost', ability.costsText, 'costsText');
+                        abilityDetails += `</div></div>`;
+                        return abilityDetails;
+                    }).join('');
+                    rulesTextHtml = createSection('Abilities', abilitiesContent, 'abilities');
+                } else if (card.effects && card.effects.length > 0) {
+                    const effectsContent = card.effects.map(effect => `
+                        <div class="p-2 border-b border-gray-300 dark:border-gray-600 last:border-0">
+                            <p class="italic">${effect} <code class="text-xs text-blue-400">effects[]</code></p>
+                        </div>
+                    `).join('');
+                    rulesTextHtml = createSection('Effects', effectsContent, 'effects');
+                }
+
+
+                // Build external links HTML
+                let linksHtml = '';
+                if (card.externalLinks) {
+                    linksHtml = Object.entries(card.externalLinks).map(([key, value]) => {
+                        if (key.endsWith('Id')) return ''; // Skip IDs, only show URLs
+                        const siteName = key.replace('Url', '').replace(/([A-Z])/g, ' $1').trim();
+                        return `<a href="${value}" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:underline">View on ${siteName}</a>`;
+                    }).filter(Boolean).join('<br>');
+                }
+
+                // Correctly get set information
+                const setInfo = allSets[card.setCode];
+                const setDisplay = setInfo ? `${card.setCode} - ${card.number}/${setInfo.cardCount}` : `${card.setCode} - ${card.number}`;
+
+                slotElement.innerHTML = `
+                    <div class="space-y-4">
+                        <img src="${card.images.full}" alt="${card.fullName}" class="w-full rounded-lg shadow-md mb-4" onerror="this.onerror=null;this.src='https://placehold.co/367x512/334155/e2e8f0?text=Image+Not+Found';">
+                        <h3 class="text-2xl font-bold text-center">${card.fullName} <code class="text-sm font-mono text-blue-400">fullName</code></h3>
+                        
+                        <!-- Core Stats -->
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+                            ${card.cost !== undefined ? `<div class="bg-blue-100 dark:bg-blue-900 p-2 rounded-lg"><div class="text-sm text-blue-800 dark:text-blue-200">Cost</div><div class="text-xl font-bold">${card.cost}</div><code class="text-xs text-blue-400">cost</code></div>` : ''}
+                            ${card.strength !== undefined ? `<div class="bg-red-100 dark:bg-red-900 p-2 rounded-lg"><div class="text-sm text-red-800 dark:text-red-200">Strength</div><div class="text-xl font-bold">${card.strength}</div><code class="text-xs text-red-400">strength</code></div>` : ''}
+                            ${card.willpower !== undefined ? `<div class="bg-green-100 dark:bg-green-900 p-2 rounded-lg"><div class="text-sm text-green-800 dark:text-green-200">Willpower</div><div class="text-xl font-bold">${card.willpower}</div><code class="text-xs text-green-400">willpower</code></div>` : ''}
+                            ${card.lore !== undefined ? `<div class="bg-purple-100 dark:bg-purple-900 p-2 rounded-lg"><div class="text-sm text-purple-800 dark:text-purple-200">Lore</div><div class="text-xl font-bold">${card.lore}</div><code class="text-xs text-purple-400">lore</code></div>` : ''}
+                        </div>
+
+                        <!-- Main Details -->
+                        <div class="text-sm">
+                            ${createRow('Type', card.type, 'type')}
+                            ${createRow('Color', card.color, 'color')}
+                            ${createRow('Inkable', card.inkwell, 'inkwell')}
+                            ${createRow('Rarity', card.rarity, 'rarity')}
+                            ${createRow('Subtypes', card.subtypesText, 'subtypesText')}
+                            ${createRow('Artist(s)', card.artistsText, 'artistsText')}
+                            ${createRow('Set', setDisplay, 'setCode / number')}
+                        </div>
+
+                        <!-- Rules Text Section (Abilities or Effects) -->
+                        ${rulesTextHtml}
+                        
+                        <!-- Flavor Text -->
+                        ${card.flavorText ? createSection('Flavor Text', `<p class="italic">"${card.flavorText.replace(/\n/g, '<br>')}"</p>`, 'flavorText') : ''}
+                        
+                        <!-- External Links -->
+                        ${createSection('External Links', linksHtml, 'externalLinks')}
+
+                    </div>
+                `;
+            };
+
+            // --- Event Listeners ---
+            searchInput.addEventListener('input', handleSearch);
+
+            searchResultsContainer.addEventListener('click', (e) => {
+                const resultElement = e.target.closest('[data-card-id]');
+                if (resultElement) {
+                    const cardId = parseInt(resultElement.dataset.cardId, 10);
+                    const card = allCards.find(c => c.id === cardId);
+                    if (card) {
+                        openSelectionModal(card);
+                        searchResultsContainer.innerHTML = '';
+                        searchInput.value = '';
+                    }
+                }
+            });
+
+            modalSlot1Btn.addEventListener('click', () => {
+                if (selectedCardForModal) {
+                    displayCard(selectedCardForModal, cardSlot1);
+                    closeSelectionModal();
+                }
+            });
+
+            modalSlot2Btn.addEventListener('click', () => {
+                if (selectedCardForModal) {
+                    displayCard(selectedCardForModal, cardSlot2);
+                    closeSelectionModal();
+                }
+            });
+
+            modalCancelBtn.addEventListener('click', closeSelectionModal);
+
+            // --- Initialization ---
+            fetchCardData();
+        });
+    </script>
+
+</body>
+</html>

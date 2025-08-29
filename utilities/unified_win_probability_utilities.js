@@ -235,36 +235,41 @@ const UnifiedWinProbabiliyCalculation = (function() {
             return { rds: 0, lvi: 0, bcr: 0, breakdown: [] };
         }
 
-        const fullText = (card.fullTextSections || []).join(' ').replace(/\n/g, ' ');
+        // --- PHASE 0: Determine ability texts based on card type ---
+        let abilityTexts = [];
 
-        // --- PHASE 1: Find all matching abilities ---
-        const matchedAbilities = [];
+        // For Action cards (not Song subtype), use effects array
+        if (card.type === 'Action' && (!card.subtypes || !card.subtypes.includes('Song'))) {
+            abilityTexts = (card.effects || []).map(effect => ({
+                text: effect,
+                type: 'effect',
+                index: 0 // Not used for effects
+            }));
+        } else {
+            // For Character/Location/Item cards, use abilities array
+            abilityTexts = (card.abilities || []).map((ability, index) => ({
+                text: ability.type === 'keyword' ? ability.fullText : ability.effect,
+                type: ability.type,
+                index: index,
+                ability: ability
+            }));
+        }
+
+        // Initialize breakdown and totals
+        const breakdown = [];
+        let rds = 0, lvi = 0, bcr = 0;
+
+        // --- PHASE 1: Process base abilities (WILL_NOT_MATCH_TEXT) once per card ---
+        const baseAbilities = [];
         configToUse.abilities.forEach(abilityDef => {
             if (abilityDef.regex === "WILL_NOT_MATCH_TEXT") {
-                matchedAbilities.push({ def: abilityDef, match: null });
-                return;
-            }
-            if (!abilityDef.regexObject) return;
-            abilityDef.regexObject.lastIndex = 0;
-            const match = abilityDef.regexObject.exec(fullText);
-            if (match) {
-                matchedAbilities.push({ def: abilityDef, match });
+                baseAbilities.push({ def: abilityDef, match: null });
             }
         });
 
-        // Sort matched abilities by their position in the text (earliest first)
-        matchedAbilities.sort((a, b) => {
-            // Abilities with no match (WILL_NOT_MATCH_TEXT) go to the end
-            if (!a.match && !b.match) return 0;
-            if (!a.match) return 1;
-            if (!b.match) return -1;
-            return a.match.index - b.match.index;
-        });
-
-        // --- PHASE 2: Create per-ability contexts with isolated variables and modifiers ---
-        const abilityContexts = [];
-        matchedAbilities.forEach(({ def, match }) => {
-            // Create a fresh context for this ability
+        // Create contexts for base abilities
+        const baseAbilityContexts = [];
+        baseAbilities.forEach(({ def, match }) => {
             const abilityContext = {
                 card: card,
                 ...configToUse['@constants'],
@@ -275,7 +280,7 @@ const UnifiedWinProbabiliyCalculation = (function() {
                 }
             };
 
-            // Extract ONLY this ability's variables into its isolated context
+            // Extract base ability variables
             (def.calculation.variables || []).forEach(variableDef => {
                 let value;
                 if (variableDef.source === 'regex' && match) {
@@ -294,14 +299,12 @@ const UnifiedWinProbabiliyCalculation = (function() {
                 }
             });
 
-            abilityContexts.push({ def, match, context: abilityContext });
+            baseAbilityContexts.push({ def, match, context: abilityContext });
         });
 
-        // Initialize breakdown struct for both Context Modifiers and Scores
-        const breakdown = [];
-
-        // --- PHASE 3: Process context modifiers (isolated per ability) ---
-        abilityContexts.forEach(({ def, context: abilityContext }) => {
+        // Process base ability context modifiers and scores
+        baseAbilityContexts.forEach(({ def, context: abilityContext }) => {
+            // Context modifiers
             (def.calculation.contextModifiers || []).forEach(modDef => {
                 let shouldApply = modDef.condition ? evaluateFormula(modDef.condition, abilityContext) : true;
                 if (shouldApply) {
@@ -325,12 +328,8 @@ const UnifiedWinProbabiliyCalculation = (function() {
                     }
                 }
             });
-        });
 
-        // --- PHASE 4: Process scores using per-ability contexts ---
-        let rds = 0, lvi = 0, bcr = 0;
-
-        abilityContexts.forEach(({ def, context: abilityContext }) => {
+            // Scores
             const scores = def.calculation.scores || {};
             for (const [metric, scoreDef] of Object.entries(scores)) {
                 let shouldApply = scoreDef.condition ? evaluateFormula(scoreDef.condition, abilityContext) : true;
@@ -362,6 +361,131 @@ const UnifiedWinProbabiliyCalculation = (function() {
                     if (metric === 'board_control') bcr += finalValue;
                 }
             }
+        });
+
+        // --- PHASE 2-5: Process each ability/effect individually (text-matching abilities only) ---
+        abilityTexts.forEach((abilityText, abilityIndex) => {
+            const currentText = abilityText.text;
+
+            // Skip if no text to process
+            if (!currentText || typeof currentText !== 'string') return;
+
+            // --- PHASE 2: Find text-matching abilities for this specific text ---
+            const textMatchingAbilities = [];
+            configToUse.abilities.forEach(abilityDef => {
+                // Skip base abilities (already processed above)
+                if (abilityDef.regex === "WILL_NOT_MATCH_TEXT") return;
+
+                if (!abilityDef.regexObject) return;
+                abilityDef.regexObject.lastIndex = 0;
+                const match = abilityDef.regexObject.exec(currentText);
+                if (match) {
+                    textMatchingAbilities.push({ def: abilityDef, match });
+                }
+            });
+
+            // Sort text-matching abilities by their position in the text (earliest first)
+            textMatchingAbilities.sort((a, b) => {
+                return a.match.index - b.match.index;
+            });
+
+            // --- PHASE 3: Create per-ability contexts with isolated variables and modifiers ---
+            const abilityContexts = [];
+            textMatchingAbilities.forEach(({ def, match }) => {
+                // Create a fresh context for this ability
+                const abilityContext = {
+                    card: card,
+                    ...configToUse['@constants'],
+                    context: {
+                        lvi: { survivability: 1.0, questSafety: 1.0 },
+                        bcr: {},
+                        rds: {}
+                    }
+                };
+
+                // Extract ONLY this ability's variables into its isolated context
+                (def.calculation.variables || []).forEach(variableDef => {
+                    let value;
+                    if (variableDef.source === 'regex' && match) {
+                        value = match[variableDef.group];
+                    } else if (variableDef.source && variableDef.source.startsWith('card.')) {
+                        const propName = variableDef.source.substring(5);
+                        value = card[propName];
+                    }
+
+                    if (variableDef.type === 'textOrNumber') {
+                        abilityContext[variableDef.name] = getNumberFromText(value);
+                    } else if (variableDef.type === 'numeric') {
+                        abilityContext[variableDef.name] = parseInt(value, 10) || 0;
+                    } else {
+                        abilityContext[variableDef.name] = value;
+                    }
+                });
+
+                abilityContexts.push({ def, match, context: abilityContext });
+            });
+
+            // --- PHASE 4: Process context modifiers (isolated per ability) ---
+            abilityContexts.forEach(({ def, context: abilityContext }) => {
+                (def.calculation.contextModifiers || []).forEach(modDef => {
+                    let shouldApply = modDef.condition ? evaluateFormula(modDef.condition, abilityContext) : true;
+                    if (shouldApply) {
+                        let value = evaluateFormula(modDef.value, abilityContext);
+                        const metricContext = abilityContext.context[modDef.targetMetric];
+                        if (metricContext) {
+                            if (modDef.operation === 'multiply') {
+                                if(value == 0.0) value = 1.0;
+                                metricContext[modDef.name] = (metricContext[modDef.name] || 1.0) * value;
+                            } else if (modDef.operation === 'add') {
+                                metricContext[modDef.name] = (metricContext[modDef.name] || 0) + value;
+                            } else if (modDef.operation === 'set') {
+                                metricContext[modDef.name] = value;
+                            }
+                            breakdown.push({
+                                abilityName: `Context Modifier: ${modDef.name} (Ability ${abilityIndex + 1})`,
+                                metric: modDef.targetMetric,
+                                value: value,
+                                explanation: `${modDef.operation} ${def.justification}`
+                            });
+                        }
+                    }
+                });
+            });
+
+            // --- PHASE 5: Process scores using per-ability contexts ---
+            abilityContexts.forEach(({ def, context: abilityContext }) => {
+                const scores = def.calculation.scores || {};
+                for (const [metric, scoreDef] of Object.entries(scores)) {
+                    let shouldApply = scoreDef.condition ? evaluateFormula(scoreDef.condition, abilityContext) : true;
+                    if (shouldApply) {
+                        const rawValue = evaluateFormula(scoreDef.value, abilityContext);
+                        const inkCost = card.cost > 0 ? card.cost : 1;
+                        let finalValue;
+                        let explanationText;
+
+                        const formulaBreakdown = generateFormulaExplanation(scoreDef.value, abilityContext);
+
+                        if (def.value_type === 'net_advantage') {
+                            finalValue = rawValue;
+                            explanationText = `${scoreDef.explanation || def.name} (${formulaBreakdown} = Net Advantage: ${rawValue.toFixed(2)})`;
+                        } else { // Default to 'raw' calculation
+                            finalValue = rawValue / inkCost;
+                            explanationText = `${scoreDef.explanation || def.name} (${formulaBreakdown} = Raw (${rawValue.toFixed(2)}) / Cost (${inkCost}) = ${finalValue.toFixed(2)})`;
+                        }
+
+                        breakdown.push({
+                            abilityName: `${def.name} (Ability ${abilityIndex + 1})`,
+                            metric: metric,
+                            value: finalValue,
+                            explanation: explanationText
+                        });
+
+                        if (metric === 'resource_dominance') rds += finalValue;
+                        if (metric === 'lore_velocity') lvi += finalValue;
+                        if (metric === 'board_control') bcr += finalValue;
+                    }
+                }
+            });
         });
 
         return { rds, lvi, bcr, breakdown };
