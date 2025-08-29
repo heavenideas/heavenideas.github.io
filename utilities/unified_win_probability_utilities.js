@@ -389,18 +389,21 @@ const UnifiedWinProbabiliyCalculation = (function() {
                 return a.match.index - b.match.index;
             });
 
-            // --- PHASE 3: Create per-ability contexts with isolated variables and modifiers ---
+            // --- PHASE 3: Create per-ability contexts with shared context state ---
             const abilityContexts = [];
+            // Create shared context for all abilities in this text
+            const sharedContext = {
+                lvi: { survivability: 1.0, questSafety: 1.0 },
+                bcr: {},
+                rds: {}
+            };
+
             textMatchingAbilities.forEach(({ def, match }) => {
-                // Create a fresh context for this ability
+                // Create context for this ability that references the shared context
                 const abilityContext = {
                     card: card,
                     ...configToUse['@constants'],
-                    context: {
-                        lvi: { survivability: 1.0, questSafety: 1.0 },
-                        bcr: {},
-                        rds: {}
-                    }
+                    context: sharedContext
                 };
 
                 // Extract ONLY this ability's variables into its isolated context
