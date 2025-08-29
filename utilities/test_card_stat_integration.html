@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Card Stat Analysis Integration</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #ccc; }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+    </style>
+</head>
+<body>
+    <h1>Card Stat Analysis Module Integration Test</h1>
+
+    <div class="test-section">
+        <h2>Module Loading Test</h2>
+        <div id="module-test"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Sample Card Analysis Test</h2>
+        <div id="analysis-test"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Integration Status</h2>
+        <div id="integration-status"></div>
+    </div>
+
+    <!-- Load dependencies -->
+    <script src="unified_win_probability_utilities.js"></script>
+    <script src="card_stat_analysis_module.js"></script>
+
+    <script>
+        async function runTests() {
+            const results = {
+                moduleLoaded: false,
+                analysisWorks: false,
+                integrationComplete: false
+            };
+
+            // Test 1: Module Loading
+            try {
+                if (typeof CardStatAnalysisModule !== 'undefined') {
+                    document.getElementById('module-test').innerHTML =
+                        '<span class="success">✓ CardStatAnalysisModule loaded successfully</span>';
+                    results.moduleLoaded = true;
+                } else {
+                    document.getElementById('module-test').innerHTML =
+                        '<span class="error">✗ CardStatAnalysisModule not found</span>';
+                }
+            } catch (e) {
+                document.getElementById('module-test').innerHTML =
+                    `<span class="error">✗ Error loading module: ${e.message}</span>`;
+            }
+
+            // Test 2: Analysis Functionality
+            try {
+                // Mock card data for testing
+                const mockCards = [
+                    {
+                        id: 1,
+                        fullName: "Test Character",
+                        type: "Character",
+                        cost: 3,
+                        strength: 3,
+                        willpower: 4,
+                        lore: 1,
+                        colors: ["Amber"],
+                        images: { thumbnail: "test.jpg" }
+                    },
+                    {
+                        id: 2,
+                        fullName: "Similar Character",
+                        type: "Character",
+                        cost: 3,
+                        strength: 3,
+                        willpower: 4,
+                        lore: 1,
+                        colors: ["Amber"],
+                        images: { thumbnail: "test2.jpg" }
+                    }
+                ];
+
+                const mockColors = {
+                    Amber: '#fecb00',
+                    Amethyst: '#9754cb',
+                    Emerald: '#00975e',
+                    Ruby: '#d40026',
+                    Sapphire: '#0072b1',
+                    Steel: '#465568'
+                };
+
+                // Initialize module
+                CardStatAnalysisModule.initialize(mockCards, mockColors);
+
+                // Test analysis
+                const analysisHtml = CardStatAnalysisModule.renderIdenticalStatsProfile(mockCards[0]);
+
+                if (analysisHtml && analysisHtml.includes('Identical Stats Profile')) {
+                    document.getElementById('analysis-test').innerHTML =
+                        '<span class="success">✓ Analysis functionality working</span>';
+                    results.analysisWorks = true;
+                } else {
+                    document.getElementById('analysis-test').innerHTML =
+                        '<span class="error">✗ Analysis functionality failed</span>';
+                }
+            } catch (e) {
+                document.getElementById('analysis-test').innerHTML =
+                    `<span class="error">✗ Analysis error: ${e.message}</span>`;
+            }
+
+            // Test 3: Integration Status
+            const allTestsPass = results.moduleLoaded && results.analysisWorks;
+            if (allTestsPass) {
+                document.getElementById('integration-status').innerHTML =
+                    '<span class="success">✓ All integration tests passed! The modular card analysis is ready for use.</span>';
+                results.integrationComplete = true;
+            } else {
+                document.getElementById('integration-status').innerHTML =
+                    '<span class="error">✗ Some integration tests failed. Check the issues above.</span>';
+            }
+
+            // Summary
+            console.log('Integration Test Results:', results);
+        }
+
+        // Run tests when page loads
+        window.addEventListener('load', runTests);
+    </script>
+</body>
+</html>

@@ -182,6 +182,140 @@
             font-weight: 600;
             color: #1e293b; /* slate-800 */
         }
+
+        /* Tabbed Interface Styles */
+        .tab-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .tab-buttons {
+            display: flex;
+            border-bottom: 1px solid #374151;
+            margin-bottom: 1rem;
+        }
+
+        .tab-button {
+            padding: 0.75rem 1rem;
+            background: none;
+            border: none;
+            color: #9ca3af;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+
+        .tab-button:hover {
+            color: #d1d5db;
+            background-color: rgba(55, 65, 81, 0.5);
+        }
+
+        .tab-button.active {
+            color: #a855f7;
+            border-bottom-color: #a855f7;
+            background-color: rgba(168, 85, 247, 0.1);
+        }
+
+        .tab-content {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 0.5rem;
+        }
+
+        .tab-pane {
+            display: none;
+        }
+
+        .tab-pane.active {
+            display: block;
+        }
+
+        /* Analysis section styles */
+        .analysis-section {
+            margin-bottom: 2rem;
+        }
+
+        .analysis-section h3 {
+            font-size: 1.25rem;
+            color: #a855f7;
+            border-bottom: 2px solid #374151;
+            padding-bottom: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1rem;
+        }
+
+        .stat-item {
+            background: #374151;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid #4b5563;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stat-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            border-color: #a855f7;
+        }
+
+        .stat-item-header {
+            font-weight: bold;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+            color: #f3f4f6;
+        }
+
+        .stat-item-value-container {
+            display: flex;
+            align-items: baseline;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-item-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #a855f7;
+        }
+
+        .stat-item-percentage {
+            font-size: 0.875rem;
+            font-weight: normal;
+            color: #9ca3af;
+        }
+
+        .stat-breakdown {
+            margin-top: auto;
+            padding-top: 0.5rem;
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .color-chip {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            color: #fff;
+            text-shadow: 1px 1px 2px #000;
+            cursor: pointer;
+            transition: transform 0.2s;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .color-chip:hover {
+            transform: scale(1.1);
+        }
     </style>
 </head>
 
@@ -362,13 +496,13 @@
 
     <!-- Card Threat Level Inspector Modal -->
     <div id="cardHoverPopup" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 p-4 opacity-0 pointer-events-none">
-        <div class="bg-gray-800 border border-gray-700 rounded-lg shadow-xl w-full max-w-4xl h-[90vh] flex flex-col">
-            <div class="flex justify-between items-center mb-4 flex-shrink-0">
+        <div class="bg-gray-800 border border-gray-700 rounded-lg shadow-xl w-full max-w-5xl h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center mb-4 flex-shrink-0 px-6 pt-6">
                 <h3 class="text-xl font-bold text-slate-100">Card Threat Level Inspector</h3>
-                <button id="closeCardInspectorBtn" class="text-gray-400 hover:text-white">&times;</button>
+                <button id="closeCardInspectorBtn" class="text-gray-400 hover:text-white text-2xl">&times;</button>
             </div>
-            <div id="cardInspectorContent" class="flex-grow overflow-y-auto pr-2">
-                <!-- Content will be filled by JS -->
+            <div id="cardInspectorContent" class="flex-grow overflow-hidden px-6 pb-6">
+                <!-- Tabbed content will be filled by JS -->
             </div>
         </div>
     </div>
@@ -402,6 +536,7 @@
    </div>
 
 <script src="unified_win_probability_utilities.js"></script>
+<script src="card_stat_analysis_module.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             // --- GLOBAL STATE & CONFIG ---
@@ -559,59 +694,206 @@
                 const ctl = rds + lvi + bcr;
 
                 const popupHtml = `
-                    <h3 class="text-xl font-bold text-slate-100 mb-4">${card.fullName}</h3>
-                    <div class="p-4 bg-slate-800 rounded-lg border border-slate-700 mb-4 flex gap-4 items-start">
-                        <img src="${card.images.thumbnail}" alt="${card.fullName}" class="w-32 rounded-lg">
-                        <div class="flex-1 prose prose-invert max-w-none">${highlightedHtml}</div>
-                    </div>
-                    <div class="grid grid-cols-4 gap-4 text-center mb-6 p-4 bg-slate-800 rounded-lg">
-                        <div class="bg-purple-900/40 rounded-xl p-3 flex flex-col items-center justify-center" title="Threat Level = RDS + LVI + BCR">
-                            <div class="text-sm text-slate-400">(CTL) Card Threat Level</div>
-                            <div class="text-2xl font-bold text-purple-400">${ctl.toFixed(3)}</div>
+                    <div class="tab-container h-full">
+                        <!-- Tab Buttons -->
+                        <div class="tab-buttons">
+                            <button class="tab-button active" data-tab="threat">Threat Analysis</button>
+                            <button class="tab-button" data-tab="stats">Stat Comparisons</button>
                         </div>
-                        <div>
-                            <div class="text-sm text-slate-400">(RDS) Resource Dominance Score</div>
-                            <div class="text-2xl font-bold text-sky-400">${rds.toFixed(3)}</div>
+
+                        <!-- Tab Content -->
+                        <div class="tab-content">
+                            <!-- Threat Analysis Tab -->
+                            <div id="threat-tab" class="tab-pane active">
+                                <h3 class="text-xl font-bold text-slate-100 mb-4">${card.fullName}</h3>
+                                <div class="p-4 bg-slate-800 rounded-lg border border-slate-700 mb-4 flex gap-4 items-start">
+                                    <img src="${card.images.thumbnail}" alt="${card.fullName}" class="w-32 rounded-lg">
+                                    <div class="flex-1 prose prose-invert max-w-none">${highlightedHtml}</div>
+                                </div>
+                                <div class="grid grid-cols-4 gap-4 text-center mb-6 p-4 bg-slate-800 rounded-lg">
+                                    <div class="bg-purple-900/40 rounded-xl p-3 flex flex-col items-center justify-center" title="Threat Level = RDS + LVI + BCR">
+                                        <div class="text-sm text-slate-400">(CTL) Card Threat Level</div>
+                                        <div class="text-2xl font-bold text-purple-400">${ctl.toFixed(3)}</div>
+                                    </div>
+                                    <div>
+                                        <div class="text-sm text-slate-400">(RDS) Resource Dominance Score</div>
+                                        <div class="text-2xl font-bold text-sky-400">${rds.toFixed(3)}</div>
+                                    </div>
+                                    <div>
+                                        <div class="text-sm text-slate-400">(LVI) Lore Velocity Index</div>
+                                        <div class="text-2xl font-bold text-amber-400">${lvi.toFixed(3)}</div>
+                                    </div>
+                                    <div>
+                                        <div class="text-sm text-slate-400">(BCR) Board Control Rating</div>
+                                        <div class="text-2xl font-bold text-rose-400">${bcr.toFixed(3)}</div>
+                                    </div>
+                                </div>
+                                <h4 class="font-semibold text-slate-300 mb-2">Calculation Breakdown:</h4>
+                                <div class="overflow-x-auto">
+                                    <table class="w-full text-sm">
+                                        <thead class="sticky top-0 bg-slate-900">
+                                            <tr class="border-b border-slate-700">
+                                                <th class="text-left p-2">Ability</th>
+                                                <th class="text-left p-2">Metric</th>
+                                                <th class="text-right p-2">Score</th>
+                                                <th class="text-left p-2">Explanation</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${breakdown.length > 0 ? breakdown.map(item => `
+                                                <tr class="border-b border-slate-800 hover:bg-slate-800/50">
+                                                    <td class="p-2 font-medium text-slate-200">${item.abilityName}</td>
+                                                    <td class="p-2 capitalize">${item.metric.replace('_', ' ')}</td>
+                                                    <td class="text-right p-2 font-mono">${item.value.toFixed(3)}</td>
+                                                    <td class="p-2 text-slate-400">${item.explanation}</td>
+                                                </tr>
+                                            `).join('') : '<tr><td colspan="4" class="text-center p-4 text-slate-500">No abilities matched this card.</td></tr>'}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Stat Comparisons Tab -->
+                            <div id="stats-tab" class="tab-pane">
+                                <h3 class="text-xl font-bold text-slate-100 mb-4">${card.fullName} - Statistical Analysis</h3>
+                                <div class="p-4 bg-slate-800 rounded-lg border border-slate-700 mb-4 flex gap-4 items-start">
+                                    <img src="${card.images.thumbnail}" alt="${card.fullName}" class="w-32 rounded-lg">
+                                    <div class="flex-1">
+                                        <div class="text-slate-300 mb-2">
+                                            <strong>Cost:</strong> ${card.cost} | <strong>Strength:</strong> ${card.strength || 0} |
+                                            <strong>Willpower:</strong> ${card.willpower || 0} | <strong>Lore:</strong> ${card.lore || 0}
+                                        </div>
+                                        <div class="text-slate-400 text-sm">
+                                            Click on any stat below to see matching cards from the database.
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="stat-analysis-content">
+                                    ${CardStatAnalysisModule.renderCompleteAnalysis(card)}
+                                </div>
+                            </div>
                         </div>
-                        <div>
-                            <div class="text-sm text-slate-400">(LVI) Lore Velocity Index</div>
-                            <div class="text-2xl font-bold text-amber-400">${lvi.toFixed(3)}</div>
-                        </div>
-                        <div>
-                            <div class="text-sm text-slate-400">(BCR) Board Control Rating</div>
-                            <div class="text-2xl font-bold text-rose-400">${bcr.toFixed(3)}</div>
-                        </div>
-                    </div>
-                    <h4 class="font-semibold text-slate-300 mb-2">Calculation Breakdown:</h4>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-sm">
-                            <thead class="sticky top-0 bg-slate-900">
-                                <tr class="border-b border-slate-700">
-                                    <th class="text-left p-2">Ability</th>
-                                    <th class="text-left p-2">Metric</th>
-                                    <th class="text-right p-2">Score</th>
-                                    <th class="text-left p-2">Explanation</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${breakdown.length > 0 ? breakdown.map(item => `
-                                    <tr class="border-b border-slate-800 hover:bg-slate-800/50">
-                                        <td class="p-2 font-medium text-slate-200">${item.abilityName}</td>
-                                        <td class="p-2 capitalize">${item.metric.replace('_', ' ')}</td>
-                                        <td class="text-right p-2 font-mono">${item.value.toFixed(3)}</td>
-                                        <td class="p-2 text-slate-400">${item.explanation}</td>
-                                    </tr>
-                                `).join('') : '<tr><td colspan="4" class="text-center p-4 text-slate-500">No abilities matched this card.</td></tr>'}
-                            </tbody>
-                        </table>
                     </div>
                 `;
+
                 cardInspectorContent.innerHTML = popupHtml;
+
+                // Add tab switching functionality
+                setupTabFunctionality();
+
+                // Add click handlers for stat analysis
+                setupStatAnalysisHandlers(card);
+
                 cardHoverPopup.classList.remove('opacity-0', 'pointer-events-none');
             }
 
             function hideCardPopup() {
                 cardHoverPopup.classList.add('opacity-0', 'pointer-events-none');
+            }
+
+            function setupTabFunctionality() {
+                const tabButtons = cardInspectorContent.querySelectorAll('.tab-button');
+                const tabPanes = cardInspectorContent.querySelectorAll('.tab-pane');
+
+                tabButtons.forEach(button => {
+                    button.addEventListener('click', () => {
+                        const targetTab = button.dataset.tab;
+
+                        // Remove active class from all buttons and panes
+                        tabButtons.forEach(btn => btn.classList.remove('active'));
+                        tabPanes.forEach(pane => pane.classList.remove('active'));
+
+                        // Add active class to clicked button and corresponding pane
+                        button.classList.add('active');
+                        const targetPane = cardInspectorContent.querySelector(`#${targetTab}-tab`);
+                        if (targetPane) {
+                            targetPane.classList.add('active');
+                        }
+                    });
+                });
+            }
+
+            function setupStatAnalysisHandlers(card) {
+                const statAnalysisContent = cardInspectorContent.querySelector('#stat-analysis-content');
+
+                if (statAnalysisContent) {
+                    statAnalysisContent.addEventListener('click', (event) => {
+                        CardStatAnalysisModule.handleStatItemClick(event, card, (criteria, title, analyzedCard, colorFilter) => {
+                            showDrillDownModal(criteria, title, analyzedCard, colorFilter);
+                        });
+                    });
+                }
+            }
+
+            function showDrillDownModal(criteria, title, analyzedCard, colorFilter) {
+                // Create a simple modal for drill-down results
+                const modalHtml = `
+                    <div id="drilldown-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-80 p-4">
+                        <div class="bg-gray-800 border border-gray-700 rounded-lg shadow-xl w-full max-w-4xl h-[80vh] flex flex-col">
+                            <div class="flex justify-between items-center mb-4 flex-shrink-0 px-6 pt-6">
+                                <h3 class="text-xl font-bold text-slate-100">${title}</h3>
+                                <button id="close-drilldown-btn" class="text-gray-400 hover:text-white text-2xl">&times;</button>
+                            </div>
+                            <div id="drilldown-content" class="flex-grow overflow-y-auto px-6 pb-6">
+                                <div class="text-center text-gray-400">Loading matching cards...</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+                // Load drill-down results
+                loadDrillDownResults(criteria, analyzedCard, colorFilter);
+
+                // Setup close handler
+                document.getElementById('close-drilldown-btn').addEventListener('click', () => {
+                    document.getElementById('drilldown-modal').remove();
+                });
+
+                // Close on background click
+                document.getElementById('drilldown-modal').addEventListener('click', (e) => {
+                    if (e.target.id === 'drilldown-modal') {
+                        document.getElementById('drilldown-modal').remove();
+                    }
+                });
+            }
+
+            function loadDrillDownResults(criteria, analyzedCard, colorFilter) {
+                const matchingCards = CardStatAnalysisModule.findMatchingCards(criteria, analyzedCard);
+
+                let cardsToShow = criteria.type === 'static'
+                    ? matchingCards.filter(c => c.id !== analyzedCard.id)
+                    : matchingCards;
+
+                if (colorFilter) {
+                    cardsToShow = cardsToShow.filter(c => CardStatAnalysisModule.getCardColors(c).includes(colorFilter));
+                }
+
+                const drilldownContent = document.getElementById('drilldown-content');
+
+                if (cardsToShow.length === 0) {
+                    drilldownContent.innerHTML = '<div class="text-center text-gray-400 py-8">No matching cards found.</div>';
+                    return;
+                }
+
+                const cardsHtml = cardsToShow.map(card => `
+                    <div class="inline-block m-2">
+                        <img src="${card.images.thumbnail}" alt="${card.fullName}"
+                             class="w-24 h-32 object-contain rounded-lg border border-gray-600 hover:border-purple-500 transition-colors cursor-pointer"
+                             title="${card.fullName}">
+                    </div>
+                `).join('');
+
+                drilldownContent.innerHTML = `
+                    <div class="mb-4 text-gray-300">
+                        Found ${cardsToShow.length} matching card${cardsToShow.length !== 1 ? 's' : ''}
+                        ${colorFilter ? ` with ${colorFilter} ink` : ''}
+                    </div>
+                    <div class="flex flex-wrap justify-center">
+                        ${cardsHtml}
+                    </div>
+                `;
             }
 
             function handleCardSelection(cardName, cardCount) {
@@ -1229,6 +1511,10 @@ FORMAT YOUR RESPONSE as a structured, professional guide with clear headings. In
                     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                     allCards = (await response.json()).cards;
                     cardFuse = new Fuse(allCards, { keys: ['fullName', 'simpleName', 'name', 'title'], includeScore: true, threshold: 0.3 });
+
+                    // Initialize the CardStatAnalysisModule
+                    CardStatAnalysisModule.initialize(allCards, INK_COLORS);
+
                     await UnifiedWinProbabiliyCalculation.loadAbilitiesConfig(); // Load abilities for CTL scores
                     await loadAndRenderDecks();
                     resetForm();
