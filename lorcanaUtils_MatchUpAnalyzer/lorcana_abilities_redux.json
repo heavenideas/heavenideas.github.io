@@ -29,7 +29,9 @@
       "singerValueMultiplier": 1,
       "statBuffMultiplier": 1.5,
       "grantKeywordAuraValue": 1.5,
-      "banishCharacterValue": 7
+      "banishCharacterValue": 7,
+      "banishItemValue": 4,
+      "banishLocationValue": 3
     },
     "cev": {
       "baseMultiplier": 1,
@@ -41,6 +43,66 @@
     }
   },
   "abilities": [
+    {
+      "name": "Trigger: During Your Turn",
+      "category": "Trigger",
+      "sub_type": "Turn",
+      "regex": "/during your turn/gi",
+      "explanation": "This is a recurring trigger that can be activated at any point during your turn. It implies a high degree of control for the player but requires the character to survive until your turn begins.",
+      "justification": "Trigger: During Your Turn -> Proactive and fully controllable by you.",
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [
+          {
+            "targetMetric": "all",
+            "name": "trigger",
+            "operation": "multiply",
+            "value": "1.9"
+          }
+        ],
+        "scores": {}
+      }
+    },
+    {
+      "name": "Condition: Has No Damage",
+      "category": "Condition",
+      "sub_type": "Damage",
+      "regex": "/(?:if|while) (?:this character|it|he|she) has no damage/gi",
+      "explanation": "Having no damage can be powerful as both when you play and with synergies of removal of damage",
+      "justification": "Guaranteed on play, with high potential to be recurring",
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [
+          {
+            "targetMetric": "all",
+            "name": "trigger",
+            "operation": "multiply",
+            "value": "1.75"
+          }
+        ],
+        "scores": {}
+      }
+    },
+    {
+      "name": "Trigger: Start Turn",
+      "category": "Trigger",
+      "sub_type": "Turn",
+      "regex": "/At the start of your turn/gi",
+      "explanation": "This is a recurring trigger, but it also means that the card that has it has to survive at least until the next turn.",
+      "justification": "Trigger: Start of Turn - Requires surviving one turn, and you don't control the timing",
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [
+          {
+            "targetMetric": "all",
+            "name": "trigger",
+            "operation": "multiply",
+            "value": "1.1"
+          }
+        ],
+        "scores": {}
+      }
+    },
     {
       "name": "Trigger: Remove Damage",
       "category": "Trigger",
@@ -241,12 +303,12 @@
       "regex": "/When(?:ever)? (this character|he|she|it) banishes another character in a challenge/gi",
       "value_type": "raw",
       "explanation": "This abilitiy triggers on banishing another character in a challange",
-      "justification": "This is conditional on actually banishing the character challanged.",
+      "justification": "Trigger: This Character Banishes -> conditional on actually banishing the character challenged",
       "calculation": {
         "variables": [],
         "contextModifiers": [
           {
-            "targetMetric": "rds",
+            "targetMetric": "lvi",
             "name": "trigger",
             "operation": "multiply",
             "value": "1.2"
@@ -262,7 +324,7 @@
       "regex": "/When(?:ever)? (this character|he|she|it) is banished in a challenge/gi",
       "value_type": "raw",
       "explanation": "This ability triggers when this character is banished as a result of a challenge, either as the challenger or the one being challenged.",
-      "justification": "This trigger is more conditional than a simple 'On Banish' or 'Leaves Play' trigger because it requires combat. Its reliability is lower than being banished by any means, but it provides value from an otherwise negative board state event.",
+      "justification": "Trigger: Banished in a Challenge -> More conditional than a simple 'On Banish' or 'Leaves Play' trigger because it requires combat. Its reliability is lower than being banished by any means, but it provides value from an otherwise negative board state event.",
       "calculation": {
         "variables": [],
         "contextModifiers": [
@@ -437,7 +499,7 @@
           "lore_velocity": {
             "condition": "baseLore > 0",
             "value": "baseLore * @context.lvi.survivability * @context.lvi.questSafety",
-            "explanation": "Card Lore * Survivability * Quest Safety"
+            "explanation": "Card Lore with modifiers ->"
           }
         }
       }
@@ -617,8 +679,8 @@
         "contextModifiers": [],
         "scores": {
           "lore_velocity": {
-            "value": "loreAmount * @lvi.directLoreGainMultiplier",
-            "explanation": "Lore Gained * Direct Lore Gain Multiplier"
+            "value": "loreAmount * @lvi.directLoreGainMultiplier * @context.lvi.trigger",
+            "explanation": "Lore Gained based on mults and triggers ->"
           }
         }
       }
@@ -670,7 +732,7 @@
         "scores": {
           "resource_dominance": {
             "value": "drawCount * @cardDrawValue * @context.rds.trigger",
-            "explanation": "Draw (drawCount) * Card Draw Value (2.0) * Triggers"
+            "explanation": "Draw Amount Based on triggers ->"
           }
         }
       }
@@ -965,16 +1027,23 @@
       "name": "Banish: As a Cost/Choice",
       "category": "Board Control",
       "sub_type": "Cost",
-      "regex": "/(?:You may)? banish (?:this character|one of your characters)/gi",
+      "regex": "/(?:You may)? banish (?:this |one of your|chosen) (characters?|items?|locations?)(?: of yours)?/gi",
       "value_type": "raw",
       "explanation": "The player may choose to banish one of their own characters to trigger an effect.",
       "justification": "The cost of banishing a character on your board.",
       "calculation": {
-        "variables": [],
+        "variables": [
+          {
+            "name": "cardType",
+            "source": "regex",
+            "group": 1,
+            "type": "string"
+          }
+        ],
         "contextModifiers": [],
         "scores": {
           "board_control": {
-            "value": "@bcr.banishCharacterValue * -0.2",
+            "value": "(@cardType === 'character' ? @bcr.banishCharacterValue : @cardType === 'item' ? @bcr.banishItemValue : @cardType === 'location' ? @bcr.banishLocationValue : -99 ) * -0.2",
             "explanation": "This negative value will be offset by the upside of a depending ability on this card"
           }
         }
@@ -1200,7 +1269,7 @@
         "scores": {
           "board_control": {
             "value": "strengthAmount * @bcr.statBuffMultiplier",
-            "explanation": "Strength Buff (strengthAmount)"
+            "explanation": "Strength Buff -> "
           }
         }
       }
@@ -1226,7 +1295,7 @@
         "scores": {
           "board_control": {
             "value": "strengthAmount * @bcr.statBuffMultiplier",
-            "explanation": "Strength Debuff (strengthAmount)"
+            "explanation": "Strength Debuff -> "
           }
         }
       }
@@ -1252,7 +1321,7 @@
         "scores": {
           "board_control": {
             "value": "willpowerAmount * @bcr.statBuffMultiplier",
-            "explanation": "Willpower Buff (willpowerAmount)"
+            "explanation": "Willpower Buff -> "
           }
         }
       }
@@ -1278,7 +1347,7 @@
         "scores": {
           "resource_dominance": {
             "value": "0.25 * @costReduction",
-            "explanation": "Cost Reduction"
+            "explanation": "Cost Reduction -> "
           }
         }
       }
@@ -1306,7 +1375,7 @@
       "name": "Play: For Free",
       "category": "Play",
       "sub_type": "Cheat",
-      "regex": "/(You may)? play (a|this|an) (character|item|location|action|song|card)( card)? (with cost (\\d+) or less )?for free/gi",
+      "regex": "/(?:You may)? play (a|this|an) (character|item|location|action|song|card)(?: card)? (?:with cost (\\d+) or less )?for free/gi",
       "value_type": "net_advantage",
       "explanation": "Allows the player to play a card without paying its ink cost.",
       "justification": "A massive tempo and resource advantage.",
@@ -1314,21 +1383,29 @@
         "variables": [
           {
             "name": "maxCost",
-            "source": "card.freePlayEffect.maxCost",
-            "type": "numeric"
+            "source": "regex",
+            "type": "textOrNumber",
+            "group": "3"
           },
           {
-            "name": "trigger",
-            "source": "card.freePlayEffect.trigger",
+            "name": "cardType",
+            "source": "regex",
+            "type": "string",
+            "group": "2"
+          },
+          {
+            "name": "thisCard",
+            "source": "regex",
+            "group": 1,
             "type": "string"
           }
         ],
         "contextModifiers": [],
         "scores": {
           "resource_dominance": {
-            "condition": "maxCost > 0",
-            "value": "maxCost * @cev.baseMultiplier * @cev.triggerReliability[trigger]",
-            "explanation": "Cost Evasion Value (Play for Free)"
+            "condition": "",
+            "value": "@thisCard === 'this' ? @card.cost : maxCost",
+            "explanation": "Play for Free"
           }
         }
       }
@@ -1398,7 +1475,7 @@
       "name": "Trigger: On Banish (Self)",
       "category": "Trigger",
       "sub_type": "On Banish",
-      "regex": "/When (this character|he|she|it) is banished/gi",
+      "regex": "/When(?:ever)? (this character|he|she|it) is banished(?! in a challenge)/gi",
       "value_type": "raw",
       "explanation": "This ability triggers when this character is banished.",
       "justification": "Trigger: On Banish Better than Quest but worst than On Play or Leaves Play triggers",
