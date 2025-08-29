@@ -57,6 +57,38 @@
   },
   "abilities": [
     {
+      "name": "Trigger: Sing a Song",
+      "category": "Trigger",
+      "sub_type": "Sing",
+      "regex": "/when(?:ever)? (this|a) character sings a song/gi",
+      "explanation": "Singing songs",
+      "justification": "Trigger: Sing a Song -> Singing songs can be done by any character",
+      "calculation": {
+        "variables": [
+          {
+            "name": "thisCard",
+            "source": "regex",
+            "group": 1,
+            "type": "string"
+          }
+        ],
+        "contextModifiers": [
+          {
+            "targetMetric": "all",
+            "name": "trigger",
+            "operation": "multiply",
+            "value": "@thisCard === 'this' ? 1.25 : 1.3"
+          }
+        ],
+        "scores": {
+          "board_control": {
+            "value": "-1.5",
+            "explanation": "Leaves character exposed"
+          }
+        }
+      }
+    },
+    {
       "name": "Keyword: Gain",
       "category": "Keyword",
       "sub_type": "Gain",
@@ -1515,7 +1547,7 @@
       "name": "Play: For Free",
       "category": "Play",
       "sub_type": "Cheat",
-      "regex": "/(?:You may)? play (a|this|an) (character|item|location|action|song|card)(?: card)? (?:with cost (\\d+) or less )?for free/gi",
+      "regex": "/(?:You may)? (?:play|reveal) (a|this|an) (character|item|location|action|song|card)(?: card)? (?:with cost (\\d+) or less )?(?:for free|and play it for free)/gi",
       "value_type": "net_advantage",
       "explanation": "Allows the player to play a card without paying its ink cost.",
       "justification": "A massive tempo and resource advantage.",
