@@ -270,7 +270,7 @@
                  <h3 id="cellModalTitle" class="text-xl font-bold text-header-color">Side-by-Side Comparison</h3>
                  <button id="closeCellModalBtn" class="text-gray-400 hover:text-white text-3xl leading-none">&times;</button>
             </div>
-            <div id="cellModalContent" class="overflow-y-auto dark-scrollbar pr-2">
+            <div id="cellModalContent" class="flex-grow overflow-hidden flex flex-col">
             </div>
         </div>
     </div>
@@ -407,58 +407,63 @@
         function hideCtlBreakdownModal() { ctlBreakdownModal.classList.add('opacity-0', 'pointer-events-none'); }
         
         function getInspectorHtml(card, contextId) {
-            const { rds, lvi, bcr, breakdown } = UnifiedWinProbabiliyCalculation.calculateCardMetrics(card);
-            const { highlightedHtml } = analyzeAndHighlightText(card.fullText || (card.fullTextSections || []).join('\n'));
-            const ctl = rds + lvi + bcr;
-
-            // Use contextId to make tab IDs unique if needed, e.g. for the comparison modal
             const threatTabId = `threat-tab-${contextId}`;
             const statsTabId = `stats-tab-${contextId}`;
 
             return `
-                <div class="tab-container h-full">
-                    <div class="tab-buttons border-b border-border-color mb-4">
+                <div class="tab-container h-full flex flex-col">
+                    <div class="tab-buttons border-b border-border-color mb-4 flex-shrink-0">
                         <button class="tab-button active py-2 px-4" data-tab="${threatTabId}">Threat Analysis</button>
                         <button class="tab-button py-2 px-4" data-tab="${statsTabId}">Stat Comparisons</button>
                     </div>
                     <div class="tab-content flex-grow overflow-y-auto dark-scrollbar pr-2">
                         <div id="${threatTabId}" class="tab-pane active">
-                            <h3 class="text-xl font-bold text-slate-100 mb-4">${card.fullName}</h3>
-                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <img src="${card.images.full}" alt="${card.fullName}" class="w-full rounded-lg mb-4">
-                                    <div class="grid grid-cols-2 gap-4 text-center">
-                                        <div class="bg-purple-900/40 rounded-xl p-3" title="Threat Level = RDS + LVI + BCR">
-                                            <div class="text-sm text-slate-400">CTL</div>
-                                            <div class="text-2xl font-bold text-purple-400">${ctl.toFixed(2)}</div>
-                                        </div>
-                                        <div class="bg-sky-900/40 rounded-xl p-3">
-                                            <div class="text-sm text-slate-400">RDS</div>
-                                            <div class="text-2xl font-bold text-sky-400">${rds.toFixed(2)}</div>
-                                        </div>
-                                        <div class="bg-amber-900/40 rounded-xl p-3">
-                                            <div class="text-sm text-slate-400">LVI</div>
-                                            <div class="text-2xl font-bold text-amber-400">${lvi.toFixed(2)}</div>
-                                        </div>
-                                        <div class="bg-rose-900/40 rounded-xl p-3">
-                                            <div class="text-sm text-slate-400">BCR</div>
-                                            <div class="text-2xl font-bold text-rose-400">${bcr.toFixed(2)}</div>
-                                        </div>
-                                    </div>
-                                     <div class="p-4 bg-secondary-color rounded-lg mt-4 prose prose-invert max-w-none text-sm">${highlightedHtml}</div>
-                                </div>
-                                <div>
-                                    <h4 class="font-semibold text-slate-300 mb-2">Calculation Breakdown:</h4>
-                                    <div class="space-y-2">${getCtlBreakdownHtml(card)}</div>
-                                </div>
-                            </div>
+                            ${getThreatAnalysisHtml(card)}
                         </div>
                         <div id="${statsTabId}" class="tab-pane">
-                            <div class="stat-analysis-content">${CardStatAnalysisModule.renderCompleteAnalysis(card)}</div>
+                            <div class="stat-analysis-content h-full overflow-y-auto dark-scrollbar">${CardStatAnalysisModule.renderCompleteAnalysis(card)}</div>
                         </div>
                     </div>
                 </div>`;
         }
+
+        function getThreatAnalysisHtml(card) {
+            const { rds, lvi, bcr } = UnifiedWinProbabiliyCalculation.calculateCardMetrics(card);
+            const { highlightedHtml } = analyzeAndHighlightText(card.fullText || (card.fullTextSections || []).join('\n'));
+            const ctl = rds + lvi + bcr;
+
+            return `
+                <h3 class="text-xl font-bold text-slate-100 mb-4">${card.fullName}</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <img src="${card.images.full}" alt="${card.fullName}" class="w-full rounded-lg mb-4">
+                        <div class="grid grid-cols-2 gap-4 text-center">
+                            <div class="bg-purple-900/40 rounded-xl p-3" title="Threat Level = RDS + LVI + BCR">
+                                <div class="text-sm text-slate-400">CTL</div>
+                                <div class="text-2xl font-bold text-purple-400">${ctl.toFixed(2)}</div>
+                            </div>
+                            <div class="bg-sky-900/40 rounded-xl p-3">
+                                <div class="text-sm text-slate-400">RDS</div>
+                                <div class="text-2xl font-bold text-sky-400">${rds.toFixed(2)}</div>
+                            </div>
+                            <div class="bg-amber-900/40 rounded-xl p-3">
+                                <div class="text-sm text-slate-400">LVI</div>
+                                <div class="text-2xl font-bold text-amber-400">${lvi.toFixed(2)}</div>
+                            </div>
+                            <div class="bg-rose-900/40 rounded-xl p-3">
+                                <div class="text-sm text-slate-400">BCR</div>
+                                <div class="text-2xl font-bold text-rose-400">${bcr.toFixed(2)}</div>
+                            </div>
+                        </div>
+                        <div class="p-4 bg-secondary-color rounded-lg mt-4 prose prose-invert max-w-none text-sm">${highlightedHtml}</div>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-slate-300 mb-2">Calculation Breakdown:</h4>
+                        <div class="space-y-2">${getCtlBreakdownHtml(card)}</div>
+                    </div>
+                </div>`;
+        }
+
 
         function setupInspectorEventListeners(container, card) {
             container.querySelectorAll('.tab-button').forEach(button => {
@@ -550,11 +555,11 @@
             cellModalTitle.innerHTML = `Comparison: <span class="text-accent-color">${matchup.description}</span>`;
             
             let contentHtml = `
-                <div class="tab-buttons border-b border-border-color mb-4">
+                <div class="tab-buttons border-b border-border-color mb-4 flex-shrink-0">
                     <button class="comparison-tab-button active py-2 px-4" data-tab="threat">Threat Analysis</button>
                     <button class="comparison-tab-button py-2 px-4" data-tab="stats">Stat Comparisons</button>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 flex-grow overflow-y-auto dark-scrollbar pr-2">
                     <div id="comparison-card1-content"></div>
                     <div id="comparison-card2-content"></div>
                 </div>`;
@@ -565,16 +570,15 @@
 
             function renderTabs(activeTab) {
                 if (activeTab === 'threat') {
-                    card1Content.innerHTML = `<h4 class="text-lg font-bold mb-2 text-center">${card1.fullName}</h4><div class="bg-secondary-color rounded-lg p-4">${getInspectorHtml(card1, 'comp1')}</div>`;
-                    card2Content.innerHTML = `<h4 class="text-lg font-bold mb-2 text-center">${card2.fullName}</h4><div class="bg-secondary-color rounded-lg p-4">${getInspectorHtml(card2, 'comp2')}</div>`;
+                    card1Content.innerHTML = `<div class="h-full overflow-y-auto dark-scrollbar pr-2"><h4 class="text-lg font-bold mb-2 text-center">${card1.fullName}</h4><div class="bg-secondary-color rounded-lg p-4">${getThreatAnalysisHtml(card1)}</div></div>`;
+                    card2Content.innerHTML = `<div class="h-full overflow-y-auto dark-scrollbar pr-2"><h4 class="text-lg font-bold mb-2 text-center">${card2.fullName}</h4><div class="bg-secondary-color rounded-lg p-4">${getThreatAnalysisHtml(card2)}</div></div>`;
                 } else { // stats tab
-                    card1Content.innerHTML = `<h4 class="text-lg font-bold mb-2 text-center">${card1.fullName}</h4><div class="bg-secondary-color rounded-lg p-4">${CardStatAnalysisModule.renderCompleteAnalysis(card1)}</div>`;
-                    card2Content.innerHTML = `<h4 class="text-lg font-bold mb-2 text-center">${card2.fullName}</h4><div class="bg-secondary-color rounded-lg p-4">${CardStatAnalysisModule.renderCompleteAnalysis(card2)}</div>`;
+                    card1Content.innerHTML = `<div class="h-full overflow-y-auto dark-scrollbar pr-2"><h4 class="text-lg font-bold mb-2 text-center">${card1.fullName}</h4><div class="bg-secondary-color rounded-lg p-4">${CardStatAnalysisModule.renderCompleteAnalysis(card1)}</div></div>`;
+                    card2Content.innerHTML = `<div class="h-full overflow-y-auto dark-scrollbar pr-2"><h4 class="text-lg font-bold mb-2 text-center">${card2.fullName}</h4><div class="bg-secondary-color rounded-lg p-4">${CardStatAnalysisModule.renderCompleteAnalysis(card2)}</div></div>`;
                 }
                 
-                // Re-attach event listeners for stat items
-                card1Content.querySelector('.stat-grid')?.addEventListener('click', (event) => CardStatAnalysisModule.handleStatItemClick(event, card1, showDrillDownModal));
-                card2Content.querySelector('.stat-grid')?.addEventListener('click', (event) => CardStatAnalysisModule.handleStatItemClick(event, card2, showDrillDownModal));
+                card1Content.querySelectorAll('.stat-item').forEach(item => item.addEventListener('click', (event) => CardStatAnalysisModule.handleStatItemClick(event, card1, showDrillDownModal)));
+                card2Content.querySelectorAll('.stat-item').forEach(item => item.addEventListener('click', (event) => CardStatAnalysisModule.handleStatItemClick(event, card2, showDrillDownModal)));
             }
             
             renderTabs('threat');
@@ -654,8 +658,7 @@
                 
                 try {
                     const lastSlash = pattern.regex.lastIndexOf('/');
-                    if (lastSlash <= 0) { // must find a slash and it can't be the first char
-                        console.warn('Invalid regex format, skipping:', pattern.regex);
+                    if (lastSlash <= 0) {
                         return;
                     }
 
@@ -804,5 +807,4 @@
     </script>
 </body>
 </html>
-
 
