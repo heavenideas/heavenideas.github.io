@@ -27,6 +27,7 @@
     "bcr": {
       "rushStrengthMultiplier": 0.5,
       "highStrengthThreshold": 5,
+      "highStrengthMult": 1.5,
       "singerValueMultiplier": 1,
       "statBuffMultiplier": 1.5,
       "grantKeywordAuraValue": 1.5,
@@ -43,7 +44,7 @@
       }
     },
     "keywords": {
-      "Vanish": 1,
+      "Vanish": 0.5,
       "Ward": 1.5,
       "Evasive": 1.5,
       "Resist": 1.25,
@@ -56,6 +57,85 @@
     }
   },
   "abilities": [
+    {
+      "name": "Keyword: Bodyguard",
+      "category": "Keyword",
+      "sub_type": "Defensive",
+      "regex": "/(Bodyguard) \\(/gi",
+      "explanation": "Bodyguard with characters with high willpower can be very disruptive",
+      "justification": "Forces interaction of the character",
+      "lastModified": "2025-09-02T18:35:10.888Z",
+      "createdAt": "2025-09-02T18:33:50.960Z",
+      "calculation": {
+        "variables": [
+          {
+            "name": "keyword",
+            "source": "regex",
+            "group": 1,
+            "type": "string"
+          }
+        ],
+        "contextModifiers": [],
+        "scores": {
+          "board_control": {
+            "value": "@keywords[keyword]"
+          }
+        }
+      }
+    },
+    {
+      "name": "Keyword: Reckless",
+      "category": "Keyword",
+      "sub_type": "Offensive",
+      "regex": "/(Reckless) \\(/gi",
+      "explanation": "Reckless can be seen as potentially bad",
+      "justification": "",
+      "lastModified": "2025-09-02T18:27:43.940Z",
+      "createdAt": "2025-09-02T18:26:00.198Z",
+      "calculation": {
+        "variables": [
+          {
+            "name": "keyword",
+            "source": "regex",
+            "group": 1,
+            "type": "string"
+          }
+        ],
+        "contextModifiers": [],
+        "scores": {
+          "board_control": {
+            "value": "@keywords[keyword]"
+          }
+        }
+      }
+    },
+    {
+      "name": "Keyword: Support",
+      "category": "Keyword",
+      "sub_type": "Offensive",
+      "regex": "/(Support) \\(/gi",
+      "explanation": "Support is offensive but leaves you exposed",
+      "justification": "Give Strength to character at the cost of questing",
+      "lastModified": "2025-09-02T18:06:36.299Z",
+      "createdAt": "2025-09-02T18:03:22.210Z",
+      "calculation": {
+        "variables": [
+          {
+            "name": "keyword",
+            "source": "regex",
+            "group": 1,
+            "type": "string"
+          }
+        ],
+        "contextModifiers": [],
+        "scores": {
+          "board_control": {
+            "value": "(@keywords[keyword] * @card.strength) - 0.5",
+            "explanation": "(Support Multiplier * card strength ) - Leaving the character exerted ->"
+          }
+        }
+      }
+    },
     {
       "name": "Trigger: Sing a Song",
       "category": "Trigger",
@@ -86,7 +166,9 @@
             "explanation": "Leaves character exposed"
           }
         }
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Keyword: Gain",
@@ -107,10 +189,12 @@
         "contextModifiers": [],
         "scores": {
           "resource_dominance": {
-            "value": "@keywords[@auraGained]"
+            "value": "@keywords[auraGained]"
           }
         }
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Base: High Strength",
@@ -124,11 +208,14 @@
         "contextModifiers": [],
         "scores": {
           "board_control": {
-            "value": "1.5",
+            "value": "@bcr.highStrengthMult * (@card.strength - @bcr.highStrengthThreshold)",
             "condition": "@card.strength >= @bcr.highStrengthThreshold"
           }
         }
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:30:09.249Z",
+      "value_type": "raw"
     },
     {
       "name": "Card Effect: Opponent Discards Hand",
@@ -146,7 +233,9 @@
             "explanation": "Potential for being very disruptive"
           }
         }
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Trigger: Draw Card",
@@ -173,7 +262,9 @@
           }
         ],
         "scores": {}
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Trigger: Character Challenges",
@@ -193,7 +284,9 @@
           }
         ],
         "scores": {}
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Condition",
@@ -213,7 +306,9 @@
           }
         ],
         "scores": {}
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Trigger: During Your Turn",
@@ -233,7 +328,9 @@
           }
         ],
         "scores": {}
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Condition: Has No Damage",
@@ -253,7 +350,9 @@
           }
         ],
         "scores": {}
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Trigger: Start Turn",
@@ -261,7 +360,7 @@
       "sub_type": "Turn",
       "regex": "/At the start of your turn/gi",
       "explanation": "This is a recurring trigger, but it also means that the card that has it has to survive at least until the next turn.",
-      "justification": "Trigger: Start of Turn - Requires surviving one turn, and you don't control the timing",
+      "justification": "Trigger: Start of Turn -> Requires surviving one turn, and you don't control the timing",
       "calculation": {
         "variables": [],
         "contextModifiers": [
@@ -273,7 +372,9 @@
           }
         ],
         "scores": {}
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Trigger: Remove Damage",
@@ -281,7 +382,7 @@
       "sub_type": "Damage",
       "regex": "/Whenever you remove (\\d+) (or more )?damage/gi",
       "explanation": "Removing damage as a condition is specific",
-      "justification": "Should provide a penalizing as by itself it's a hard condition to satisfy without other cards",
+      "justification": "Trigger: Remove Damage -> Should provide a penalizing as by itself it's a hard condition to satisfy without other cards",
       "calculation": {
         "variables": [],
         "contextModifiers": [
@@ -293,7 +394,9 @@
           }
         ],
         "scores": {}
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "State: Ready Ink",
@@ -312,7 +415,9 @@
           }
         }
       },
-      "value_type": "net_advantage"
+      "value_type": "net_advantage",
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Card Effect: Card from Inkwell to Hand",
@@ -336,7 +441,9 @@
             "value": "(cardCount * @cardDrawValue) + (cardCount * -2.5)"
           }
         }
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Play: Sing Together Song",
@@ -361,15 +468,17 @@
             "explanation": "Higher impact than traditional songs"
           }
         }
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Card Effect: Bottom of Opponents deck",
       "category": "Board Control",
       "sub_type": "Bottom Deck",
       "regex": "/bottom of (their|their opponent's|their players') deck/gi",
-      "explanation": "Putting a card at the bottom of ",
-      "justification": "",
+      "explanation": "Putting a card at the bottom of opponents deck",
+      "justification": "Putting a card at the bottom of opponents deck is almost like discarding",
       "calculation": {
         "variables": [],
         "contextModifiers": [],
@@ -379,7 +488,9 @@
             "explanation": "opposite of putting it on the bottom of your deck"
           }
         }
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Bounce: Own Characters",
@@ -398,7 +509,9 @@
             "explanation": "Negative Tempo"
           }
         }
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Type: Action",
@@ -420,7 +533,9 @@
           }
         ],
         "scores": {}
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "State: Can't Challange",
@@ -439,7 +554,9 @@
             "explanation": "Affects tempo - but characters can still quest"
           }
         }
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Card Effect: Put into hand",
@@ -466,7 +583,9 @@
             "condition": ""
           }
         }
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Trigger: This Character Banishes",
@@ -487,7 +606,9 @@
           }
         ],
         "scores": {}
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Trigger: Banished in a Challenge (Self)",
@@ -508,7 +629,9 @@
           }
         ],
         "scores": {}
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Trigger: On Challenge Start",
@@ -517,7 +640,7 @@
       "regex": "/Whenever (this character|he|she|it) challenges another character/gi",
       "value_type": "raw",
       "explanation": "This ability triggers when this character initiates a challenge against another character, regardless of the outcome.",
-      "justification": "This is better than needing to banish the opposing character.",
+      "justification": "Trigger: On Challenge Start -> This is better than needing to banish the opposing character.",
       "calculation": {
         "variables": [],
         "contextModifiers": [
@@ -529,7 +652,9 @@
           }
         ],
         "scores": {}
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Trigger: You Play an Card Type",
@@ -538,7 +663,7 @@
       "regex": "/Whenever you play (?:an|a|another) (action|song|item|character|location)/gi",
       "value_type": "raw",
       "explanation": "This ability triggers whenever you play a card of a 'specific' type.",
-      "justification": "Its reliability is conditional and therefore it should be a multiplier that reduces the reliability of whatever it's triggering",
+      "justification": "Trigger: You Play an Card Type -> Its reliability is conditional and therefore it should be a multiplier that reduces the reliability of whatever it's triggering",
       "calculation": {
         "variables": [],
         "contextModifiers": [
@@ -550,7 +675,9 @@
           }
         ],
         "scores": {}
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Keyword: Shift (Normal)",
@@ -580,7 +707,9 @@
             "explanation": "penalizing the lack of board development"
           }
         }
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Trigger: Leaves Play",
@@ -589,7 +718,7 @@
       "regex": "/when(?:ever)? (?:they|he|she|it) leaves play/gi",
       "value_type": "raw",
       "explanation": "This trigger is the biggest catch-all since it means: Going back to hand, being banished, getting put into your inkwell etc..",
-      "justification": "Trigger: Leave Play is quite a iron clad trigger that is on par to On Play Triggers as it is almost guaranteed",
+      "justification": "Trigger: Leave Play -> Iron clad trigger that is on par to On Play Triggers as it is almost guaranteed",
       "calculation": {
         "variables": [],
         "contextModifiers": [
@@ -601,7 +730,9 @@
           }
         ],
         "scores": {}
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Condition: For Each",
@@ -615,14 +746,16 @@
         "variables": [],
         "contextModifiers": [
           {
-            "targetMetric": "lvi",
+            "targetMetric": "all",
             "name": "forEach",
             "operation": "multiply",
             "value": "1.5"
           }
         ],
         "scores": {}
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Stat: Lore Buff",
@@ -648,7 +781,9 @@
             "explanation": "Lore Amount Buffed"
           }
         }
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Base: Lore Potential",
@@ -674,7 +809,9 @@
             "explanation": "Card Lore with modifiers ->"
           }
         }
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Base: Uninkable Burden",
@@ -694,7 +831,9 @@
             "explanation": "Uninkable Burden (- Cost * Multiplier)"
           }
         }
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Base: High Willpower",
@@ -714,7 +853,9 @@
             "explanation": "High Will Power"
           }
         }
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Type: Item",
@@ -734,7 +875,9 @@
             "explanation": "Items are hard to remove"
           }
         }
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "State: Can't Exert",
@@ -753,7 +896,9 @@
             "value": "1.75"
           }
         }
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Condition: On Banish",
@@ -768,7 +913,9 @@
         "variables": [],
         "contextModifiers": [],
         "scores": {}
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Condition: No Cards",
@@ -788,7 +935,9 @@
             "explanation": "Having an empty hand is generally a bad position to be in. This will be offset by other abilities in the"
           }
         }
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Condition: Character exerted",
@@ -809,7 +958,9 @@
             "condition": "@card.type == 'Character'"
           }
         }
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "State: Can't play",
@@ -829,7 +980,9 @@
             "explanation": "Affects game tempo"
           }
         }
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Lore: Gain",
@@ -855,7 +1008,9 @@
             "explanation": "Lore Gained based on mults and triggers ->"
           }
         }
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Lore: Lose",
@@ -881,7 +1036,9 @@
             "explanation": "Lore: Opponent Loses (loreAmount)"
           }
         }
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Card Effect: Draw",
@@ -907,7 +1064,9 @@
             "explanation": "Draw Amount Based on triggers ->"
           }
         }
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Card Effect: Opponent Discards",
@@ -926,7 +1085,9 @@
             "explanation": "Opponent Discards"
           }
         }
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Card Effect: Self Discard",
@@ -952,7 +1113,9 @@
             "explanation": "opposite of drawing a card - discardAmount * -(@cardDrawValue)"
           }
         }
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Card Effect: Look at Deck",
@@ -978,7 +1141,9 @@
             "explanation": "Scry Effect : (Deck Quality Improvement DQI)"
           }
         }
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Card Effect: Tutor",
@@ -997,7 +1162,9 @@
             "explanation": "You get that exact card that you want"
           }
         }
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Card Effect: Filter to Bottom",
@@ -1015,7 +1182,9 @@
             "value": "-1.0"
           }
         }
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Card Effect: Discard to Hand",
@@ -1041,7 +1210,9 @@
             "explanation": "Discard to Hand 3 * drawCount "
           }
         }
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Card Effect: Discard to Deck",
@@ -1060,7 +1231,9 @@
             "explanation": "Some value but potentially does not much"
           }
         }
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Card Effect: Look at Opponent's Hand",
@@ -1079,7 +1252,9 @@
             "explanation": "Information is power"
           }
         }
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Card Effect: Hand to Inkwell",
@@ -1098,7 +1273,9 @@
             "explanation": "Hand to Inkwell - permanent gain "
           }
         }
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Bounce: Opposing Character",
@@ -1117,7 +1294,9 @@
             "explanation": "Bounce Opposing Character"
           }
         }
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Add to Inkwell: Opposing Character",
@@ -1132,11 +1311,17 @@
         "contextModifiers": [],
         "scores": {
           "board_control": {
-            "value": "@bcr.banishCharacterValue * 0.93",
+            "value": "@bcr.banishCharacterValue * 0.93 * @context.bcr.trigger",
             "explanation": "Add opposing character to inkwell"
+          },
+          "resource_dominance": {
+            "value": "- 1.25  * @context.bcr.trigger",
+            "explanation": "Opposite of putting a card into your inkwell as it ramps the opponent"
           }
         }
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Banish: Chosen Target",
@@ -1155,7 +1340,9 @@
             "explanation": "Banish Other Characters"
           }
         }
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Banish: All Characters",
@@ -1170,11 +1357,13 @@
         "contextModifiers": [],
         "scores": {
           "board_control": {
-            "value": "@bcr.banishCharacterValue * 1.15",
-            "explanation": "Banish All"
+            "value": "@bcr.banishCharacterValue * 1.15 * @context.bcr.trigger",
+            "explanation": "Banish All - Best in the game"
           }
         }
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Banish: Opponent's Choice",
@@ -1193,14 +1382,16 @@
             "explanation": "Banish Other Characters"
           }
         }
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Banish: As a Cost/Choice",
       "category": "Board Control",
       "sub_type": "Cost",
       "regex": "/(?:You may)? banish (?:this |one of your|chosen) (characters?|items?|locations?)(?: of yours)?/gi",
-      "value_type": "net_advantage",
+      "value_type": "raw",
       "explanation": "The player may choose to banish one of their own characters to trigger an effect.",
       "justification": "The cost of banishing a character on your board.",
       "calculation": {
@@ -1219,7 +1410,9 @@
             "explanation": "This negative value will be offset by the upside of a depending ability on this card"
           }
         }
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Damage: Deal to One",
@@ -1235,10 +1428,12 @@
         "scores": {
           "board_control": {
             "value": "4.0 * @context.bcr.trigger",
-            "explanation": "Deal Damage"
+            "explanation": "Deal Damage to one"
           }
         }
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Damage: Put Damage Counters",
@@ -1257,26 +1452,43 @@
             "explanation": "Put Damage Counters"
           }
         }
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Damage: Deal to Many",
       "category": "Board Control",
       "sub_type": "Area of Effect",
-      "regex": "/(Deal|move)( up to)? (\\d+) damage( counter(s)?)? to each opposing (character|location)/gi",
+      "regex": "/(deal|move)(?: up to)? (\\d+) damage( counter(s)?)? to each opposing (character|location)/gi",
       "value_type": "raw",
-      "explanation": "Deals damage to all opposing characters or locations.",
+      "explanation": "Deals or moves damage to all opposing characters or locations.",
       "justification": "An area-of-effect (AoE) ability that can control wide boards.",
       "calculation": {
-        "variables": [],
+        "variables": [
+          {
+            "name": "moveOrDeal",
+            "source": "regex",
+            "group": 1,
+            "type": "string"
+          },
+          {
+            "name": "damageAmount",
+            "source": "regex",
+            "group": "2",
+            "type": "textOrNumber"
+          }
+        ],
         "contextModifiers": [],
         "scores": {
           "board_control": {
-            "value": "4.0",
+            "value": "4.0 * (@moveOrDeal === 'move' ? 2 : 1) * damageAmount * @context.bcr.trigger",
             "explanation": "Deal Damage to multiple characters"
           }
         }
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:30:41.095Z"
     },
     {
       "name": "Damage: Deal Divided",
@@ -1295,7 +1507,9 @@
             "explanation": "Deal Damage"
           }
         }
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Damage: Heal",
@@ -1321,7 +1535,9 @@
             "explanation": "Damage: Heal (healAmount)"
           }
         }
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Damage: Deal to Self",
@@ -1347,7 +1563,9 @@
             "explanation": "Negative Impact"
           }
         }
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "State: Ready Character",
@@ -1366,7 +1584,9 @@
             "explanation": "Ready Chosen Character * LVI Trigger"
           }
         }
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "State: Exert Character",
@@ -1385,7 +1605,9 @@
             "explanation": "Exert Character"
           }
         }
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "State: Prevent Readying",
@@ -1404,7 +1626,9 @@
             "explanation": "Affects Tempo"
           }
         }
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Movement: To Location",
@@ -1418,7 +1642,9 @@
         "variables": [],
         "contextModifiers": [],
         "scores": {}
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Stat: Strength Buff",
@@ -1444,7 +1670,9 @@
             "explanation": "Strength Buff -> "
           }
         }
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Stat: Strength Debuff",
@@ -1470,7 +1698,9 @@
             "explanation": "Strength Debuff -> "
           }
         }
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Stat: Willpower Buff",
@@ -1496,7 +1726,9 @@
             "explanation": "Willpower Buff -> "
           }
         }
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Stat: Cost Reduction",
@@ -1522,7 +1754,9 @@
             "explanation": "Cost Reduction -> "
           }
         }
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Play: From Discard",
@@ -1541,7 +1775,9 @@
             "explanation": "Play from Discard"
           }
         }
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Play: For Free",
@@ -1580,7 +1816,9 @@
             "explanation": "Play for Free"
           }
         }
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Trigger: On Play",
@@ -1589,7 +1827,7 @@
       "regex": "/When you play this (?:character|item|action|location|song)/gi",
       "value_type": "raw",
       "explanation": "This ability triggers when the card itself is played.",
-      "justification": "Trigger: On Play Best as it's guaranteed and immediate effect",
+      "justification": "Trigger: On Play -> Best as it's guaranteed and immediate effect",
       "calculation": {
         "variables": [],
         "contextModifiers": [
@@ -1601,7 +1839,9 @@
           }
         ],
         "scores": {}
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Trigger: On Quest",
@@ -1610,7 +1850,7 @@
       "regex": "/Whenever (this character|he|she|it) quests/gi",
       "value_type": "raw",
       "explanation": "This ability triggers whenever this character quests.",
-      "justification": "Trigger: On Quest Provides value for performing the primary lore-gaining action. But it has to survive",
+      "justification": "Trigger: On Quest -> Provides value for performing the primary lore-gaining action. But it has to survive",
       "calculation": {
         "variables": [],
         "contextModifiers": [
@@ -1622,7 +1862,9 @@
           }
         ],
         "scores": {}
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Trigger: On Banish (Self)",
@@ -1631,7 +1873,7 @@
       "regex": "/When(?:ever)? (this character|he|she|it) is banished(?! in a challenge)/gi",
       "value_type": "raw",
       "explanation": "This ability triggers when this character is banished.",
-      "justification": "Trigger: On Banish Better than Quest but worst than On Play or Leaves Play triggers",
+      "justification": "Trigger: On Banish (Self) -> Better than Quest but worst than On Play or Leaves Play triggers",
       "calculation": {
         "variables": [],
         "contextModifiers": [
@@ -1643,7 +1885,9 @@
           }
         ],
         "scores": {}
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Keyword: Evasive",
@@ -1666,7 +1910,9 @@
             "explanation": "Can contest Evasive Characters"
           }
         }
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Keyword: Rush",
@@ -1685,7 +1931,9 @@
             "explanation": "Rush"
           }
         }
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Keyword: Ward",
@@ -1706,7 +1954,9 @@
           }
         ],
         "scores": {}
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Keyword: Resist",
@@ -1739,7 +1989,9 @@
             "explanation": "Resist Amount"
           }
         }
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Keyword: Singer",
@@ -1765,7 +2017,9 @@
             "explanation": "Net ink advantage"
           }
         }
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
       "name": "Play: Song",
@@ -1784,7 +2038,9 @@
             "explanation": "Cost Reduction"
           }
         }
-      }
+      },
+      "createdAt": "2025-09-02T18:00:59.705Z",
+      "lastModified": "2025-09-02T18:00:59.705Z"
     }
   ]
 }
