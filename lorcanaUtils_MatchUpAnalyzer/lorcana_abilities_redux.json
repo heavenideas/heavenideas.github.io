@@ -1,7 +1,7 @@
 {
   "@constants": {
     "cardDrawValue": 2,
-    "uninkableBurdenMultiplier": 0.15,
+    "uninkableBurdenMultiplier": 1.75,
     "selfBanishBurden": 1.1,
     "discardBurden": 1.5,
     "dqi": {
@@ -49,14 +49,88 @@
       "Evasive": 1.5,
       "Resist": 1.25,
       "Challenger": 1.25,
-      "Bodyguard": 1.4,
+      "Bodyguard": 0.5,
       "Reckless": -1.2,
       "Rush": 1.75,
       "Singer": 1.25,
       "Support": 1.25
+    },
+    "cardTypesMult": {
+      "character": 0.73,
+      "item": 0.08,
+      "location": 0.04,
+      "song": 0.06,
+      "action": 0.15,
+      "characters": 0.73,
+      "items": 0.08,
+      "locations": 0.04,
+      "songs": 0.06,
+      "actions": 0.15
     }
   },
   "abilities": [
+    {
+      "name": "Trigger: Play More Than",
+      "category": "Trigger",
+      "sub_type": "Play",
+      "regex": "/if you've played (\\d+) (?:or more )?(actions?|items?|locations?|songs?|characters?) this turn/gi",
+      "explanation": "Very deck specific a condition that is harder to achieve the more cards you are required to play and the card type",
+      "justification": "Trigger: Play More Than X Cards -> Lowers the trigger the more cards you need to play",
+      "lastModified": "2025-09-02T23:00:11.836Z",
+      "createdAt": "2025-09-02T22:49:27.061Z",
+      "calculation": {
+        "variables": [
+          {
+            "name": "cardAmount",
+            "source": "regex",
+            "group": 1,
+            "type": "textOrNumber"
+          },
+          {
+            "name": "cardType",
+            "source": "regex",
+            "group": "2",
+            "type": "string"
+          }
+        ],
+        "contextModifiers": [
+          {
+            "targetMetric": "all",
+            "name": "trigger",
+            "operation": "multiply",
+            "value": "@cardAmount * @cardTypesMult[cardType]"
+          }
+        ],
+        "scores": {}
+      }
+    },
+    {
+      "name": "Condition: Pay",
+      "category": "Condition",
+      "sub_type": "Pay",
+      "regex": "/\\s+you may pay (\\d+) (?:⬡|ink) to/gi",
+      "explanation": "Paying ink it does the opposite of cheating ink",
+      "justification": "opposite of cheating ink",
+      "lastModified": "2025-09-02T21:28:06.461Z",
+      "createdAt": "2025-09-02T21:15:49.903Z",
+      "calculation": {
+        "variables": [
+          {
+            "name": "payCost",
+            "source": "regex",
+            "group": 1,
+            "type": "textOrNumber"
+          }
+        ],
+        "contextModifiers": [],
+        "scores": {
+          "resource_dominance": {
+            "value": "-1.0 * payCost * @context.rds.trigger"
+          }
+        }
+      },
+      "value_type": "raw"
+    },
     {
       "name": "Keyword: Bodyguard",
       "category": "Keyword",
@@ -78,7 +152,7 @@
         "contextModifiers": [],
         "scores": {
           "board_control": {
-            "value": "@keywords[keyword]"
+            "value": "( (@card.willpower * 2) + @card.strength ) * @keywords[keyword]"
           }
         }
       }
@@ -289,8 +363,8 @@
       "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
-      "name": "Condition",
-      "category": "Opponent",
+      "name": "Condition: Opposing Character Exerted",
+      "category": "Condition",
       "sub_type": "Exerted",
       "regex": "/if an opponent has an exerted character in play/gi",
       "explanation": "This is likely but can be played around",
@@ -308,7 +382,7 @@
         "scores": {}
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
-      "lastModified": "2025-09-02T18:00:59.705Z"
+      "lastModified": "2025-09-02T21:14:02.408Z"
     },
     {
       "name": "Trigger: During Your Turn",
@@ -665,13 +739,20 @@
       "explanation": "This ability triggers whenever you play a card of a 'specific' type.",
       "justification": "Trigger: You Play an Card Type -> Its reliability is conditional and therefore it should be a multiplier that reduces the reliability of whatever it's triggering",
       "calculation": {
-        "variables": [],
+        "variables": [
+          {
+            "name": "cardType",
+            "source": "regex",
+            "group": 1,
+            "type": "string"
+          }
+        ],
         "contextModifiers": [
           {
             "targetMetric": "all",
             "name": "trigger",
             "operation": "multiply",
-            "value": "0.75"
+            "value": "@cardTypesMult[cardType]"
           }
         ],
         "scores": {}
@@ -818,22 +899,22 @@
       "category": "Base",
       "sub_type": "Penalty",
       "regex": "WILL_NOT_MATCH_TEXT",
-      "value_type": "net_advantage",
+      "value_type": "raw",
       "explanation": "Applies a penalty to the RDS for cards that cannot be put into the inkwell.",
-      "justification": "Uninkable cards can lead to inconsistent starts. The penalty scales with the card's cost.",
+      "justification": "Uninkable cards can lead to inconsistent starts. The penalty scales with the card's cost.\n\nFrom data from all cards from set 1 to 9 the ink differential between inkable and uninkable vanilla cards oscillated around 1.75",
       "calculation": {
         "variables": [],
         "contextModifiers": [],
         "scores": {
           "resource_dominance": {
             "condition": "@card.inkwell == false",
-            "value": "-( @card.cost * @uninkableBurdenMultiplier )",
-            "explanation": "Uninkable Burden (- Cost * Multiplier)"
+            "value": "- @uninkableBurdenMultiplier",
+            "explanation": "Uninkable Burden"
           }
         }
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
-      "lastModified": "2025-09-02T18:00:59.705Z"
+      "lastModified": "2025-09-02T21:02:45.779Z"
     },
     {
       "name": "Base: High Willpower",
@@ -1332,12 +1413,19 @@
       "explanation": "Permanently removes a chosen opponent's card from play.",
       "justification": "The most definitive form of single-target removal.",
       "calculation": {
-        "variables": [],
+        "variables": [
+          {
+            "name": "cardType",
+            "source": "regex",
+            "group": 1,
+            "type": "string"
+          }
+        ],
         "contextModifiers": [],
         "scores": {
           "board_control": {
-            "value": "@bcr.banishCharacterValue * 1.0 * @context.bcr.trigger",
-            "explanation": "Banish Other Characters"
+            "value": "(['character', 'characters'].includes(@cardType) ? @bcr.banishCharacterValue : ['item', 'items'].includes(@cardType) ? @bcr.banishItemValue : ['location', 'locations'].includes(@cardType) ? @bcr.banishLocationValue : 99) * 1.0 * @context.bcr.trigger",
+            "explanation": "Banish Other Characters, Items or Locations"
           }
         }
       },
@@ -1390,7 +1478,7 @@
       "name": "Banish: As a Cost/Choice",
       "category": "Board Control",
       "sub_type": "Cost",
-      "regex": "/(?:You may)? banish (?:this |one of your|chosen) (characters?|items?|locations?)(?: of yours)?/gi",
+      "regex": "/(?:You may) banish (?:this |one of your|chosen) (characters?|items?|locations?)(?: of yours)?/gi",
       "value_type": "raw",
       "explanation": "The player may choose to banish one of their own characters to trigger an effect.",
       "justification": "The cost of banishing a character on your board.",
@@ -1406,13 +1494,13 @@
         "contextModifiers": [],
         "scores": {
           "board_control": {
-            "value": "(@cardType === 'character' ? @bcr.banishCharacterValue : @cardType === 'item' ? @bcr.banishItemValue : @cardType === 'location' ? @bcr.banishLocationValue : -99 ) * -0.2 * @context.bcr.trigger",
+            "value": "(['character', 'characters'].includes(@cardType) ? @bcr.banishCharacterValue : ['item', 'items'].includes(@cardType) ? @bcr.banishItemValue : ['location', 'locations'].includes(@cardType) ? @bcr.banishLocationValue : 99) * -0.2 * @context.bcr.trigger",
             "explanation": "This negative value will be offset by the upside of a depending ability on this card"
           }
         }
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
-      "lastModified": "2025-09-02T18:00:59.705Z"
+      "lastModified": "2025-09-02T22:20:26.809Z"
     },
     {
       "name": "Damage: Deal to One",
@@ -1893,7 +1981,7 @@
       "name": "Keyword: Evasive",
       "category": "Keyword",
       "sub_type": "Defensive",
-      "regex": "/\\b(Evasive)\\b/gi",
+      "regex": "/(Evasive) \\(/gi",
       "value_type": "raw",
       "explanation": "This character can only be challenged by other characters with Evasive.",
       "justification": "Evasive provides significant protection from challenges.",
@@ -1912,7 +2000,7 @@
         }
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
-      "lastModified": "2025-09-02T18:00:59.705Z"
+      "lastModified": "2025-09-02T20:41:20.045Z"
     },
     {
       "name": "Keyword: Rush",
