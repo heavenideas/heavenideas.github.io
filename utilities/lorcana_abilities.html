@@ -149,6 +149,25 @@
             color: #dbeafe; /* blue-200 */
         }
 
+        /* Sort Indicators */
+        .sort-indicator {
+            display: inline-block;
+            margin-left: 4px;
+            width: 0;
+            height: 0;
+            border-left: 4px solid transparent;
+            border-right: 4px solid transparent;
+            transition: border-color 0.2s;
+        }
+
+        .sort-indicator.asc {
+            border-bottom: 6px solid #64748b; /* slate-500 */
+        }
+
+        .sort-indicator.desc {
+            border-top: 6px solid #64748b; /* slate-500 */
+        }
+
         /* Splitter Styles */
         .gutter {
             background-color: #0f172a; /* slate-950 */
@@ -222,6 +241,22 @@
                              <input type="text" id="pattern-filter-input" placeholder="Filter abilities by name..." class="form-input w-full !pl-10">
                              <svg class="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>
                         </div>
+                        <div class="flex items-center gap-2 ml-4">
+                            <label for="sort-select" class="text-sm text-slate-400 whitespace-nowrap">Sort by:</label>
+                            <div class="relative">
+                                <select id="sort-select" class="form-input text-sm w-40 pr-8">
+                                    <option value="name-asc">Name (A-Z)</option>
+                                    <option value="name-desc">Name (Z-A)</option>
+                                    <option value="category-asc">Category (A-Z)</option>
+                                    <option value="category-desc">Category (Z-A)</option>
+                                    <option value="subtype-asc">Sub-type (A-Z)</option>
+                                    <option value="subtype-desc">Sub-type (Z-A)</option>
+                                    <option value="recent">Recently Modified</option>
+                                    <option value="regex-length">Regex Length</option>
+                                </select>
+                                <div id="sort-indicator" class="sort-indicator asc absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none"></div>
+                            </div>
+                        </div>
                         <span id="last-loaded-timestamp" class="text-xs text-slate-500 ml-4 whitespace-nowrap"></span>
                     </div>
 
@@ -229,7 +264,13 @@
                     <div id="editor-content-wrapper" class="flex-grow flex gap-4 overflow-hidden transition-all duration-500 ease-in-out">
                         <!-- Tree Navigation -->
                         <div id="tree-nav-container" class="w-1/3 bg-slate-950 p-3 rounded-lg overflow-y-auto">
-                            <h3 class="text-lg font-semibold text-slate-200 mb-3">Categories</h3>
+                            <div class="flex justify-between items-center mb-3">
+                                <h3 class="text-lg font-semibold text-slate-200">Navigation</h3>
+                                <div class="flex gap-2">
+                                    <button id="nav-names-btn" class="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition">Names</button>
+                                    <button id="nav-categories-btn" class="px-2 py-1 text-xs bg-slate-600 text-white rounded hover:bg-slate-700 transition">Categories</button>
+                                </div>
+                            </div>
                             <div id="tree-nav">
                                 <div class="text-center text-slate-500 text-sm py-6">Load a file to build navigation.</div>
                             </div>
@@ -372,6 +413,10 @@
             let abilityFuse;
             let selectedCard = null;
             let lastRegexResults = [];
+            let currentSort = 'name-asc'; // Default sort
+            let sortDirection = 'asc';
+            let sortField = 'name';
+            let navMode = 'names'; // Default to names view
 
             const DB_URL = 'https://raw.githubusercontent.com/heavenideas/similcana/refs/heads/main/database/allCards.json';
 
@@ -386,6 +431,9 @@
             const saveMdBtn = document.getElementById('save-md-btn');
             const newAbilityBtn = document.getElementById('new-ability-btn');
             const patternFilterInput = document.getElementById('pattern-filter-input');
+            const sortSelect = document.getElementById('sort-select');
+            const navNamesBtn = document.getElementById('nav-names-btn');
+            const navCategoriesBtn = document.getElementById('nav-categories-btn');
             const patternListContainer = document.getElementById('pattern-list');
             const patternPlaceholder = document.getElementById('pattern-placeholder');
             const lastLoadedTimestamp = document.getElementById('last-loaded-timestamp');
@@ -497,6 +545,14 @@
                                 p.regexObject = null;
                             }
                         }
+
+                        // Add timestamps if missing
+                        if (!p.createdAt) {
+                            p.createdAt = new Date().toISOString();
+                        }
+                        if (!p.lastModified) {
+                            p.lastModified = new Date().toISOString();
+                        }
                     });
                     displayPatterns();
                     buildAndRenderTree(ABILITIES_CONFIG.abilities);
@@ -550,6 +606,8 @@
                     regex: "//gi",
                     explanation: "",
                     justification: "",
+                    lastModified: new Date().toISOString(),
+                    createdAt: new Date().toISOString(),
                     calculation: {
                         variables: [],
                         contextModifiers: [],
@@ -729,7 +787,44 @@
                     return;
                 }
 
-                patternsToDisplay.forEach(pattern => {
+                // Sort patterns based on current sort settings
+                const sortedPatterns = [...patternsToDisplay].sort((a, b) => {
+                    let aValue, bValue;
+
+                    switch (sortField) {
+                        case 'name':
+                            aValue = (a.name || '').toLowerCase();
+                            bValue = (b.name || '').toLowerCase();
+                            break;
+                        case 'category':
+                            aValue = (a.category || 'Uncategorized').toLowerCase();
+                            bValue = (b.category || 'Uncategorized').toLowerCase();
+                            break;
+                        case 'subtype':
+                            aValue = (a.sub_type || 'General').toLowerCase();
+                            bValue = (b.sub_type || 'General').toLowerCase();
+                            break;
+                        case 'recent':
+                            aValue = new Date(a.lastModified || 0);
+                            bValue = new Date(b.lastModified || 0);
+                            break;
+                        case 'regex':
+                            aValue = (a.regex || '').length;
+                            bValue = (b.regex || '').length;
+                            break;
+                        default:
+                            aValue = (a.name || '').toLowerCase();
+                            bValue = (b.name || '').toLowerCase();
+                    }
+
+                    if (sortDirection === 'desc') {
+                        return aValue < bValue ? 1 : aValue > bValue ? -1 : 0;
+                    } else {
+                        return aValue > bValue ? 1 : aValue < bValue ? -1 : 0;
+                    }
+                });
+
+                sortedPatterns.forEach(pattern => {
                     const originalIndex = ABILITIES_CONFIG.abilities.findIndex(p => p === pattern);
                     const patternEl = document.createElement('div');
                     patternEl.className = 'p-4 bg-slate-800 rounded-lg border border-slate-700 transition-colors duration-300';
@@ -810,11 +905,13 @@
                 // 1. Tree Nav filter
                 const activeNavItem = treeNavContainer.querySelector('.tree-nav-item.active');
                 if (activeNavItem) {
-                    const { filterType, filterValue, category, subType } = activeNavItem.dataset;
+                    const { filterType, filterValue, category, subType, patternName } = activeNavItem.dataset;
                     if (filterType === 'category') {
                         treeFilteredPatterns = ABILITIES_CONFIG.abilities.filter(p => (p.category || 'Uncategorized') === filterValue);
                     } else if (filterType === 'subtype') {
                         treeFilteredPatterns = ABILITIES_CONFIG.abilities.filter(p => (p.category || 'Uncategorized') === category && (p.sub_type || 'General') === subType);
+                    } else if (filterType === 'name' && navMode === 'names') {
+                        treeFilteredPatterns = ABILITIES_CONFIG.abilities.filter(p => p.name === patternName);
                     }
                 }
 
@@ -831,7 +928,7 @@
                 }
 
                 const searchResults = abilityFuse.search(searchTerm).map(r => r.item);
-                
+
                 // Intersect searchResults with treeFilteredPatterns
                 const treeFilteredPatternsSet = new Set(treeFilteredPatterns);
                 const finalPatterns = searchResults.filter(p => treeFilteredPatternsSet.has(p));
@@ -846,10 +943,11 @@
  
                 const index = parseInt(parentPattern.dataset.index, 10);
                 const patternToUpdate = ABILITIES_CONFIG.abilities[index];
-                
+
                 if (target.matches('[data-field]')) {
                     const field = target.dataset.field;
                     patternToUpdate[field] = target.value;
+                    patternToUpdate.lastModified = new Date().toISOString(); // Update timestamp
                     if (field === 'name') parentPattern.dataset.patternName = target.value;
                     
                     if (['name', 'category', 'sub_type'].includes(field)) {
@@ -952,69 +1050,234 @@
  
            // --- TREE NAVIGATION ---
             function buildAndRenderTree(patterns) {
-               const tree = {};
-               patterns.forEach(p => {
-                   const category = p.category || 'Uncategorized';
-                   const subType = p.sub_type || 'General';
-                   if (!tree[category]) tree[category] = {};
-                   if (!tree[category][subType]) tree[category][subType] = 0;
-                   tree[category][subType]++;
-               });
+                treeNavContainer.innerHTML = '';
+                const fragment = document.createDocumentFragment();
 
-               treeNavContainer.innerHTML = '';
-               const fragment = document.createDocumentFragment();
-               const showAllEl = document.createElement('div');
-               showAllEl.className = 'tree-nav-item active';
-               showAllEl.textContent = 'Show All';
-               showAllEl.dataset.filterType = 'all';
-               const totalCount = document.createElement('span');
-               totalCount.className = 'count';
-               totalCount.textContent = `(${patterns.length})`;
-               showAllEl.appendChild(totalCount);
-               fragment.appendChild(showAllEl);
+                if (navMode === 'names') {
+                    // Names view - show individual ability names
+                    const sortedPatterns = [...patterns].sort((a, b) => {
+                        let aValue, bValue;
 
-               Object.keys(tree).sort().forEach(category => {
-                   const categoryEl = document.createElement('div');
-                   categoryEl.className = 'tree-nav-item';
-                   categoryEl.textContent = category;
-                   categoryEl.dataset.filterType = 'category';
-                   categoryEl.dataset.filterValue = category;
-                   const categoryCount = Object.values(tree[category]).reduce((sum, count) => sum + count, 0);
-                   const catCountSpan = document.createElement('span');
-                   catCountSpan.className = 'count';
-                   catCountSpan.textContent = `(${categoryCount})`;
-                   categoryEl.appendChild(catCountSpan);
-                   fragment.appendChild(categoryEl);
+                        switch (sortField) {
+                            case 'name':
+                                aValue = (a.name || '').toLowerCase();
+                                bValue = (b.name || '').toLowerCase();
+                                break;
+                            case 'category':
+                                aValue = (a.category || 'Uncategorized').toLowerCase();
+                                bValue = (b.category || 'Uncategorized').toLowerCase();
+                                break;
+                            case 'subtype':
+                                aValue = (a.sub_type || 'General').toLowerCase();
+                                bValue = (b.sub_type || 'General').toLowerCase();
+                                break;
+                            case 'recent':
+                                aValue = new Date(a.lastModified || 0);
+                                bValue = new Date(b.lastModified || 0);
+                                break;
+                            case 'regex':
+                                aValue = (a.regex || '').length;
+                                bValue = (b.regex || '').length;
+                                break;
+                            default:
+                                aValue = (a.name || '').toLowerCase();
+                                bValue = (b.name || '').toLowerCase();
+                        }
 
-                   if (Object.keys(tree[category]).length > 1 || !tree[category]['General']) {
-                       Object.keys(tree[category]).sort().forEach(subType => {
-                           const subTypeEl = document.createElement('div');
-                           subTypeEl.className = 'tree-nav-item subtype';
-                           subTypeEl.textContent = subType;
-                           subTypeEl.dataset.filterType = 'subtype';
-                           subTypeEl.dataset.category = category;
-                           subTypeEl.dataset.subType = subType;
-                           const subTypeCount = document.createElement('span');
-                           subTypeCount.className = 'count';
-                           subTypeCount.textContent = `(${tree[category][subType]})`;
-                           subTypeEl.appendChild(subTypeCount);
-                           fragment.appendChild(subTypeEl);
-                       });
-                   }
-               });
-               treeNavContainer.appendChild(fragment);
+                        if (sortDirection === 'desc') {
+                            return aValue < bValue ? 1 : aValue > bValue ? -1 : 0;
+                        } else {
+                            return aValue > bValue ? 1 : aValue < bValue ? -1 : 0;
+                        }
+                    });
+
+                    // Show All button
+                    const showAllEl = document.createElement('div');
+                    showAllEl.className = 'tree-nav-item active';
+                    showAllEl.textContent = 'Show All';
+                    showAllEl.dataset.filterType = 'all';
+                    const totalCount = document.createElement('span');
+                    totalCount.className = 'count';
+                    totalCount.textContent = `(${patterns.length})`;
+                    showAllEl.appendChild(totalCount);
+                    fragment.appendChild(showAllEl);
+
+                    // Individual ability names
+                    sortedPatterns.forEach(pattern => {
+                        const nameEl = document.createElement('div');
+                        nameEl.className = 'tree-nav-item';
+                        nameEl.innerHTML = `${pattern.name || 'Unnamed'}<span class="count">(${pattern.category || 'Uncategorized'})</span>`;
+                        nameEl.dataset.filterType = 'name';
+                        nameEl.dataset.patternName = pattern.name;
+                        nameEl.title = `Category: ${pattern.category || 'Uncategorized'}\nSub-type: ${pattern.sub_type || 'General'}`;
+
+                        // Add sort indicator if sorting by name
+                        if (sortField === 'name') {
+                            const indicator = document.createElement('span');
+                            indicator.className = `sort-indicator ${sortDirection} inline-block ml-2`;
+                            nameEl.appendChild(indicator);
+                        }
+
+                        fragment.appendChild(nameEl);
+                    });
+
+                } else {
+                    // Categories view - show category tree (original functionality)
+                    const sortedPatterns = [...patterns].sort((a, b) => {
+                        let aValue, bValue;
+
+                        switch (sortField) {
+                            case 'name':
+                                aValue = (a.name || '').toLowerCase();
+                                bValue = (b.name || '').toLowerCase();
+                                break;
+                            case 'category':
+                                aValue = (a.category || 'Uncategorized').toLowerCase();
+                                bValue = (b.category || 'Uncategorized').toLowerCase();
+                                break;
+                            case 'subtype':
+                                aValue = (a.sub_type || 'General').toLowerCase();
+                                bValue = (b.sub_type || 'General').toLowerCase();
+                                break;
+                            case 'recent':
+                                aValue = new Date(a.lastModified || 0);
+                                bValue = new Date(b.lastModified || 0);
+                                break;
+                            case 'regex':
+                                aValue = (a.regex || '').length;
+                                bValue = (b.regex || '').length;
+                                break;
+                            default:
+                                aValue = (a.name || '').toLowerCase();
+                                bValue = (b.name || '').toLowerCase();
+                        }
+
+                        if (sortDirection === 'desc') {
+                            return aValue < bValue ? 1 : aValue > bValue ? -1 : 0;
+                        } else {
+                            return aValue > bValue ? 1 : aValue < bValue ? -1 : 0;
+                        }
+                    });
+
+                    const tree = {};
+                    sortedPatterns.forEach(p => {
+                        const category = p.category || 'Uncategorized';
+                        const subType = p.sub_type || 'General';
+                        if (!tree[category]) tree[category] = {};
+                        if (!tree[category][subType]) tree[category][subType] = 0;
+                        tree[category][subType]++;
+                    });
+
+                    // Show All button
+                    const showAllEl = document.createElement('div');
+                    showAllEl.className = 'tree-nav-item active';
+                    showAllEl.textContent = 'Show All';
+                    showAllEl.dataset.filterType = 'all';
+                    const totalCount = document.createElement('span');
+                    totalCount.className = 'count';
+                    totalCount.textContent = `(${patterns.length})`;
+                    showAllEl.appendChild(totalCount);
+                    fragment.appendChild(showAllEl);
+
+                    Object.keys(tree).sort().forEach(category => {
+                        const categoryEl = document.createElement('div');
+                        categoryEl.className = 'tree-nav-item';
+                        categoryEl.innerHTML = `${category}<span class="count">(${Object.values(tree[category]).reduce((sum, count) => sum + count, 0)})</span>`;
+                        categoryEl.dataset.filterType = 'category';
+                        categoryEl.dataset.filterValue = category;
+
+                        // Add sort indicator if sorting by category
+                        if (sortField === 'category') {
+                            const indicator = document.createElement('span');
+                            indicator.className = `sort-indicator ${sortDirection} inline-block ml-2`;
+                            categoryEl.appendChild(indicator);
+                        }
+
+                        fragment.appendChild(categoryEl);
+
+                        if (Object.keys(tree[category]).length > 1 || !tree[category]['General']) {
+                            Object.keys(tree[category]).sort().forEach(subType => {
+                                const subTypeEl = document.createElement('div');
+                                subTypeEl.className = 'tree-nav-item subtype';
+                                subTypeEl.innerHTML = `${subType}<span class="count">(${tree[category][subType]})</span>`;
+                                subTypeEl.dataset.filterType = 'subtype';
+                                subTypeEl.dataset.category = category;
+                                subTypeEl.dataset.subType = subType;
+
+                                // Add sort indicator if sorting by subtype
+                                if (sortField === 'subtype') {
+                                    const indicator = document.createElement('span');
+                                    indicator.className = `sort-indicator ${sortDirection} inline-block ml-2`;
+                                    subTypeEl.appendChild(indicator);
+                                }
+
+                                fragment.appendChild(subTypeEl);
+                            });
+                        }
+                    });
+                }
+
+                treeNavContainer.appendChild(fragment);
             }
 
             treeNavContainer.addEventListener('click', (e) => {
-               const target = e.target.closest('.tree-nav-item');
-               if (!target) return;
-               document.querySelectorAll('#tree-nav .tree-nav-item').forEach(el => el.classList.remove('active'));
-               target.classList.add('active');
-               applyFilters();
+                const target = e.target.closest('.tree-nav-item');
+                if (!target) return;
+                document.querySelectorAll('#tree-nav .tree-nav-item').forEach(el => el.classList.remove('active'));
+                target.classList.add('active');
+
+                if (navMode === 'names' && target.dataset.filterType === 'name') {
+                    // In names mode, clicking a name should filter to show only that pattern
+                    const patternName = target.dataset.patternName;
+                    applyFilters();
+
+                    // Add highlight animation to the selected pattern (same as categories mode)
+                    setTimeout(() => {
+                        const patternEl = document.querySelector(`#pattern-list [data-pattern-name="${patternName}"]`);
+                        if (patternEl) {
+                            patternEl.classList.add('focus-animation');
+                            setTimeout(() => patternEl.classList.remove('focus-animation'), 1500);
+                        }
+                    }, 100);
+                } else {
+                    applyFilters();
+                }
             });
 
             patternFilterInput.addEventListener('input', () => {
                 applyFilters();
+            });
+
+            sortSelect.addEventListener('change', (e) => {
+                currentSort = e.target.value;
+                const [field, direction] = currentSort.split('-');
+                sortField = field;
+                sortDirection = direction;
+
+                // Update visual indicator
+                const indicator = document.getElementById('sort-indicator');
+                indicator.className = `sort-indicator ${direction}`;
+
+                applyFilters();
+                buildAndRenderTree(ABILITIES_CONFIG.abilities); // Rebuild tree with new sort indicators
+            });
+
+            navNamesBtn.addEventListener('click', () => {
+                navMode = 'names';
+                navNamesBtn.classList.add('bg-blue-600');
+                navNamesBtn.classList.remove('bg-slate-600');
+                navCategoriesBtn.classList.add('bg-slate-600');
+                navCategoriesBtn.classList.remove('bg-blue-600');
+                buildAndRenderTree(ABILITIES_CONFIG.abilities);
+            });
+
+            navCategoriesBtn.addEventListener('click', () => {
+                navMode = 'categories';
+                navCategoriesBtn.classList.add('bg-blue-600');
+                navCategoriesBtn.classList.remove('bg-slate-600');
+                navNamesBtn.classList.add('bg-slate-600');
+                navNamesBtn.classList.remove('bg-blue-600');
+                buildAndRenderTree(ABILITIES_CONFIG.abilities);
             });
 
             // --- CARD ANALYSIS & DISPLAY (Right Column) ---
@@ -1026,22 +1289,46 @@
                 const clickableElement = e.target.closest('[data-ability-name]');
                 if (clickableElement) {
                     const abilityName = clickableElement.dataset.abilityName;
-            
-                    // Reset filters to ensure the target ability is visible
+
+                    // Clear search filter
                     patternFilterInput.value = '';
-                    const activeNavItem = treeNavContainer.querySelector('.tree-nav-item.active');
-                    if (activeNavItem) activeNavItem.classList.remove('active');
-                    const showAll = treeNavContainer.querySelector('[data-filter-type="all"]');
-                    if (showAll) showAll.classList.add('active');
-                    
-                    applyFilters(); // Re-render the pattern list with all items
-            
-                    // Find the element in the now-visible list
-                    const patternEl = document.querySelector(`#pattern-list [data-pattern-name="${abilityName}"]`);
-                    if (patternEl) {
-                        patternEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        patternEl.classList.add('focus-animation');
-                        setTimeout(() => patternEl.classList.remove('focus-animation'), 1500);
+
+                    // Find and select the specific ability in navigation
+                    const navItem = treeNavContainer.querySelector(`[data-pattern-name="${abilityName}"]`);
+                    if (navItem) {
+                        // Remove active state from all nav items
+                        document.querySelectorAll('#tree-nav .tree-nav-item').forEach(el => el.classList.remove('active'));
+                        // Add active state to the specific ability
+                        navItem.classList.add('active');
+
+                        // Switch to names mode if not already
+                        if (navMode !== 'names') {
+                            navMode = 'names';
+                            navNamesBtn.classList.add('bg-blue-600');
+                            navNamesBtn.classList.remove('bg-slate-600');
+                            navCategoriesBtn.classList.add('bg-slate-600');
+                            navCategoriesBtn.classList.remove('bg-blue-600');
+                            buildAndRenderTree(ABILITIES_CONFIG.abilities);
+                        }
+
+                        // Apply filter to show only this ability
+                        applyFilters();
+
+                        // Add highlight animation to the pattern
+                        setTimeout(() => {
+                            const patternEl = document.querySelector(`#pattern-list [data-pattern-name="${abilityName}"]`);
+                            if (patternEl) {
+                                patternEl.classList.add('focus-animation');
+                                setTimeout(() => patternEl.classList.remove('focus-animation'), 1500);
+                            }
+                        }, 100);
+                    } else {
+                        // Fallback: if ability not found in navigation, reset to show all
+                        const activeNavItem = treeNavContainer.querySelector('.tree-nav-item.active');
+                        if (activeNavItem) activeNavItem.classList.remove('active');
+                        const showAll = treeNavContainer.querySelector('[data-filter-type="all"]');
+                        if (showAll) showAll.classList.add('active');
+                        applyFilters();
                     }
                 }
             });
@@ -1415,6 +1702,12 @@
 
             // --- START THE APP ---
             initializeApp();
+
+            // Initialize navigation buttons
+            navNamesBtn.classList.add('bg-blue-600');
+            navNamesBtn.classList.remove('bg-slate-600');
+            navCategoriesBtn.classList.add('bg-slate-600');
+            navCategoriesBtn.classList.remove('bg-blue-600');
             
             // --- INITIALIZE AND MANAGE SPLIT VIEW ---
             setupSplitView();
