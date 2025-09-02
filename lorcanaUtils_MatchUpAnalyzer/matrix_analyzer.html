@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Disney Lorcana - Deck Matchup Analyzer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/gh/heavenideas/heavenideas.github.io@main/utilities/unified_win_probability_utilities.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/heavenideas/heavenideas.github.io/utilities/card_stat_analysis_module.js"></script>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --primary-color: #2d2d2d;
+            --secondary-color: #4a4a4a;
+            --text-color: #e0e0e0;
+            --header-color: #ffffff;
+            --accent-color: #a78bfa;
+            --border-color: #5a5a5a;
+        }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Inter', sans-serif;
+        }
+        .dark-scrollbar::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        .dark-scrollbar::-webkit-scrollbar-track {
+            background: var(--primary-color);
+        }
+        .dark-scrollbar::-webkit-scrollbar-thumb {
+            background-color: var(--secondary-color);
+            border-radius: 4px;
+        }
+        .deck-textarea {
+            background-color: var(--primary-color);
+            border: 1px solid var(--border-color);
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        .deck-textarea:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 2px var(--accent-color);
+        }
+        .btn-primary {
+            background-color: var(--accent-color);
+            transition: background-color 0.3s;
+        }
+        .btn-primary:hover {
+            background-color: #8b5cf6;
+        }
+        .btn-secondary {
+            background-color: var(--secondary-color);
+            transition: background-color 0.3s;
+        }
+        .btn-secondary:hover {
+            background-color: #6b7280;
+        }
+        .loader {
+            border-color: var(--accent-color);
+            border-top-color: transparent;
+        }
+        .card-image {
+            transition: transform 0.3s ease-in-out;
+        }
+        .card-image:hover {
+            transform: scale(1.05);
+        }
+        .main-card-display .card-image {
+            cursor: pointer;
+        }
+        .ctl-bar {
+            background-color: var(--secondary-color);
+        }
+        .ctl-fill {
+            transition: width 0.5s ease-in-out;
+        }
+        
+        #deckLoadModal, #ctlBreakdownModal, #matchupDetailModal, #cellComparisonModal {
+            transition: opacity 0.2s ease-in-out;
+        }
+        
+        .matchup-card-item .card-image {
+            width: 100px;
+            border-radius: 0.375rem;
+        }
+
+        .matchup-card-item {
+            cursor: pointer;
+        }
+
+        /* Matrix Styles */
+        .matrix-container {
+            max-height: 80vh;
+            overflow: auto;
+        }
+        .matrix-table {
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+        .matrix-table th, .matrix-table td {
+            border: 1px solid var(--border-color);
+            text-align: center;
+            position: relative;
+        }
+        .matrix-table td {
+             padding: 0.25rem;
+             min-width: 90px;
+             height: 90px;
+        }
+         .matrix-table th {
+            padding: 0.5rem;
+            min-width: 150px;
+            height: 150px;
+        }
+        .matrix-table thead th {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background-color: var(--primary-color);
+        }
+        .matrix-table tbody th {
+            position: sticky;
+            left: 0;
+            z-index: 5;
+            background-color: var(--primary-color);
+        }
+        .matrix-table thead th:first-child {
+            z-index: 15;
+            min-width: 150px;
+            min-height: 150px;
+        }
+        .matrix-cell {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: rgba(255, 255, 255, 0.8);
+            cursor: pointer;
+        }
+        .matrix-header-card {
+            cursor: pointer;
+            position: relative;
+        }
+        .card-copy-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background-color: var(--accent-color);
+            color: white;
+            border-radius: 9999px;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.9rem;
+            border: 2px solid var(--primary-color);
+        }
+        .outcome-favorable { background-color: rgba(34, 197, 94, 0.4); }
+        .outcome-unfavorable { background-color: rgba(239, 68, 68, 0.4); }
+        .outcome-mutual-fav { background-color: rgba(163, 230, 53, 0.4); }
+        .outcome-mutual-neu { background-color: rgba(252, 211, 77, 0.4); }
+        .outcome-mutual-unfav { background-color: rgba(249, 115, 22, 0.4); }
+        .outcome-stalemate { background-color: rgba(59, 130, 246, 0.4); }
+        .outcome-no-combat { background-color: rgba(107, 114, 128, 0.2); }
+
+        /* Inspector Modal Styles */
+        .tab-button.active { color: var(--accent-color); border-bottom-color: var(--accent-color); }
+        .highlight { padding: 2px 4px; border-radius: 4px; font-weight: 600; color: #1e293b; }
+        .prose { color: var(--text-color); } .prose strong { color: var(--header-color); }
+        .analysis-section h3 { font-size: 1.25rem; color: var(--accent-color); border-bottom: 2px solid var(--secondary-color); padding-bottom: 0.5rem; margin-bottom: 1rem; }
+        .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; }
+        .stat-item { background: var(--primary-color); padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color); cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
+        .stat-item:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.3); border-color: var(--accent-color); }
+        .stat-item-header { font-weight: bold; font-size: 0.9rem; margin-bottom: 0.5rem; }
+        .stat-item-value-container { display: flex; align-items: baseline; gap: 0.5rem; margin-bottom: 0.5rem; }
+        .stat-item-value { font-size: 1.5rem; font-weight: bold; color: var(--accent-color); }
+        .stat-item-percentage { font-size: 0.875rem; color: #9ca3af; }
+        .stat-breakdown { margin-top: auto; padding-top: 0.5rem; display: flex; gap: 0.5rem; flex-wrap: wrap; }
+        .color-chip { font-size: 0.75rem; padding: 0.25rem 0.5rem; border-radius: 4px; color: #fff; text-shadow: 1px 1px 2px #000; border: 1px solid rgba(255,255,255,0.2); }
+
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; }
+
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="p-4 md:p-8 dark-scrollbar">
+    <div class="max-w-7xl mx-auto">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-header-color">Lorcana Deck Matchup Analyzer</h1>
+            <p class="text-lg text-gray-400 mt-2">Analyze card-by-card performance between two decklists.</p>
+        </header>
+
+        <div id="loader" class="text-center my-12 hidden">
+             <div class="inline-block w-12 h-12 border-4 rounded-full loader animate-spin" role="status"></div>
+             <p class="mt-4 text-lg">Loading Card Database & Abilities... This may take a moment.</p>
+        </div>
+
+        <main id="main-content" class="hidden">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                <div>
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-2xl font-semibold text-header-color">Decklist 1</h2>
+                        <button id="loadDeck1Btn" class="btn-secondary text-white font-bold py-2 px-4 rounded-lg text-sm">Load from DB</button>
+                    </div>
+                    <textarea id="decklist1" class="w-full h-96 p-4 rounded-lg deck-textarea dark-scrollbar" placeholder="4x Card Name - Subtitle"></textarea>
+                </div>
+                <div>
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-2xl font-semibold text-header-color">Decklist 2</h2>
+                         <button id="loadDeck2Btn" class="btn-secondary text-white font-bold py-2 px-4 rounded-lg text-sm">Load from DB</button>
+                    </div>
+                    <textarea id="decklist2" class="w-full h-96 p-4 rounded-lg deck-textarea dark-scrollbar" placeholder="4x Card Name - Subtitle"></textarea>
+                </div>
+            </div>
+
+            <div class="text-center">
+                <button id="analyze-btn" class="btn-primary text-white font-bold py-3 px-8 rounded-lg text-lg shadow-lg">Analyze Matchup</button>
+            </div>
+
+            <div id="results-container" class="mt-12"></div>
+        </main>
+    </div>
+
+    <!-- Deck Load Modal -->
+    <div id="deckLoadModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90 p-4 opacity-0 pointer-events-none">
+      <div class="bg-primary-color rounded-lg shadow-xl p-6 w-full max-w-md border border-border-color">
+        <h3 class="text-lg font-bold text-header-color mb-4">Select a Deck</h3>
+        <input type="text" id="deckSearchInput" placeholder="Search decks by name..." class="w-full mb-4 px-3 py-2 rounded-lg bg-secondary-color border border-border-color text-text-color focus:ring-2 focus:ring-accent-color focus:outline-none">
+        <div id="deckListContainer" class="max-h-64 overflow-y-auto space-y-2 dark-scrollbar">
+        </div>
+        <div class="flex justify-end mt-6">
+          <button id="closeDeckModalBtn" class="px-4 py-2 bg-secondary-color hover:bg-gray-500 rounded font-semibold">Cancel</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Card Threat Level Inspector Modal -->
+    <div id="ctlBreakdownModal" class="fixed inset-0 z-[60] flex items-center justify-center bg-black bg-opacity-90 p-4 opacity-0 pointer-events-none">
+        <div class="bg-primary-color border border-border-color rounded-lg shadow-xl w-full max-w-5xl h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center mb-4 flex-shrink-0 px-6 pt-6">
+                <h3 id="ctlModalTitle" class="text-xl font-bold text-slate-100">Card Threat Level Inspector</h3>
+                <button id="closeCtlModalBtn" class="text-gray-400 hover:text-white text-3xl leading-none">&times;</button>
+            </div>
+            <div id="ctlModalContent" class="flex-grow overflow-hidden px-6 pb-6">
+            </div>
+        </div>
+    </div>
+
+    <!-- Matchup Detail Modal -->
+    <div id="matchupDetailModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90 p-4 opacity-0 pointer-events-none">
+        <div class="bg-primary-color rounded-lg shadow-xl p-6 w-full max-w-4xl border border-border-color max-h-[80vh] flex flex-col">
+            <div class="flex justify-between items-center mb-4">
+                 <h3 id="matchupModalTitle" class="text-xl font-bold text-header-color">Matchup Details</h3>
+                 <button id="closeMatchupModalBtn" class="text-gray-400 hover:text-white text-3xl leading-none">&times;</button>
+            </div>
+            <div id="matchupModalContent" class="overflow-y-auto dark-scrollbar pr-2">
+            </div>
+        </div>
+    </div>
+
+    <!-- Cell Comparison Modal -->
+    <div id="cellComparisonModal" class="fixed inset-0 z-[70] flex items-center justify-center bg-black bg-opacity-90 p-4 opacity-0 pointer-events-none">
+        <div class="bg-primary-color rounded-lg shadow-xl p-6 w-full max-w-6xl border border-border-color max-h-[90vh] flex flex-col">
+             <div class="flex justify-between items-center mb-4">
+                 <h3 id="cellModalTitle" class="text-xl font-bold text-header-color">Side-by-Side Comparison</h3>
+                 <button id="closeCellModalBtn" class="text-gray-400 hover:text-white text-3xl leading-none">&times;</button>
+            </div>
+            <div id="cellModalContent" class="overflow-y-auto dark-scrollbar pr-2">
+            </div>
+        </div>
+    </div>
+
+    <!-- Drilldown Modal (for Stat Analysis) -->
+    <div id="drilldown-modal-container"></div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0"></script>
+    <script type="module">
+        const loader = document.getElementById('loader');
+        const mainContent = document.getElementById('main-content');
+        const analyzeBtn = document.getElementById('analyze-btn');
+        const resultsContainer = document.getElementById('results-container');
+        const decklist1Text = document.getElementById('decklist1');
+        const decklist2Text = document.getElementById('decklist2');
+
+        const deckLoadModal = document.getElementById('deckLoadModal');
+        const ctlBreakdownModal = document.getElementById('ctlBreakdownModal');
+        const matchupDetailModal = document.getElementById('matchupDetailModal');
+        const cellComparisonModal = document.getElementById('cellComparisonModal');
+
+        const deckListContainer = document.getElementById('deckListContainer');
+        const deckSearchInput = document.getElementById('deckSearchInput');
+        const ctlModalTitle = document.getElementById('ctlModalTitle');
+        const ctlModalContent = document.getElementById('ctlModalContent');
+        const matchupModalTitle = document.getElementById('matchupModalTitle');
+        const matchupModalContent = document.getElementById('matchupModalContent');
+        const cellModalTitle = document.getElementById('cellModalTitle');
+        const cellModalContent = document.getElementById('cellModalContent');
+        
+        const closeDeckModalBtn = document.getElementById('closeDeckModalBtn');
+        const closeCtlModalBtn = document.getElementById('closeCtlModalBtn');
+        const closeMatchupModalBtn = document.getElementById('closeMatchupModalBtn');
+        const closeCellModalBtn = document.getElementById('closeCellModalBtn');
+
+        const loadDeck1Btn = document.getElementById('loadDeck1Btn');
+        const loadDeck2Btn = document.getElementById('loadDeck2Btn');
+
+        let allCards = [];
+        let cardDataMap = new Map();
+
+        const SUPABASE_URL = 'https://cjlhrfhximjldqrfblkj.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNqbGhyZmh4aW1qbGRxcmZibGtqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA0MTcxNzQsImV4cCI6MjA2NTk5MzE3NH0.zLiQcPnKt2SnNfQIkUnOG7bOo6F7MPMh8MsasdFF6lw';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        let allDecks = [];
+        let deckFuse;
+        let deckLoadTarget = null;
+
+        const INK_COLORS = {
+            Amber: { hex: '#FCD34D', name: 'Amber' }, Amethyst: { hex: '#C084FC', name: 'Amethyst' },
+            Emerald: { hex: '#34D399', name: 'Emerald' }, Ruby: { hex: '#F87171', name: 'Ruby' },
+            Sapphire: { hex: '#60A5FA', name: 'Sapphire' }, Steel: { hex: '#9CA3AF', name: 'Steel' }
+        };
+
+        async function initialize() {
+            loader.classList.remove('hidden');
+            try {
+                const [cardsResponse, _] = await Promise.all([
+                    fetch('https://cdn.jsdelivr.net/gh/heavenideas/similcana/database/allCards.json'),
+                    UnifiedWinProbabiliyCalculation.loadAbilitiesConfig(),
+                    fetchDecksFromDatabase()
+                ]);
+                
+                if (!cardsResponse.ok) throw new Error('Failed to load card database.');
+                
+                const cardsJson = await cardsResponse.json();
+                allCards = cardsJson.cards;
+                
+                allCards.forEach(card => {
+                    cardDataMap.set(card.fullName.toLowerCase().trim(), card);
+                    cardDataMap.set(card.simpleName.toLowerCase().trim(), card);
+                });
+
+                CardStatAnalysisModule.initialize(allCards, INK_COLORS);
+
+                mainContent.classList.remove('hidden');
+            } catch (error) {
+                loader.innerHTML = `<p class="text-red-500">Error: Could not load essential data. Please refresh. ${error.message}</p>`;
+                console.error("Initialization failed:", error);
+            } finally {
+                if(mainContent.classList.contains('hidden')) {
+                } else {
+                    loader.classList.add('hidden');
+                }
+            }
+        }
+
+        async function fetchDecksFromDatabase() {
+            const { data, error } = await supabaseClient.from('decks').select('*').order('created_at', { ascending: true });
+            if (error) {
+              console.error('Error fetching decks:', error);
+              allDecks = [];
+            } else {
+              allDecks = data;
+            }
+            deckFuse = new Fuse(allDecks, { keys: ['name'], includeScore: true, threshold: 0.4 });
+        }
+
+        function renderDeckList(decksToRender) {
+            deckListContainer.innerHTML = !decksToRender.length ? '<p class="text-gray-400 italic text-center">No decks found.</p>' : '';
+            decksToRender.forEach(deck => {
+              const btn = document.createElement('button');
+              btn.className = 'w-full text-left p-3 rounded-md hover:bg-accent-color/20 focus:bg-accent-color/30 focus:outline-none transition-colors font-semibold text-text-color';
+              btn.textContent = deck.name;
+              btn.addEventListener('click', () => {
+                decklist1Text.value = deckLoadTarget === 'deck1' ? (deck.decklist || '') : decklist1Text.value;
+                decklist2Text.value = deckLoadTarget === 'deck2' ? (deck.decklist || '') : decklist2Text.value;
+                hideDeckModal();
+              });
+              deckListContainer.appendChild(btn);
+            });
+        }
+
+        function showDeckModal(target) {
+            deckLoadTarget = target;
+            deckLoadModal.classList.remove('opacity-0', 'pointer-events-none');
+            deckSearchInput.value = '';
+            renderDeckList(allDecks);
+            deckSearchInput.focus();
+        }
+
+        function hideDeckModal() {
+            deckLoadModal.classList.add('opacity-0', 'pointer-events-none');
+            deckLoadTarget = null;
+        }
+        
+        function showCtlBreakdownModal(card) {
+            ctlModalTitle.innerHTML = `Card Threat Level Inspector`;
+            ctlModalContent.innerHTML = getInspectorHtml(card, 'single');
+            setupInspectorEventListeners(ctlModalContent, card);
+            ctlBreakdownModal.classList.remove('opacity-0', 'pointer-events-none');
+        }
+        function hideCtlBreakdownModal() { ctlBreakdownModal.classList.add('opacity-0', 'pointer-events-none'); }
+        
+        function getInspectorHtml(card, contextId) {
+            const { rds, lvi, bcr, breakdown } = UnifiedWinProbabiliyCalculation.calculateCardMetrics(card);
+            const { highlightedHtml } = analyzeAndHighlightText(card.fullText || (card.fullTextSections || []).join('\n'));
+            const ctl = rds + lvi + bcr;
+
+            // Use contextId to make tab IDs unique if needed, e.g. for the comparison modal
+            const threatTabId = `threat-tab-${contextId}`;
+            const statsTabId = `stats-tab-${contextId}`;
+
+            return `
+                <div class="tab-container h-full">
+                    <div class="tab-buttons border-b border-border-color mb-4">
+                        <button class="tab-button active py-2 px-4" data-tab="${threatTabId}">Threat Analysis</button>
+                        <button class="tab-button py-2 px-4" data-tab="${statsTabId}">Stat Comparisons</button>
+                    </div>
+                    <div class="tab-content flex-grow overflow-y-auto dark-scrollbar pr-2">
+                        <div id="${threatTabId}" class="tab-pane active">
+                            <h3 class="text-xl font-bold text-slate-100 mb-4">${card.fullName}</h3>
+                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <img src="${card.images.full}" alt="${card.fullName}" class="w-full rounded-lg mb-4">
+                                    <div class="grid grid-cols-2 gap-4 text-center">
+                                        <div class="bg-purple-900/40 rounded-xl p-3" title="Threat Level = RDS + LVI + BCR">
+                                            <div class="text-sm text-slate-400">CTL</div>
+                                            <div class="text-2xl font-bold text-purple-400">${ctl.toFixed(2)}</div>
+                                        </div>
+                                        <div class="bg-sky-900/40 rounded-xl p-3">
+                                            <div class="text-sm text-slate-400">RDS</div>
+                                            <div class="text-2xl font-bold text-sky-400">${rds.toFixed(2)}</div>
+                                        </div>
+                                        <div class="bg-amber-900/40 rounded-xl p-3">
+                                            <div class="text-sm text-slate-400">LVI</div>
+                                            <div class="text-2xl font-bold text-amber-400">${lvi.toFixed(2)}</div>
+                                        </div>
+                                        <div class="bg-rose-900/40 rounded-xl p-3">
+                                            <div class="text-sm text-slate-400">BCR</div>
+                                            <div class="text-2xl font-bold text-rose-400">${bcr.toFixed(2)}</div>
+                                        </div>
+                                    </div>
+                                     <div class="p-4 bg-secondary-color rounded-lg mt-4 prose prose-invert max-w-none text-sm">${highlightedHtml}</div>
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold text-slate-300 mb-2">Calculation Breakdown:</h4>
+                                    <div class="space-y-2">${getCtlBreakdownHtml(card)}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="${statsTabId}" class="tab-pane">
+                            <div class="stat-analysis-content">${CardStatAnalysisModule.renderCompleteAnalysis(card)}</div>
+                        </div>
+                    </div>
+                </div>`;
+        }
+
+        function setupInspectorEventListeners(container, card) {
+            container.querySelectorAll('.tab-button').forEach(button => {
+                button.addEventListener('click', () => {
+                    const targetTabId = button.dataset.tab;
+                    container.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+                    container.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
+                    button.classList.add('active');
+                    container.querySelector(`#${targetTabId}`).classList.add('active');
+                });
+            });
+
+            container.querySelector('.stat-analysis-content')?.addEventListener('click', (event) => {
+                CardStatAnalysisModule.handleStatItemClick(event, card, showDrillDownModal);
+            });
+        }
+        
+        function getCtlBreakdownHtml(card) {
+            const metrics = UnifiedWinProbabiliyCalculation.calculateCardMetrics(card);
+            if (metrics.breakdown.length === 0) return `<p class="text-gray-400">No specific abilities found. Scores based on stats.</p>`;
+            return metrics.breakdown.map(item => `
+                <div class="bg-secondary-color p-3 rounded-lg">
+                    <p class="font-bold text-accent-color">${item.abilityName}</p>
+                    <p class="text-sm">Contributes <span class="font-mono">${item.value.toFixed(2)}</span> to <span class="font-semibold">${item.metric.replace(/_/g, ' ')}</span></p>
+                    <p class="text-xs text-gray-400 mt-1">${item.explanation}</p>
+                </div>
+            `).join('');
+        }
+        
+        function showDrillDownModal(criteria, title, analyzedCard, colorFilter) {
+            const container = document.getElementById('drilldown-modal-container');
+            const modalHtml = `
+                <div id="drilldown-modal" class="fixed inset-0 z-[80] flex items-center justify-center bg-black bg-opacity-90 p-4">
+                    <div class="bg-primary-color border border-border-color rounded-lg shadow-xl w-full max-w-4xl h-[80vh] flex flex-col">
+                        <div class="flex justify-between items-center mb-4 flex-shrink-0 px-6 pt-6">
+                            <h3 class="text-xl font-bold text-slate-100">${title}</h3>
+                            <button id="close-drilldown-btn" class="text-gray-400 hover:text-white text-3xl">&times;</button>
+                        </div>
+                        <div id="drilldown-content" class="flex-grow overflow-y-auto px-6 pb-6 dark-scrollbar"></div>
+                    </div>
+                </div>`;
+            container.innerHTML = modalHtml;
+            
+            const matchingCards = CardStatAnalysisModule.findMatchingCards(criteria, analyzedCard);
+            let cardsToShow = criteria.type === 'static' ? matchingCards.filter(c => c.id !== analyzedCard.id) : matchingCards;
+            if (colorFilter) {
+                cardsToShow = cardsToShow.filter(c => CardStatAnalysisModule.getCardColors(c).includes(colorFilter));
+            }
+            const contentEl = container.querySelector('#drilldown-content');
+            contentEl.innerHTML = cardsToShow.length === 0 
+                ? '<div class="text-center text-gray-400 py-8">No matching cards found.</div>'
+                : `<div class="flex flex-wrap justify-center gap-2">${cardsToShow.map(card => `<img src="${card.images.thumbnail}" alt="${card.fullName}" class="w-24 rounded-md" title="${card.fullName}">`).join('')}</div>`;
+
+            container.querySelector('#close-drilldown-btn').addEventListener('click', () => container.innerHTML = '');
+        }
+
+        function showMatchupDetailModal(title, cards) {
+            matchupModalTitle.textContent = title;
+            let contentHtml = `<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">`;
+            if (cards.length === 0) {
+                contentHtml = `<p class="text-gray-400 col-span-full text-center">No cards fit this category.</p>`;
+            } else {
+                cards.forEach(card => {
+                    const metrics = UnifiedWinProbabiliyCalculation.calculateCardMetrics(card);
+                    const ctl = metrics.rds + metrics.lvi + metrics.bcr;
+                    const cardDataString = JSON.stringify(card).replace(/'/g, "&apos;");
+                    contentHtml += `
+                        <div class="flex flex-col items-center text-center p-2 rounded-lg bg-secondary-color matchup-card-item" data-card='${cardDataString}'>
+                            <img src="${card.images.thumbnail}" alt="${card.fullName}" class="card-image mb-2">
+                            <h4 class="text-sm font-semibold leading-tight">${card.name}</h4>
+                            <div class="text-xs font-bold text-purple-400 mt-2">CTL: ${ctl.toFixed(2)}</div>
+                            <div class="w-full mt-1 space-y-1 text-xs">
+                                ${generateCtlBar('BCR', metrics.bcr, true)}
+                                ${generateCtlBar('RDS', metrics.rds, true)}
+                                ${generateCtlBar('LVI', metrics.lvi, true)}
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            contentHtml += `</div>`;
+            matchupModalContent.innerHTML = contentHtml;
+            matchupDetailModal.classList.remove('opacity-0', 'pointer-events-none');
+        }
+        function hideMatchupDetailModal() { matchupDetailModal.classList.add('opacity-0', 'pointer-events-none'); }
+
+        function showCellComparisonModal(card1, card2) {
+            const matchup = getSingleMatchupOutcome(card1, card2);
+            cellModalTitle.innerHTML = `Comparison: <span class="text-accent-color">${matchup.description}</span>`;
+            
+            let contentHtml = `
+                <div class="tab-buttons border-b border-border-color mb-4">
+                    <button class="comparison-tab-button active py-2 px-4" data-tab="threat">Threat Analysis</button>
+                    <button class="comparison-tab-button py-2 px-4" data-tab="stats">Stat Comparisons</button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div id="comparison-card1-content"></div>
+                    <div id="comparison-card2-content"></div>
+                </div>`;
+            cellModalContent.innerHTML = contentHtml;
+
+            const card1Content = cellModalContent.querySelector('#comparison-card1-content');
+            const card2Content = cellModalContent.querySelector('#comparison-card2-content');
+
+            function renderTabs(activeTab) {
+                if (activeTab === 'threat') {
+                    card1Content.innerHTML = `<h4 class="text-lg font-bold mb-2 text-center">${card1.fullName}</h4><div class="bg-secondary-color rounded-lg p-4">${getInspectorHtml(card1, 'comp1')}</div>`;
+                    card2Content.innerHTML = `<h4 class="text-lg font-bold mb-2 text-center">${card2.fullName}</h4><div class="bg-secondary-color rounded-lg p-4">${getInspectorHtml(card2, 'comp2')}</div>`;
+                } else { // stats tab
+                    card1Content.innerHTML = `<h4 class="text-lg font-bold mb-2 text-center">${card1.fullName}</h4><div class="bg-secondary-color rounded-lg p-4">${CardStatAnalysisModule.renderCompleteAnalysis(card1)}</div>`;
+                    card2Content.innerHTML = `<h4 class="text-lg font-bold mb-2 text-center">${card2.fullName}</h4><div class="bg-secondary-color rounded-lg p-4">${CardStatAnalysisModule.renderCompleteAnalysis(card2)}</div>`;
+                }
+                
+                // Re-attach event listeners for stat items
+                card1Content.querySelector('.stat-grid')?.addEventListener('click', (event) => CardStatAnalysisModule.handleStatItemClick(event, card1, showDrillDownModal));
+                card2Content.querySelector('.stat-grid')?.addEventListener('click', (event) => CardStatAnalysisModule.handleStatItemClick(event, card2, showDrillDownModal));
+            }
+            
+            renderTabs('threat');
+
+            cellModalContent.querySelectorAll('.comparison-tab-button').forEach(button => {
+                button.addEventListener('click', () => {
+                    cellModalContent.querySelectorAll('.comparison-tab-button').forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+                    renderTabs(button.dataset.tab);
+                });
+            });
+
+            cellComparisonModal.classList.remove('opacity-0', 'pointer-events-none');
+        }
+        function hideCellComparisonModal() { cellComparisonModal.classList.add('opacity-0', 'pointer-events-none'); }
+
+        function parseDecklist(decklistText) {
+            const deck = new Map();
+            const lines = decklistText.split('\n').filter(line => line.trim() !== '');
+            const cardRegex = /^(?:(\d+)x?\s)?(.+?)(?:\s-\s(.+))?$/;
+            lines.forEach(line => {
+                const match = line.trim().match(cardRegex);
+                if (match) {
+                    const count = parseInt(match[1] || '1', 10);
+                    let fullName = match[2].trim();
+                    if(match[3]) fullName += ` - ${match[3].trim()}`;
+                    const cardData = cardDataMap.get(fullName.toLowerCase());
+                    if (cardData) {
+                        const existing = deck.get(cardData.fullName);
+                        deck.set(cardData.fullName, { ...cardData, count: existing ? existing.count + count : count });
+                    } else console.warn(`Card not found: "${fullName}"`);
+                }
+            });
+             return Array.from(deck.values());
+        }
+        
+        function analyzeDecks() {
+            resultsContainer.innerHTML = '<div class="text-center my-8"><div class="inline-block w-10 h-10 border-4 rounded-full loader animate-spin" role="status"></div><p class="mt-3">Analyzing...</p></div>';
+            const deck1 = parseDecklist(decklist1Text.value);
+            const deck2 = parseDecklist(decklist2Text.value);
+            if (deck1.length === 0 || deck2.length === 0) {
+                resultsContainer.innerHTML = '<p class="text-center text-red-500">Please enter valid decklists in both text areas.</p>';
+                return;
+            }
+            setTimeout(() => {
+                const matrixHtml = generateFullMatrixHtml(deck1, deck2);
+                const breakdownHtml = generateCardByCardBreakdownHtml(deck1, deck2);
+                resultsContainer.innerHTML = matrixHtml + breakdownHtml;
+            }, 50);
+        }
+
+        function getSingleMatchupOutcome(card1, card2) {
+            if (card1.type !== 'Character' || card2.type !== 'Character') return { outcome: 'No Combat', colorClass: 'outcome-no-combat', description: 'Non-character interaction', symbol: '' };
+            const c1s = card1.strength || 0, c1w = card1.willpower || 0, c1c = card1.cost || 0;
+            const c2s = card2.strength || 0, c2w = card2.willpower || 0, c2c = card2.cost || 0;
+            const c1BanishesC2 = c2w > 0 && c2w <= c1s;
+            const c2BanishesC1 = c1w > 0 && c1w <= c2s;
+            if (c1BanishesC2 && !c2BanishesC1) return { outcome: 'Favorable', colorClass: 'outcome-favorable', description: 'Favorable Trade', symbol: '↑' };
+            if (!c1BanishesC2 && c2BanishesC1) return { outcome: 'Unfavorable', colorClass: 'outcome-unfavorable', description: 'Unfavorable Trade', symbol: '↓' };
+            if (c1BanishesC2 && c2BanishesC1) {
+                if (c1c < c2c) return { outcome: 'Mutual-Favorable', colorClass: 'outcome-mutual-fav', description: 'Mutual Banish (Favorable Ink)', symbol: '↔' };
+                if (c1c > c2c) return { outcome: 'Mutual-Unfavorable', colorClass: 'outcome-mutual-unfav', description: 'Mutual Banish (Unfavorable Ink)', symbol: '↔' };
+                return { outcome: 'Mutual-Neutral', colorClass: 'outcome-mutual-neu', description: 'Mutual Banish (Neutral Ink)', symbol: '↔' };
+            }
+            return { outcome: 'Stalemate', colorClass: 'outcome-stalemate', description: 'Stalemate', symbol: '–' };
+        }
+        
+        function analyzeAndHighlightText(originalText) {
+            if (!originalText || originalText.trim() === '') return { highlightedHtml: '', foundPatterns: new Set() };
+            const sanitizedText = originalText.replace(/\n/g, ' ');
+            let allMatches = [];
+            const abilitiesConfig = UnifiedWinProbabiliyCalculation.getAbilitiesConfig();
+            if (!abilitiesConfig || !abilitiesConfig.abilities) return { highlightedHtml: originalText, foundPatterns: new Set() };
+            
+            abilitiesConfig.abilities.forEach(pattern => {
+                if (!pattern.regex) return;
+                
+                try {
+                    const lastSlash = pattern.regex.lastIndexOf('/');
+                    if (lastSlash <= 0) { // must find a slash and it can't be the first char
+                        console.warn('Invalid regex format, skipping:', pattern.regex);
+                        return;
+                    }
+
+                    const regexBody = pattern.regex.substring(1, lastSlash);
+                    const flags = pattern.regex.substring(lastSlash + 1);
+                    const regex = new RegExp(regexBody, flags);
+                    
+                    let match;
+                    while ((match = regex.exec(sanitizedText)) !== null) {
+                        if (match[0].length === 0) continue;
+                        allMatches.push({ name: pattern.name, text: match[0], start: match.index, end: match.index + match[0].length });
+                    }
+                } catch (e) {
+                    console.error(`Failed to process regex for pattern "${pattern.name}":`, pattern.regex, e);
+                }
+            });
+
+            allMatches.sort((a, b) => a.start - b.start || b.end - a.end);
+            const filteredMatches = allMatches.filter((match, i) => {
+                if (i > 0 && match.start < allMatches[i-1].end) return false;
+                return true;
+            });
+
+            let highlightedHtml = "";
+            let lastIndex = 0;
+            const colorPool = ['#fef9c3', '#dbeafe', '#dcfce7', '#fee2e2', '#e0f2fe', '#f3e8ff'];
+            let colorIndex = 0;
+            
+            filteredMatches.forEach(match => {
+                highlightedHtml += originalText.substring(lastIndex, match.start);
+                const color = colorPool[colorIndex++ % colorPool.length];
+                highlightedHtml += `<span class="highlight" style="background-color: ${color};" title="${match.name}">${match.text}</span>`;
+                lastIndex = match.end;
+            });
+            highlightedHtml += originalText.substring(lastIndex);
+            return { highlightedHtml: highlightedHtml.replace(/\n/g, '<br>'), foundPatterns: new Set(filteredMatches.map(m=>m.name)) };
+        }
+
+        function generateFullMatrixHtml(deck1, deck2) {
+            let tableHeader = '<thead><tr><th class="w-[150px] h-[150px]"></th>';
+            deck2.forEach(card => {
+                const metrics = UnifiedWinProbabiliyCalculation.calculateCardMetrics(card);
+                const ctl = metrics.rds + metrics.lvi + metrics.bcr;
+                const cardDataString = JSON.stringify(card).replace(/'/g, "&apos;");
+                tableHeader += `<th class="matrix-header-card" data-card='${cardDataString}'><div class="relative inline-block"><img src="${card.images.thumbnail}" title="${card.fullName}" class="w-24 h-auto mx-auto rounded-md card-image"/><div class="card-copy-badge">${card.count}</div></div><div class="text-xs font-bold mt-1 text-purple-400">CTL: ${ctl.toFixed(2)}</div><div class="w-full mt-1 space-y-0.5 text-xs">${generateCtlBar('BCR', metrics.bcr, true)}${generateCtlBar('RDS', metrics.rds, true)}${generateCtlBar('LVI', metrics.lvi, true)}</div></th>`;
+            });
+            tableHeader += '</tr></thead>';
+            let tableBody = '<tbody>';
+            deck1.forEach((card1, rowIndex) => {
+                const metrics1 = UnifiedWinProbabiliyCalculation.calculateCardMetrics(card1);
+                const ctl1 = metrics1.rds + metrics1.lvi + metrics1.bcr;
+                const card1DataString = JSON.stringify(card1).replace(/'/g, "&apos;");
+                tableBody += `<tr><th class="matrix-header-card" data-card='${card1DataString}'><div class="relative inline-block"><img src="${card1.images.thumbnail}" title="${card1.fullName}" class="w-24 h-auto mx-auto rounded-md card-image"/><div class="card-copy-badge">${card1.count}</div></div><div class="text-xs font-bold mt-1 text-purple-400">CTL: ${ctl1.toFixed(2)}</div><div class="w-full mt-1 space-y-0.5 text-xs">${generateCtlBar('BCR', metrics1.bcr, true)}${generateCtlBar('RDS', metrics1.rds, true)}${generateCtlBar('LVI', metrics1.lvi, true)}</div></th>`;
+                deck2.forEach((card2, colIndex) => {
+                    const matchup = getSingleMatchupOutcome(card1, card2);
+                    tableBody += `<td class="${matchup.colorClass} matrix-cell" data-row="${rowIndex}" data-col="${colIndex}" title="${matchup.description}">${matchup.symbol}</td>`;
+                });
+                tableBody += '</tr>';
+            });
+            tableBody += '</tbody>';
+            return `<div class="mb-12"><h2 class="text-3xl font-bold text-center mb-4 text-header-color">Full Interaction Matrix</h2><div id="matrix-wrapper" class="matrix-container dark-scrollbar" data-deck1='${JSON.stringify(deck1).replace(/'/g, "&apos;")}' data-deck2='${JSON.stringify(deck2).replace(/'/g, "&apos;")}'>
+                        <table class="matrix-table w-full">${tableHeader}${tableBody}</table></div></div>`;
+        }
+
+        function generateCardByCardBreakdownHtml(deck1, deck2) {
+             let html = '<h2 class="text-3xl font-bold text-center mb-8 text-header-color">Per-Card Analysis</h2>';
+            deck1.forEach(card1 => {
+                const metrics1 = UnifiedWinProbabiliyCalculation.calculateCardMetrics(card1);
+                const ctl1 = metrics1.rds + metrics1.lvi + metrics1.bcr;
+                const analysisResults = analyzeCardVsDeck(card1, deck2);
+                const cardDataString = JSON.stringify(card1).replace(/'/g, "&apos;");
+                html += `<div class="bg-primary-color p-6 rounded-lg mb-8 shadow-lg"><div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="flex flex-col items-center text-center main-card-display" data-card='${cardDataString}'><img src="${card1.images.thumbnail}" alt="${card1.fullName}" class="w-48 rounded-lg shadow-md card-image mb-4"><h3 class="text-xl font-bold text-header-color">${card1.fullName}</h3><div class="text-lg font-bold text-purple-400 my-2">CTL: ${ctl1.toFixed(2)}</div><div class="w-full mt-2 space-y-2">${generateCtlBar('BCR', metrics1.bcr)}${generateCtlBar('RDS', metrics1.rds)}${generateCtlBar('LVI', metrics1.lvi)}</div></div>
+                        <div class="lg:col-span-2"><h4 class="text-lg font-semibold mb-4 border-b border-border-color pb-2 text-header-color">Matchup Analysis vs Deck 2</h4><div class="grid grid-cols-2 md:grid-cols-3 gap-4 text-center">${generateStatBox('Favorable Trades', analysisResults.favorable, deck2.length, 'bg-green-600')}${generateStatBox('Unfavorable Trades', analysisResults.unfavorable, deck2.length, 'bg-red-600')}${generateStatBox('Mutual Banish (Favorable Ink)', analysisResults.mutual_favorable_ink, deck2.length, 'bg-green-700')}${generateStatBox('Mutual Banish (Neutral Ink)', analysisResults.mutual_neutral_ink, deck2.length, 'bg-gray-600')}${generateStatBox('Mutual Banish (Unfavorable Ink)', analysisResults.mutual_unfavorable_ink, deck2.length, 'bg-red-700')}${generateStatBox('Stalemates', analysisResults.stalemate, deck2.length, 'bg-blue-600')}</div>
+                             <div class="mt-6"><h5 class="text-md font-semibold mb-3 text-header-color">Top 5 Favorable Targets:</h5><div class="flex flex-wrap gap-2">${analysisResults.favorable.slice(0, 5).map(c => `<img src="${c.images.thumbnail}" alt="${c.fullName}" class="w-20 rounded-md" title="${c.fullName}">`).join('') || '<p class="text-gray-400">None</p>'}</div></div>
+                              <div class="mt-4"><h5 class="text-md font-semibold mb-3 text-header-color">Top 5 Unfavorable Threats:</h5><div class="flex flex-wrap gap-2">${analysisResults.unfavorable.slice(0, 5).map(c => `<img src="${c.images.thumbnail}" alt="${c.fullName}" class="w-20 rounded-md" title="${c.fullName}">`).join('') || '<p class="text-gray-400">None</p>'}</div></div></div></div></div>`;
+            });
+            return html;
+        }
+        
+        function generateCtlBar(name, value, isSmall = false) {
+            const maxValue = 5;
+            const percentage = Math.min((Math.abs(value) / maxValue) * 100, 100);
+            let colorClass = 'bg-blue-500';
+            if (name === 'BCR') colorClass = 'bg-red-500';
+            if (name === 'RDS') colorClass = 'bg-green-500';
+            const barHeight = isSmall ? 'h-2' : 'h-4';
+            const textSize = isSmall ? 'text-xs' : 'text-sm';
+            return `<div class="flex items-center"><span class="w-10 font-semibold ${textSize}">${name}</span><div class="w-full ${barHeight} rounded-full ctl-bar overflow-hidden mx-2"><div class="h-full rounded-full ctl-fill ${colorClass}" style="width: ${percentage}%"></div></div><span class="w-10 text-right font-mono ${textSize}">${value.toFixed(2)}</span></div>`;
+        }
+        
+        function generateStatBox(title, cards, total, bgColorClass) {
+            const count = cards.length;
+            const percentage = total > 0 ? ((count / total) * 100).toFixed(0) : 0;
+            const cardData = JSON.stringify(cards).replace(/'/g, "&apos;");
+            return `<div class="p-3 rounded-lg bg-secondary-color stat-box-clickable cursor-pointer" data-cards='${cardData}' data-title="${title}"><p class="text-sm text-gray-300 pointer-events-none">${title}</p><p class="text-2xl font-bold text-header-color pointer-events-none">${count}</p><div class="w-full h-2 rounded-full bg-gray-700 mt-2 pointer-events-none"><div class="h-2 rounded-full ${bgColorClass}" style="width: ${percentage}%"></div></div></div>`;
+        }
+
+        function analyzeCardVsDeck(analyzedCard, opponentDeck) {
+            const results = { favorable: [], unfavorable: [], mutual_favorable_ink: [], mutual_neutral_ink: [], mutual_unfavorable_ink: [], stalemate: [] };
+            if (analyzedCard.type !== 'Character') return results;
+            const opponentCharacters = opponentDeck.filter(c => c.type === 'Character');
+            opponentCharacters.forEach(opponentCard => {
+                const outcome = getSingleMatchupOutcome(analyzedCard, opponentCard);
+                const keyMap = { 'Favorable': 'favorable', 'Unfavorable': 'unfavorable', 'Mutual-Favorable': 'mutual_favorable_ink', 'Mutual-Neutral': 'mutual_neutral_ink', 'Mutual-Unfavorable': 'mutual_unfavorable_ink', 'Stalemate': 'stalemate' };
+                if (keyMap[outcome.outcome]) results[keyMap[outcome.outcome]].push(opponentCard);
+            });
+            return results;
+        }
+
+        analyzeBtn.addEventListener('click', analyzeDecks);
+        loadDeck1Btn.addEventListener('click', () => showDeckModal('deck1'));
+        loadDeck2Btn.addEventListener('click', () => showDeckModal('deck2'));
+        closeDeckModalBtn.addEventListener('click', hideDeckModal);
+        closeCtlModalBtn.addEventListener('click', hideCtlBreakdownModal);
+        closeMatchupModalBtn.addEventListener('click', hideMatchupDetailModal);
+        closeCellModalBtn.addEventListener('click', hideCellComparisonModal);
+
+        deckSearchInput.addEventListener('input', () => {
+            const searchTerm = deckSearchInput.value.trim();
+            renderDeckList(!searchTerm ? allDecks : deckFuse.search(searchTerm).map(r => r.item));
+        });
+
+        resultsContainer.addEventListener('click', (event) => {
+            const cardDisplay = event.target.closest('.main-card-display, .matrix-header-card');
+            if (cardDisplay && cardDisplay.dataset.card) return showCtlBreakdownModal(JSON.parse(cardDisplay.dataset.card));
+            
+            const statBox = event.target.closest('.stat-box-clickable');
+            if (statBox && statBox.dataset.cards) return showMatchupDetailModal(statBox.dataset.title, JSON.parse(statBox.dataset.cards));
+            
+            const matrixCell = event.target.closest('.matrix-cell');
+            if(matrixCell?.dataset.row) {
+                const wrapper = document.getElementById('matrix-wrapper');
+                const deck1 = JSON.parse(wrapper.dataset.deck1);
+                const deck2 = JSON.parse(wrapper.dataset.deck2);
+                showCellComparisonModal(deck1[+matrixCell.dataset.row], deck2[+matrixCell.dataset.col]);
+            }
+        });
+        
+        matchupDetailModal.addEventListener('click', (event) => {
+            const cardItem = event.target.closest('.matchup-card-item');
+            if (cardItem?.dataset.card) showCtlBreakdownModal(JSON.parse(cardItem.dataset.card));
+        });
+        
+        initialize();
+    </script>
+</body>
+</html>
+
+
