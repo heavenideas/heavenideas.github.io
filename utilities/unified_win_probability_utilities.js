@@ -23,7 +23,9 @@ const UnifiedWinProbabiliyCalculation = (function() {
      */
     async function loadAbilitiesConfig() {
         try {
-            const response = await fetch(ABILITIES_URL);
+            // Append a cache-busting query string with current timestamp
+            const urlNoCache = `${ABILITIES_URL}?v=${new Date().getTime()}`;   
+            const response = await fetch(urlNoCache);
             if (!response.ok) {
                 throw new Error(`Network response was not ok: ${response.statusText}`);
             }
