@@ -113,6 +113,19 @@
                     <textarea id="decklist2" class="w-full h-64 bg-gray-800 border border-gray-600 rounded-lg p-3 text-sm focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition"></textarea>
                 </div>
             </div>
+
+            <!-- Load Simulation Section -->
+            <div class="mb-6">
+                <h3 class="text-lg font-semibold mb-2 text-center">Or Load a Saved Simulation</h3>
+                <div class="flex justify-center items-center gap-4">
+                    <input type="file" id="simulation-file-input" accept=".json" class="hidden">
+                    <button id="load-simulation-btn" class="bg-green-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-green-700 transition disabled:bg-gray-700 disabled:cursor-not-allowed">
+                        Load Simulation
+                    </button>
+                    <span id="loaded-file-name" class="text-sm text-gray-400"></span>
+                </div>
+            </div>
+
             <button id="start-button" class="bg-indigo-600 text-white font-bold py-3 px-8 rounded-lg text-xl hover:bg-indigo-700 transition-transform hover:scale-105 disabled:bg-gray-700 disabled:cursor-not-allowed disabled:scale-100" disabled>
                 Start Simulation
             </button>
@@ -141,7 +154,12 @@
 
             <!-- Central Game Log -->
             <div id="game-log-panel" class="bg-gray-800/50 backdrop-blur-sm rounded-lg p-4 flex flex-col border border-gray-500/30 overflow-y-auto">
-                <h2 id="turn-marker" class="text-2xl font-bold mb-4 border-b-2 border-gray-400 pb-2 text-center">Game Log</h2>
+                <div class="flex justify-between items-center mb-4 border-b-2 border-gray-400 pb-2">
+                    <h2 id="turn-marker" class="text-2xl font-bold text-center">Game Log</h2>
+                    <button id="export-simulation-btn" class="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition text-sm" style="display: none;">
+                        Export Simulation
+                    </button>
+                </div>
                 <div id="log-entries" class="flex-grow overflow-y-auto flex flex-col-reverse"></div>
             </div>
 
@@ -535,6 +553,8 @@
         let cardData = [];
         let cardNameMap = new Map();
         let game = null;
+        let loadedSimulationData = null;
+        let isLoadedSimulation = false;
 
         const SUPABASE_URL = 'https://cjlhrfhximjldqrfblkj.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNqbGhyZmh4aW1qbGRxcmZibGtqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA0MTcxNzQsImV4cCI6MjA2NTk5MzE3NH0.zLiQcPnKt2SnNfQIkUnOG7bOo6F7MPMh8MsasdFF6lw';
@@ -653,6 +673,65 @@
         function hideDeckModal() {
             deckLoadModal.classList.add('hidden');
             deckLoadTarget = null;
+        }
+
+        function loadSimulationFromFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const simulationData = JSON.parse(e.target.result);
+                        resolve(simulationData);
+                    } catch (error) {
+                        reject(new Error('Invalid JSON file format'));
+                    }
+                };
+                reader.onerror = () => reject(new Error('Failed to read file'));
+                reader.readAsText(file);
+            });
+        }
+
+        function exportSimulationToFile() {
+            if (!game) return;
+
+            const simulationData = {
+                gameState: game.getGameState(),
+                boardStates: game.boardStates,
+                timestamp: new Date().toISOString(),
+                version: '1.0'
+            };
+
+            const dataStr = JSON.stringify(simulationData, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(dataBlob);
+            link.download = `lorcana_simulation_${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function loadSimulationIntoGame(simulationData) {
+            // Create a new game instance and populate it with loaded data
+            game = new InkTableGame();
+            game.players = simulationData.gameState.players.map(p => {
+                const player = new Player(p.playerNumber, [], false);
+                player.lore = p.lore;
+                player.characters = p.characters.map(c => new Card(c));
+                player.hand = p.hand.map(c => new Card(c));
+                player.deck = []; // Empty deck for loaded games
+                player.discard = [];
+                player.inkwell = [];
+                player.turnInked = false;
+                return player;
+            });
+            game.currentPlayer = simulationData.gameState.currentPlayer;
+            game.turnNumber = simulationData.gameState.turnNumber;
+            game.gameState = simulationData.gameState.gameState;
+            game.winner = simulationData.gameState.winner;
+            game.gameLog = simulationData.gameState.gameLog;
+            game.boardStates = simulationData.boardStates;
         }
 
         async function initialize() {
@@ -802,6 +881,13 @@
         });
         
         async function runSimulation() {
+            if (isLoadedSimulation) {
+                // For loaded simulations, just show the final state
+                renderGameState(game.getGameState());
+                document.getElementById('export-simulation-btn').style.display = 'block';
+                return;
+            }
+
             // ** FIX: PROPERLY START THE FIRST TURN FOR PLAYER 1 **
             const firstPlayer = game.getCurrentPlayer();
             firstPlayer.readyAllCards();
@@ -815,26 +901,50 @@
                 renderGameState(game.getGameState());
                 await new Promise(resolve => setTimeout(resolve, 300));
             }
+
+            // Show export button when simulation ends
+            document.getElementById('export-simulation-btn').style.display = 'block';
         }
 
         startButton.addEventListener('click', () => {
             hideError(); // Hide previous errors
-            const deck1Ids = parseDecklist(decklist1El.value);
-            const deck2Ids = parseDecklist(decklist2El.value);
 
-            if (deck1Ids && deck2Ids) {
+            if (loadedSimulationData) {
+                // Load from saved simulation
                 try {
-                    game = new InkTableGame();
-                    game.initGame(deck1Ids, deck2Ids);
+                    loadSimulationIntoGame(loadedSimulationData);
+                    isLoadedSimulation = true;
                     lastLogCount = 0;
                     logEntriesContainer.innerHTML = '';
                     setupView.classList.add('hidden');
                     simulationView.classList.remove('hidden');
                     renderGameState(game.getGameState());
-                    runSimulation();
+                    // Don't run simulation for loaded games
+                    document.getElementById('export-simulation-btn').style.display = 'block';
                 } catch(e) {
-                    showError(e.message);
+                    showError('Failed to load simulation: ' + e.message);
                     console.error(e);
+                }
+            } else {
+                // Start new simulation
+                const deck1Ids = parseDecklist(decklist1El.value);
+                const deck2Ids = parseDecklist(decklist2El.value);
+
+                if (deck1Ids && deck2Ids) {
+                    try {
+                        game = new InkTableGame();
+                        game.initGame(deck1Ids, deck2Ids);
+                        isLoadedSimulation = false;
+                        lastLogCount = 0;
+                        logEntriesContainer.innerHTML = '';
+                        setupView.classList.add('hidden');
+                        simulationView.classList.remove('hidden');
+                        renderGameState(game.getGameState());
+                        runSimulation();
+                    } catch(e) {
+                        showError(e.message);
+                        console.error(e);
+                    }
                 }
             }
         });
@@ -846,6 +956,36 @@
         deckSearchInput.addEventListener('input', () => {
             const searchTerm = deckSearchInput.value.trim();
             renderDeckList(!searchTerm ? allDecks : deckFuse.search(searchTerm).map(r => r.item));
+        });
+
+        // Load simulation button
+        document.getElementById('load-simulation-btn').addEventListener('click', () => {
+            document.getElementById('simulation-file-input').click();
+        });
+
+        // File input change handler
+        document.getElementById('simulation-file-input').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                try {
+                    loadedSimulationData = await loadSimulationFromFile(file);
+                    document.getElementById('loaded-file-name').textContent = `Loaded: ${file.name}`;
+                    document.getElementById('load-simulation-btn').textContent = 'File Loaded - Click Start';
+                    document.getElementById('load-simulation-btn').classList.add('bg-green-700');
+                    startButton.disabled = false;
+                } catch (error) {
+                    showError('Failed to load simulation file: ' + error.message);
+                    loadedSimulationData = null;
+                    document.getElementById('loaded-file-name').textContent = '';
+                    document.getElementById('load-simulation-btn').textContent = 'Load Simulation';
+                    document.getElementById('load-simulation-btn').classList.remove('bg-green-700');
+                }
+            }
+        });
+
+        // Export simulation button
+        document.getElementById('export-simulation-btn').addEventListener('click', () => {
+            exportSimulationToFile();
         });
 
         // Initialize the app on load
