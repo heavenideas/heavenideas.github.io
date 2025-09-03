@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Disney Lorcana AI Match Simulator</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0"></script>
     <style>
         /* Custom dark theme and layout styles */
         body {
@@ -42,6 +44,41 @@
             background-color: rgba(59, 130, 246, 0.3);
             border-left: 4px solid #3b82f6;
         }
+
+        /* Player area backgrounds */
+        .player1-board-bg {
+            background: linear-gradient(135deg, rgba(6, 182, 212, 0.08) 0%, rgba(6, 182, 212, 0.03) 50%, rgba(0, 0, 0, 0.25) 100%);
+            border: 2px solid rgba(6, 182, 212, 0.3);
+            box-shadow: inset 0 1px 3px rgba(6, 182, 212, 0.1);
+        }
+        .player1-hand-bg {
+            background: linear-gradient(135deg, rgba(6, 182, 212, 0.04) 0%, rgba(6, 182, 212, 0.02) 50%, rgba(0, 0, 0, 0.2) 100%);
+            border: 2px solid rgba(6, 182, 212, 0.2);
+            box-shadow: inset 0 1px 2px rgba(6, 182, 212, 0.05);
+        }
+        .player2-board-bg {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(245, 158, 11, 0.03) 50%, rgba(0, 0, 0, 0.25) 100%);
+            border: 2px solid rgba(245, 158, 11, 0.3);
+            box-shadow: inset 0 1px 3px rgba(245, 158, 11, 0.1);
+        }
+        .player2-hand-bg {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.04) 0%, rgba(245, 158, 11, 0.02) 50%, rgba(0, 0, 0, 0.2) 100%);
+            border: 2px solid rgba(245, 158, 11, 0.2);
+            box-shadow: inset 0 1px 2px rgba(245, 158, 11, 0.05);
+        }
+
+        /* Area labels */
+        .area-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            opacity: 0.8;
+            margin-bottom: 0.5rem;
+            text-align: center;
+        }
+        .player1 .area-label { color: rgba(6, 182, 212, 0.9); }
+        .player2 .area-label { color: rgba(245, 158, 11, 0.9); }
     </style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -62,11 +99,17 @@
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div>
-                    <label for="decklist1" class="block mb-2 text-lg font-semibold text-left">Player 1 Deck</label>
+                    <div class="flex justify-between items-center mb-2">
+                        <label for="decklist1" class="text-lg font-semibold text-left">Player 1 Deck</label>
+                        <button id="loadDeck1Btn" class="bg-gray-600 text-white font-bold py-1 px-3 rounded-lg text-sm hover:bg-gray-500 transition">Load from DB</button>
+                    </div>
                     <textarea id="decklist1" class="w-full h-64 bg-gray-800 border border-gray-600 rounded-lg p-3 text-sm focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 outline-none transition"></textarea>
                 </div>
                 <div>
-                    <label for="decklist2" class="block mb-2 text-lg font-semibold text-left">Player 2 Deck</label>
+                    <div class="flex justify-between items-center mb-2">
+                        <label for="decklist2" class="text-lg font-semibold text-left">Player 2 Deck</label>
+                        <button id="loadDeck2Btn" class="bg-gray-600 text-white font-bold py-1 px-3 rounded-lg text-sm hover:bg-gray-500 transition">Load from DB</button>
+                    </div>
                     <textarea id="decklist2" class="w-full h-64 bg-gray-800 border border-gray-600 rounded-lg p-3 text-sm focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition"></textarea>
                 </div>
             </div>
@@ -86,8 +129,14 @@
             <div id="player1-panel" class="bg-gray-800/50 backdrop-blur-sm rounded-lg p-4 flex flex-col border border-cyan-500/30">
                 <h2 class="text-2xl font-bold mb-4 border-b-2 border-cyan-400 pb-2 text-cyan-300">Player 1</h2>
                 <div id="player1-stats" class="grid grid-cols-2 gap-2 mb-4 text-center"></div>
-                <div id="player1-board" class="flex-grow overflow-y-auto grid grid-cols-3 sm:grid-cols-4 gap-2 p-2 bg-black/20 rounded-md min-h-[200px]"></div>
-                <div id="player1-hand" class="flex-grow overflow-y-auto grid grid-cols-3 sm:grid-cols-4 gap-2 p-2 bg-black/20 rounded-md min-h-[100px] mt-2"></div>
+                <div class="mb-2">
+                    <div class="area-label">Battlefield</div>
+                    <div id="player1-board" class="flex-grow overflow-y-auto grid grid-cols-3 sm:grid-cols-4 gap-2 p-2 player1-board-bg rounded-md min-h-[200px]"></div>
+                </div>
+                <div class="mt-2">
+                    <div class="area-label">Hand</div>
+                    <div id="player1-hand" class="flex-grow overflow-y-auto grid grid-cols-3 sm:grid-cols-4 gap-2 p-2 player1-hand-bg rounded-md min-h-[100px]"></div>
+                </div>
             </div>
 
             <!-- Central Game Log -->
@@ -100,8 +149,14 @@
             <div id="player2-panel" class="bg-gray-800/50 backdrop-blur-sm rounded-lg p-4 flex flex-col border border-amber-500/30">
                 <h2 class="text-2xl font-bold mb-4 border-b-2 border-amber-400 pb-2 text-amber-300">Player 2</h2>
                 <div id="player2-stats" class="grid grid-cols-2 gap-2 mb-4 text-center"></div>
-                <div id="player2-board" class="flex-grow overflow-y-auto grid grid-cols-3 sm:grid-cols-4 gap-2 p-2 bg-black/20 rounded-md min-h-[200px]"></div>
-                <div id="player2-hand" class="flex-grow overflow-y-auto grid grid-cols-3 sm:grid-cols-4 gap-2 p-2 bg-black/20 rounded-md min-h-[100px] mt-2"></div>
+                <div class="mb-2">
+                    <div class="area-label">Battlefield</div>
+                    <div id="player2-board" class="flex-grow overflow-y-auto grid grid-cols-3 sm:grid-cols-4 gap-2 p-2 player2-board-bg rounded-md min-h-[200px]"></div>
+                </div>
+                <div class="mt-2">
+                    <div class="area-label">Hand</div>
+                    <div id="player2-hand" class="flex-grow overflow-y-auto grid grid-cols-3 sm:grid-cols-4 gap-2 p-2 player2-hand-bg rounded-md min-h-[100px]"></div>
+                </div>
             </div>
         </div>
 
@@ -110,6 +165,19 @@
             <div id="winner-box" class="text-center bg-gray-800 p-12 rounded-xl border-2 border-yellow-400 shadow-2xl shadow-yellow-400/20">
                 <h2 class="text-6xl font-bold text-yellow-300">VICTORY!</h2>
                 <p id="winner-message" class="text-3xl mt-4"></p>
+            </div>
+        </div>
+
+        <!-- Deck Load Modal -->
+        <div id="deckLoadModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4">
+            <div class="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md border border-gray-600">
+                <h3 class="text-lg font-bold text-white mb-4">Select a Deck</h3>
+                <input type="text" id="deckSearchInput" placeholder="Search decks by name..." class="w-full mb-4 px-3 py-2 rounded-lg bg-gray-700 border border-gray-600 text-white focus:ring-2 focus:ring-cyan-400 focus:outline-none">
+                <div id="deckListContainer" class="max-h-64 overflow-y-auto space-y-2">
+                </div>
+                <div class="flex justify-end mt-6">
+                    <button id="closeDeckModalBtn" class="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded font-semibold">Cancel</button>
+                </div>
             </div>
         </div>
 
@@ -457,9 +525,23 @@
         const errorDisplay = document.getElementById('error-display');
         const errorMessage = document.getElementById('error-message');
 
+        const deckLoadModal = document.getElementById('deckLoadModal');
+        const deckListContainer = document.getElementById('deckListContainer');
+        const deckSearchInput = document.getElementById('deckSearchInput');
+        const closeDeckModalBtn = document.getElementById('closeDeckModalBtn');
+        const loadDeck1Btn = document.getElementById('loadDeck1Btn');
+        const loadDeck2Btn = document.getElementById('loadDeck2Btn');
+
         let cardData = [];
         let cardNameMap = new Map();
         let game = null;
+
+        const SUPABASE_URL = 'https://cjlhrfhximjldqrfblkj.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNqbGhyZmh4aW1qbGRxcmZibGtqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA0MTcxNzQsImV4cCI6MjA2NTk5MzE3NH0.zLiQcPnKt2SnNfQIkUnOG7bOo6F7MPMh8MsasdFF6lw';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        let allDecks = [];
+        let deckFuse;
+        let deckLoadTarget = null;
 
         const exampleDeck1 = `4 Jasmine - Resourceful Infiltrator
 4 Captain Hook - Forceful Duelist
@@ -534,11 +616,53 @@
             return ids;
         }
 
+        async function fetchDecksFromDatabase() {
+            const { data, error } = await supabaseClient.from('decks').select('*').order('created_at', { ascending: true });
+            if (error) {
+                console.error('Error fetching decks:', error);
+                allDecks = [];
+            } else {
+                allDecks = data;
+            }
+            deckFuse = new Fuse(allDecks, { keys: ['name'], includeScore: true, threshold: 0.4 });
+        }
+
+        function renderDeckList(decksToRender) {
+            deckListContainer.innerHTML = !decksToRender.length ? '<p class="text-gray-400 italic text-center">No decks found.</p>' : '';
+            decksToRender.forEach(deck => {
+                const btn = document.createElement('button');
+                btn.className = 'w-full text-left p-3 rounded-md hover:bg-cyan-600/20 focus:bg-cyan-600/30 focus:outline-none transition-colors font-semibold text-white';
+                btn.textContent = deck.name;
+                btn.addEventListener('click', () => {
+                    decklist1El.value = deckLoadTarget === 'deck1' ? (deck.decklist || '') : decklist1El.value;
+                    decklist2El.value = deckLoadTarget === 'deck2' ? (deck.decklist || '') : decklist2El.value;
+                    hideDeckModal();
+                });
+                deckListContainer.appendChild(btn);
+            });
+        }
+
+        function showDeckModal(target) {
+            deckLoadTarget = target;
+            deckLoadModal.classList.remove('hidden');
+            deckSearchInput.value = '';
+            renderDeckList(allDecks);
+            deckSearchInput.focus();
+        }
+
+        function hideDeckModal() {
+            deckLoadModal.classList.add('hidden');
+            deckLoadTarget = null;
+        }
+
         async function initialize() {
             try {
-                const response = await fetch('https://cdn.jsdelivr.net/gh/heavenideas/similcana@main/database/allCards.json');
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                const data = await response.json();
+                const [cardsResponse, _] = await Promise.all([
+                    fetch('https://cdn.jsdelivr.net/gh/heavenideas/similcana@main/database/allCards.json'),
+                    fetchDecksFromDatabase()
+                ]);
+                if (!cardsResponse.ok) throw new Error(`HTTP error! status: ${cardsResponse.status}`);
+                const data = await cardsResponse.json();
                 cardData = data.cards;
                 cardData.forEach(card => cardNameMap.set(card.fullName, card.id));
                 setCardDatabase(cardData); // Set data for the game library
@@ -697,7 +821,7 @@
             hideError(); // Hide previous errors
             const deck1Ids = parseDecklist(decklist1El.value);
             const deck2Ids = parseDecklist(decklist2El.value);
-            
+
             if (deck1Ids && deck2Ids) {
                 try {
                     game = new InkTableGame();
@@ -713,6 +837,15 @@
                     console.error(e);
                 }
             }
+        });
+
+        loadDeck1Btn.addEventListener('click', () => showDeckModal('deck1'));
+        loadDeck2Btn.addEventListener('click', () => showDeckModal('deck2'));
+        closeDeckModalBtn.addEventListener('click', hideDeckModal);
+
+        deckSearchInput.addEventListener('input', () => {
+            const searchTerm = deckSearchInput.value.trim();
+            renderDeckList(!searchTerm ? allDecks : deckFuse.search(searchTerm).map(r => r.item));
         });
 
         // Initialize the app on load
