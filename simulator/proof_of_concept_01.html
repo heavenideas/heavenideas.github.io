@@ -38,6 +38,10 @@
         ::-webkit-scrollbar-thumb:hover {
             background: #6b7280; /* gray-500 */
         }
+        .selected-log {
+            background-color: rgba(59, 130, 246, 0.3);
+            border-left: 4px solid #3b82f6;
+        }
     </style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -83,6 +87,7 @@
                 <h2 class="text-2xl font-bold mb-4 border-b-2 border-cyan-400 pb-2 text-cyan-300">Player 1</h2>
                 <div id="player1-stats" class="grid grid-cols-2 gap-2 mb-4 text-center"></div>
                 <div id="player1-board" class="flex-grow overflow-y-auto grid grid-cols-3 sm:grid-cols-4 gap-2 p-2 bg-black/20 rounded-md min-h-[200px]"></div>
+                <div id="player1-hand" class="flex-grow overflow-y-auto grid grid-cols-3 sm:grid-cols-4 gap-2 p-2 bg-black/20 rounded-md min-h-[100px] mt-2"></div>
             </div>
 
             <!-- Central Game Log -->
@@ -96,6 +101,7 @@
                 <h2 class="text-2xl font-bold mb-4 border-b-2 border-amber-400 pb-2 text-amber-300">Player 2</h2>
                 <div id="player2-stats" class="grid grid-cols-2 gap-2 mb-4 text-center"></div>
                 <div id="player2-board" class="flex-grow overflow-y-auto grid grid-cols-3 sm:grid-cols-4 gap-2 p-2 bg-black/20 rounded-md min-h-[200px]"></div>
+                <div id="player2-hand" class="flex-grow overflow-y-auto grid grid-cols-3 sm:grid-cols-4 gap-2 p-2 bg-black/20 rounded-md min-h-[100px] mt-2"></div>
             </div>
         </div>
 
@@ -126,6 +132,7 @@
                 this.gameState = 'setup'; // setup, playing, ended
                 this.winner = null;
                 this.gameLog = [];
+                this.boardStates = [];
             }
 
             initGame(player1DeckIds, player2DeckIds) {
@@ -338,7 +345,19 @@
                 }
             }
 
-            log(logObject) { this.gameLog.push(logObject); }
+            log(logObject) {
+                this.gameLog.push(logObject);
+                this.boardStates.push(this.getGameStateWithoutLog());
+            }
+            getGameStateWithoutLog() {
+                return {
+                    players: this.players.map(p => p.getPublicState()),
+                    currentPlayer: this.currentPlayer,
+                    turnNumber: this.turnNumber,
+                    gameState: this.gameState,
+                    winner: this.winner
+                };
+            }
             getGameState() {
                 return {
                     players: this.players.map(p => p.getPublicState()),
@@ -402,6 +421,7 @@
                     inkwellSize: this.inkwell.length,
                     lore: this.lore,
                     characters: this.characters.map(c => ({...c})),
+                    hand: this.hand.map(c => ({...c})),
                 };
             }
         }
@@ -538,6 +558,7 @@
         function renderPlayerState(player, panelId) {
             const statsEl = document.getElementById(`${panelId}-stats`);
             const boardEl = document.getElementById(`${panelId}-board`);
+            const handEl = document.getElementById(`${panelId}-hand`);
 
             statsEl.innerHTML = `
                 <div class="bg-black/20 p-2 rounded-md"><div class="font-bold text-xl">${player.lore}</div><div class="text-xs uppercase opacity-70">Lore</div></div>
@@ -545,13 +566,13 @@
                 <div class="bg-black/20 p-2 rounded-md"><div class="font-bold text-xl">${player.handSize}</div><div class="text-xs uppercase opacity-70">Hand</div></div>
                 <div class="bg-black/20 p-2 rounded-md"><div class="font-bold text-xl">${player.deckSize}</div><div class="text-xs uppercase opacity-70">Deck</div></div>
             `;
-            
+
             boardEl.innerHTML = '';
             player.characters.forEach(char => {
                 const cardDiv = document.createElement('div');
                 cardDiv.className = `relative card-container rounded-lg shadow-lg border-2 border-transparent ${char.exhausted ? 'exhausted' : ''}`;
                 cardDiv.style.backgroundImage = `url('${char.image}')`;
-                
+
                 if (char.damage > 0) {
                     cardDiv.innerHTML += `<div class="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-7 h-7 flex items-center justify-center font-bold text-sm border-2 border-gray-800">${char.damage}</div>`;
                 }
@@ -563,23 +584,42 @@
 
                 boardEl.appendChild(cardDiv);
             });
+
+            handEl.innerHTML = '';
+            if (player.hand) {
+                player.hand.forEach(card => {
+                    const cardDiv = document.createElement('div');
+                    cardDiv.className = 'relative card-container rounded-lg shadow-lg border-2 border-transparent';
+                    cardDiv.style.backgroundImage = `url('${card.image}')`;
+
+                    const costOverlay = document.createElement('div');
+                    costOverlay.className = 'absolute top-0 left-0 bg-black/50 text-white text-xs p-1 font-bold rounded-tl-lg';
+                    costOverlay.textContent = card.cost || 0;
+                    cardDiv.appendChild(costOverlay);
+
+                    handEl.appendChild(cardDiv);
+                });
+            }
         }
 
         let lastLogCount = 0;
-        function renderGameState(state) {
+        let currentSelectedLog = -1;
+        function renderGameState(state = null) {
+            if (!state) state = game.getGameState();
             renderPlayerState(state.players[0], 'player1');
             renderPlayerState(state.players[1], 'player2');
-            
+
             const turnMarker = document.getElementById('turn-marker');
             turnMarker.textContent = `Turn ${state.turnNumber} - Player ${state.players[state.currentPlayer].playerNumber}'s Move`;
             const markerClass = state.currentPlayer === 0 ? 'text-cyan-300' : 'text-amber-300';
             turnMarker.className = `text-2xl font-bold mb-4 border-b-2 border-gray-400 pb-2 text-center ${markerClass}`;
- 
-            if (state.gameLog.length > lastLogCount) {
+
+            if (state.gameLog && state.gameLog.length > lastLogCount) {
                 const newLogs = state.gameLog.slice(lastLogCount);
-                newLogs.forEach(log => {
+                newLogs.forEach((log, i) => {
                     const logEl = document.createElement('div');
-                    logEl.className = 'p-2 border-t border-gray-700/50 flex items-center gap-3 text-sm';
+                    logEl.className = 'p-2 border-t border-gray-700/50 flex items-center gap-3 text-sm cursor-pointer hover:bg-gray-700/30';
+                    logEl.dataset.index = lastLogCount + i;
                     let content = '';
                     if (log.card) {
                         content += `<img src="${log.card.image}" class="w-8 h-auto rounded-sm" alt="${log.card.fullName}">`;
@@ -594,11 +634,48 @@
                         content += `<img src="${log.targetCard.image}" class="w-8 h-auto rounded-sm" alt="${log.targetCard.fullName}">`;
                     }
                     logEl.innerHTML = content;
+                    logEl.addEventListener('click', () => {
+                        const index = parseInt(logEl.dataset.index);
+                        renderGameState(game.boardStates[index]);
+                        updateSelectedLog(index);
+                    });
                     logEntriesContainer.prepend(logEl);
                 });
                 lastLogCount = state.gameLog.length;
             }
         }
+
+        function updateSelectedLog(index) {
+            if (currentSelectedLog !== -1) {
+                const prevEl = document.querySelector(`[data-index="${currentSelectedLog}"]`);
+                if (prevEl) prevEl.classList.remove('selected-log');
+            }
+            currentSelectedLog = index;
+            const currentEl = document.querySelector(`[data-index="${index}"]`);
+            if (currentEl) {
+                currentEl.classList.add('selected-log');
+                currentEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (currentSelectedLog === -1 || !game || !game.boardStates) return;
+            if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (currentSelectedLog > 0) {
+                    const newIndex = currentSelectedLog - 1;
+                    renderGameState(game.boardStates[newIndex]);
+                    updateSelectedLog(newIndex);
+                }
+            } else if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (currentSelectedLog < game.boardStates.length - 1) {
+                    const newIndex = currentSelectedLog + 1;
+                    renderGameState(game.boardStates[newIndex]);
+                    updateSelectedLog(newIndex);
+                }
+            }
+        });
         
         async function runSimulation() {
             // ** FIX: PROPERLY START THE FIRST TURN FOR PLAYER 1 **
