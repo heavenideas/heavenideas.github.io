@@ -89,50 +89,88 @@
     <div id="app" class="h-screen w-screen flex flex-col items-center justify-center p-4">
 
         <!-- Pre-Simulation Setup View -->
-        <div id="setup-view" class="w-full max-w-4xl text-center">
-            <h1 class="text-4xl font-bold mb-2 text-cyan-300">Disney Lorcana</h1>
-            <h2 class="text-5xl font-bold mb-6 text-amber-300">AI Match Simulator</h2>
-
-            <div id="loading-indicator" class="mb-6">
-                <p class="text-lg animate-pulse">Fetching card database...</p>
+        <div id="setup-view" class="w-full max-w-6xl mx-auto">
+            <!-- Header Section -->
+            <div class="text-center mb-8">
+                <h1 class="text-5xl font-bold mb-2 text-cyan-300">Disney Lorcana</h1>
+                <h2 class="text-4xl font-bold mb-2 text-amber-300">AI Match Simulator</h2>
+                <p class="text-gray-400 text-lg">Simulate AI vs AI matches with detailed game state tracking</p>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <div>
-                    <div class="flex justify-between items-center mb-2">
-                        <label for="decklist1" class="text-lg font-semibold text-left">Player 1 Deck</label>
-                        <button id="loadDeck1Btn" class="bg-gray-600 text-white font-bold py-1 px-3 rounded-lg text-sm hover:bg-gray-500 transition">Load from DB</button>
+            <!-- Loading Indicator -->
+            <div id="loading-indicator" class="mb-8 text-center">
+                <p class="text-xl animate-pulse text-gray-300">Fetching card database...</p>
+            </div>
+
+            <!-- Main Content Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+                <!-- Deck Configuration -->
+                <div class="lg:col-span-2">
+                    <h3 class="text-2xl font-bold mb-6 text-center text-white">Deck Configuration</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Player 1 Deck -->
+                        <div class="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-cyan-500/30">
+                            <div class="flex justify-between items-center mb-4">
+                                <h4 class="text-xl font-semibold text-cyan-300">Player 1 Deck</h4>
+                                <button id="loadDeck1Btn" class="bg-cyan-600 text-white font-bold py-2 px-4 rounded-lg text-sm hover:bg-cyan-700 transition">
+                                    Load from DB
+                                </button>
+                            </div>
+                            <textarea id="decklist1" class="w-full h-48 bg-gray-900 border border-gray-600 rounded-lg p-4 text-sm focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 outline-none transition resize-none" placeholder="Paste your decklist here..."></textarea>
+                        </div>
+
+                        <!-- Player 2 Deck -->
+                        <div class="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-amber-500/30">
+                            <div class="flex justify-between items-center mb-4">
+                                <h4 class="text-xl font-semibold text-amber-300">Player 2 Deck</h4>
+                                <button id="loadDeck2Btn" class="bg-amber-600 text-white font-bold py-2 px-4 rounded-lg text-sm hover:bg-amber-700 transition">
+                                    Load from DB
+                                </button>
+                            </div>
+                            <textarea id="decklist2" class="w-full h-48 bg-gray-900 border border-gray-600 rounded-lg p-4 text-sm focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition resize-none" placeholder="Paste your decklist here..."></textarea>
+                        </div>
                     </div>
-                    <textarea id="decklist1" class="w-full h-64 bg-gray-800 border border-gray-600 rounded-lg p-3 text-sm focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 outline-none transition"></textarea>
                 </div>
-                <div>
-                    <div class="flex justify-between items-center mb-2">
-                        <label for="decklist2" class="text-lg font-semibold text-left">Player 2 Deck</label>
-                        <button id="loadDeck2Btn" class="bg-gray-600 text-white font-bold py-1 px-3 rounded-lg text-sm hover:bg-gray-500 transition">Load from DB</button>
+
+                <!-- Options Panel -->
+                <div class="space-y-6">
+                    <!-- Load Simulation -->
+                    <div class="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-green-500/30">
+                        <h4 class="text-lg font-semibold mb-4 text-green-300">Load Saved Simulation</h4>
+                        <div class="space-y-3">
+                            <input type="file" id="simulation-file-input" accept=".json" class="hidden">
+                            <button id="load-simulation-btn" class="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 transition disabled:bg-gray-700 disabled:cursor-not-allowed">
+                                Choose JSON File
+                            </button>
+                            <div id="loaded-file-name" class="text-sm text-center text-gray-400 min-h-[1.25rem]"></div>
+                        </div>
                     </div>
-                    <textarea id="decklist2" class="w-full h-64 bg-gray-800 border border-gray-600 rounded-lg p-3 text-sm focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition"></textarea>
+
+                    <!-- Simulation Mode -->
+                    <div class="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-purple-500/30">
+                        <h4 class="text-lg font-semibold mb-4 text-purple-300">Simulation Mode</h4>
+                        <label class="flex items-start space-x-3 cursor-pointer group">
+                            <input type="checkbox" id="hyper-fast-mode" class="w-5 h-5 mt-0.5 text-purple-600 bg-gray-700 border-gray-600 rounded focus:ring-purple-500 focus:ring-2">
+                            <div class="flex-1">
+                                <span class="text-lg font-semibold text-purple-300 group-hover:text-purple-200 transition">Hyper-Fast Mode</span>
+                                <p class="text-sm text-gray-400 mt-1">Run simulation instantly and auto-export JSON (no animations)</p>
+                            </div>
+                        </label>
+                    </div>
                 </div>
             </div>
 
-            <!-- Load Simulation Section -->
-            <div class="mb-6">
-                <h3 class="text-lg font-semibold mb-2 text-center">Or Load a Saved Simulation</h3>
-                <div class="flex justify-center items-center gap-4">
-                    <input type="file" id="simulation-file-input" accept=".json" class="hidden">
-                    <button id="load-simulation-btn" class="bg-green-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-green-700 transition disabled:bg-gray-700 disabled:cursor-not-allowed">
-                        Load Simulation
-                    </button>
-                    <span id="loaded-file-name" class="text-sm text-gray-400"></span>
-                </div>
-            </div>
+            <!-- Action Buttons -->
+            <div class="text-center space-y-4">
+                <button id="start-button" class="bg-indigo-600 text-white font-bold py-4 px-12 rounded-xl text-xl hover:bg-indigo-700 transition-all hover:scale-105 disabled:bg-gray-700 disabled:cursor-not-allowed disabled:scale-100 shadow-lg shadow-indigo-500/25" disabled>
+                    Start Simulation
+                </button>
 
-            <button id="start-button" class="bg-indigo-600 text-white font-bold py-3 px-8 rounded-lg text-xl hover:bg-indigo-700 transition-transform hover:scale-105 disabled:bg-gray-700 disabled:cursor-not-allowed disabled:scale-100" disabled>
-                Start Simulation
-            </button>
-            <!-- New Error Display Area -->
-            <div id="error-display" class="hidden mt-4 bg-red-800/50 border border-red-500 text-red-300 px-4 py-3 rounded-lg text-left">
-                <p class="font-bold">An error occurred:</p>
-                <p id="error-message" class="text-sm"></p>
+                <!-- Error Display -->
+                <div id="error-display" class="hidden bg-red-800/50 border border-red-500 text-red-300 px-6 py-4 rounded-xl text-left max-w-2xl mx-auto">
+                    <p class="font-bold text-lg mb-2">⚠️ Error</p>
+                    <p id="error-message" class="text-sm"></p>
+                </div>
             </div>
         </div>
 
@@ -155,6 +193,9 @@
             <!-- Central Game Log -->
             <div id="game-log-panel" class="bg-gray-800/50 backdrop-blur-sm rounded-lg p-4 flex flex-col border border-gray-500/30 overflow-y-auto">
                 <div class="flex justify-between items-center mb-4 border-b-2 border-gray-400 pb-2">
+                    <button id="back-to-main-btn" class="bg-gray-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-700 transition text-sm">
+                        ← Back to Main
+                    </button>
                     <h2 id="turn-marker" class="text-2xl font-bold text-center">Game Log</h2>
                     <button id="export-simulation-btn" class="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition text-sm" style="display: none;">
                         Export Simulation
@@ -178,13 +219,6 @@
             </div>
         </div>
 
-        <!-- Winner Banner -->
-        <div id="winner-banner" class="hidden fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50">
-            <div id="winner-box" class="text-center bg-gray-800 p-12 rounded-xl border-2 border-yellow-400 shadow-2xl shadow-yellow-400/20">
-                <h2 class="text-6xl font-bold text-yellow-300">VICTORY!</h2>
-                <p id="winner-message" class="text-3xl mt-4"></p>
-            </div>
-        </div>
 
         <!-- Deck Load Modal -->
         <div id="deckLoadModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4">
@@ -195,6 +229,36 @@
                 </div>
                 <div class="flex justify-end mt-6">
                     <button id="closeDeckModalBtn" class="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded font-semibold">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hyper-Fast Mode Progress Modal -->
+        <div id="hyperFastProgressModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md">
+            <div class="bg-gray-800 rounded-xl shadow-2xl p-8 w-full max-w-md border border-purple-500/30">
+                <div class="text-center mb-6">
+                    <h2 class="text-2xl font-bold text-purple-300 mb-2">⚡ Hyper-Fast Simulation</h2>
+                    <p class="text-gray-400">Running simulation at maximum speed...</p>
+                </div>
+
+                <div class="mb-4">
+                    <div class="flex justify-between text-sm text-gray-400 mb-2">
+                        <span>Progress</span>
+                        <span id="progress-text">0%</span>
+                    </div>
+                    <div class="w-full bg-gray-700 rounded-full h-3">
+                        <div id="progress-bar" class="bg-gradient-to-r from-purple-500 to-pink-500 h-3 rounded-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div class="text-center">
+                    <div class="text-sm text-gray-500 mb-2">Turn</div>
+                    <div id="current-turn" class="text-2xl font-bold text-purple-300">0</div>
+                </div>
+
+                <div class="mt-6 text-center">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500 mx-auto"></div>
+                    <p class="text-xs text-gray-500 mt-2">This may take a few seconds...</p>
                 </div>
             </div>
         </div>
@@ -537,8 +601,6 @@
         const startButton = document.getElementById('start-button');
         const decklist1El = document.getElementById('decklist1');
         const decklist2El = document.getElementById('decklist2');
-        const winnerBanner = document.getElementById('winner-banner');
-        const winnerMessage = document.getElementById('winner-message');
         const logEntriesContainer = document.getElementById('log-entries');
         const errorDisplay = document.getElementById('error-display');
         const errorMessage = document.getElementById('error-message');
@@ -555,6 +617,8 @@
         let game = null;
         let loadedSimulationData = null;
         let isLoadedSimulation = false;
+        let isHyperFastMode = false;
+        let hyperFastProgressModal = null;
 
         const SUPABASE_URL = 'https://cjlhrfhximjldqrfblkj.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNqbGhyZmh4aW1qbGRxcmZibGtqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA0MTcxNzQsImV4cCI6MjA2NTk5MzE3NH0.zLiQcPnKt2SnNfQIkUnOG7bOo6F7MPMh8MsasdFF6lw';
@@ -704,12 +768,40 @@
             const dataStr = JSON.stringify(simulationData, null, 2);
             const dataBlob = new Blob([dataStr], { type: 'application/json' });
 
+            // Create full timestamp filename (YYYY-MM-DD_HH-MM-SS)
+            const now = new Date();
+            const dateStr = now.toISOString().split('T')[0];
+            const timeStr = now.toISOString().split('T')[1].split('.')[0].replace(/:/g, '-');
+            const filename = `lorcana_simulation_${dateStr}_${timeStr}.json`;
+
             const link = document.createElement('a');
             link.href = URL.createObjectURL(dataBlob);
-            link.download = `lorcana_simulation_${new Date().toISOString().split('T')[0]}.json`;
+            link.download = filename;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
+        }
+
+        function backToMainPage() {
+            // Reset simulation state
+            game = null;
+            isLoadedSimulation = false;
+            isHyperFastMode = false;
+            lastLogCount = 0;
+            currentSelectedLog = -1;
+
+            // Hide simulation view and show setup view
+            simulationView.classList.add('hidden');
+            setupView.classList.remove('hidden');
+
+            // Reset hyper-fast mode checkbox
+            document.getElementById('hyper-fast-mode').checked = false;
+
+            // Clear any loaded simulation data
+            loadedSimulationData = null;
+            document.getElementById('loaded-file-name').textContent = '';
+            document.getElementById('load-simulation-btn').textContent = 'Choose JSON File';
+            document.getElementById('load-simulation-btn').classList.remove('bg-green-700');
         }
 
         function loadSimulationIntoGame(simulationData) {
@@ -732,6 +824,75 @@
             game.winner = simulationData.gameState.winner;
             game.gameLog = simulationData.gameState.gameLog;
             game.boardStates = simulationData.boardStates;
+        }
+
+        function showHyperFastProgress() {
+            hyperFastProgressModal = document.getElementById('hyperFastProgressModal');
+            hyperFastProgressModal.classList.remove('hidden');
+            updateHyperFastProgress(0, 0);
+        }
+
+        function hideHyperFastProgress() {
+            if (hyperFastProgressModal) {
+                hyperFastProgressModal.classList.add('hidden');
+                hyperFastProgressModal = null;
+            }
+        }
+
+        function updateHyperFastProgress(turnNumber, progressPercent) {
+            if (!hyperFastProgressModal) return;
+
+            document.getElementById('current-turn').textContent = turnNumber;
+            document.getElementById('progress-text').textContent = Math.round(progressPercent) + '%';
+
+            const progressBar = document.getElementById('progress-bar');
+            progressBar.style.width = progressPercent + '%';
+        }
+
+        async function runHyperFastSimulation() {
+            showHyperFastProgress();
+
+            // Estimate maximum turns (games rarely go beyond 30 turns)
+            const maxEstimatedTurns = 30;
+            let turnCount = 0;
+
+            // ** FIX: PROPERLY START THE FIRST TURN FOR PLAYER 1 **
+            const firstPlayer = game.getCurrentPlayer();
+            firstPlayer.readyAllCards();
+            firstPlayer.draw(1);
+
+            // Run simulation without UI updates for maximum speed
+            while(game.gameState === 'playing' && turnCount < maxEstimatedTurns) {
+                game.makeAIMove();
+                turnCount = game.turnNumber;
+
+                // Update progress (estimate based on turn number)
+                const progressPercent = Math.min((turnCount / maxEstimatedTurns) * 100, 95);
+                updateHyperFastProgress(turnCount, progressPercent);
+
+                // Small yield to prevent browser freezing
+                if (turnCount % 5 === 0) {
+                    await new Promise(resolve => setTimeout(resolve, 1));
+                }
+            }
+
+            // Complete progress
+            updateHyperFastProgress(game.turnNumber, 100);
+
+            // Small delay to show completion
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            hideHyperFastProgress();
+
+            // Auto-export the simulation
+            exportSimulationToFile();
+
+            // Show completion message in console
+            if (game.gameState === 'ended') {
+                console.log(`Simulation complete! Player ${game.winner} wins after ${game.turnNumber} turns.`);
+            } else {
+                console.log(`Simulation complete! Game ended after ${game.turnNumber} turns.`);
+            }
         }
 
         async function initialize() {
@@ -909,6 +1070,9 @@
         startButton.addEventListener('click', () => {
             hideError(); // Hide previous errors
 
+            // Check if hyper-fast mode is enabled
+            isHyperFastMode = document.getElementById('hyper-fast-mode').checked;
+
             if (loadedSimulationData) {
                 // Load from saved simulation
                 try {
@@ -937,10 +1101,17 @@
                         isLoadedSimulation = false;
                         lastLogCount = 0;
                         logEntriesContainer.innerHTML = '';
-                        setupView.classList.add('hidden');
-                        simulationView.classList.remove('hidden');
-                        renderGameState(game.getGameState());
-                        runSimulation();
+
+                        if (isHyperFastMode) {
+                            // Run hyper-fast simulation
+                            runHyperFastSimulation();
+                        } else {
+                            // Run normal simulation
+                            setupView.classList.add('hidden');
+                            simulationView.classList.remove('hidden');
+                            renderGameState(game.getGameState());
+                            runSimulation();
+                        }
                     } catch(e) {
                         showError(e.message);
                         console.error(e);
@@ -986,6 +1157,11 @@
         // Export simulation button
         document.getElementById('export-simulation-btn').addEventListener('click', () => {
             exportSimulationToFile();
+        });
+
+        // Back to main page button
+        document.getElementById('back-to-main-btn').addEventListener('click', () => {
+            backToMainPage();
         });
 
         // Initialize the app on load
