@@ -330,7 +330,7 @@
                                     <input type="text" id="custom-regex-flags" class="form-input regex-input w-20" placeholder="gi" value="gi" />
                                 </div>
                                 <button id="custom-regex-btn" class="px-5 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition w-full md:w-auto">Search</button>
-                                <button id="copy-results-btn" class="px-5 py-2 bg-teal-600 text-white font-semibold rounded-lg shadow-md hover:bg-teal-700 transition w-full md:w-auto hidden">Copy Names</button>
+                                <button id="copy-results-btn" class="px-5 py-2 bg-teal-600 text-white font-semibold rounded-lg shadow-md hover:bg-teal-700 transition w-full md:w-auto hidden">Copy Names & Abilities</button>
                             </div>
                             <div class="mt-4 flex items-center space-x-4">
                                 <label class="form-label !mb-0">Filter by Format:</label>
@@ -1627,8 +1627,12 @@
             copyResultsBtn.addEventListener('click', () => {
                 if (lastRegexResults.length === 0) return;
 
-                const cardNames = lastRegexResults.map(card => card.fullName).join('\n');
-                navigator.clipboard.writeText(cardNames).then(() => {
+                const cardData = lastRegexResults.map(card => {
+                    const name = card.fullName;
+                    const abilities = (card.fullText || (card.fullTextSections || []).join('\n')).replace(/\n/g, ' ').trim();
+                    return `${name}: ${abilities}`;
+                }).join('\n\n');
+                navigator.clipboard.writeText(cardData).then(() => {
                     const originalText = copyResultsBtn.textContent;
                     copyResultsBtn.textContent = 'Copied!';
                     copyResultsBtn.classList.add('bg-green-600', 'hover:bg-green-700');
@@ -1640,7 +1644,7 @@
                     }, 2000);
                 }).catch(err => {
                     console.error('Failed to copy text: ', err);
-                    alert('Failed to copy card names.');
+                    alert('Failed to copy card data.');
                 });
             });
 
