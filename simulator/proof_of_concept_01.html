@@ -266,333 +266,9 @@
     </div>
 
     <script type="module">
-        // --- EMBEDDED inktable_game_library_v2.js (with modifications) ---
-        let REAL_CARDS = [];
-
-        function setCardDatabase(cards) {
-            REAL_CARDS = cards;
-            console.log(`Loaded ${REAL_CARDS.length} cards into library.`);
-        }
+        // Import the game module
+        import { LorcanaSimGame, Player, Card, setCardDatabase, GameUtils } from './lorcana_game_module.js';
         
-        class InkTableGame {
-            constructor() {
-                this.players = [];
-                this.currentPlayer = 0;
-                this.turnNumber = 1;
-                this.gameState = 'setup'; // setup, playing, ended
-                this.winner = null;
-                this.gameLog = [];
-                this.boardStates = [];
-            }
-
-            initGame(player1DeckIds, player2DeckIds) {
-                if (REAL_CARDS.length === 0) {
-                    throw new Error("Card database not loaded into the library. Call setCardDatabase() first.");
-                }
-
-                const player1Deck = this.createDeckFromIds(player1DeckIds);
-                const player2Deck = this.createDeckFromIds(player2DeckIds);
-                
-                if (player1Deck.length < 1 || player2Deck.length < 1) {
-                    throw new Error("Decks must not be empty.");
-                }
-
-                this.players = [
-                    new Player(1, player1Deck, false),
-                    new Player(2, player2Deck, false) 
-                ];
-                
-                this.players.forEach(player => {
-                    player.shuffleDeck();
-                    player.drawInitialHand();
-                });
-                
-                this.gameState = 'playing';
-                this.currentPlayer = 0;
-                this.log({ message: 'Game started!' });
-                // ** FIX: REMOVED FLAWED START-OF-TURN LOGIC FROM HERE **
-            }
-
-            createDeckFromIds(cardIds) {
-                const deck = [];
-                cardIds.forEach(id => {
-                    const cardData = REAL_CARDS.find(card => card.id === id);
-                    if (cardData) {
-                        deck.push(new Card(JSON.parse(JSON.stringify(cardData))));
-                    }
-                });
-                return deck;
-            }
-
-            getCurrentPlayer() { return this.players[this.currentPlayer]; }
-            getOpponentPlayer() { return this.players[1 - this.currentPlayer]; }
-
-            endTurn() {
-                const player = this.getCurrentPlayer();
-                this.log({ message: `Player ${player.playerNumber} ends their turn.` });
-                
-                this.currentPlayer = 1 - this.currentPlayer;
-                const newPlayer = this.getCurrentPlayer();
-                
-                if (this.currentPlayer === 0) {
-                    this.turnNumber++;
-                }
-                
-                newPlayer.readyAllCards();
-                newPlayer.draw(1);
-                
-                this.log({ message: `Turn ${this.turnNumber} - Player ${newPlayer.playerNumber}'s turn`});
-                this.checkWinCondition();
-            }
-
-            checkWinCondition() {
-                for (let player of this.players) {
-                    if (player.lore >= 20) {
-                        this.gameState = 'ended';
-                        this.winner = player.playerNumber;
-                        this.log({ message: `Player ${player.playerNumber} wins with ${player.lore} lore!`});
-                        return true;
-                    }
-                }
-                return false;
-            }
-
-            playCard(cardIndex) {
-                const player = this.getCurrentPlayer();
-                const card = player.hand[cardIndex];
-                if (!card || !player.canAffordCard(card)) return false;
-
-                player.payInkCost(card.cost);
-                player.hand.splice(cardIndex, 1);
-                
-                switch (card.type) {
-                    case 'Character':
-                        player.characters.push(card);
-                        card.summoningSickness = true;
-                        break;
-                    case 'Item': player.items.push(card); break;
-                    default: player.discard.push(card); break;
-                }
-                this.log({ message: `Player ${player.playerNumber} plays`, card: card });
-                return true;
-            }
-
-            questWithCharacter(characterIndex) {
-                const player = this.getCurrentPlayer();
-                const character = player.characters[characterIndex];
-                if (!character || character.exhausted || character.summoningSickness) return false;
- 
-                character.exhausted = true;
-                const loreGained = character.lore || 0;
-                player.lore += loreGained;
-                this.log({ message: `Player ${player.playerNumber} quests for ${loreGained} lore with`, card: character});
-                this.checkWinCondition();
-                return true;
-            }
-
-            challengeCharacter(attackerIndex, targetIndex) {
-                const player = this.getCurrentPlayer();
-                const opponent = this.getOpponentPlayer();
-                const attacker = player.characters[attackerIndex];
-                const target = opponent.characters[targetIndex];
-                if (!attacker || !target || attacker.exhausted || attacker.summoningSickness) return false;
- 
-                attacker.exhausted = true;
-                attacker.damage += target.strength || 0;
-                target.damage += attacker.strength || 0;
-                this.log({ message: `Player ${player.playerNumber} challenges`, card: attacker, targetCard: target });
-                this.checkBanishedCharacters();
-                return true;
-            }
-
-            checkBanishedCharacters() {
-                this.players.forEach(player => {
-                    for (let i = player.characters.length - 1; i >= 0; i--) {
-                        const character = player.characters[i];
-                        if (character.damage >= character.willpower) {
-                            player.characters.splice(i, 1);
-                            player.discard.push(character);
-                            this.log({ message: `Player ${player.playerNumber}'s ${character.fullName} is banished` });
-                        }
-                    }
-                });
-            }
-
-            inkCard(cardIndex) {
-                const player = this.getCurrentPlayer();
-                const card = player.hand[cardIndex];
-                if (!card || !card.inkable) return false;
-
-                player.hand.splice(cardIndex, 1);
-                player.inkwell.push(card);
-                this.log({ message: `Player ${player.playerNumber} inks`, card: card});
-                return true;
-            }
-
-            generatePossibleMoves(player, opponent) {
-                const moves = [];
-                // Ink a card (high priority early game)
-                if (player.turnInked === false) {
-                    for (let i = 0; i < player.hand.length; i++) {
-                        if (player.hand[i].inkable) {
-                             moves.push({ type: 'ink', cardIndex: i, priority: 1000 - (player.inkwell.length * 100) });
-                        }
-                    }
-                }
-
-                // Play cards
-                player.hand.forEach((card, i) => {
-                    if (player.canAffordCard(card)) {
-                        moves.push({ type: 'play', cardIndex: i, priority: 60 + (card.cost * 5) });
-                    }
-                });
-
-                // Challenge
-                player.characters.forEach((attacker, attIdx) => {
-                    if (!attacker.exhausted && !attacker.summoningSickness && attacker.strength > 0) {
-                        opponent.characters.forEach((target, tarIdx) => {
-                            if (target.exhausted) {
-                                moves.push({ type: 'challenge', attackerIndex: attIdx, targetIndex: tarIdx, priority: 80 + (target.lore * 20) });
-                            }
-                        });
-                    }
-                });
-
-                // Quest
-                player.characters.forEach((char, i) => {
-                    if (!char.exhausted && !char.summoningSickness && char.lore > 0) {
-                        moves.push({ type: 'quest', characterIndex: i, priority: 70 + (char.lore * 10) });
-                    }
-                });
-                
-                moves.push({ type: 'endTurn', priority: 1 });
-                return moves.sort((a, b) => b.priority - a.priority);
-            }
-
-            makeAIMove() {
-                if (this.gameState !== 'playing') return;
-                const player = this.getCurrentPlayer();
-                const opponent = this.getOpponentPlayer();
-                const moves = this.generatePossibleMoves(player, opponent);
-
-                if (moves.length > 0) {
-                    this.executeMove(moves[0]);
-                } else {
-                    this.endTurn();
-                }
-            }
-
-            executeMove(move) {
-                switch (move.type) {
-                    case 'play': this.playCard(move.cardIndex); break;
-                    case 'quest': this.questWithCharacter(move.characterIndex); break;
-                    case 'challenge': this.challengeCharacter(move.attackerIndex, move.targetIndex); break;
-                    case 'ink': 
-                        this.inkCard(move.cardIndex);
-                        this.getCurrentPlayer().turnInked = true;
-                        break;
-                    case 'endTurn': this.endTurn(); break;
-                }
-            }
-
-            log(logObject) {
-                this.gameLog.push(logObject);
-                this.boardStates.push(this.getGameStateWithoutLog());
-            }
-            getGameStateWithoutLog() {
-                return {
-                    players: this.players.map(p => p.getPublicState()),
-                    currentPlayer: this.currentPlayer,
-                    turnNumber: this.turnNumber,
-                    gameState: this.gameState,
-                    winner: this.winner
-                };
-            }
-            getGameState() {
-                return {
-                    players: this.players.map(p => p.getPublicState()),
-                    currentPlayer: this.currentPlayer,
-                    turnNumber: this.turnNumber,
-                    gameState: this.gameState,
-                    winner: this.winner,
-                    gameLog: [...this.gameLog]
-                };
-            }
-        }
-
-        class Player {
-            constructor(playerNumber, deck, isHuman = false) {
-                this.playerNumber = playerNumber;
-                this.deck = [...deck];
-                this.hand = [];
-                this.discard = [];
-                this.characters = [];
-                this.items = [];
-                this.locations = [];
-                this.inkwell = [];
-                this.lore = 0;
-                this.turnInked = false;
-            }
-            shuffleDeck() {
-                for (let i = this.deck.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    [this.deck[i], this.deck[j]] = [this.deck[j], this.deck[i]];
-                }
-            }
-            drawInitialHand() { this.draw(7); }
-            draw(count) {
-                for (let i = 0; i < count && this.deck.length > 0; i++) {
-                    this.hand.push(this.deck.pop());
-                }
-            }
-            canAffordCard(card) { return this.getAvailableInk() >= card.cost; }
-            getAvailableInk() { return this.inkwell.filter(card => !card.exhausted).length; }
-            payInkCost(cost) {
-                let remaining = cost;
-                for (let card of this.inkwell) {
-                    if (!card.exhausted && remaining > 0) {
-                        card.exhausted = true;
-                        remaining--;
-                    }
-                }
-            }
-            readyAllCards() {
-                this.turnInked = false;
-                [...this.characters, ...this.items, ...this.inkwell].forEach(card => {
-                    card.exhausted = false;
-                    if (card.summoningSickness !== undefined) card.summoningSickness = false;
-                });
-            }
-            getPublicState() {
-                return {
-                    playerNumber: this.playerNumber,
-                    handSize: this.hand.length,
-                    deckSize: this.deck.length,
-                    inkwellSize: this.inkwell.length,
-                    lore: this.lore,
-                    characters: this.characters.map(c => ({...c})),
-                    hand: this.hand.map(c => ({...c})),
-                };
-            }
-        }
-
-        class Card {
-            constructor(data) {
-                this.id = data.id;
-                this.fullName = data.fullName;
-                this.cost = data.cost || 0;
-                this.type = data.type;
-                this.strength = data.strength;
-                this.willpower = data.willpower;
-                this.lore = data.lore;
-                this.inkable = data.inkwell || false;
-                this.image = (data.images && data.images.thumbnail) ? data.images.thumbnail : `https://placehold.co/100x140/2d3748/e2e8f0?text=${data.type}`;
-                this.exhausted = false;
-                this.summoningSickness = false;
-                this.damage = 0;
-            }
-        }
-        // --- END OF EMBEDDED LIBRARY ---
 
         // --- UI CONTROLLER SCRIPT ---
         const setupView = document.getElementById('setup-view');
@@ -671,33 +347,12 @@
         }
 
         function parseDecklist(decklistText) {
-            const lines = decklistText.trim().split('\n');
-            const ids = [];
-            const errors = [];
-            for (const line of lines) {
-                const trimmedLine = line.trim();
-                if (!trimmedLine) continue;
-
-                const match = trimmedLine.match(/^(?:(\d+)\s*x?\s+)?(.+)/i);
-                if (!match) continue;
-
-                const count = match[1] ? parseInt(match[1], 10) : 1;
-                const cardName = match[2].trim();
-
-                if (cardNameMap.has(cardName)) {
-                    const cardId = cardNameMap.get(cardName);
-                    for (let i = 0; i < count; i++) {
-                        ids.push(cardId);
-                    }
-                } else {
-                    errors.push(cardName);
-                }
-            }
-            if (errors.length > 0) {
-                showError(`Could not find the following cards:\n- ${errors.join('\n- ')}`);
+            try {
+                return GameUtils.parseDecklist(decklistText, cardNameMap);
+            } catch (error) {
+                showError(error.message);
                 return null;
             }
-            return ids;
         }
 
         async function fetchDecksFromDatabase() {
@@ -805,25 +460,17 @@
         }
 
         function loadSimulationIntoGame(simulationData) {
-            // Create a new game instance and populate it with loaded data
-            game = new InkTableGame();
-            game.players = simulationData.gameState.players.map(p => {
-                const player = new Player(p.playerNumber, [], false);
-                player.lore = p.lore;
-                player.characters = p.characters.map(c => new Card(c));
-                player.hand = p.hand.map(c => new Card(c));
-                player.deck = []; // Empty deck for loaded games
-                player.discard = [];
-                player.inkwell = [];
-                player.turnInked = false;
-                return player;
+            // Create a new game instance and load from saved state
+            game = new LorcanaSimGame();
+            game.loadFromState({
+                players: simulationData.gameState.players,
+                currentPlayer: simulationData.gameState.currentPlayer,
+                turnNumber: simulationData.gameState.turnNumber,
+                gameState: simulationData.gameState.gameState,
+                winner: simulationData.gameState.winner,
+                gameLog: simulationData.gameState.gameLog,
+                boardStates: simulationData.boardStates
             });
-            game.currentPlayer = simulationData.gameState.currentPlayer;
-            game.turnNumber = simulationData.gameState.turnNumber;
-            game.gameState = simulationData.gameState.gameState;
-            game.winner = simulationData.gameState.winner;
-            game.gameLog = simulationData.gameState.gameLog;
-            game.boardStates = simulationData.boardStates;
         }
 
         function showHyperFastProgress() {
@@ -1096,7 +743,7 @@
 
                 if (deck1Ids && deck2Ids) {
                     try {
-                        game = new InkTableGame();
+                        game = new LorcanaSimGame();
                         game.initGame(deck1Ids, deck2Ids);
                         isLoadedSimulation = false;
                         lastLogCount = 0;
