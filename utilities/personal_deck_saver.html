@@ -479,6 +479,10 @@
                     <h3 class="text-lg font-semibold text-center mb-2">Card Types</h3>
                     <canvas id="cardTypeChart"></canvas>
                 </div>
+                <div class="chart-container">
+                    <h3 class="text-lg font-semibold text-center mb-2">Subtypes</h3>
+                    <canvas id="subtypesChart"></canvas>
+                </div>
             </aside>
         </div>
     </div>
@@ -539,6 +543,33 @@
                 Sapphire: { hex: '#60A5FA', name: 'Sapphire' }, Steel: { hex: '#9CA3AF', name: 'Steel' }
             };
             const TYPE_COLORS = { Character: '#2563eb', Item: '#db2777', Location: '#d97706', Action: '#16a34a', Song: '#8b5cf6' };
+            const SUBTYPE_COLORS = {
+                Hero: '#3b82f6', Villain: '#ef4444', Ally: '#10b981', Mentor: '#f59e0b',
+                Captain: '#8b5cf6', Prince: '#ec4899', King: '#f97316', Musician: '#06b6d4',
+                Sorcerer: '#a855f7', Alien: '#64748b', Pirate: '#dc2626', Knight: '#ea580c',
+                Dreamborn: '#fbbf24', Floodborn: '#3b82f6', Storyborn: '#10b981', Inventor: '#f59e0b',
+                Deceiver: '#ef4444', SevenDwarfs: '#8b5cf6', Madrigal: '#ec4899', Queen: '#f97316',
+                Hyena: '#64748b', Bystander: '#dc2626', Detective: '#ea580c', Tigger: '#06b6d4',
+                Rabbit: '#fbbf24', Owl: '#3b82f6', Tiger: '#10b981', Bear: '#f59e0b',
+                Piglet: '#ef4444', Roo: '#8b5cf6', Kanga: '#ec4899', Eeyore: '#f97316',
+                Heffalump: '#64748b', Woozle: '#dc2626', Huntsman: '#ea580c', Huntswoman: '#06b6d4',
+                Genie: '#fbbf24', Jafar: '#3b82f6', Jasmine: '#10b981', Aladdin: '#f59e0b',
+                Ursula: '#ef4444', Ariel: '#8b5cf6', Flounder: '#ec4899', Sebastian: '#f97316',
+                Beast: '#64748b', Belle: '#dc2626', Gaston: '#ea580c', Lumiere: '#06b6d4',
+                Cogsworth: '#fbbf24', MrsPott: '#3b82f6', Chip: '#10b981', Wardrobe: '#f59e0b'
+            };
+
+            // Function to generate consistent colors for unknown subtypes
+            function getSubtypeColor(subtype) {
+                if (SUBTYPE_COLORS[subtype]) return SUBTYPE_COLORS[subtype];
+                // Generate color based on subtype name hash
+                let hash = 0;
+                for (let i = 0; i < subtype.length; i++) {
+                    hash = subtype.charCodeAt(i) + ((hash << 5) - hash);
+                }
+                const hue = Math.abs(hash) % 360;
+                return `hsl(${hue}, 70%, 50%)`;
+            }
 
             let allCards = [];
             let cardFuse;
@@ -944,6 +975,7 @@
                 charts.colorSplit = new Chart(document.getElementById('colorSplitChart'), { type: 'pie', data: { labels: [], datasets: [{ data: [] }] }, options: pieOptions });
                 charts.inkable = new Chart(document.getElementById('inkableChart'), { type: 'pie', data: { labels: ['Inkable', 'Uninkable'], datasets: [{ data: [], backgroundColor: ['#10b981', '#ef4444'] }] }, options: pieOptions });
                 charts.cardType = new Chart(document.getElementById('cardTypeChart'), { type: 'pie', data: { labels: [], datasets: [{ data: [] }] }, options: pieOptions });
+                charts.subtypes = new Chart(document.getElementById('subtypesChart'), { type: 'pie', data: { labels: [], datasets: [{ data: [] }] }, options: pieOptions });
             }
 
             function parseAndRenderDeck() {
@@ -1045,13 +1077,14 @@
             }
 
             function updateCharts(deck) {
-                const inkCurveData = Array(8).fill(0), colorSplitData = {}, inkableData = { inkable: 0, uninkable: 0 }, cardTypeData = {};
+                const inkCurveData = Array(8).fill(0), colorSplitData = {}, inkableData = { inkable: 0, uninkable: 0 }, cardTypeData = {}, subtypesData = {};
                 deck.forEach(({ count, card }) => {
                     inkCurveData[Math.min(card.cost, 7)] += count;
                     (card.colors || [card.color]).forEach(color => { if (color) colorSplitData[color] = (colorSplitData[color] || 0) + count; });
                     if (card.inkwell) inkableData.inkable += count; else inkableData.uninkable += count;
                     let mainType = card.type === 'Action' && (card.subtypes || []).includes('Song') ? 'Song' : card.type;
                     cardTypeData[mainType] = (cardTypeData[mainType] || 0) + count;
+                    (card.subtypes || []).forEach(subtype => { subtypesData[subtype] = (subtypesData[subtype] || 0) + count; });
                 });
                 charts.inkCurve.data.datasets[0].data = inkCurveData;
                 charts.colorSplit.data.labels = Object.keys(colorSplitData);
@@ -1061,6 +1094,9 @@
                 charts.cardType.data.labels = Object.keys(cardTypeData);
                 charts.cardType.data.datasets[0].data = Object.values(cardTypeData);
                 charts.cardType.data.datasets[0].backgroundColor = Object.keys(cardTypeData).map(t => TYPE_COLORS[t] || '#fff');
+                charts.subtypes.data.labels = Object.keys(subtypesData);
+                charts.subtypes.data.datasets[0].data = Object.values(subtypesData);
+                charts.subtypes.data.datasets[0].backgroundColor = Object.keys(subtypesData).map(s => getSubtypeColor(s));
                 Object.values(charts).forEach(chart => chart.update());
             }
 
