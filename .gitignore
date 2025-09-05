@@ -5,3 +5,5 @@ lorcanaUtils_MatchUpAnalyzer/matchup_analyzer_batchmode_example.html
 .vscode
 .idx
 .idx/dev.nix
+.kiro
+test_*
