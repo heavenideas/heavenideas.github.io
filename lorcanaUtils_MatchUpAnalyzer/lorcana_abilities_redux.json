@@ -70,6 +70,25 @@
   },
   "abilities": [
     {
+      "name": "Condition: Have in play",
+      "category": "Condition",
+      "sub_type": "Have In Play",
+      "regex": "/(While|if|unless|and) you have (a|another|\\d+) ( other )?characters?(.*?)in play/gi",
+      "explanation": "This is a condition on a lot of cards, I would say in terms of CTL it is a punishment as it's harder to accomplish than if it's just a normal ability.",
+      "justification": "I will make this dependant on the cost of the card. The higher the cost, it's implied that the more time you will have had to set up this condition.",
+      "lastModified": "2025-09-05T23:37:09.393Z",
+      "createdAt": "2025-09-05T23:29:24.963Z",
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [],
+        "scores": {
+          "resource_dominance": {
+            "value": "-2 / @card.cost"
+          }
+        }
+      }
+    },
+    {
       "name": "Trigger: Play More Than",
       "category": "Trigger",
       "sub_type": "Play",
