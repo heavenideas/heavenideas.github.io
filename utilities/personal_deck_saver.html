@@ -534,18 +534,6 @@
         </div>
     </div>
 
-    <!-- Card Threat Level Inspector Modal -->
-    <div id="cardHoverPopup" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 p-4 opacity-0 pointer-events-none">
-        <div class="bg-gray-800 border border-gray-700 rounded-lg shadow-xl w-full max-w-5xl h-[90vh] flex flex-col">
-            <div class="flex justify-between items-center mb-4 flex-shrink-0 px-6 pt-6">
-                <h3 class="text-xl font-bold text-slate-100">Card Threat Level Inspector</h3>
-                <button id="closeCardInspectorBtn" class="text-gray-400 hover:text-white text-2xl">&times;</button>
-            </div>
-            <div id="cardInspectorContent" class="flex-grow overflow-hidden px-6 pb-6">
-                <!-- Tabbed content will be filled by JS -->
-            </div>
-        </div>
-    </div>
 
     <!-- Confirmation Modal -->
     <div id="confirmationModal"
@@ -577,6 +565,7 @@
 
 <script src="unified_win_probability_utilities.js"></script>
 <script src="card_stat_analysis_module.js"></script>
+<script src="CardThreatLevelInspector.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             // --- GLOBAL STATE & CONFIG ---
@@ -643,6 +632,7 @@
             let allDecks = [];
             let deckFuse;
             let mulliganScenario = 'OnThePlay'; // 'OnThePlay' or 'OnTheDraw'
+            let inspector;
 
 
             // --- UI ELEMENTS ---
@@ -676,9 +666,6 @@
            const copyLlmPromptBtn = document.getElementById('copyLlmPromptBtn');
            const generateLlmPromptBtn = document.getElementById('generateLlmPromptBtn');
            const hoverPopupToggle = document.getElementById('hoverPopupToggle');
-           const cardHoverPopup = document.getElementById('cardHoverPopup');
-           const closeCardInspectorBtn = document.getElementById('closeCardInspectorBtn');
-           const cardInspectorContent = document.getElementById('cardInspectorContent');
 
 
             // --- PROBABILITY FUNCTIONS ---
@@ -724,261 +711,11 @@
                 mulliganDetailsEl.textContent = `(Hand of 7 + Mulligan of ${7 - numSelected} + ${drawBonus} draw = ${n} cards seen)`;
             }
 
-            function analyzeAndHighlightText(originalText) {
-                if (!originalText || originalText.trim() === '') {
-                    return { highlightedHtml: '', foundPatterns: new Set() };
-                }
-                const sanitizedText = originalText.replace(/\n/g, ' ');
-                let allMatches = [];
-                const abilitiesConfig = UnifiedWinProbabiliyCalculation.getAbilitiesConfig();
-                abilitiesConfig.abilities.forEach(pattern => {
-                    if (!pattern.regexObject) return;
-                    pattern.regexObject.lastIndex = 0;
-                    let match;
-                    while ((match = pattern.regexObject.exec(sanitizedText)) !== null) {
-                        if (match[0].length === 0) continue;
-                        allMatches.push({ name: pattern.name, text: match[0], start: match.index, end: match.index + match[0].length });
-                    }
-                });
 
-                allMatches.sort((a, b) => a.start - b.start || b.end - a.end);
-                const filteredMatches = [];
-                let lastEnd = -1;
-                for (const match of allMatches) {
-                    if (match.start >= lastEnd) {
-                        filteredMatches.push(match);
-                        lastEnd = match.end;
-                    }
-                }
 
-                const foundPatterns = new Set(filteredMatches.map(m => m.name));
-                const patternColors = {};
-                const colorPool = ['#fef9c3', '#dbeafe', '#dcfce7', '#fee2e2', '#e0f2fe', '#f3e8ff', '#ffe4e6', '#d1fae5', '#fae8ff', '#e0e7ff'];
-                let colorIndex = 0;
-                foundPatterns.forEach(name => {
-                    patternColors[name] = colorPool[colorIndex % colorPool.length];
-                    colorIndex++;
-                });
 
-                let highlightedHtml = "";
-                let lastIndex = 0;
-                filteredMatches.forEach(match => {
-                    highlightedHtml += originalText.substring(lastIndex, match.start);
-                    const color = patternColors[match.name];
-                    highlightedHtml += `<span class="highlight" style="background-color: ${color};" title="${match.name}">${match.text}</span>`;
-                    lastIndex = match.end;
-                });
-                highlightedHtml += originalText.substring(lastIndex);
-                return { highlightedHtml: highlightedHtml.replace(/\n/g, '<br>'), foundPatterns };
-            }
 
-            function showCardPopup(card) {
-                const { rds, lvi, bcr, breakdown } = UnifiedWinProbabiliyCalculation.calculateCardMetrics(card);
-                const { highlightedHtml } = analyzeAndHighlightText(card.fullText || (card.fullTextSections || []).join('\n'));
-                const ctl = rds + lvi + bcr;
 
-                const popupHtml = `
-                    <div class="tab-container h-full">
-                        <!-- Tab Buttons -->
-                        <div class="tab-buttons">
-                            <button class="tab-button active" data-tab="threat">Threat Analysis</button>
-                            <button class="tab-button" data-tab="stats">Stat Comparisons</button>
-                        </div>
-
-                        <!-- Tab Content -->
-                        <div class="tab-content">
-                            <!-- Threat Analysis Tab -->
-                            <div id="threat-tab" class="tab-pane active">
-                                <h3 class="text-xl font-bold text-slate-100 mb-4">${card.fullName}</h3>
-                                <div class="p-4 bg-slate-800 rounded-lg border border-slate-700 mb-4 flex gap-4 items-start">
-                                    <img src="${card.images.thumbnail}" alt="${card.fullName}" class="w-32 rounded-lg">
-                                    <div class="flex-1 prose prose-invert max-w-none">${highlightedHtml}</div>
-                                </div>
-                                <div class="grid grid-cols-4 gap-4 text-center mb-6 p-4 bg-slate-800 rounded-lg">
-                                    <div class="bg-purple-900/40 rounded-xl p-3 flex flex-col items-center justify-center" title="Threat Level = RDS + LVI + BCR">
-                                        <div class="text-sm text-slate-400">(CTL) Card Threat Level</div>
-                                        <div class="text-2xl font-bold text-purple-400">${ctl.toFixed(3)}</div>
-                                    </div>
-                                    <div>
-                                        <div class="text-sm text-slate-400">(RDS) Resource Dominance Score</div>
-                                        <div class="text-2xl font-bold text-sky-400">${rds.toFixed(3)}</div>
-                                    </div>
-                                    <div>
-                                        <div class="text-sm text-slate-400">(LVI) Lore Velocity Index</div>
-                                        <div class="text-2xl font-bold text-amber-400">${lvi.toFixed(3)}</div>
-                                    </div>
-                                    <div>
-                                        <div class="text-sm text-slate-400">(BCR) Board Control Rating</div>
-                                        <div class="text-2xl font-bold text-rose-400">${bcr.toFixed(3)}</div>
-                                    </div>
-                                </div>
-                                <h4 class="font-semibold text-slate-300 mb-2">Calculation Breakdown:</h4>
-                                <div class="overflow-x-auto">
-                                    <table class="w-full text-sm">
-                                        <thead class="sticky top-0 bg-slate-900">
-                                            <tr class="border-b border-slate-700">
-                                                <th class="text-left p-2">Ability</th>
-                                                <th class="text-left p-2">Metric</th>
-                                                <th class="text-right p-2">Score</th>
-                                                <th class="text-left p-2">Explanation</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            ${breakdown.length > 0 ? breakdown.map(item => `
-                                                <tr class="border-b border-slate-800 hover:bg-slate-800/50">
-                                                    <td class="p-2 font-medium text-slate-200">${item.abilityName}</td>
-                                                    <td class="p-2 capitalize">${item.metric.replace('_', ' ')}</td>
-                                                    <td class="text-right p-2 font-mono">${item.value.toFixed(3)}</td>
-                                                    <td class="p-2 text-slate-400">${item.explanation}</td>
-                                                </tr>
-                                            `).join('') : '<tr><td colspan="4" class="text-center p-4 text-slate-500">No abilities matched this card.</td></tr>'}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-
-                            <!-- Stat Comparisons Tab -->
-                            <div id="stats-tab" class="tab-pane">
-                                <h3 class="text-xl font-bold text-slate-100 mb-4">${card.fullName} - Statistical Analysis</h3>
-                                <div class="p-4 bg-slate-800 rounded-lg border border-slate-700 mb-4 flex gap-4 items-start">
-                                    <img src="${card.images.thumbnail}" alt="${card.fullName}" class="w-32 rounded-lg">
-                                    <div class="flex-1">
-                                        <div class="text-slate-300 mb-2">
-                                            <strong>Cost:</strong> ${card.cost} | <strong>Strength:</strong> ${card.strength || 0} |
-                                            <strong>Willpower:</strong> ${card.willpower || 0} | <strong>Lore:</strong> ${card.lore || 0}
-                                        </div>
-                                        <div class="text-slate-400 text-sm">
-                                            Click on any stat below to see matching cards from the database.
-                                        </div>
-                                    </div>
-                                </div>
-                                <div id="stat-analysis-content">
-                                    ${CardStatAnalysisModule.renderCompleteAnalysis(card)}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-
-                cardInspectorContent.innerHTML = popupHtml;
-
-                // Add tab switching functionality
-                setupTabFunctionality();
-
-                // Add click handlers for stat analysis
-                setupStatAnalysisHandlers(card);
-
-                cardHoverPopup.classList.remove('opacity-0', 'pointer-events-none');
-            }
-
-            function hideCardPopup() {
-                cardHoverPopup.classList.add('opacity-0', 'pointer-events-none');
-            }
-
-            function setupTabFunctionality() {
-                const tabButtons = cardInspectorContent.querySelectorAll('.tab-button');
-                const tabPanes = cardInspectorContent.querySelectorAll('.tab-pane');
-
-                tabButtons.forEach(button => {
-                    button.addEventListener('click', () => {
-                        const targetTab = button.dataset.tab;
-
-                        // Remove active class from all buttons and panes
-                        tabButtons.forEach(btn => btn.classList.remove('active'));
-                        tabPanes.forEach(pane => pane.classList.remove('active'));
-
-                        // Add active class to clicked button and corresponding pane
-                        button.classList.add('active');
-                        const targetPane = cardInspectorContent.querySelector(`#${targetTab}-tab`);
-                        if (targetPane) {
-                            targetPane.classList.add('active');
-                        }
-                    });
-                });
-            }
-
-            function setupStatAnalysisHandlers(card) {
-                const statAnalysisContent = cardInspectorContent.querySelector('#stat-analysis-content');
-
-                if (statAnalysisContent) {
-                    statAnalysisContent.addEventListener('click', (event) => {
-                        CardStatAnalysisModule.handleStatItemClick(event, card, (criteria, title, analyzedCard, colorFilter) => {
-                            showDrillDownModal(criteria, title, analyzedCard, colorFilter);
-                        });
-                    });
-                }
-            }
-
-            function showDrillDownModal(criteria, title, analyzedCard, colorFilter) {
-                // Create a simple modal for drill-down results
-                const modalHtml = `
-                    <div id="drilldown-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-80 p-4">
-                        <div class="bg-gray-800 border border-gray-700 rounded-lg shadow-xl w-full max-w-4xl h-[80vh] flex flex-col">
-                            <div class="flex justify-between items-center mb-4 flex-shrink-0 px-6 pt-6">
-                                <h3 class="text-xl font-bold text-slate-100">${title}</h3>
-                                <button id="close-drilldown-btn" class="text-gray-400 hover:text-white text-2xl">&times;</button>
-                            </div>
-                            <div id="drilldown-content" class="flex-grow overflow-y-auto px-6 pb-6">
-                                <div class="text-center text-gray-400">Loading matching cards...</div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-
-                document.body.insertAdjacentHTML('beforeend', modalHtml);
-
-                // Load drill-down results
-                loadDrillDownResults(criteria, analyzedCard, colorFilter);
-
-                // Setup close handler
-                document.getElementById('close-drilldown-btn').addEventListener('click', () => {
-                    document.getElementById('drilldown-modal').remove();
-                });
-
-                // Close on background click
-                document.getElementById('drilldown-modal').addEventListener('click', (e) => {
-                    if (e.target.id === 'drilldown-modal') {
-                        document.getElementById('drilldown-modal').remove();
-                    }
-                });
-            }
-
-            function loadDrillDownResults(criteria, analyzedCard, colorFilter) {
-                const matchingCards = CardStatAnalysisModule.findMatchingCards(criteria, analyzedCard);
-
-                let cardsToShow = criteria.type === 'static'
-                    ? matchingCards.filter(c => c.id !== analyzedCard.id)
-                    : matchingCards;
-
-                if (colorFilter) {
-                    cardsToShow = cardsToShow.filter(c => CardStatAnalysisModule.getCardColors(c).includes(colorFilter));
-                }
-
-                const drilldownContent = document.getElementById('drilldown-content');
-
-                if (cardsToShow.length === 0) {
-                    drilldownContent.innerHTML = '<div class="text-center text-gray-400 py-8">No matching cards found.</div>';
-                    return;
-                }
-
-                const cardsHtml = cardsToShow.map(card => `
-                    <div class="inline-block m-2">
-                        <img src="${card.images.thumbnail}" alt="${card.fullName}"
-                             class="w-24 h-32 object-contain rounded-lg border border-gray-600 hover:border-purple-500 transition-colors cursor-pointer"
-                             title="${card.fullName}">
-                    </div>
-                `).join('');
-
-                drilldownContent.innerHTML = `
-                    <div class="mb-4 text-gray-300">
-                        Found ${cardsToShow.length} matching card${cardsToShow.length !== 1 ? 's' : ''}
-                        ${colorFilter ? ` with ${colorFilter} ink` : ''}
-                    </div>
-                    <div class="flex flex-wrap justify-center">
-                        ${cardsHtml}
-                    </div>
-                `;
-            }
 
             function handleCardSelection(cardName, cardCount) {
                 const existingIndex = selectedForMulligan.findIndex(item => item.name === cardName);
@@ -1132,7 +869,7 @@
                             `;
                             stackDiv.addEventListener('click', () => {
                                 if (hoverPopupToggle.checked) {
-                                    showCardPopup(card);
+                                    inspector.showCard(card);
                                 } else {
                                     handleCardSelection(card.fullName, count);
                                 }
@@ -1625,13 +1362,6 @@
             const showConfirmationModal = () => confirmationModal.classList.remove('opacity-0', 'pointer-events-none');
             const hideConfirmationModal = () => confirmationModal.classList.add('opacity-0', 'pointer-events-none');
 
-            // Card Inspector Modal Listeners
-            closeCardInspectorBtn.addEventListener('click', hideCardPopup);
-            cardHoverPopup.addEventListener('click', (e) => {
-                if (e.target === cardHoverPopup) {
-                    hideCardPopup();
-                }
-            });
             deleteDeckBtn.addEventListener('click', () => { if (deckIdInput.value) showConfirmationModal(); });
             cancelDeleteBtn.addEventListener('click', hideConfirmationModal);
             confirmDeleteBtn.addEventListener('click', async () => {
@@ -1825,6 +1555,10 @@ FORMAT YOUR RESPONSE as a structured, professional guide with clear headings. In
                     CardStatAnalysisModule.initialize(allCards, INK_COLORS);
 
                     await UnifiedWinProbabiliyCalculation.loadAbilitiesConfig(); // Load abilities for CTL scores
+
+                    // Initialize the CardThreatLevelInspector
+                    inspector = new CardThreatLevelInspector();
+
                     await loadAndRenderDecks();
                     resetForm();
                 } catch (error) {
