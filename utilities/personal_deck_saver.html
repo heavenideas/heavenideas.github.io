@@ -305,6 +305,18 @@
         .color-chip:hover {
             transform: scale(1.1);
         }
+
+        /* Card highlighting */
+        .card-stack.highlighted {
+            box-shadow: 0 0 20px currentColor, 0 0 40px currentColor;
+            border-color: currentColor;
+            animation: highlight-pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes highlight-pulse {
+            0%, 100% { box-shadow: 0 0 20px currentColor, 0 0 40px currentColor; }
+            50% { box-shadow: 0 0 30px currentColor, 0 0 60px currentColor; }
+        }
     </style>
 </head>
 
@@ -569,6 +581,23 @@
                 }
                 const hue = Math.abs(hash) % 360;
                 return `hsl(${hue}, 70%, 50%)`;
+            }
+
+            function getHighlightColor(criteria) {
+                switch (criteria.type) {
+                    case 'subtype':
+                        return getSubtypeColor(criteria.value);
+                    case 'color':
+                        return INK_COLORS[criteria.value]?.hex || '#fff';
+                    case 'cost':
+                        return '#a855f7';
+                    case 'type':
+                        return TYPE_COLORS[criteria.value] || '#fff';
+                    case 'inkable':
+                        return criteria.value === 'Inkable' ? '#10b981' : '#ef4444';
+                    default:
+                        return '#a855f7';
+                }
             }
 
             let allCards = [];
@@ -976,6 +1005,21 @@
                 charts.inkable = new Chart(document.getElementById('inkableChart'), { type: 'pie', data: { labels: ['Inkable', 'Uninkable'], datasets: [{ data: [], backgroundColor: ['#10b981', '#ef4444'] }] }, options: pieOptions });
                 charts.cardType = new Chart(document.getElementById('cardTypeChart'), { type: 'pie', data: { labels: [], datasets: [{ data: [] }] }, options: pieOptions });
                 charts.subtypes = new Chart(document.getElementById('subtypesChart'), { type: 'pie', data: { labels: [], datasets: [{ data: [] }] }, options: pieOptions });
+
+                // Add click event listeners to all charts
+                document.getElementById('inkCurveChart').addEventListener('click', (e) => handleChartClick(e, 'inkCurve'));
+                document.getElementById('colorSplitChart').addEventListener('click', (e) => handleChartClick(e, 'colorSplit'));
+                document.getElementById('inkableChart').addEventListener('click', (e) => handleChartClick(e, 'inkable'));
+                document.getElementById('cardTypeChart').addEventListener('click', (e) => handleChartClick(e, 'cardType'));
+                document.getElementById('subtypesChart').addEventListener('click', (e) => handleChartClick(e, 'subtypes'));
+
+                // Add click listener to clear highlights when clicking outside charts
+                document.addEventListener('click', (e) => {
+                    const chartsContainer = document.getElementById('chartsContainer');
+                    if (!chartsContainer.contains(e.target)) {
+                        clearCardHighlights();
+                    }
+                });
             }
 
             function parseAndRenderDeck() {
@@ -1058,6 +1102,32 @@
                                     handleCardSelection(card.fullName, count);
                                 }
                             });
+
+                            // Preserve highlight if card matches current filter
+                            if (currentHighlightFilter) {
+                                let shouldHighlight = false;
+                                switch (currentHighlightFilter.type) {
+                                    case 'subtype':
+                                        shouldHighlight = (card.subtypes || []).includes(currentHighlightFilter.value);
+                                        break;
+                                    case 'color':
+                                        shouldHighlight = (card.colors || [card.color]).includes(currentHighlightFilter.value);
+                                        break;
+                                    case 'cost':
+                                        shouldHighlight = card.cost === currentHighlightFilter.value || (currentHighlightFilter.value === 7 && card.cost >= 7);
+                                        break;
+                                    case 'type':
+                                        shouldHighlight = card.type === currentHighlightFilter.value || (currentHighlightFilter.value === 'Song' && card.type === 'Action' && (card.subtypes || []).includes('Song'));
+                                        break;
+                                    case 'inkable':
+                                        shouldHighlight = card.inkwell === (currentHighlightFilter.value === 'Inkable');
+                                        break;
+                                }
+                                if (shouldHighlight) {
+                                    stackDiv.classList.add('highlighted');
+                                    stackDiv.style.color = getHighlightColor(currentHighlightFilter);
+                                }
+                            }
                             grid.appendChild(stackDiv);
                         });
                         section.appendChild(grid);
@@ -1098,6 +1168,108 @@
                 charts.subtypes.data.datasets[0].data = Object.values(subtypesData);
                 charts.subtypes.data.datasets[0].backgroundColor = Object.keys(subtypesData).map(s => getSubtypeColor(s));
                 Object.values(charts).forEach(chart => chart.update());
+            }
+
+            // --- CHART INTERACTIVITY ---
+            let currentHighlightFilter = null;
+
+            function clearCardHighlights() {
+                document.querySelectorAll('.card-stack.highlighted').forEach(card => {
+                    card.classList.remove('highlighted');
+                    card.style.color = '';
+                });
+                currentHighlightFilter = null;
+            }
+
+            function highlightCardsByCriteria(criteria, color) {
+                clearCardHighlights();
+
+                const matchingCards = currentDeck.filter(({ card }) => {
+                    switch (criteria.type) {
+                        case 'subtype':
+                            return (card.subtypes || []).includes(criteria.value);
+                        case 'color':
+                            return (card.colors || [card.color]).includes(criteria.value);
+                        case 'cost':
+                            return card.cost === criteria.value || (criteria.value === 7 && card.cost >= 7);
+                        case 'type':
+                            return card.type === criteria.value || (criteria.value === 'Song' && card.type === 'Action' && (card.subtypes || []).includes('Song'));
+                        case 'inkable':
+                            return card.inkwell === (criteria.value === 'Inkable');
+                        default:
+                            return false;
+                    }
+                });
+
+                matchingCards.forEach(({ card }) => {
+                    const cardElement = document.querySelector(`.card-stack[data-card-name="${CSS.escape(card.fullName)}"]`);
+                    if (cardElement) {
+                        cardElement.classList.add('highlighted');
+                        cardElement.style.color = color;
+                    }
+                });
+
+                currentHighlightFilter = criteria;
+            }
+
+            function handleChartClick(event, chartType) {
+                const canvas = event.target;
+                const rect = canvas.getBoundingClientRect();
+                const x = event.clientX - rect.left;
+                const y = event.clientY - rect.top;
+
+                const chart = charts[chartType];
+                if (!chart) return;
+
+                const elements = chart.getElementsAtEventForMode(event, 'nearest', { intersect: true }, false);
+                if (elements.length === 0) return;
+
+                const element = elements[0];
+                const datasetIndex = element.datasetIndex;
+                const index = element.index;
+
+                let criteria = null;
+                let color = null;
+
+                switch (chartType) {
+                    case 'subtypes':
+                        const subtype = chart.data.labels[index];
+                        color = getSubtypeColor(subtype);
+                        criteria = { type: 'subtype', value: subtype };
+                        break;
+                    case 'colorSplit':
+                        const colorName = chart.data.labels[index];
+                        color = INK_COLORS[colorName]?.hex || '#fff';
+                        criteria = { type: 'color', value: colorName };
+                        break;
+                    case 'inkCurve':
+                        const costLabel = chart.data.labels[index];
+                        const cost = costLabel === '7+' ? 7 : parseInt(costLabel);
+                        color = '#a855f7'; // Use the same color as the bar chart
+                        criteria = { type: 'cost', value: cost };
+                        break;
+                    case 'cardType':
+                        const cardType = chart.data.labels[index];
+                        color = TYPE_COLORS[cardType] || '#fff';
+                        criteria = { type: 'type', value: cardType };
+                        break;
+                    case 'inkable':
+                        const inkableLabel = chart.data.labels[index];
+                        color = inkableLabel === 'Inkable' ? '#10b981' : '#ef4444';
+                        criteria = { type: 'inkable', value: inkableLabel };
+                        break;
+                }
+
+                if (criteria && color) {
+                    // If clicking the same filter, clear highlights
+                    if (currentHighlightFilter &&
+                        currentHighlightFilter.type === criteria.type &&
+                        currentHighlightFilter.value === criteria.value) {
+                        clearCardHighlights();
+                    } else {
+                        highlightCardsByCriteria(criteria, color);
+                    }
+                }
             }
 
             // --- DECK BUILDING & SEARCH ---
