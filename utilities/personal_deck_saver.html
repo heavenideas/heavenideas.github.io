@@ -347,17 +347,52 @@
             <!-- Deck List Panel -->
             <div class="w-full md:w-1/3 bg-gray-800 p-6 rounded-lg shadow-lg flex flex-col h-[60vh] md:h-[75vh]">
                 <h2 class="text-2xl font-semibold mb-4 border-b border-gray-700 pb-2">My Decks</h2>
-                <!-- Deck Search Input -->
-                <div class="relative mb-4">
-                    <input type="text" id="deckSearch" placeholder="Search by name or comments..."
-                        class="w-full bg-gray-700 border border-gray-600 rounded-md pl-10 pr-4 py-2 focus:ring-2 focus:ring-purple-500 focus:outline-none">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
-                            fill="currentColor">
-                            <path fill-rule="evenodd"
-                                d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z"
-                                clip-rule="evenodd" />
-                        </svg>
+
+                <!-- Filter and Sort Controls -->
+                <div class="mb-4 space-y-3">
+                    <!-- Search Input -->
+                    <div class="relative">
+                        <input type="text" id="deckSearch" placeholder="Search by name or comments..."
+                            class="w-full bg-gray-700 border border-gray-600 rounded-md pl-10 pr-4 py-2 focus:ring-2 focus:ring-purple-500 focus:outline-none">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                                fill="currentColor">
+                                <path fill-rule="evenodd"
+                                    d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z"
+                                    clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                    </div>
+
+                    <!-- Sort and Filter Row -->
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <!-- Sort Dropdown -->
+                        <div class="flex-1">
+                            <select id="deckSort" class="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:outline-none">
+                                <option value="newest">Newest First</option>
+                                <option value="oldest">Oldest First</option>
+                                <option value="name-asc">Name A-Z</option>
+                                <option value="name-desc">Name Z-A</option>
+                            </select>
+                        </div>
+
+                        <!-- Ink Color Filter -->
+                        <div class="flex-1">
+                            <select id="inkFilter" class="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:outline-none">
+                                <option value="">All Ink Colors</option>
+                                <option value="Amber">Amber</option>
+                                <option value="Amethyst">Amethyst</option>
+                                <option value="Emerald">Emerald</option>
+                                <option value="Ruby">Ruby</option>
+                                <option value="Sapphire">Sapphire</option>
+                                <option value="Steel">Steel</option>
+                            </select>
+                        </div>
+
+                        <!-- Clear Filters Button -->
+                        <button id="clearFiltersBtn" class="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-md font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-gray-400">
+                            Clear
+                        </button>
                     </div>
                 </div>
                 <div id="deckListContainer" class="space-y-2 flex-grow overflow-y-auto">
@@ -1405,6 +1440,41 @@
                 }
             };
 
+            const filterAndSortDecks = (decks, searchTerm = '', sortBy = 'newest', inkFilter = '') => {
+                let filteredDecks = [...decks];
+
+                // Apply search filter
+                if (searchTerm) {
+                    const searchResults = deckFuse.search(searchTerm);
+                    filteredDecks = searchResults.map(result => result.item);
+                }
+
+                // Apply ink color filter
+                if (inkFilter) {
+                    filteredDecks = filteredDecks.filter(deck =>
+                        (deck.inks || []).includes(inkFilter)
+                    );
+                }
+
+                // Apply sorting
+                filteredDecks.sort((a, b) => {
+                    switch (sortBy) {
+                        case 'newest':
+                            return new Date(b.created_at) - new Date(a.created_at);
+                        case 'oldest':
+                            return new Date(a.created_at) - new Date(b.created_at);
+                        case 'name-asc':
+                            return a.name.localeCompare(b.name);
+                        case 'name-desc':
+                            return b.name.localeCompare(a.name);
+                        default:
+                            return new Date(b.created_at) - new Date(a.created_at);
+                    }
+                });
+
+                return filteredDecks;
+            };
+
             const renderDeckList = (decksToRender) => {
                 deckListContainer.innerHTML = !decksToRender.length ? `<p class="text-gray-500 italic p-4 text-center">No decks found.</p>` : '';
                 decksToRender.forEach(deck => {
@@ -1422,8 +1492,17 @@
                 });
             };
 
+            const updateDeckList = () => {
+                const searchTerm = document.getElementById('deckSearch').value.trim();
+                const sortBy = document.getElementById('deckSort').value;
+                const inkFilter = document.getElementById('inkFilter').value;
+
+                const filteredAndSortedDecks = filterAndSortDecks(allDecks, searchTerm, sortBy, inkFilter);
+                renderDeckList(filteredAndSortedDecks);
+            };
+
             const loadAndRenderDecks = async () => {
-                const { data, error } = await supabaseClient.from('decks').select('*').order('created_at', { ascending: true });
+                const { data, error } = await supabaseClient.from('decks').select('*').order('created_at', { ascending: false }); // Default to newest first
                 if (error) {
                     console.error('Error fetching decks:', error);
                     allDecks = [];
@@ -1431,8 +1510,13 @@
                     allDecks = data;
                 }
                 deckFuse = new Fuse(allDecks, { keys: ['name', 'comments'], includeScore: true, threshold: 0.4 });
-                deckSearchInput.value = ''; // Clear search on reload
-                renderDeckList(allDecks);
+
+                // Clear filters and set defaults
+                document.getElementById('deckSearch').value = '';
+                document.getElementById('deckSort').value = 'newest';
+                document.getElementById('inkFilter').value = '';
+
+                updateDeckList();
             };
 
             const populateForm = async (deckId) => {
@@ -1486,15 +1570,14 @@
                 window.deckRenderTimeout = setTimeout(parseAndRenderDeck, 250);
             });
 
-            deckSearchInput.addEventListener('input', () => {
-                const searchTerm = deckSearchInput.value.trim();
-                if (searchTerm === '') {
-                    renderDeckList(allDecks);
-                    return;
-                }
-                const results = deckFuse.search(searchTerm);
-                const filteredDecks = results.map(result => result.item);
-                renderDeckList(filteredDecks);
+            deckSearchInput.addEventListener('input', updateDeckList);
+            document.getElementById('deckSort').addEventListener('change', updateDeckList);
+            document.getElementById('inkFilter').addEventListener('change', updateDeckList);
+            document.getElementById('clearFiltersBtn').addEventListener('click', () => {
+                document.getElementById('deckSearch').value = '';
+                document.getElementById('deckSort').value = 'newest';
+                document.getElementById('inkFilter').value = '';
+                updateDeckList();
             });
             
             // Card Search Listeners
