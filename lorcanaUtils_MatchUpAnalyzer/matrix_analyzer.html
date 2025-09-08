@@ -77,7 +77,7 @@
             transition: width 0.5s ease-in-out;
         }
         
-        #deckLoadModal, #ctlBreakdownModal, #matchupDetailModal, #cellComparisonModal {
+        #deckLoadModal, #matchupDetailModal, #cellComparisonModal {
             transition: opacity 0.2s ease-in-out;
         }
         
@@ -239,17 +239,6 @@
       </div>
     </div>
     
-    <!-- Card Threat Level Inspector Modal -->
-    <div id="ctlBreakdownModal" class="fixed inset-0 z-[60] flex items-center justify-center bg-black bg-opacity-90 p-4 opacity-0 pointer-events-none">
-        <div class="bg-primary-color border border-border-color rounded-lg shadow-xl w-full max-w-5xl h-[90vh] flex flex-col">
-            <div class="flex justify-between items-center mb-4 flex-shrink-0 px-6 pt-6">
-                <h3 id="ctlModalTitle" class="text-xl font-bold text-slate-100">Card Threat Level Inspector</h3>
-                <button id="closeCtlModalBtn" class="text-gray-400 hover:text-white text-3xl leading-none">&times;</button>
-            </div>
-            <div id="ctlModalContent" class="flex-grow overflow-hidden px-6 pb-6">
-            </div>
-        </div>
-    </div>
 
     <!-- Matchup Detail Modal -->
     <div id="matchupDetailModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90 p-4 opacity-0 pointer-events-none">
@@ -280,6 +269,7 @@
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0"></script>
+    <script src="../utilities/CardThreatLevelInspector.js"></script>
     <script type="module">
         const loader = document.getElementById('loader');
         const mainContent = document.getElementById('main-content');
@@ -289,23 +279,15 @@
         const decklist2Text = document.getElementById('decklist2');
 
         const deckLoadModal = document.getElementById('deckLoadModal');
-        const ctlBreakdownModal = document.getElementById('ctlBreakdownModal');
         const matchupDetailModal = document.getElementById('matchupDetailModal');
-        const cellComparisonModal = document.getElementById('cellComparisonModal');
 
         const deckListContainer = document.getElementById('deckListContainer');
         const deckSearchInput = document.getElementById('deckSearchInput');
-        const ctlModalTitle = document.getElementById('ctlModalTitle');
-        const ctlModalContent = document.getElementById('ctlModalContent');
         const matchupModalTitle = document.getElementById('matchupModalTitle');
         const matchupModalContent = document.getElementById('matchupModalContent');
-        const cellModalTitle = document.getElementById('cellModalTitle');
-        const cellModalContent = document.getElementById('cellModalContent');
-        
+
         const closeDeckModalBtn = document.getElementById('closeDeckModalBtn');
-        const closeCtlModalBtn = document.getElementById('closeCtlModalBtn');
         const closeMatchupModalBtn = document.getElementById('closeMatchupModalBtn');
-        const closeCellModalBtn = document.getElementById('closeCellModalBtn');
 
         const loadDeck1Btn = document.getElementById('loadDeck1Btn');
         const loadDeck2Btn = document.getElementById('loadDeck2Btn');
@@ -319,6 +301,9 @@
         let allDecks = [];
         let deckFuse;
         let deckLoadTarget = null;
+
+        // Global Card Threat Level Inspector instance
+        let cardThreatInspector = null;
 
         const INK_COLORS = {
             Amber: { hex: '#FCD34D', name: 'Amber' }, Amethyst: { hex: '#C084FC', name: 'Amethyst' },
@@ -346,6 +331,12 @@
                 });
 
                 CardStatAnalysisModule.initialize(allCards, INK_COLORS);
+
+                // Initialize Card Threat Level Inspector
+                cardThreatInspector = new CardThreatLevelInspector({
+                    cardStatAnalysisModule: CardStatAnalysisModule,
+                    unifiedWinProbabilityCalculation: UnifiedWinProbabiliyCalculation
+                });
 
                 mainContent.classList.remove('hidden');
             } catch (error) {
@@ -398,127 +389,12 @@
             deckLoadTarget = null;
         }
         
-        function showCtlBreakdownModal(card) {
-            ctlModalTitle.innerHTML = `Card Threat Level Inspector`;
-            ctlModalContent.innerHTML = getInspectorHtml(card, 'single');
-            setupInspectorEventListeners(ctlModalContent, card);
-            ctlBreakdownModal.classList.remove('opacity-0', 'pointer-events-none');
-        }
-        function hideCtlBreakdownModal() { ctlBreakdownModal.classList.add('opacity-0', 'pointer-events-none'); }
         
-        function getInspectorHtml(card, contextId) {
-            const threatTabId = `threat-tab-${contextId}`;
-            const statsTabId = `stats-tab-${contextId}`;
-
-            return `
-                <div class="tab-container h-full flex flex-col">
-                    <div class="tab-buttons border-b border-border-color mb-4 flex-shrink-0">
-                        <button class="tab-button active py-2 px-4" data-tab="${threatTabId}">Threat Analysis</button>
-                        <button class="tab-button py-2 px-4" data-tab="${statsTabId}">Stat Comparisons</button>
-                    </div>
-                    <div class="tab-content flex-grow overflow-y-auto dark-scrollbar pr-2">
-                        <div id="${threatTabId}" class="tab-pane active">
-                            ${getThreatAnalysisHtml(card)}
-                        </div>
-                        <div id="${statsTabId}" class="tab-pane">
-                            <div class="stat-analysis-content h-full overflow-y-auto dark-scrollbar">${CardStatAnalysisModule.renderCompleteAnalysis(card)}</div>
-                        </div>
-                    </div>
-                </div>`;
-        }
-
-        function getThreatAnalysisHtml(card) {
-            const { rds, lvi, bcr } = UnifiedWinProbabiliyCalculation.calculateCardMetrics(card);
-            const { highlightedHtml } = analyzeAndHighlightText(card.fullText || (card.fullTextSections || []).join('\n'));
-            const ctl = rds + lvi + bcr;
-
-            return `
-                <h3 class="text-xl font-bold text-slate-100 mb-4">${card.fullName}</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <img src="${card.images.full}" alt="${card.fullName}" class="w-full rounded-lg mb-4">
-                        <div class="grid grid-cols-2 gap-4 text-center">
-                            <div class="bg-purple-900/40 rounded-xl p-3" title="Threat Level = RDS + LVI + BCR">
-                                <div class="text-sm text-slate-400">CTL</div>
-                                <div class="text-2xl font-bold text-purple-400">${ctl.toFixed(2)}</div>
-                            </div>
-                            <div class="bg-sky-900/40 rounded-xl p-3">
-                                <div class="text-sm text-slate-400">RDS</div>
-                                <div class="text-2xl font-bold text-sky-400">${rds.toFixed(2)}</div>
-                            </div>
-                            <div class="bg-amber-900/40 rounded-xl p-3">
-                                <div class="text-sm text-slate-400">LVI</div>
-                                <div class="text-2xl font-bold text-amber-400">${lvi.toFixed(2)}</div>
-                            </div>
-                            <div class="bg-rose-900/40 rounded-xl p-3">
-                                <div class="text-sm text-slate-400">BCR</div>
-                                <div class="text-2xl font-bold text-rose-400">${bcr.toFixed(2)}</div>
-                            </div>
-                        </div>
-                        <div class="p-4 bg-secondary-color rounded-lg mt-4 prose prose-invert max-w-none text-sm">${highlightedHtml}</div>
-                    </div>
-                    <div>
-                        <h4 class="font-semibold text-slate-300 mb-2">Calculation Breakdown:</h4>
-                        <div class="space-y-2">${getCtlBreakdownHtml(card)}</div>
-                    </div>
-                </div>`;
-        }
 
 
-        function setupInspectorEventListeners(container, card) {
-            container.querySelectorAll('.tab-button').forEach(button => {
-                button.addEventListener('click', () => {
-                    const targetTabId = button.dataset.tab;
-                    container.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
-                    container.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
-                    button.classList.add('active');
-                    container.querySelector(`#${targetTabId}`).classList.add('active');
-                });
-            });
 
-            container.querySelector('.stat-analysis-content')?.addEventListener('click', (event) => {
-                CardStatAnalysisModule.handleStatItemClick(event, card, showDrillDownModal);
-            });
-        }
         
-        function getCtlBreakdownHtml(card) {
-            const metrics = UnifiedWinProbabiliyCalculation.calculateCardMetrics(card);
-            if (metrics.breakdown.length === 0) return `<p class="text-gray-400">No specific abilities found. Scores based on stats.</p>`;
-            return metrics.breakdown.map(item => `
-                <div class="bg-secondary-color p-3 rounded-lg">
-                    <p class="font-bold text-accent-color">${item.abilityName}</p>
-                    <p class="text-sm">Contributes <span class="font-mono">${item.value.toFixed(2)}</span> to <span class="font-semibold">${item.metric.replace(/_/g, ' ')}</span></p>
-                    <p class="text-xs text-gray-400 mt-1">${item.explanation}</p>
-                </div>
-            `).join('');
-        }
         
-        function showDrillDownModal(criteria, title, analyzedCard, colorFilter) {
-            const container = document.getElementById('drilldown-modal-container');
-            const modalHtml = `
-                <div id="drilldown-modal" class="fixed inset-0 z-[80] flex items-center justify-center bg-black bg-opacity-90 p-4">
-                    <div class="bg-primary-color border border-border-color rounded-lg shadow-xl w-full max-w-4xl h-[80vh] flex flex-col">
-                        <div class="flex justify-between items-center mb-4 flex-shrink-0 px-6 pt-6">
-                            <h3 class="text-xl font-bold text-slate-100">${title}</h3>
-                            <button id="close-drilldown-btn" class="text-gray-400 hover:text-white text-3xl">&times;</button>
-                        </div>
-                        <div id="drilldown-content" class="flex-grow overflow-y-auto px-6 pb-6 dark-scrollbar"></div>
-                    </div>
-                </div>`;
-            container.innerHTML = modalHtml;
-            
-            const matchingCards = CardStatAnalysisModule.findMatchingCards(criteria, analyzedCard);
-            let cardsToShow = criteria.type === 'static' ? matchingCards.filter(c => c.id !== analyzedCard.id) : matchingCards;
-            if (colorFilter) {
-                cardsToShow = cardsToShow.filter(c => CardStatAnalysisModule.getCardColors(c).includes(colorFilter));
-            }
-            const contentEl = container.querySelector('#drilldown-content');
-            contentEl.innerHTML = cardsToShow.length === 0 
-                ? '<div class="text-center text-gray-400 py-8">No matching cards found.</div>'
-                : `<div class="flex flex-wrap justify-center gap-2">${cardsToShow.map(card => `<img src="${card.images.thumbnail}" alt="${card.fullName}" class="w-24 rounded-md" title="${card.fullName}">`).join('')}</div>`;
-
-            container.querySelector('#close-drilldown-btn').addEventListener('click', () => container.innerHTML = '');
-        }
 
         function showMatchupDetailModal(title, cards) {
             matchupModalTitle.textContent = title;
@@ -550,50 +426,6 @@
         }
         function hideMatchupDetailModal() { matchupDetailModal.classList.add('opacity-0', 'pointer-events-none'); }
 
-        function showCellComparisonModal(card1, card2) {
-            const matchup = getSingleMatchupOutcome(card1, card2);
-            cellModalTitle.innerHTML = `Comparison: <span class="text-accent-color">${matchup.description}</span>`;
-            
-            let contentHtml = `
-                <div class="tab-buttons border-b border-border-color mb-4 flex-shrink-0">
-                    <button class="comparison-tab-button active py-2 px-4" data-tab="threat">Threat Analysis</button>
-                    <button class="comparison-tab-button py-2 px-4" data-tab="stats">Stat Comparisons</button>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 flex-grow overflow-y-auto dark-scrollbar pr-2">
-                    <div id="comparison-card1-content"></div>
-                    <div id="comparison-card2-content"></div>
-                </div>`;
-            cellModalContent.innerHTML = contentHtml;
-
-            const card1Content = cellModalContent.querySelector('#comparison-card1-content');
-            const card2Content = cellModalContent.querySelector('#comparison-card2-content');
-
-            function renderTabs(activeTab) {
-                if (activeTab === 'threat') {
-                    card1Content.innerHTML = `<div class="h-full overflow-y-auto dark-scrollbar pr-2"><h4 class="text-lg font-bold mb-2 text-center">${card1.fullName}</h4><div class="bg-secondary-color rounded-lg p-4">${getThreatAnalysisHtml(card1)}</div></div>`;
-                    card2Content.innerHTML = `<div class="h-full overflow-y-auto dark-scrollbar pr-2"><h4 class="text-lg font-bold mb-2 text-center">${card2.fullName}</h4><div class="bg-secondary-color rounded-lg p-4">${getThreatAnalysisHtml(card2)}</div></div>`;
-                } else { // stats tab
-                    card1Content.innerHTML = `<div class="h-full overflow-y-auto dark-scrollbar pr-2"><h4 class="text-lg font-bold mb-2 text-center">${card1.fullName}</h4><div class="bg-secondary-color rounded-lg p-4">${CardStatAnalysisModule.renderCompleteAnalysis(card1)}</div></div>`;
-                    card2Content.innerHTML = `<div class="h-full overflow-y-auto dark-scrollbar pr-2"><h4 class="text-lg font-bold mb-2 text-center">${card2.fullName}</h4><div class="bg-secondary-color rounded-lg p-4">${CardStatAnalysisModule.renderCompleteAnalysis(card2)}</div></div>`;
-                }
-                
-                card1Content.querySelectorAll('.stat-item').forEach(item => item.addEventListener('click', (event) => CardStatAnalysisModule.handleStatItemClick(event, card1, showDrillDownModal)));
-                card2Content.querySelectorAll('.stat-item').forEach(item => item.addEventListener('click', (event) => CardStatAnalysisModule.handleStatItemClick(event, card2, showDrillDownModal)));
-            }
-            
-            renderTabs('threat');
-
-            cellModalContent.querySelectorAll('.comparison-tab-button').forEach(button => {
-                button.addEventListener('click', () => {
-                    cellModalContent.querySelectorAll('.comparison-tab-button').forEach(btn => btn.classList.remove('active'));
-                    button.classList.add('active');
-                    renderTabs(button.dataset.tab);
-                });
-            });
-
-            cellComparisonModal.classList.remove('opacity-0', 'pointer-events-none');
-        }
-        function hideCellComparisonModal() { cellComparisonModal.classList.add('opacity-0', 'pointer-events-none'); }
 
         function parseDecklist(decklistText) {
             const deck = new Map();
@@ -773,9 +605,7 @@
         loadDeck1Btn.addEventListener('click', () => showDeckModal('deck1'));
         loadDeck2Btn.addEventListener('click', () => showDeckModal('deck2'));
         closeDeckModalBtn.addEventListener('click', hideDeckModal);
-        closeCtlModalBtn.addEventListener('click', hideCtlBreakdownModal);
         closeMatchupModalBtn.addEventListener('click', hideMatchupDetailModal);
-        closeCellModalBtn.addEventListener('click', hideCellComparisonModal);
 
         deckSearchInput.addEventListener('input', () => {
             const searchTerm = deckSearchInput.value.trim();
@@ -784,23 +614,23 @@
 
         resultsContainer.addEventListener('click', (event) => {
             const cardDisplay = event.target.closest('.main-card-display, .matrix-header-card');
-            if (cardDisplay && cardDisplay.dataset.card) return showCtlBreakdownModal(JSON.parse(cardDisplay.dataset.card));
-            
+            if (cardDisplay && cardDisplay.dataset.card) return cardThreatInspector.showCard(JSON.parse(cardDisplay.dataset.card));
+
             const statBox = event.target.closest('.stat-box-clickable');
             if (statBox && statBox.dataset.cards) return showMatchupDetailModal(statBox.dataset.title, JSON.parse(statBox.dataset.cards));
-            
+
             const matrixCell = event.target.closest('.matrix-cell');
             if(matrixCell?.dataset.row) {
                 const wrapper = document.getElementById('matrix-wrapper');
                 const deck1 = JSON.parse(wrapper.dataset.deck1);
                 const deck2 = JSON.parse(wrapper.dataset.deck2);
-                showCellComparisonModal(deck1[+matrixCell.dataset.row], deck2[+matrixCell.dataset.col]);
+                cardThreatInspector.compareCards([deck1[+matrixCell.dataset.row], deck2[+matrixCell.dataset.col]]);
             }
         });
         
         matchupDetailModal.addEventListener('click', (event) => {
             const cardItem = event.target.closest('.matchup-card-item');
-            if (cardItem?.dataset.card) showCtlBreakdownModal(JSON.parse(cardItem.dataset.card));
+            if (cardItem?.dataset.card) cardThreatInspector.showCard(JSON.parse(cardItem.dataset.card));
         });
         
         initialize();

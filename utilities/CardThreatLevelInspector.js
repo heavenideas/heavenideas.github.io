@@ -213,8 +213,34 @@ class CardThreatLevelInspector {
      * Generate HTML for multi-card comparison
      */
     getMultiCardComparisonHtml(cards) {
+        // For 2 cards, use horizontal flex layout for better side-by-side display
+        if (cards.length === 2) {
+            return `
+                <div class="tab-container h-full flex flex-col">
+                    <div class="tab-buttons border-b border-gray-700 mb-4 flex-shrink-0">
+                        <button class="comparison-tab-button active py-2 px-4 text-purple-400 border-b-2 border-purple-400" data-tab="threat">Threat Analysis</button>
+                        <button class="comparison-tab-button py-2 px-4 text-gray-400 border-b-2 border-transparent hover:text-white" data-tab="stats">Stat Comparisons</button>
+                    </div>
+                    <div class="tab-content flex flex-col lg:flex-row gap-4 flex-grow overflow-y-auto pr-2" style="scrollbar-width: thin; scrollbar-color: #4a4a4a #2d2d2d;">
+                        ${cards.map((card, index) => `
+                            <div id="comparison-card-${index}" class="comparison-card-content flex-1 flex flex-col min-h-0">
+                                <div class="card-header bg-gray-900 rounded-t-lg p-3 flex-shrink-0">
+                                    <h4 class="text-lg font-bold text-center text-white truncate" title="${card.fullName}">${card.fullName}</h4>
+                                </div>
+                                <div class="card-body bg-gray-700 rounded-b-lg p-4 flex-grow overflow-y-auto" style="scrollbar-width: thin; scrollbar-color: #4a4a4a #2d2d2d;">
+                                    <div class="card-tab-content" data-card-index="${index}">
+                                        ${this.getThreatAnalysisHtml(card)}
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>`;
+        }
+
+        // For 3+ cards, use grid layout
         const gridCols = this.getGridColumnsClass(cards.length);
-        
+
         return `
             <div class="tab-container h-full flex flex-col">
                 <div class="tab-buttons border-b border-gray-700 mb-4 flex-shrink-0">
