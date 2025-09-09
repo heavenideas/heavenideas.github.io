@@ -919,11 +919,13 @@
                 const searchTerm = patternFilterInput.value.trim();
                 if (searchTerm === '') {
                     displayPatterns(treeFilteredPatterns);
+                    buildAndRenderTree(treeFilteredPatterns);
                     return;
                 }
 
                 if (!abilityFuse) {
                     displayPatterns(treeFilteredPatterns);
+                    buildAndRenderTree(treeFilteredPatterns);
                     return;
                 }
 
@@ -934,6 +936,7 @@
                 const finalPatterns = searchResults.filter(p => treeFilteredPatternsSet.has(p));
 
                 displayPatterns(finalPatterns);
+                buildAndRenderTree(finalPatterns);
             }
 
             patternListContainer.addEventListener('input', (e) => {
