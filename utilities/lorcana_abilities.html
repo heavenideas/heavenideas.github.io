@@ -231,6 +231,10 @@
                             <label for="json-file-input" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition cursor-pointer">Load lorcana_abilities.json</label>
                             <input type="file" id="json-file-input" class="hidden" accept=".json">
                         </div>
+                        <div class="flex gap-2">
+                            <button id="edit-mode-btn" class="px-3 py-2 bg-slate-600 text-white font-semibold rounded-lg shadow-md hover:bg-slate-700 transition">Edit Mode</button>
+                            <button id="view-mode-btn" class="px-3 py-2 bg-slate-600 text-white font-semibold rounded-lg shadow-md hover:bg-slate-700 transition">View Mode</button>
+                        </div>
                         <button id="save-json-btn" class="px-4 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 transition">Save JSON</button>
                         <button id="new-ability-btn" class="px-4 py-2 bg-sky-600 text-white font-semibold rounded-lg shadow-md hover:bg-sky-700 transition">New Ability</button>
                         <button id="edit-constants-btn" class="px-4 py-2 bg-purple-600 text-white font-semibold rounded-lg shadow-md hover:bg-purple-700 transition">Edit Constants</button>
@@ -417,6 +421,7 @@
             let sortDirection = 'asc';
             let sortField = 'name';
             let navMode = 'names'; // Default to names view
+            let displayMode = 'edit'; // Default to edit mode
 
             const DB_URL = 'https://raw.githubusercontent.com/heavenideas/similcana/refs/heads/main/database/allCards.json';
 
@@ -434,6 +439,8 @@
             const sortSelect = document.getElementById('sort-select');
             const navNamesBtn = document.getElementById('nav-names-btn');
             const navCategoriesBtn = document.getElementById('nav-categories-btn');
+            const editModeBtn = document.getElementById('edit-mode-btn');
+            const viewModeBtn = document.getElementById('view-mode-btn');
             const patternListContainer = document.getElementById('pattern-list');
             const patternPlaceholder = document.getElementById('pattern-placeholder');
             const lastLoadedTimestamp = document.getElementById('last-loaded-timestamp');
@@ -831,70 +838,168 @@
                     patternEl.setAttribute('data-pattern-name', pattern.name);
                     patternEl.setAttribute('data-index', originalIndex);
 
-                    patternEl.innerHTML = `
-                        <div class="grid grid-cols-1 gap-4">
-                            ${createField('Name', 'input', `data-field="name"`, pattern.name)}
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                ${createField('Category', 'input', `data-field="category"`, pattern.category)}
-                                ${createField('Sub-type', 'input', `data-field="sub_type"`, pattern.sub_type)}
-                                ${createField('Value Type', 'input', `data-field="value_type"`, pattern.value_type || 'raw', 'raw or net_advantage')}
+                    if (displayMode === 'edit') {
+                        // Edit mode - show all input fields
+                        patternEl.innerHTML = `
+                            <div class="grid grid-cols-1 gap-4">
+                                ${createField('Name', 'input', `data-field="name"`, pattern.name)}
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    ${createField('Category', 'input', `data-field="category"`, pattern.category)}
+                                    ${createField('Sub-type', 'input', `data-field="sub_type"`, pattern.sub_type)}
+                                    ${createField('Value Type', 'input', `data-field="value_type"`, pattern.value_type || 'raw', 'raw or net_advantage')}
+                                </div>
+                                <div class="mt-4"><label class="form-label cursor-pointer hover:text-blue-400 transition-colors" title="Click to copy this pattern to the Custom Regex Search below">Regex</label><input type="text" class="form-input regex-input" data-field="regex" value="${pattern.regex || ''}" placeholder="e.g., /Draw (\\d+) cards/gi or WILL_NOT_MATCH_TEXT"></div>
+                                ${createField('Explanation', 'textarea', `data-field="explanation"`, pattern.explanation)}
+                                ${createField('Justification', 'textarea', `data-field="justification"`, pattern.justification)}
                             </div>
-                            <div class="mt-4"><label class="form-label cursor-pointer hover:text-blue-400 transition-colors" title="Click to copy this pattern to the Custom Regex Search below">Regex</label><input type="text" class="form-input regex-input" data-field="regex" value="${pattern.regex || ''}" placeholder="e.g., /Draw (\\d+) cards/gi or WILL_NOT_MATCH_TEXT"></div>
-                            ${createField('Explanation', 'textarea', `data-field="explanation"`, pattern.explanation)}
-                            ${createField('Justification', 'textarea', `data-field="justification"`, pattern.justification)}
-                        </div>
 
-                        <h4 class="text-lg font-semibold mt-6 mb-2 text-slate-200 border-t border-slate-700 pt-3">Calculation</h4>
-                        <div class="calculation-editor p-3 bg-slate-900/50 rounded-md border border-slate-700 space-y-4">
-                            <!-- Variables Section -->
-                            <div>
-                                <h5 class="font-semibold text-slate-300 mb-2">Variables</h5>
-                                <div class="variables-container space-y-2">
-                                    ${(pattern.calculation?.variables || []).map((v, i) => `
-                                        <div class="flex gap-2 items-end p-2 bg-slate-800 rounded" data-variable-index="${i}">
-                                            ${createField('Name', 'input', `data-path="calculation.variables[${i}].name"`, v.name, 'e.g., drawCount', 'flex-1')}
-                                            ${createField('Source', 'input', `data-path="calculation.variables[${i}].source"`, v.source, 'regex or card.strength', 'flex-1')}
-                                            ${createField('Group', 'input', `data-path="calculation.variables[${i}].group"`, v.group, 'e.g., 1', 'w-16')}
-                                            ${createField('Type', 'input', `data-path="calculation.variables[${i}].type"`, v.type, 'numeric/textOrNumber', 'flex-1')}
-                                            <button class="px-2 py-1 bg-red-800 text-white rounded h-10" data-action="remove-variable" data-index="${i}">X</button>
-                                        </div>
-                                    `).join('')}
+                            <h4 class="text-lg font-semibold mt-6 mb-2 text-slate-200 border-t border-slate-700 pt-3">Calculation</h4>
+                            <div class="calculation-editor p-3 bg-slate-900/50 rounded-md border border-slate-700 space-y-4">
+                                <!-- Variables Section -->
+                                <div>
+                                    <h5 class="font-semibold text-slate-300 mb-2">Variables</h5>
+                                    <div class="variables-container space-y-2">
+                                        ${(pattern.calculation?.variables || []).map((v, i) => `
+                                            <div class="flex gap-2 items-end p-2 bg-slate-800 rounded" data-variable-index="${i}">
+                                                ${createField('Name', 'input', `data-path="calculation.variables[${i}].name"`, v.name, 'e.g., drawCount', 'flex-1')}
+                                                ${createField('Source', 'input', `data-path="calculation.variables[${i}].source"`, v.source, 'regex or card.strength', 'flex-1')}
+                                                ${createField('Group', 'input', `data-path="calculation.variables[${i}].group"`, v.group, 'e.g., 1', 'w-16')}
+                                                ${createField('Type', 'input', `data-path="calculation.variables[${i}].type"`, v.type, 'numeric/textOrNumber', 'flex-1')}
+                                                <button class="px-2 py-1 bg-red-800 text-white rounded h-10" data-action="remove-variable" data-index="${i}">X</button>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                    <button class="mt-2 px-3 py-1 text-sm bg-sky-700 text-white rounded" data-action="add-variable">Add Variable</button>
                                 </div>
-                                <button class="mt-2 px-3 py-1 text-sm bg-sky-700 text-white rounded" data-action="add-variable">Add Variable</button>
-                            </div>
-                            <!-- Context Modifiers Section -->
-                            <div>
-                                <h5 class="font-semibold text-slate-300 mb-2">Context Modifiers</h5>
-                                <div class="modifiers-container space-y-2">
-                                    ${(pattern.calculation?.contextModifiers || []).map((m, i) => `
-                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 p-2 bg-slate-800 rounded" data-modifier-index="${i}">
-                                            ${createField('Target Metric', 'input', `data-path="calculation.contextModifiers[${i}].targetMetric"`, m.targetMetric, 'lvi, bcr, rds')}
-                                            ${createField('Name', 'input', `data-path="calculation.contextModifiers[${i}].name"`, m.name, 'e.g., survivability')}
-                                            ${createField('Operation', 'input', `data-path="calculation.contextModifiers[${i}].operation"`, m.operation, 'multiply, add, set')}
-                                            ${createField('Value', 'input', `data-path="calculation.contextModifiers[${i}].value"`, m.value, 'e.g., 1.4 or @constants.lvi.wardModifier')}
-                                            ${createField('Condition (Optional)', 'input', `data-path="calculation.contextModifiers[${i}].condition"`, m.condition, 'e.g., @card.willpower > 5', 'md:col-span-2')}
-                                            <button class="px-2 py-1 bg-red-800 text-white rounded h-10" data-action="remove-modifier" data-index="${i}">X</button>
-                                        </div>
-                                    `).join('')}
+                                <!-- Context Modifiers Section -->
+                                <div>
+                                    <h5 class="font-semibold text-slate-300 mb-2">Context Modifiers</h5>
+                                    <div class="modifiers-container space-y-2">
+                                        ${(pattern.calculation?.contextModifiers || []).map((m, i) => `
+                                            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 p-2 bg-slate-800 rounded" data-modifier-index="${i}">
+                                                ${createField('Target Metric', 'input', `data-path="calculation.contextModifiers[${i}].targetMetric"`, m.targetMetric, 'lvi, bcr, rds')}
+                                                ${createField('Name', 'input', `data-path="calculation.contextModifiers[${i}].name"`, m.name, 'e.g., survivability')}
+                                                ${createField('Operation', 'input', `data-path="calculation.contextModifiers[${i}].operation"`, m.operation, 'multiply, add, set')}
+                                                ${createField('Value', 'input', `data-path="calculation.contextModifiers[${i}].value"`, m.value, 'e.g., 1.4 or @constants.lvi.wardModifier')}
+                                                ${createField('Condition (Optional)', 'input', `data-path="calculation.contextModifiers[${i}].condition"`, m.condition, 'e.g., @card.willpower > 5', 'md:col-span-2')}
+                                                <button class="px-2 py-1 bg-red-800 text-white rounded h-10" data-action="remove-modifier" data-index="${i}">X</button>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                    <button class="mt-2 px-3 py-1 text-sm bg-sky-700 text-white rounded" data-action="add-modifier">Add Modifier</button>
                                 </div>
-                                <button class="mt-2 px-3 py-1 text-sm bg-sky-700 text-white rounded" data-action="add-modifier">Add Modifier</button>
-                            </div>
-                            <!-- Scores Section -->
-                            <div>
-                                <h5 class="font-semibold text-slate-300 mb-2">Scores</h5>
-                                <div class="scores-container grid grid-cols-1 gap-4">
-                                    ${['resource_dominance', 'lore_velocity', 'board_control'].map(metric => `
-                                        <div class="p-2 bg-slate-800 rounded">
-                                            <h6 class="font-medium text-center capitalize text-slate-400 mb-2">${metric.replace('_', ' ')}</h6>
-                                            ${createField('Value', 'input', `data-path="calculation.scores.${metric}.value"`, pattern.calculation?.scores?.[metric]?.value)}
-                                            ${createField('Explanation', 'input', `data-path="calculation.scores.${metric}.explanation"`, pattern.calculation?.scores?.[metric]?.explanation)}
-                                            ${createField('Condition', 'input', `data-path="calculation.scores.${metric}.condition"`, pattern.calculation?.scores?.[metric]?.condition)}
-                                        </div>
-                                    `).join('')}
+                                <!-- Scores Section -->
+                                <div>
+                                    <h5 class="font-semibold text-slate-300 mb-2">Scores</h5>
+                                    <div class="scores-container grid grid-cols-1 gap-4">
+                                        ${['resource_dominance', 'lore_velocity', 'board_control'].map(metric => `
+                                            <div class="p-2 bg-slate-800 rounded">
+                                                <h6 class="font-medium text-center capitalize text-slate-400 mb-2">${metric.replace('_', ' ')}</h6>
+                                                ${createField('Value', 'input', `data-path="calculation.scores.${metric}.value"`, pattern.calculation?.scores?.[metric]?.value)}
+                                                ${createField('Explanation', 'input', `data-path="calculation.scores.${metric}.explanation"`, pattern.calculation?.scores?.[metric]?.explanation)}
+                                                ${createField('Condition', 'input', `data-path="calculation.scores.${metric}.condition"`, pattern.calculation?.scores?.[metric]?.condition)}
+                                            </div>
+                                        `).join('')}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    `;
+                        `;
+                    } else {
+                        // View mode - show read-only display with only non-blank data
+                        const hasVariables = pattern.calculation?.variables && pattern.calculation.variables.length > 0;
+                        const hasModifiers = pattern.calculation?.contextModifiers && pattern.calculation.contextModifiers.length > 0;
+                        const hasScores = pattern.calculation?.scores && Object.keys(pattern.calculation.scores).length > 0;
+
+                        patternEl.innerHTML = `
+                            <div class="space-y-4">
+                                <div class="flex justify-between items-start">
+                                    <h3 class="text-xl font-bold text-slate-100">${pattern.name || 'Unnamed Ability'}</h3>
+                                    <div class="text-sm text-slate-400">
+                                        ${pattern.category && pattern.category !== 'Uncategorized' ? `<span class="bg-blue-900/50 px-2 py-1 rounded text-xs">${pattern.category}</span>` : ''}
+                                        ${pattern.sub_type && pattern.sub_type !== 'General' ? `<span class="bg-purple-900/50 px-2 py-1 rounded text-xs ml-2">${pattern.sub_type}</span>` : ''}
+                                    </div>
+                                </div>
+
+                                ${pattern.regex && pattern.regex !== 'WILL_NOT_MATCH_TEXT' ? `
+                                    <div>
+                                        <h4 class="text-sm font-semibold text-slate-400 mb-1">Regex Pattern</h4>
+                                        <code class="block bg-slate-900 p-2 rounded text-sm text-pink-400 font-mono">${pattern.regex}</code>
+                                    </div>
+                                ` : ''}
+
+                                ${pattern.explanation ? `
+                                    <div>
+                                        <h4 class="text-sm font-semibold text-slate-400 mb-1">Explanation</h4>
+                                        <p class="text-slate-300 text-sm leading-relaxed">${pattern.explanation}</p>
+                                    </div>
+                                ` : ''}
+
+                                ${pattern.justification ? `
+                                    <div>
+                                        <h4 class="text-sm font-semibold text-slate-400 mb-1">Justification</h4>
+                                        <p class="text-slate-300 text-sm leading-relaxed">${pattern.justification}</p>
+                                    </div>
+                                ` : ''}
+
+                                ${(hasVariables || hasModifiers || hasScores) ? `
+                                    <div class="border-t border-slate-700 pt-4">
+                                        <h4 class="text-lg font-semibold text-slate-200 mb-3">Calculation Details</h4>
+
+                                        ${hasVariables ? `
+                                            <div class="mb-4">
+                                                <h5 class="text-sm font-semibold text-slate-400 mb-2">Variables</h5>
+                                                <div class="space-y-2">
+                                                    ${pattern.calculation.variables.map(v => `
+                                                        <div class="bg-slate-900/50 p-2 rounded text-sm">
+                                                            <span class="font-medium text-blue-400">${v.name || 'Unnamed'}</span>
+                                                            <span class="text-slate-400">from</span>
+                                                            <code class="text-green-400">${v.source || 'N/A'}</code>
+                                                            <span class="text-slate-400">(group ${v.group || 'N/A'}, ${v.type || 'N/A'})</span>
+                                                        </div>
+                                                    `).join('')}
+                                                </div>
+                                            </div>
+                                        ` : ''}
+
+                                        ${hasModifiers ? `
+                                            <div class="mb-4">
+                                                <h5 class="text-sm font-semibold text-slate-400 mb-2">Context Modifiers</h5>
+                                                <div class="space-y-2">
+                                                    ${pattern.calculation.contextModifiers.map(m => `
+                                                        <div class="bg-slate-900/50 p-2 rounded text-sm">
+                                                            <span class="font-medium text-purple-400">${m.name || 'Unnamed'}</span>
+                                                            <span class="text-slate-400">on</span>
+                                                            <code class="text-amber-400">${m.targetMetric || 'N/A'}</code>
+                                                            <span class="text-slate-400">${m.operation || 'N/A'} by</span>
+                                                            <code class="text-cyan-400">${m.value || 'N/A'}</code>
+                                                            ${m.condition ? `<span class="text-slate-400">if</span> <code class="text-orange-400">${m.condition}</code>` : ''}
+                                                        </div>
+                                                    `).join('')}
+                                                </div>
+                                            </div>
+                                        ` : ''}
+
+                                        ${hasScores ? `
+                                            <div>
+                                                <h5 class="text-sm font-semibold text-slate-400 mb-2">Scores</h5>
+                                                <div class="space-y-3">
+                                                    ${Object.entries(pattern.calculation.scores).map(([metric, scoreData]) => `
+                                                        <div class="bg-slate-900/50 p-3 rounded">
+                                                            <h6 class="font-medium text-center capitalize text-slate-300 mb-2">${metric.replace('_', ' ')}</h6>
+                                                            ${scoreData.value ? `<div class="text-center text-lg font-bold text-green-400 mb-1">${scoreData.value}</div>` : ''}
+                                                            ${scoreData.explanation ? `<div class="text-xs text-slate-400 text-center mb-1">${scoreData.explanation}</div>` : ''}
+                                                            ${scoreData.condition ? `<div class="text-xs text-orange-400 text-center">if ${scoreData.condition}</div>` : ''}
+                                                        </div>
+                                                    `).join('')}
+                                                </div>
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `;
+                    }
+
                     patternListContainer.appendChild(patternEl);
                 });
             }
@@ -1284,6 +1389,35 @@
                 navNamesBtn.classList.add('bg-slate-600');
                 navNamesBtn.classList.remove('bg-blue-600');
                 buildAndRenderTree(ABILITIES_CONFIG.abilities);
+            });
+
+            // --- MODE TOGGLE ---
+            function updateModeButtons() {
+                if (displayMode === 'edit') {
+                    editModeBtn.classList.add('bg-blue-600');
+                    editModeBtn.classList.remove('bg-slate-600');
+                    viewModeBtn.classList.add('bg-slate-600');
+                    viewModeBtn.classList.remove('bg-blue-600');
+                    newAbilityBtn.classList.remove('hidden');
+                } else {
+                    viewModeBtn.classList.add('bg-blue-600');
+                    viewModeBtn.classList.remove('bg-slate-600');
+                    editModeBtn.classList.add('bg-slate-600');
+                    editModeBtn.classList.remove('bg-blue-600');
+                    newAbilityBtn.classList.add('hidden');
+                }
+            }
+
+            editModeBtn.addEventListener('click', () => {
+                displayMode = 'edit';
+                updateModeButtons();
+                displayPatterns();
+            });
+
+            viewModeBtn.addEventListener('click', () => {
+                displayMode = 'view';
+                updateModeButtons();
+                displayPatterns();
             });
 
             // --- CARD ANALYSIS & DISPLAY (Right Column) ---
@@ -1718,6 +1852,9 @@
             navNamesBtn.classList.remove('bg-slate-600');
             navCategoriesBtn.classList.add('bg-slate-600');
             navCategoriesBtn.classList.remove('bg-blue-600');
+
+            // Initialize mode buttons
+            updateModeButtons();
             
             // --- INITIALIZE AND MANAGE SPLIT VIEW ---
             setupSplitView();
