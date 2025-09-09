@@ -33,7 +33,15 @@
       "grantKeywordAuraValue": 1.5,
       "banishCharacterValue": 7,
       "banishItemValue": 4,
-      "banishLocationValue": 3
+      "banishLocationValue": 3,
+      "banishValue": {
+        "character": 7,
+        "characters": 7,
+        "location": 3,
+        "locations": 3,
+        "item": 4,
+        "items": 4
+      }
     },
     "cev": {
       "baseMultiplier": 1,
@@ -334,7 +342,7 @@
       "name": "Trigger: Draw Card",
       "category": "Trigger",
       "sub_type": "Draw",
-      "regex": "/when(?:ever)? you draw (an?|one|two|three|\\d+)\\s*(?:character|item|action|song|location)?\\s+cards?/gi",
+      "regex": "/When(?:ever)? you draw (an?|one|two|three|\\d+)\\s*(?:character|item|action|song|location)?\\s+cards?/gi",
       "explanation": "This is a common trigger and can be achieved easily if played correctly",
       "justification": "Trigger: Draw Card -> can be easy to achieve but requires setup",
       "calculation": {
@@ -357,13 +365,13 @@
         "scores": {}
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
-      "lastModified": "2025-09-02T18:00:59.705Z"
+      "lastModified": "2025-09-09T09:17:24.182Z"
     },
     {
       "name": "Trigger: Character Challenges",
       "category": "Trigger",
       "sub_type": "Challenge",
-      "regex": "/Whenever one of your characters challenges/gi",
+      "regex": "/When(?:ever)? one of your characters challenges/gi",
       "explanation": "This is a condition that is easy to meet, but exposes the character and deals damage. so it's not a massive win",
       "justification": "Trigger: On of your Character Challenges -> Easy to trigger but downsides for the character that challenges",
       "calculation": {
@@ -379,7 +387,7 @@
         "scores": {}
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
-      "lastModified": "2025-09-02T18:00:59.705Z"
+      "lastModified": "2025-09-09T09:17:16.713Z"
     },
     {
       "name": "Condition: Opposing Character Exerted",
@@ -448,32 +456,39 @@
       "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
-      "name": "Trigger: Start Turn",
+      "name": "Trigger: Start/End Turn",
       "category": "Trigger",
       "sub_type": "Turn",
-      "regex": "/At the start of your turn/gi",
+      "regex": "/At the (start|end) of your turn/gi",
       "explanation": "This is a recurring trigger, but it also means that the card that has it has to survive at least until the next turn.",
-      "justification": "Trigger: Start of Turn -> Requires surviving one turn, and you don't control the timing",
+      "justification": "Trigger: Start/End of Turn -> Requires surviving one turn if Start But if End of turn then it's almost like on play",
       "calculation": {
-        "variables": [],
+        "variables": [
+          {
+            "name": "when",
+            "source": "regex",
+            "group": 1,
+            "type": "textOrNumber"
+          }
+        ],
         "contextModifiers": [
           {
             "targetMetric": "all",
             "name": "trigger",
             "operation": "multiply",
-            "value": "1.1"
+            "value": "(@when === 'start' ? 1.1 : 1.5)"
           }
         ],
         "scores": {}
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
-      "lastModified": "2025-09-02T18:00:59.705Z"
+      "lastModified": "2025-09-09T09:21:10.627Z"
     },
     {
       "name": "Trigger: Remove Damage",
       "category": "Trigger",
       "sub_type": "Damage",
-      "regex": "/Whenever you remove (\\d+) (or more )?damage/gi",
+      "regex": "/When(?:ever)? you remove (\\d+) (or more )?damage/gi",
       "explanation": "Removing damage as a condition is specific",
       "justification": "Trigger: Remove Damage -> Should provide a penalizing as by itself it's a hard condition to satisfy without other cards",
       "calculation": {
@@ -489,7 +504,7 @@
         "scores": {}
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
-      "lastModified": "2025-09-02T18:00:59.705Z"
+      "lastModified": "2025-09-09T09:17:58.803Z"
     },
     {
       "name": "State: Ready Ink",
@@ -730,7 +745,7 @@
       "name": "Trigger: On Challenge Start",
       "category": "Trigger",
       "sub_type": "On Challenge",
-      "regex": "/Whenever (this character|he|she|it) challenges another character/gi",
+      "regex": "/When(?:ever)? (this character|he|she|it) challenges another character/gi",
       "value_type": "raw",
       "explanation": "This ability triggers when this character initiates a challenge against another character, regardless of the outcome.",
       "justification": "Trigger: On Challenge Start -> This is better than needing to banish the opposing character.",
@@ -747,13 +762,13 @@
         "scores": {}
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
-      "lastModified": "2025-09-02T18:00:59.705Z"
+      "lastModified": "2025-09-09T09:17:41.035Z"
     },
     {
       "name": "Trigger: You Play an Card Type",
       "category": "Trigger",
       "sub_type": "Play Card Type",
-      "regex": "/Whenever you play (?:an|a|another) (action|song|item|character|location)/gi",
+      "regex": "/When(?:ever)? you play (?:an|a|another) (action|song|item|character|location)/gi",
       "value_type": "raw",
       "explanation": "This ability triggers whenever you play a card of a 'specific' type.",
       "justification": "Trigger: You Play an Card Type -> Its reliability is conditional and therefore it should be a multiplier that reduces the reliability of whatever it's triggering",
@@ -777,7 +792,7 @@
         "scores": {}
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
-      "lastModified": "2025-09-02T18:00:59.705Z"
+      "lastModified": "2025-09-09T09:18:11.238Z"
     },
     {
       "name": "Keyword: Shift (Normal)",
@@ -815,7 +830,7 @@
       "name": "Trigger: Leaves Play",
       "category": "Trigger",
       "sub_type": "Leaves Play",
-      "regex": "/when(?:ever)? (?:they|he|she|it) leaves play/gi",
+      "regex": "/When(?:ever)? (?:they|he|she|it) leaves play/gi",
       "value_type": "raw",
       "explanation": "This trigger is the biggest catch-all since it means: Going back to hand, being banished, getting put into your inkwell etc..",
       "justification": "Trigger: Leave Play -> Iron clad trigger that is on par to On Play Triggers as it is almost guaranteed",
@@ -832,7 +847,7 @@
         "scores": {}
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
-      "lastModified": "2025-09-02T18:00:59.705Z"
+      "lastModified": "2025-09-09T09:17:31.989Z"
     },
     {
       "name": "Condition: For Each",
@@ -1427,7 +1442,7 @@
       "name": "Banish: Chosen Target",
       "category": "Board Control",
       "sub_type": "Targeted Removal",
-      "regex": "/banish chosen (?:opposing |opponent's )?(?:damaged )?(character(?:s)?|item|location|character or item|character, item or location)(?! of yours)(?: with \\d+ (?:¤|⬡|⛉) or (?:less|more))?/gi",
+      "regex": "/banish chosen (?:opposing |opponent's )?(damaged )?(character(?:s)?|item|location|character or item|character, item or location)(?! of yours)(?: with \\d+ (?:¤|⬡|⛉) or (?:less|more))?/gi",
       "value_type": "raw",
       "explanation": "Permanently removes a chosen opponent's card from play.",
       "justification": "The most definitive form of single-target removal.",
@@ -1436,6 +1451,12 @@
           {
             "name": "cardType",
             "source": "regex",
+            "group": "2",
+            "type": "string"
+          },
+          {
+            "name": "damaged",
+            "source": "regex",
             "group": 1,
             "type": "string"
           }
@@ -1443,61 +1464,87 @@
         "contextModifiers": [],
         "scores": {
           "board_control": {
-            "value": "(['character', 'characters'].includes(@cardType) ? @bcr.banishCharacterValue : ['item', 'items'].includes(@cardType) ? @bcr.banishItemValue : ['location', 'locations'].includes(@cardType) ? @bcr.banishLocationValue : 99) * 1.0 * @context.bcr.trigger",
+            "value": "@bcr.banishValue[cardType] * (@damaged === 'damaged ' ? 0.75 : 1.0) * 1.0 * @context.bcr.trigger",
             "explanation": "Banish Other Characters, Items or Locations"
           }
         }
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
-      "lastModified": "2025-09-02T18:00:59.705Z"
+      "lastModified": "2025-09-09T09:46:50.670Z"
     },
     {
       "name": "Banish: All Characters",
       "category": "Board Control",
       "sub_type": "Board Wipe",
-      "regex": "/Banish all (opposing )?(ready |damaged )?characters(?: with \\d+ (?:¤|⬡|⛉) or (?:less|more))?/gi",
+      "regex": "/Banish all (opposing )?(ready |damaged )?characters(?: with (\\d+) (?:¤|⬡|⛉) or (?:less|more))?/gi",
       "value_type": "raw",
-      "explanation": "Permanently removes all characters from the board.",
+      "explanation": "Permanently removes all characters from the board. Can have other variations.",
       "justification": "The most powerful board control effect, resetting the board state.",
       "calculation": {
-        "variables": [],
+        "variables": [
+          {
+            "name": "opposing",
+            "source": "regex",
+            "group": 1,
+            "type": "string"
+          },
+          {
+            "name": "state",
+            "source": "regex",
+            "group": "2",
+            "type": "string"
+          },
+          {
+            "name": "stats",
+            "source": "regex",
+            "group": "3",
+            "type": "textOrNumber"
+          }
+        ],
         "contextModifiers": [],
         "scores": {
           "board_control": {
-            "value": "@bcr.banishCharacterValue * 1.15 * @context.bcr.trigger",
+            "value": "@bcr.banishCharacterValue * (@opposing === 'opposing '? 2.0 : 1.15) * (@state=== 'damaged ' ? 0.75 : 1.0) * (1/@stats) * @context.bcr.trigger",
             "explanation": "Banish All - Best in the game"
           }
         }
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
-      "lastModified": "2025-09-02T18:00:59.705Z"
+      "lastModified": "2025-09-09T10:00:25.445Z"
     },
     {
       "name": "Banish: Opponent's Choice",
       "category": "Board Control",
       "sub_type": "Removal",
-      "regex": "/((?:An|Each) opponent chooses and banishes one of their characters)/gi",
+      "regex": "/(?:An|Each) opponent chooses and banishes (one|a|an|\\d+) of their (characters?|items?|locations?)/gi",
       "value_type": "raw",
       "explanation": "The opponent chooses one of their own characters to banish.",
       "justification": "Powerful removal, but weaker than choosing the target yourself.",
       "calculation": {
-        "variables": [],
+        "variables": [
+          {
+            "name": "banishAmount",
+            "source": "regex",
+            "group": 1,
+            "type": "textOrNumber"
+          }
+        ],
         "contextModifiers": [],
         "scores": {
           "board_control": {
-            "value": "@bcr.banishCharacterValue * 0.85 * @context.bcr.trigger",
+            "value": "@bcr.banishValue[cardType] * banishAmount * 0.85 * @context.bcr.trigger",
             "explanation": "Banish Other Characters"
           }
         }
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
-      "lastModified": "2025-09-02T18:00:59.705Z"
+      "lastModified": "2025-09-09T17:21:13.002Z"
     },
     {
       "name": "Banish: As a Cost/Choice",
       "category": "Board Control",
       "sub_type": "Cost",
-      "regex": "/(?:You may) banish (?:this |one of your|chosen) (characters?|items?|locations?)(?: of yours)?/gi",
+      "regex": "/(?:You may) banish (?:this |one of your|chosen) (characters?|items?|locations?)(?: of yours)/gi",
       "value_type": "raw",
       "explanation": "The player may choose to banish one of their own characters to trigger an effect.",
       "justification": "The cost of banishing a character on your board.",
@@ -1513,13 +1560,13 @@
         "contextModifiers": [],
         "scores": {
           "board_control": {
-            "value": "(['character', 'characters'].includes(@cardType) ? @bcr.banishCharacterValue : ['item', 'items'].includes(@cardType) ? @bcr.banishItemValue : ['location', 'locations'].includes(@cardType) ? @bcr.banishLocationValue : 99) * -0.2 * @context.bcr.trigger",
+            "value": "@bcr.banishValue[cardType] * -0.2 * @context.bcr.trigger",
             "explanation": "This negative value will be offset by the upside of a depending ability on this card"
           }
         }
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
-      "lastModified": "2025-09-02T22:20:26.809Z"
+      "lastModified": "2025-09-09T17:18:07.194Z"
     },
     {
       "name": "Damage: Deal to One",
@@ -1931,7 +1978,7 @@
       "name": "Trigger: On Play",
       "category": "Trigger",
       "sub_type": "On Play",
-      "regex": "/When you play this (?:character|item|action|location|song)/gi",
+      "regex": "/When(?:ever)? you play this (?:character|item|action|location|song)/gi",
       "value_type": "raw",
       "explanation": "This ability triggers when the card itself is played.",
       "justification": "Trigger: On Play -> Best as it's guaranteed and immediate effect",
@@ -1948,13 +1995,13 @@
         "scores": {}
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
-      "lastModified": "2025-09-02T18:00:59.705Z"
+      "lastModified": "2025-09-09T09:17:45.407Z"
     },
     {
       "name": "Trigger: On Quest",
       "category": "Trigger",
       "sub_type": "On Quest",
-      "regex": "/Whenever (this character|he|she|it) quests/gi",
+      "regex": "/When(?:ever)? (this character|he|she|it) quests/gi",
       "value_type": "raw",
       "explanation": "This ability triggers whenever this character quests.",
       "justification": "Trigger: On Quest -> Provides value for performing the primary lore-gaining action. But it has to survive",
@@ -1971,7 +2018,7 @@
         "scores": {}
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
-      "lastModified": "2025-09-02T18:00:59.705Z"
+      "lastModified": "2025-09-09T09:17:49.983Z"
     },
     {
       "name": "Trigger: On Banish (Self)",
@@ -1994,7 +2041,7 @@
         "scores": {}
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
-      "lastModified": "2025-09-02T18:00:59.705Z"
+      "lastModified": "2025-09-09T09:17:36.527Z"
     },
     {
       "name": "Keyword: Evasive",
