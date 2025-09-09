@@ -78,6 +78,50 @@
   },
   "abilities": [
     {
+      "name": "Trigger: End of your turn",
+      "category": "Condition",
+      "sub_type": "Turn",
+      "regex": "/at the end of your turn/gi",
+      "explanation": "Fairly reliable.",
+      "justification": "Trigger: End of your turn",
+      "lastModified": "2025-09-09T19:17:47.242Z",
+      "createdAt": "2025-09-09T19:15:00.807Z",
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [
+          {
+            "targetMetric": "all",
+            "name": "survivability",
+            "operation": "multiply",
+            "value": "1.5"
+          }
+        ],
+        "scores": {}
+      }
+    },
+    {
+      "name": "Trigger: Opponent's Turn",
+      "category": "Trigger",
+      "sub_type": "Turn",
+      "regex": "/During (an|your) opponent's turn/gi",
+      "explanation": "During the play turn of your opponent",
+      "justification": "Trigger: Opponent's Turn -> This is more restrictive as you have less control",
+      "lastModified": "2025-09-09T18:58:49.444Z",
+      "createdAt": "2025-09-09T18:57:07.827Z",
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [
+          {
+            "targetMetric": "all",
+            "name": "trigger",
+            "operation": "multiply",
+            "value": "1.15"
+          }
+        ],
+        "scores": {}
+      }
+    },
+    {
       "name": "Condition: Have in play",
       "category": "Condition",
       "sub_type": "Have In Play",
@@ -275,13 +319,19 @@
       "name": "Keyword: Gain",
       "category": "Keyword",
       "sub_type": "Gain",
-      "regex": "/(?:your other characters|this character|chosen character) gains? (Vanish|Ward|Evasive|Resist|Challenger|Bodyguard|Reckless|Rush|Singer|Support)/gi",
-      "explanation": "",
-      "justification": "",
+      "regex": "/(?:your other characters|this character|chosen (opposing)? ?character) gains? (Vanish|Ward|Evasive|Resist|Challenger|Bodyguard|Reckless|Rush|Singer|Support)/gi",
+      "explanation": "Captures giving Keywords (Aura) to Other characters",
+      "justification": "Giving keywords to own characters is mainly good, except for Reckless. However if it's the opposing characters that gain keywords that is bad, except for Reckless.",
       "calculation": {
         "variables": [
           {
             "name": "auraGained",
+            "source": "regex",
+            "group": "2",
+            "type": "string"
+          },
+          {
+            "name": "opposing",
             "source": "regex",
             "group": 1,
             "type": "string"
@@ -290,12 +340,13 @@
         "contextModifiers": [],
         "scores": {
           "resource_dominance": {
-            "value": "@keywords[auraGained]"
+            "value": "@keywords[auraGained] * (@opposing === \"opposing\" ? -1.0 : 1.0)",
+            "explanation": "Giving different keywords to characters can be beneficial"
           }
         }
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
-      "lastModified": "2025-09-02T18:00:59.705Z"
+      "lastModified": "2025-09-09T19:13:07.486Z"
     },
     {
       "name": "Base: High Strength",
@@ -604,7 +655,7 @@
       "name": "Bounce: Own Characters",
       "category": "Board Control",
       "sub_type": "Tempo",
-      "regex": "/return (?:another )?(?:chosen |(\\d+) chosen )?character(?:s)? of yours to your hand/gi",
+      "regex": "/return ((?:another )?(?:chosen |(\\d+) chosen )?character(?:s)?|that card) (?:of yours )?to your hand/gi",
       "value_type": "raw",
       "explanation": "Technically a bad tempo ability, but normally comes as part as a combined play.",
       "justification": "Returning cards to your hand is negative tempo",
@@ -615,11 +666,15 @@
           "board_control": {
             "value": "-0.5",
             "explanation": "Negative Tempo"
+          },
+          "resource_dominance": {
+            "value": "@cardDrawValue",
+            "explanation": "You are getting a new resource"
           }
         }
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
-      "lastModified": "2025-09-02T18:00:59.705Z"
+      "lastModified": "2025-09-09T18:52:41.698Z"
     },
     {
       "name": "Type: Action",
@@ -920,8 +975,8 @@
         "scores": {
           "lore_velocity": {
             "condition": "baseLore > 0",
-            "value": "baseLore * @context.lvi.survivability * @context.lvi.questSafety",
-            "explanation": "Card Lore with modifiers ->"
+            "value": "baseLore",
+            "explanation": "Card Lore"
           }
         }
       },
@@ -1016,21 +1071,28 @@
       "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
-      "name": "Condition: On Banish",
-      "category": "Condition",
+      "name": "Trigger: On Banish (Other)",
+      "category": "Trigger",
       "sub_type": "On Banish",
       "quick_description": "other or your characters are banished",
-      "regex": "/when(?:ever)? (a character of yours|one of your (other )?characters|a(n other?) character) is banished/gi",
+      "regex": "/when(?:ever)? (a character of yours|one of your (other )?(\\w+ )?characters|a(n other?) character) is banished/gi",
       "value_type": "raw",
-      "explanation": "this is a bit different than than a trigger on banish",
-      "justification": "",
+      "explanation": "Whenever other of your characters are banished",
+      "justification": "Trigger: On Banish (Other) -> better than nothing",
       "calculation": {
         "variables": [],
-        "contextModifiers": [],
+        "contextModifiers": [
+          {
+            "targetMetric": "all",
+            "name": "trigger",
+            "operation": "multiply",
+            "value": "1.25"
+          }
+        ],
         "scores": {}
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
-      "lastModified": "2025-09-02T18:00:59.705Z"
+      "lastModified": "2025-09-09T18:55:12.565Z"
     },
     {
       "name": "Condition: No Cards",
@@ -1544,7 +1606,7 @@
       "name": "Banish: As a Cost/Choice",
       "category": "Board Control",
       "sub_type": "Cost",
-      "regex": "/(?:You may) banish (?:this |one of your|chosen) (characters?|items?|locations?)(?: of yours)/gi",
+      "regex": "/(?:You may|and) banish (?:this |one of your|chosen|that) (characters?|items?|locations?)(?: of yours)/gi",
       "value_type": "raw",
       "explanation": "The player may choose to banish one of their own characters to trigger an effect.",
       "justification": "The cost of banishing a character on your board.",
@@ -1566,7 +1628,7 @@
         }
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
-      "lastModified": "2025-09-09T17:18:07.194Z"
+      "lastModified": "2025-09-09T19:21:24.719Z"
     },
     {
       "name": "Damage: Deal to One",
@@ -2072,7 +2134,7 @@
       "name": "Keyword: Rush",
       "category": "Keyword",
       "sub_type": "Offensive",
-      "regex": "/\\b(Rush)\\b/gi",
+      "regex": "/\\b(Rush) \\(\\b/gi",
       "value_type": "raw",
       "explanation": "Allows a character to challenge the turn it is played.",
       "justification": "Rush provides immediate board impact.",
@@ -2087,7 +2149,7 @@
         }
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
-      "lastModified": "2025-09-02T18:00:59.705Z"
+      "lastModified": "2025-09-09T19:10:43.382Z"
     },
     {
       "name": "Keyword: Ward",
