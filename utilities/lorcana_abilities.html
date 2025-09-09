@@ -1029,9 +1029,9 @@
                 if (target.tagName === 'LABEL' && target.nextElementSibling && target.nextElementSibling.matches('[data-field="regex"]')) {
                     const regexInput = target.nextElementSibling;
                     let regexString = regexInput.value;
-                    
+
                     const match = regexString.match(/^\/(.*)\/([gimuy]*)$/);
-                    
+
                     if (match) {
                         customRegexInput.value = match[1];
                         customRegexFlags.value = match[2] || 'gi'; // Use found flags or default
@@ -1039,7 +1039,10 @@
                         customRegexInput.value = regexString; // Assume no slashes, copy as is
                         customRegexFlags.value = 'gi'; // Default flags
                     }
-                    
+
+                    // Expand the custom regex section
+                    setRegexSectionState(true);
+
                     // Focus the custom search section for better UX
                     const customRegexSection = document.getElementById('custom-regex-section');
                     if (customRegexSection) {
