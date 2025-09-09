@@ -1145,8 +1145,9 @@
                         customRegexFlags.value = 'gi'; // Default flags
                     }
 
-                    // Expand the custom regex section
+                    // Expand the custom regex section and collapse card search
                     setRegexSectionState(true);
+                    setCardSearchSectionState(false);
 
                     // Focus the custom search section for better UX
                     const customRegexSection = document.getElementById('custom-regex-section');
@@ -1826,7 +1827,7 @@
                 toggleRegexSection.addEventListener('click', () => {
                     const isRegexExpanded = customRegexContent.classList.contains('max-h-[1000px]');
                     setRegexSectionState(!isRegexExpanded);
-                    setCardSearchSectionState(isRegexExpanded);
+                    setCardSearchSectionState(!isRegexExpanded);
                 });
             }
 
