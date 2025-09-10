@@ -1165,7 +1165,7 @@
       "name": "Lore: Gain",
       "category": "Lore",
       "sub_type": "Direct Gain",
-      "regex": "/Gain (\\d+)?(?: )?(?:◊|lore)(?! equal to)/gi",
+      "regex": "/Gains? (\\d+)?(?: )?(?:◊|lore)(?! equal to)/gi",
       "value_type": "raw",
       "explanation": "Directly increases the player's lore total by a specified amount.",
       "justification": "A fundamental way to win the game.",
@@ -1187,7 +1187,7 @@
         }
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
-      "lastModified": "2025-09-02T18:00:59.705Z"
+      "lastModified": "2025-09-10T18:08:04.489Z"
     },
     {
       "name": "Lore: Lose",
@@ -1221,7 +1221,7 @@
       "name": "Card Effect: Draw",
       "category": "Resource",
       "sub_type": "Card Draw",
-      "regex": "/(?<!Whenever you )draws?\\s+(?:until you have\\s+)?(\\d+|a|one|two|three)\\s+cards?/gi",
+      "regex": "/(?<!Whenever you )draws?\\s+(?:until you have\\s+)?(\\d+|a|one|two|three)? ?cards?/gi",
       "value_type": "raw",
       "explanation": "Allows the player to draw one or more cards from their deck.",
       "justification": "Card draw is the primary engine for resource advantage.",
@@ -1237,13 +1237,13 @@
         "contextModifiers": [],
         "scores": {
           "resource_dominance": {
-            "value": "drawCount * @cardDrawValue * @context.rds.trigger",
+            "value": "(drawCount === 0 ? 1: drawCount) * @cardDrawValue * @context.rds.trigger",
             "explanation": "Draw Amount Based on triggers ->"
           }
         }
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
-      "lastModified": "2025-09-02T18:00:59.705Z"
+      "lastModified": "2025-09-10T17:47:56.883Z"
     },
     {
       "name": "Card Effect: Opponent Discards",
@@ -1504,7 +1504,7 @@
       "name": "Banish: Chosen Target",
       "category": "Board Control",
       "sub_type": "Targeted Removal",
-      "regex": "/banish chosen (?:opposing |opponent's )?(damaged )?(character(?:s)?|item|location|character or item|character, item or location)(?! of yours)(?: with \\d+ (?:¤|⬡|⛉) or (?:less|more))?/gi",
+      "regex": "/banish chosen (?:opposing |opponent's )?(damaged )?(character(?:s)?|item|location|character or item|character, item or location)(?! of yours)?(?: with \\d+ (?:¤|⬡|⛉) or (?:less|more))?/gi",
       "value_type": "raw",
       "explanation": "Permanently removes a chosen opponent's card from play.",
       "justification": "The most definitive form of single-target removal.",
@@ -1532,7 +1532,7 @@
         }
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
-      "lastModified": "2025-09-09T09:46:50.670Z"
+      "lastModified": "2025-09-10T18:06:51.437Z"
     },
     {
       "name": "Banish: All Characters",
@@ -1606,7 +1606,7 @@
       "name": "Banish: As a Cost/Choice",
       "category": "Board Control",
       "sub_type": "Cost",
-      "regex": "/(?:You may|and) banish (?:this |one of your|chosen|that) (characters?|items?|locations?)(?: of yours)/gi",
+      "regex": "/(?:You may|and)? ?banish (?:this |one of your|chosen|that) (characters?|items?|locations?)(?: of yours)/gi",
       "value_type": "raw",
       "explanation": "The player may choose to banish one of their own characters to trigger an effect.",
       "justification": "The cost of banishing a character on your board.",
@@ -1628,7 +1628,7 @@
         }
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
-      "lastModified": "2025-09-09T19:21:24.719Z"
+      "lastModified": "2025-09-10T18:05:58.023Z"
     },
     {
       "name": "Damage: Deal to One",
