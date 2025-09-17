@@ -130,14 +130,12 @@
         .grid-labels-top {
             grid-column: 2 / 3;
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
             text-align: center;
         }
 
         .grid-labels-left {
             grid-row: 2 / 3;
             display: grid;
-            grid-template-rows: repeat(3, 1fr);
             align-items: center;
             justify-items: center;
         }
@@ -159,17 +157,10 @@
             min-height: 40px;
         }
         
-        .label img {
-            width: 24px;
-            height: 24px;
-        }
-        
         .puzzle-grid {
             grid-column: 2;
             grid-row: 2;
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            grid-template-rows: repeat(3, 1fr);
             gap: 5px;
             background-color: var(--grid-line);
             border: 3px solid var(--grid-line);
@@ -197,12 +188,8 @@
 
         .grid-cell .feedback-overlay {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            opacity: 0;
-            transition: opacity 0.3s ease;
+            top: 0; left: 0; width: 100%; height: 100%;
+            opacity: 0; transition: opacity 0.3s ease;
         }
 
         .grid-cell.correct .feedback-overlay {
@@ -217,234 +204,146 @@
 
         .controls {
             margin-top: 1.5rem;
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 1rem;
+            display: flex; flex-wrap: wrap; justify-content: center; gap: 1rem;
         }
 
         .controls button {
-            background-color: var(--wood-light);
-            color: var(--parchment);
-            border: 2px solid var(--border-gold);
-            padding: 10px 20px;
-            font-family: var(--font-main);
-            font-size: 1rem;
-            cursor: pointer;
-            border-radius: 5px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+            background-color: var(--wood-light); color: var(--parchment);
+            border: 2px solid var(--border-gold); padding: 10px 20px;
+            font-family: var(--font-main); font-size: 1rem; cursor: pointer;
+            border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.4);
             transition: all 0.2s ease;
         }
 
         .controls button:hover:not(:disabled) {
-            background-color: var(--border-gold);
-            transform: translateY(-2px);
+            background-color: var(--border-gold); transform: translateY(-2px);
         }
         
         .controls button:disabled {
-            background-color: #555;
-            color: #999;
-            cursor: not-allowed;
-            border-color: #444;
+            background-color: #555; color: #999; cursor: not-allowed; border-color: #444;
         }
 
         .instructions {
-            text-align: center;
-            margin-top: 1rem;
-            font-style: italic;
-            font-size: 0.9rem;
+            text-align: center; margin-top: 1rem;
+            font-style: italic; font-size: 0.9rem;
         }
 
         /* Modal Styles */
         .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0,0,0,0.7);
-            align-items: center;
-            justify-content: center;
+            display: none; position: fixed; z-index: 1000;
+            left: 0; top: 0; width: 100%; height: 100%;
+            overflow: auto; background-color: rgba(0,0,0,0.7);
+            align-items: center; justify-content: center;
         }
         
         .modal-content {
-            background-color: var(--parchment);
-            color: var(--wood-dark);
-            margin: auto;
-            padding: 20px;
-            border: 5px solid var(--border-gold);
-            border-radius: 10px;
-            width: 90%;
-            max-width: 500px;
-            max-height: 90vh;
-            display: flex;
-            flex-direction: column;
+            background-color: var(--parchment); color: var(--wood-dark);
+            margin: auto; padding: 20px; border: 5px solid var(--border-gold);
+            border-radius: 10px; width: 90%; max-width: 500px;
+            max-height: 90vh; display: flex; flex-direction: column;
         }
         
-        #confirmation-modal .modal-content, #import-modal .modal-content, #difficulty-modal .modal-content {
+        #confirmation-modal .modal-content, #import-modal .modal-content, #difficulty-modal .modal-content, #grid-size-modal .modal-content {
             text-align: center;
         }
 
         #import-input {
-             width: calc(100% - 20px);
-            padding: 10px;
-            margin-bottom: 1rem;
+             width: calc(100% - 20px); padding: 10px; margin-bottom: 1rem;
         }
 
-        #difficulty-buttons {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
+        #difficulty-buttons, #grid-size-buttons {
+            display: flex; flex-direction: column; gap: 1rem;
         }
 
-        #confirmation-buttons, #import-buttons, #difficulty-buttons button {
-            display: flex;
-            justify-content: center;
-            gap: 1rem;
-            margin-top: 1.5rem;
+        #confirmation-buttons, #import-buttons, #difficulty-buttons button, #grid-size-buttons button {
+            display: flex; justify-content: center; gap: 1rem; margin-top: 1.5rem;
         }
 
-        #confirmation-buttons button, #import-buttons button, #difficulty-buttons button {
-             background-color: var(--wood-light);
-            color: var(--parchment);
-            border: 2px solid var(--border-gold);
-            padding: 10px 20px;
-            font-family: var(--font-main);
-            font-size: 1rem;
-            cursor: pointer;
+        #confirmation-buttons button, #import-buttons button, #difficulty-buttons button, #grid-size-buttons button {
+             background-color: var(--wood-light); color: var(--parchment);
+            border: 2px solid var(--border-gold); padding: 10px 20px;
+            font-family: var(--font-main); font-size: 1rem; cursor: pointer;
             border-radius: 5px;
         }
 
-        #difficulty-buttons button {
-            margin-top: 0;
-            font-size: 1.2rem;
-            width: 100%;
+        #difficulty-buttons button, #grid-size-buttons button {
+            margin-top: 0; font-size: 1.2rem; width: 100%;
         }
         
-        #difficulty-buttons button .stars {
-            color: var(--star-color);
-        }
+        #difficulty-buttons button .stars { color: var(--star-color); }
 
         .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 2px solid var(--border-gold);
-            padding-bottom: 10px;
-            margin-bottom: 15px;
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 2px solid var(--border-gold); padding-bottom: 10px; margin-bottom: 15px;
         }
         
         #search-input {
-            width: 100%;
-            padding: 10px;
-            font-size: 1rem;
-            border: 2px solid var(--wood-medium);
-            border-radius: 5px;
-            background-color: #fff;
+            width: 100%; padding: 10px; font-size: 1rem;
+            border: 2px solid var(--wood-medium); border-radius: 5px; background-color: #fff;
         }
         
         #search-results {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-            overflow-y: auto;
+            list-style: none; padding: 0; margin: 0; overflow-y: auto;
         }
 
         #search-results li {
-            padding: 10px;
-            cursor: pointer;
-            border-bottom: 1px solid var(--grid-line);
-            display: flex;
-            align-items: center;
-            gap: 10px;
+            padding: 10px; cursor: pointer; border-bottom: 1px solid var(--grid-line);
+            display: flex; align-items: center; gap: 10px;
         }
 
-        #search-results li:hover {
-            background-color: #e8dcc4;
-        }
-
-        #search-results li img {
-            width: 40px;
-            border-radius: 3px;
-        }
+        #search-results li:hover { background-color: #e8dcc4; }
+        #search-results li img { width: 40px; border-radius: 3px; }
 
         .loader-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.8);
-            color: var(--text-gold);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 2000;
-            font-size: 1.5rem;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); color: var(--text-gold);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 2000; font-size: 1.5rem;
         }
         .loader {
-            border: 8px solid #f3f3f3;
-            border-radius: 50%;
-            border-top: 8px solid var(--wood-medium);
-            width: 60px;
-            height: 60px;
-            animation: spin 1s linear infinite;
-            margin-bottom: 1rem;
+            border: 8px solid #f3f3f3; border-radius: 50%; border-top: 8px solid var(--wood-medium);
+            width: 60px; height: 60px; animation: spin 1s linear infinite; margin-bottom: 1rem;
         }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
-    <div id="loader" class="loader-overlay">
-        <div class="loader"></div>
-        <p>Loading Lorcana Database...</p>
-    </div>
-    
+    <div id="loader" class="loader-overlay"><div class="loader"></div><p>Loading Lorcana Database...</p></div>
     <div id="search-modal" class="modal">
         <div class="modal-content">
-            <div class="modal-header">
-                <h2>Find a Card</h2>
-            </div>
+            <div class="modal-header"><h2>Find a Card</h2></div>
             <input type="text" id="search-input" placeholder="Type a card name...">
             <ul id="search-results"></ul>
         </div>
     </div>
-
     <div id="confirmation-modal" class="modal">
         <div class="modal-content">
             <p id="confirmation-message"></p>
             <div id="confirmation-buttons">
-                <button id="confirm-yes">Yes</button>
-                <button id="confirm-no">No</button>
+                <button id="confirm-yes">Yes</button><button id="confirm-no">No</button>
             </div>
         </div>
     </div>
-
     <div id="import-modal" class="modal">
         <div class="modal-content">
             <h3>Import Puzzle Code</h3>
             <input type="text" id="import-input" placeholder="Paste puzzle code here">
             <div id="import-buttons">
-                <button id="import-submit">Load</button>
-                <button id="import-cancel">Cancel</button>
+                <button id="import-submit">Load</button><button id="import-cancel">Cancel</button>
             </div>
         </div>
     </div>
-
     <div id="difficulty-modal" class="modal">
         <div class="modal-content">
             <h3>Select Difficulty</h3>
-            <div id="difficulty-buttons">
-                 <!-- Buttons will be generated by JS -->
-            </div>
+            <div id="difficulty-buttons"></div>
+        </div>
+    </div>
+    <div id="grid-size-modal" class="modal">
+        <div class="modal-content">
+            <h3>Select Game Mode</h3>
+            <div id="grid-size-buttons"></div>
         </div>
     </div>
 
@@ -465,19 +364,9 @@
         </header>
         
         <div class="puzzle-grid-area">
-            <div class="grid-labels-top">
-                <div class="label" id="col-0-label"></div>
-                <div class="label" id="col-1-label"></div>
-                <div class="label" id="col-2-label"></div>
-            </div>
-            <div class="grid-labels-left">
-                <div class="label" id="row-0-label"></div>
-                <div class="label" id="row-1-label"></div>
-                <div class="label" id="row-2-label"></div>
-            </div>
-            <div class="puzzle-grid" id="puzzle-grid">
-                <!-- Cells will be generated by JS -->
-            </div>
+            <div class="grid-labels-top"></div>
+            <div class="grid-labels-left"></div>
+            <div class="puzzle-grid"></div>
         </div>
 
         <div class="instructions">
@@ -492,47 +381,43 @@
             <button id="copy-button">Copy Results</button>
             <button id="solve-button">Solve Puzzle</button>
         </div>
-
     </main>
     
     <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const ALL_CARDS_URL = 'https://cdn.jsdelivr.net/gh/heavenideas/similcana@main/database/allCards.json';
-            
             // UI Elements
-            const grid = document.getElementById('puzzle-grid');
-            const searchModal = document.getElementById('search-modal');
-            const searchInput = document.getElementById('search-input');
-            const searchResults = document.getElementById('search-results');
-            const checkButton = document.getElementById('check-button');
-            const copyButton = document.getElementById('copy-button');
-            const solveButton = document.getElementById('solve-button');
-            const newPuzzleButton = document.getElementById('new-puzzle-button');
-            const importPuzzleButton = document.getElementById('import-puzzle-button');
-            const copyCodeButton = document.getElementById('copy-code-button');
-            const puzzleCodeDisplay = document.getElementById('puzzle-code-display');
-            const puzzleLevelDisplay = document.getElementById('puzzle-level-display');
-            const loader = document.getElementById('loader');
+            const UIElements = {
+                grid: document.querySelector('.puzzle-grid'),
+                gridLabelsTop: document.querySelector('.grid-labels-top'),
+                gridLabelsLeft: document.querySelector('.grid-labels-left'),
+                searchModal: document.getElementById('search-modal'),
+                searchInput: document.getElementById('search-input'),
+                searchResults: document.getElementById('search-results'),
+                checkButton: document.getElementById('check-button'),
+                copyButton: document.getElementById('copy-button'),
+                solveButton: document.getElementById('solve-button'),
+                newPuzzleButton: document.getElementById('new-puzzle-button'),
+                importPuzzleButton: document.getElementById('import-puzzle-button'),
+                copyCodeButton: document.getElementById('copy-code-button'),
+                puzzleCodeDisplay: document.getElementById('puzzle-code-display'),
+                puzzleLevelDisplay: document.getElementById('puzzle-level-display'),
+                loader: document.getElementById('loader'),
+            };
 
             // Game State
             let allCards = [];
             let fuse;
             let activeCell = null;
-            const gridSize = 3;
-            let gridState = Array(gridSize * gridSize).fill(null);
+            let gridSize = 3;
+            let gridState = [];
             let currentConditions = { rows: [], cols: [] };
             let puzzleCount = 1;
-
-            // --- Condition Definitions ---
             let allConditions = [];
 
+            // --- Condition Definitions ---
             function setupConditions() {
-                const colors = [
-                    { name: 'Amber', emoji: '🟡' }, { name: 'Amethyst', emoji: '🟣' },
-                    { name: 'Emerald', emoji: '🟢' }, { name: 'Ruby', emoji: '🔴' },
-                    { name: 'Sapphire', emoji: '🔵' }, { name: 'Steel', emoji: '⚫' }
-                ];
+                const colors = [ { name: 'Amber', emoji: '🟡' }, { name: 'Amethyst', emoji: '🟣' }, { name: 'Emerald', emoji: '🟢' }, { name: 'Ruby', emoji: '🔴' }, { name: 'Sapphire', emoji: '🔵' }, { name: 'Steel', emoji: '⚫' } ];
                 colors.forEach((c, i) => allConditions.push({ id: `c${i}`, display: `${c.emoji} ${c.name}`, filter: card => card.color === c.name }));
                 for (let i = 0; i <= 10; i++) allConditions.push({ id: `o${i}`, display: `Cost ${i}`, filter: card => card.cost === i });
                 allConditions.push({ id: 'p0', display: 'Uninkable', filter: card => !card.inkwell });
@@ -549,149 +434,167 @@
 
             async function initializeGame() {
                 try {
-                    loader.style.display = 'flex';
-                    const response = await fetch(ALL_CARDS_URL);
+                    UIElements.loader.style.display = 'flex';
+                    const response = await fetch('https://cdn.jsdelivr.net/gh/heavenideas/similcana@main/database/allCards.json');
                     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                     const data = await response.json();
                     allCards = data.cards;
-                    const options = { includeScore: true, keys: ['fullName'], threshold: 0.4 };
-                    fuse = new Fuse(allCards, options);
+                    fuse = new Fuse(allCards, { includeScore: true, keys: ['fullName'], threshold: 0.4 });
                     setupConditions();
-                    createGrid();
-                    setupDifficultyModal();
-                    await generateNewPuzzle(2); // Start with a medium puzzle
+                    setupModals();
+                    await generateNewPuzzle(3, 2); // Start with 3x3, medium puzzle
                 } catch (error) {
-                    loader.innerHTML = `<p>Failed to load card database. Please try again later.</p>`;
+                    UIElements.loader.innerHTML = `<p>Failed to load card database. Please try again later.</p>`;
                     console.error("Error loading card data:", error);
                 } finally {
-                    loader.style.display = 'none';
+                    UIElements.loader.style.display = 'none';
                 }
             }
-            
-            function setupDifficultyModal() {
-                const container = document.getElementById('difficulty-buttons');
-                container.innerHTML = '';
+
+            function setupModals() {
+                const difficultyContainer = document.getElementById('difficulty-buttons');
+                difficultyContainer.innerHTML = '';
                 for (let i = 1; i <= 5; i++) {
                     const button = document.createElement('button');
                     button.dataset.level = i;
-                    const stars = '★'.repeat(i) + '☆'.repeat(5 - i);
-                    button.innerHTML = `<span class="stars">${stars}</span>`;
+                    button.innerHTML = `<span class="stars">${'★'.repeat(i)}${'☆'.repeat(5 - i)}</span>`;
                     button.addEventListener('click', () => {
                         document.getElementById('difficulty-modal').style.display = 'none';
-                        generateNewPuzzle(i);
+                        generateNewPuzzle(gridSize, i);
                     });
-                    container.appendChild(button);
+                    difficultyContainer.appendChild(button);
+                }
+
+                const gridSizeContainer = document.getElementById('grid-size-buttons');
+                gridSizeContainer.innerHTML = '';
+                [{size: 2, text: '2x2 (Easy)'}, {size: 3, text: '3x3 (Normal)'}, {size: 4, text: '4x4 (Insane)'}].forEach(mode => {
+                    const button = document.createElement('button');
+                    button.textContent = mode.text;
+                    button.addEventListener('click', () => {
+                        gridSize = mode.size;
+                        document.getElementById('grid-size-modal').style.display = 'none';
+                        document.getElementById('difficulty-modal').style.display = 'flex';
+                    });
+                    gridSizeContainer.appendChild(button);
+                });
+            }
+
+            function updateGridUI() {
+                UIElements.grid.innerHTML = '';
+                UIElements.gridLabelsTop.innerHTML = '';
+                UIElements.gridLabelsLeft.innerHTML = '';
+
+                UIElements.grid.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
+                UIElements.grid.style.gridTemplateRows = `repeat(${gridSize}, 1fr)`;
+                UIElements.gridLabelsTop.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
+                UIElements.gridLabelsLeft.style.gridTemplateRows = `repeat(${gridSize}, 1fr)`;
+
+                for(let i=0; i<gridSize; i++) {
+                    UIElements.gridLabelsTop.appendChild(document.createElement('div')).classList.add('label');
+                    UIElements.gridLabelsLeft.appendChild(document.createElement('div')).classList.add('label');
+                }
+
+                for (let i = 0; i < gridSize * gridSize; i++) {
+                    const cell = document.createElement('div');
+                    cell.classList.add('grid-cell');
+                    cell.dataset.index = i;
+                    cell.appendChild(document.createElement('div')).classList.add('feedback-overlay');
+                    cell.addEventListener('click', () => { activeCell = cell; openSearchModal(); });
+                    UIElements.grid.appendChild(cell);
                 }
             }
             
             function updateGridLabels() {
-                for(let i=0; i<3; i++) {
-                    document.getElementById(`row-${i}-label`).innerHTML = currentConditions.rows[i].display;
-                    document.getElementById(`col-${i}-label`).innerHTML = currentConditions.cols[i].display;
+                for(let i=0; i<gridSize; i++) {
+                    UIElements.gridLabelsTop.children[i].innerHTML = currentConditions.cols[i].display;
+                    UIElements.gridLabelsLeft.children[i].innerHTML = currentConditions.rows[i].display;
                 }
             }
 
-            function calculatePuzzleDifficulty(rows, cols) {
+            function calculatePuzzleDifficulty(rows, cols, size) {
                 let difficultyScore = 0;
-                for (let i = 0; i < gridSize * gridSize; i++) {
-                    const row = Math.floor(i / gridSize);
-                    const col = i % gridSize;
-                    const solutionPoolSize = allCards.filter(card => rows[row].filter(card) && cols[col].filter(card)).length;
-                    difficultyScore += 1 / (solutionPoolSize || 0.1); 
+                for (let i = 0; i < size * size; i++) {
+                    const pool = allCards.filter(card => rows[Math.floor(i / size)].filter(card) && cols[i % size].filter(card)).length;
+                    difficultyScore += 1 / (pool || 0.1);
                 }
-                
-                if (difficultyScore < 0.5) return 1;
-                if (difficultyScore < 1.5) return 2;
-                if (difficultyScore < 3.0) return 3;
-                if (difficultyScore < 5.0) return 4;
+                const normalizedScore = difficultyScore / (size * size);
+                if (normalizedScore < 0.15) return 1; if (normalizedScore < 0.4) return 2;
+                if (normalizedScore < 0.8) return 3; if (normalizedScore < 1.5) return 4;
                 return 5;
             }
 
             function displayLevel(level) {
-                const stars = '★'.repeat(level) + '☆'.repeat(5 - level);
-                puzzleLevelDisplay.textContent = stars;
+                UIElements.puzzleLevelDisplay.textContent = '★'.repeat(level) + '☆'.repeat(5 - level);
             }
             
-            function isPuzzleSolvable(rowConditions, colConditions) {
+            function isPuzzleSolvable(rowConditions, colConditions, size) {
                 const usedCards = new Set();
-                for (let i = 0; i < 9; i++) {
-                    const solution = allCards.find(card => 
-                        !usedCards.has(card.fullName) && 
-                        rowConditions[Math.floor(i/3)].filter(card) && 
-                        colConditions[i%3].filter(card)
-                    );
+                for (let i = 0; i < size * size; i++) {
+                    const solution = allCards.find(c => !usedCards.has(c.fullName) && rowConditions[Math.floor(i/size)].filter(c) && colConditions[i%size].filter(c));
                     if (!solution) return false;
                     usedCards.add(solution.fullName);
                 }
                 return true;
             }
 
-            async function generateNewPuzzle(targetLevel) {
-                loader.innerHTML = `<div class="loader"></div><p>Searching for a level ${targetLevel} puzzle...</p>`;
-                loader.style.display = 'flex';
+            async function generateNewPuzzle(targetGridSize, targetLevel) {
+                gridSize = targetGridSize;
+                UIElements.loader.innerHTML = `<div class="loader"></div><p>Searching for a ${gridSize}x${gridSize} level ${targetLevel} puzzle...</p>`;
+                UIElements.loader.style.display = 'flex';
                 await new Promise(resolve => setTimeout(resolve, 0));
                 
-                let foundPuzzle = false;
-                let attempts = 0;
-                
+                let foundPuzzle = false, attempts = 0;
                 while (!foundPuzzle && attempts < 10000) {
                     const shuffled = [...allConditions].sort(() => 0.5 - Math.random());
-                    const selectedRows = shuffled.slice(0, 3);
-                    const selectedCols = shuffled.slice(3, 6);
-
-                    if (isPuzzleSolvable(selectedRows, selectedCols)) {
-                        const calculatedLevel = calculatePuzzleDifficulty(selectedRows, selectedCols);
-                        if (calculatedLevel === targetLevel) {
+                    const selectedRows = shuffled.slice(0, gridSize);
+                    const selectedCols = shuffled.slice(gridSize, gridSize * 2);
+                    if (isPuzzleSolvable(selectedRows, selectedCols, gridSize)) {
+                        const level = calculatePuzzleDifficulty(selectedRows, selectedCols, gridSize);
+                        if (level === targetLevel) {
                             currentConditions = { rows: selectedRows, cols: selectedCols };
-                            const puzzleCode = generatePuzzleCode(selectedRows, selectedCols);
-                            
+                            const code = generatePuzzleCode(selectedRows, selectedCols, gridSize);
                             resetBoard();
                             updateGridLabels();
-                            displayLevel(calculatedLevel);
-                            puzzleCodeDisplay.textContent = puzzleCode;
+                            displayLevel(level);
+                            UIElements.puzzleCodeDisplay.textContent = code;
                             document.getElementById('puzzle-number-display').textContent = `Puzzle: ${puzzleCount++}`;
                             foundPuzzle = true;
                         }
                     }
                     attempts++;
                 }
-
-                if (!foundPuzzle) {
-                    showCustomAlert(`Could not find a level ${targetLevel} puzzle. Please try another difficulty.`);
-                }
-                loader.style.display = 'none';
+                if (!foundPuzzle) showCustomAlert(`Could not find a level ${targetLevel} puzzle. Please try another difficulty.`);
+                UIElements.loader.style.display = 'none';
             }
             
             function resetBoard() {
-                gridState.fill(null);
-                grid.childNodes.forEach(cell => {
-                    cell.style.backgroundImage = 'none';
-                    clearCellFeedback(cell);
-                });
-                copyButton.disabled = false;
-                solveButton.disabled = false;
+                updateGridUI();
+                gridState = Array(gridSize * gridSize).fill(null);
+                UIElements.copyButton.disabled = false;
+                UIElements.solveButton.disabled = false;
             }
             
-            function generatePuzzleCode(rows, cols) {
+            function generatePuzzleCode(rows, cols, size) {
                 const idString = [...rows, ...cols].map(c => c.id).join(',');
-                return btoa(idString);
+                return `${size}:${btoa(idString)}`;
             }
 
             function loadPuzzleFromCode(code) {
                 try {
-                    const idString = atob(code);
-                    const ids = idString.split(',');
-                    if (ids.length !== 6) throw new Error("Invalid code format");
-                    const newRows = ids.slice(0, 3).map(id => allConditions.find(c => c.id === id));
-                    const newCols = ids.slice(3, 6).map(id => allConditions.find(c => c.id === id));
+                    const [sizeStr, base64] = code.split(':');
+                    const size = parseInt(sizeStr, 10);
+                    if (![2, 3, 4].includes(size)) throw new Error("Invalid grid size in code");
+                    gridSize = size;
+                    const ids = atob(base64).split(',');
+                    if (ids.length !== size * 2) throw new Error("Invalid code format");
+                    const newRows = ids.slice(0, size).map(id => allConditions.find(c => c.id === id));
+                    const newCols = ids.slice(size).map(id => allConditions.find(c => c.id === id));
                     if (newRows.some(c => !c) || newCols.some(c => !c)) throw new Error("Unknown condition in code");
-                    if (!isPuzzleSolvable(newRows, newCols)) {
-                        showCustomAlert("This puzzle code is not solvable."); return;
-                    }
+                    if (!isPuzzleSolvable(newRows, newCols, size)) { showCustomAlert("This puzzle is not solvable."); return; }
                     currentConditions = { rows: newRows, cols: newCols };
-                    const level = calculatePuzzleDifficulty(newRows, newCols);
+                    const level = calculatePuzzleDifficulty(newRows, newCols, size);
                     resetBoard(); updateGridLabels(); displayLevel(level);
-                    puzzleCodeDisplay.textContent = code;
+                    UIElements.puzzleCodeDisplay.textContent = code;
                     document.getElementById('puzzle-number-display').textContent = 'Imported Puzzle';
                 } catch (e) {
                     showCustomAlert("Invalid or corrupted puzzle code.");
@@ -699,46 +602,15 @@
                 }
             }
             
-            function copyTextToClipboard(text, button) {
-                const textArea = document.createElement("textarea");
-                textArea.value = text;
-                textArea.style.position = 'fixed';
-                document.body.appendChild(textArea);
-                textArea.focus();
-                textArea.select();
-                try {
-                    document.execCommand('copy');
-                    const originalText = button.textContent;
-                    button.textContent = 'Copied!';
-                    setTimeout(() => { button.textContent = originalText; }, 1500);
-                } catch (err) { showCustomAlert('Failed to copy text.'); }
-                document.body.removeChild(textArea);
-            }
-
-            function createGrid() {
-                grid.innerHTML = '';
-                for (let i = 0; i < gridSize * gridSize; i++) {
-                    const cell = document.createElement('div');
-                    cell.classList.add('grid-cell');
-                    cell.dataset.index = i;
-                    const overlay = document.createElement('div');
-                    overlay.classList.add('feedback-overlay');
-                    cell.appendChild(overlay);
-                    cell.addEventListener('click', () => { activeCell = cell; openSearchModal(); });
-                    grid.appendChild(cell);
-                }
-            }
-
             function checkAnswers() {
-                if (gridState.some(c => c === null)) { showCustomAlert('Please fill all the cells before checking.'); return; }
-                const cardNames = gridState.map(card => card ? card.fullName : null).filter(Boolean);
+                const cardNames = gridState.map(c => c ? c.fullName : null).filter(Boolean);
                 const hasDuplicates = new Set(cardNames).size !== cardNames.length;
-                grid.childNodes.forEach((cell, index) => {
+                UIElements.grid.childNodes.forEach((cell, index) => {
                     clearCellFeedback(cell);
                     const card = gridState[index];
                     if (!card) return;
                     const isDuplicate = cardNames.indexOf(card.fullName) !== cardNames.lastIndexOf(card.fullName);
-                    if (currentConditions.rows[Math.floor(index / 3)].filter(card) && currentConditions.cols[index % 3].filter(card) && !isDuplicate) {
+                    if (currentConditions.rows[Math.floor(index/gridSize)].filter(card) && currentConditions.cols[index%gridSize].filter(card) && !isDuplicate) {
                         cell.classList.add('correct');
                     } else { cell.classList.add('incorrect'); }
                 });
@@ -746,92 +618,71 @@
             }
             
             async function handleSolveClick() {
-                const confirmed = await showConfirmation("Are you sure? This will solve the rest of the puzzle and disable the copy results button.");
-                if (confirmed) { solvePuzzle(); copyButton.disabled = true; solveButton.disabled = true; }
+                const confirmed = await showConfirmation("Are you sure? This will solve the puzzle and disable copy results.");
+                if (confirmed) { solvePuzzle(); UIElements.copyButton.disabled = true; UIElements.solveButton.disabled = true; }
             }
 
             function solvePuzzle() {
                 const correctness = Array(gridSize * gridSize).fill(false);
-                const cardNames = gridState.map(card => card ? card.fullName : null);
+                const cardNames = gridState.map(c => c ? c.fullName : null);
                 for (let i = 0; i < gridSize * gridSize; i++) {
                     const card = gridState[i];
                     if (!card) continue;
                     const isDuplicate = cardNames.indexOf(card.fullName) !== cardNames.lastIndexOf(card.fullName);
-                    const meetsConditions = currentConditions.rows[Math.floor(i / 3)].filter(card) && currentConditions.cols[i % 3].filter(card);
-                    if (meetsConditions && !isDuplicate) { correctness[i] = true; }
+                    if (currentConditions.rows[Math.floor(i/gridSize)].filter(card) && currentConditions.cols[i%gridSize].filter(card) && !isDuplicate) correctness[i] = true;
                 }
-
                 const cardsToKeep = new Set();
                 const indicesToSolve = [];
                 correctness.forEach((isCorrect, index) => {
-                    if (isCorrect) { cardsToKeep.add(gridState[index].fullName); } 
-                    else { indicesToSolve.push(index); }
+                    if (isCorrect) cardsToKeep.add(gridState[index].fullName);
+                    else indicesToSolve.push(index);
                 });
-
                 indicesToSolve.forEach(index => {
                     gridState[index] = null;
-                    grid.childNodes[index].style.backgroundImage = 'none';
-                    clearCellFeedback(grid.childNodes[index]);
+                    UIElements.grid.childNodes[index].style.backgroundImage = 'none';
+                    clearCellFeedback(UIElements.grid.childNodes[index]);
                 });
-
                 indicesToSolve.forEach(index => {
-                    const solutionCard = allCards.find(c => 
-                        !cardsToKeep.has(c.fullName) && 
-                        currentConditions.rows[Math.floor(index/3)].filter(c) && 
-                        currentConditions.cols[index%3].filter(c)
-                    );
-                    if (solutionCard) {
-                        gridState[index] = solutionCard;
-                        grid.childNodes[index].style.backgroundImage = `url(${solutionCard.images.thumbnail})`;
-                        cardsToKeep.add(solutionCard.fullName);
+                    const solution = allCards.find(c => !cardsToKeep.has(c.fullName) && currentConditions.rows[Math.floor(index/gridSize)].filter(c) && currentConditions.cols[index%gridSize].filter(c));
+                    if (solution) {
+                        gridState[index] = solution;
+                        UIElements.grid.childNodes[index].style.backgroundImage = `url(${solution.images.thumbnail})`;
+                        cardsToKeep.add(solution.fullName);
                     }
                 });
             }
 
             // --- Event Listeners and Initializers ---
-            newPuzzleButton.addEventListener('click', () => {
-                document.getElementById('difficulty-modal').style.display = 'flex';
-            });
-            importPuzzleButton.addEventListener('click', () => {
-                document.getElementById('import-modal').style.display = 'flex';
-                document.getElementById('import-input').focus();
-            });
+            UIElements.newPuzzleButton.addEventListener('click', () => { document.getElementById('grid-size-modal').style.display = 'flex'; });
+            UIElements.importPuzzleButton.addEventListener('click', () => { document.getElementById('import-modal').style.display = 'flex'; document.getElementById('import-input').focus(); });
             document.getElementById('import-cancel').addEventListener('click', () => { document.getElementById('import-modal').style.display = 'none'; });
             document.getElementById('import-submit').addEventListener('click', () => {
                 const code = document.getElementById('import-input').value.trim();
-                if (code) { loadPuzzleFromCode(code); }
+                if (code) loadPuzzleFromCode(code);
                 document.getElementById('import-modal').style.display = 'none';
             });
-            copyCodeButton.addEventListener('click', () => { copyTextToClipboard(puzzleCodeDisplay.textContent, copyCodeButton); });
-            checkButton.addEventListener('click', checkAnswers);
-            copyButton.addEventListener('click', copyResults);
-            solveButton.addEventListener('click', handleSolveClick);
-            
+            UIElements.copyCodeButton.addEventListener('click', () => copyTextToClipboard(UIElements.puzzleCodeDisplay.textContent, UIElements.copyCodeButton));
+            UIElements.checkButton.addEventListener('click', checkAnswers);
+            UIElements.copyButton.addEventListener('click', copyResults);
+            UIElements.solveButton.addEventListener('click', handleSolveClick);
             initializeGame();
             
-            // --- Unchanged Functions ---
-            function openSearchModal() { searchModal.style.display = 'flex'; searchInput.value = ''; searchResults.innerHTML = ''; searchInput.focus(); }
-            function closeSearchModal() { searchModal.style.display = 'none'; activeCell = null; }
-            searchModal.addEventListener('click', (e) => { if (e.target === searchModal) { closeSearchModal(); } });
-            searchInput.addEventListener('input', () => {
-                const query = searchInput.value;
-                if (query.length < 2) { searchResults.innerHTML = ''; return; }
-                const results = fuse.search(query, { limit: 20 });
+            // --- Unchanged/Helper Functions ---
+            function openSearchModal() { UIElements.searchModal.style.display = 'flex'; UIElements.searchInput.value = ''; UIElements.searchResults.innerHTML = ''; UIElements.searchInput.focus(); }
+            function closeSearchModal() { UIElements.searchModal.style.display = 'none'; activeCell = null; }
+            UIElements.searchModal.addEventListener('click', (e) => { if (e.target === UIElements.searchModal) closeSearchModal(); });
+            UIElements.searchInput.addEventListener('input', () => {
+                const results = fuse.search(UIElements.searchInput.value, { limit: 20 });
                 displayResults(results);
             });
             function displayResults(results) {
-                searchResults.innerHTML = '';
+                UIElements.searchResults.innerHTML = '';
                 results.forEach(result => {
-                    const card = result.item;
-                    const li = document.createElement('li');
-                    const img = document.createElement('img');
-                    img.src = card.images.thumbnail;
-                    img.alt = card.fullName;
-                    const name = document.createElement('span');
-                    name.textContent = card.fullName;
-                    li.appendChild(img); li.appendChild(name);
-                    li.addEventListener('click', () => selectCard(card));
-                    searchResults.appendChild(li);
+                    const li = document.createElement('li'), img = document.createElement('img'), name = document.createElement('span');
+                    img.src = result.item.images.thumbnail; name.textContent = result.item.fullName;
+                    li.append(img, name);
+                    li.addEventListener('click', () => selectCard(result.item));
+                    UIElements.searchResults.appendChild(li);
                 });
             }
             function selectCard(card) {
@@ -844,18 +695,30 @@
             }
             function clearCellFeedback(cell) { cell.classList.remove('correct', 'incorrect'); }
             function copyResults() {
-                let resultString = `Dokuborn Puzzle (${puzzleCodeDisplay.textContent}):\n`;
+                let resultString = `Dokuborn Puzzle (${UIElements.puzzleCodeDisplay.textContent}):\n`;
                 let correctCount = 0;
-                grid.childNodes.forEach((cell, index) => {
-                    const cellId = String.fromCharCode(65 + (index % 3)) + (Math.floor(index / 3) + 1);
-                    const card = gridState[index];
+                UIElements.grid.childNodes.forEach((cell, index) => {
+                    const cellId = String.fromCharCode(65 + (index % gridSize)) + (Math.floor(index / gridSize) + 1);
                     let status = '❔';
                     if (cell.classList.contains('correct')) { status = '✅'; correctCount++; }
                     else if (cell.classList.contains('incorrect')) { status = '❌'; }
-                    resultString += `${cellId}: ${card ? card.fullName : 'Empty'} ${status}\n`;
+                    resultString += `${cellId}: ${gridState[index] ? gridState[index].fullName : 'Empty'} ${status}\n`;
                 });
-                resultString += `\nTotal Correct: ${correctCount}/9`;
-                copyTextToClipboard(resultString, copyButton);
+                resultString += `\nTotal Correct: ${correctCount}/${gridSize*gridSize}`;
+                copyTextToClipboard(resultString, UIElements.copyButton);
+            }
+            function copyTextToClipboard(text, button) {
+                const textArea = document.createElement("textarea");
+                textArea.value = text;
+                textArea.style.position = 'fixed'; document.body.appendChild(textArea);
+                textArea.focus(); textArea.select();
+                try {
+                    document.execCommand('copy');
+                    const originalText = button.textContent;
+                    button.textContent = 'Copied!';
+                    setTimeout(() => { button.textContent = originalText; }, 1500);
+                } catch (err) { showCustomAlert('Failed to copy text.'); }
+                document.body.removeChild(textArea);
             }
             function showCustomAlert(message) {
                 const alertBox = document.createElement('div');
@@ -867,20 +730,20 @@
             function showConfirmation(message) {
                 return new Promise((resolve) => {
                     const modal = document.getElementById('confirmation-modal');
-                    document.getElementById('confirmation-message').textContent = message;
+                    modal.querySelector('p').textContent = message;
                     modal.style.display = 'flex';
-                    const yesButton = document.getElementById('confirm-yes');
-                    const noButton = document.getElementById('confirm-no');
+                    const yes = modal.querySelector('#confirm-yes');
+                    const no = modal.querySelector('#confirm-no');
                     const listener = (e) => {
                         modal.style.display = 'none';
-                        yesButton.removeEventListener('click', yesListener);
-                        noButton.removeEventListener('click', noListener);
-                        resolve(e.target === yesButton);
+                        yes.removeEventListener('click', yesListener);
+                        no.removeEventListener('click', noListener);
+                        resolve(e.target === yes);
                     };
                     const yesListener = (e) => listener(e);
                     const noListener = (e) => listener(e);
-                    yesButton.addEventListener('click', yesListener);
-                    noButton.addEventListener('click', noListener);
+                    yes.addEventListener('click', yesListener);
+                    no.addEventListener('click', noListener);
                 });
             }
         });
