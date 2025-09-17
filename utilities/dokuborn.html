@@ -305,6 +305,61 @@
             width: 60px; height: 60px; animation: spin 1s linear infinite; margin-bottom: 1rem;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        /* Tutorial Styles */
+        #tutorial-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10000;
+            background-color: rgba(0,0,0,0.7);
+            display: none;
+        }
+
+        .tutorial-highlight {
+            position: relative;
+            z-index: 10001;
+            box-shadow: 0 0 15px 5px var(--star-color);
+            border-radius: 5px;
+        }
+
+        #tutorial-box {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: var(--parchment);
+            color: var(--wood-dark);
+            padding: 20px;
+            border: 3px solid var(--border-gold);
+            border-radius: 10px;
+            width: 90%;
+            max-width: 350px;
+            z-index: 10002;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            display: none; /* Initially hidden */
+        }
+
+        #tutorial-box p {
+            margin: 0 0 15px 0;
+            line-height: 1.5;
+        }
+
+        #tutorial-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+         #tutorial-nav button {
+            background-color: var(--wood-light); color: var(--parchment);
+            border: 2px solid var(--border-gold); padding: 8px 15px;
+            font-family: var(--font-main); font-size: 0.9rem; cursor: pointer;
+            border-radius: 5px;
+        }
+
     </style>
 </head>
 <body>
@@ -346,6 +401,18 @@
             <div id="grid-size-buttons"></div>
         </div>
     </div>
+    <div id="tutorial-overlay"></div>
+    <div id="tutorial-box">
+        <p id="tutorial-text"></p>
+        <div id="tutorial-nav">
+            <button id="tutorial-skip">Skip</button>
+                <div>
+                    <button id="tutorial-prev" style="margin-right: 10px;">Prev</button>
+                    <button id="tutorial-next">Next</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <main class="game-container">
         <div class="credits">
@@ -380,6 +447,7 @@
             <button id="check-button">Check Answers</button>
             <button id="copy-button">Copy Results</button>
             <button id="solve-button">Solve Puzzle</button>
+            <button id="help-button">Help</button>
         </div>
     </main>
     
@@ -403,6 +471,7 @@
                 puzzleCodeDisplay: document.getElementById('puzzle-code-display'),
                 puzzleLevelDisplay: document.getElementById('puzzle-level-display'),
                 loader: document.getElementById('loader'),
+                helpButton: document.getElementById('help-button'),
             };
 
             // Game State
@@ -442,7 +511,12 @@
                     fuse = new Fuse(allCards, { includeScore: true, keys: ['fullName'], threshold: 0.4 });
                     setupConditions();
                     setupModals();
-                    await generateNewPuzzle(3, 2); // Start with 3x3, medium puzzle
+                    setupTutorial();
+                    await generateNewPuzzle(3, 2); 
+                    
+                    if (!localStorage.getItem('dokubornTutorialSeen')) {
+                        startTutorial();
+                    }
                 } catch (error) {
                     UIElements.loader.innerHTML = `<p>Failed to load card database. Please try again later.</p>`;
                     console.error("Error loading card data:", error);
@@ -483,17 +557,14 @@
                 UIElements.grid.innerHTML = '';
                 UIElements.gridLabelsTop.innerHTML = '';
                 UIElements.gridLabelsLeft.innerHTML = '';
-
                 UIElements.grid.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
                 UIElements.grid.style.gridTemplateRows = `repeat(${gridSize}, 1fr)`;
                 UIElements.gridLabelsTop.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
                 UIElements.gridLabelsLeft.style.gridTemplateRows = `repeat(${gridSize}, 1fr)`;
-
                 for(let i=0; i<gridSize; i++) {
                     UIElements.gridLabelsTop.appendChild(document.createElement('div')).classList.add('label');
                     UIElements.gridLabelsLeft.appendChild(document.createElement('div')).classList.add('label');
                 }
-
                 for (let i = 0; i < gridSize * gridSize; i++) {
                     const cell = document.createElement('div');
                     cell.classList.add('grid-cell');
@@ -542,7 +613,6 @@
                 UIElements.loader.innerHTML = `<div class="loader"></div><p>Searching for a ${gridSize}x${gridSize} level ${targetLevel} puzzle...</p>`;
                 UIElements.loader.style.display = 'flex';
                 await new Promise(resolve => setTimeout(resolve, 0));
-                
                 let foundPuzzle = false, attempts = 0;
                 while (!foundPuzzle && attempts < 10000) {
                     const shuffled = [...allConditions].sort(() => 0.5 - Math.random());
@@ -553,9 +623,7 @@
                         if (level === targetLevel) {
                             currentConditions = { rows: selectedRows, cols: selectedCols };
                             const code = generatePuzzleCode(selectedRows, selectedCols, gridSize);
-                            resetBoard();
-                            updateGridLabels();
-                            displayLevel(level);
+                            resetBoard(); updateGridLabels(); displayLevel(level);
                             UIElements.puzzleCodeDisplay.textContent = code;
                             document.getElementById('puzzle-number-display').textContent = `Puzzle: ${puzzleCount++}`;
                             foundPuzzle = true;
@@ -652,6 +720,76 @@
                 });
             }
 
+            // --- Tutorial System ---
+            let currentTutorialStep = 0;
+            let tutorialSteps = [];
+            const tutorialOverlay = document.getElementById('tutorial-overlay');
+            const tutorialBox = document.getElementById('tutorial-box');
+
+            function setupTutorial() {
+                tutorialSteps = [
+                    { element: 'h1', text: 'Welcome to Dokuborn! This quick tutorial will show you how to play.' },
+                    { element: '.puzzle-grid', text: 'This is the puzzle grid. Your goal is to place a unique Lorcana card in each cell.' },
+                    { element: '.puzzle-grid-area', text: 'Each card must satisfy BOTH the condition for its row and its column.' },
+                    { element: '.grid-cell[data-index="0"]', text: 'Click on any cell to open a search window and find the perfect card.' },
+                    { element: '#check-button', text: 'Use the "Check Answers" button to see how you\'re doing. Correct cells turn green, incorrect ones turn red.' },
+                    { element: '#new-puzzle-button', text: 'Want a new challenge? Click here to select a grid size and difficulty.' },
+                    { element: '.puzzle-meta', text: 'You can share puzzles with friends using this unique code, or import a code from them.'},
+                    { element: '#solve-button', text: 'Stuck? The "Solve Puzzle" button will fill in the missing correct answers for you.' }
+                ];
+                document.getElementById('tutorial-next').addEventListener('click', nextTutorialStep);
+                document.getElementById('tutorial-prev').addEventListener('click', prevTutorialStep);
+                document.getElementById('tutorial-skip').addEventListener('click', endTutorial);
+                UIElements.helpButton.addEventListener('click', startTutorial);
+            }
+
+            function startTutorial() {
+                currentTutorialStep = 0;
+                tutorialOverlay.style.display = 'block';
+                tutorialBox.style.display = 'block';
+                showTutorialStep(currentTutorialStep);
+            }
+
+            function endTutorial() {
+                tutorialOverlay.style.display = 'none';
+                tutorialBox.style.display = 'none';
+                const highlighted = document.querySelector('.tutorial-highlight');
+                if (highlighted) highlighted.classList.remove('tutorial-highlight');
+                localStorage.setItem('dokubornTutorialSeen', 'true');
+            }
+            
+            function nextTutorialStep() {
+                if (currentTutorialStep < tutorialSteps.length - 1) {
+                    currentTutorialStep++;
+                    showTutorialStep(currentTutorialStep);
+                } else {
+                    endTutorial();
+                }
+            }
+
+            function prevTutorialStep() {
+                if (currentTutorialStep > 0) {
+                    currentTutorialStep--;
+                    showTutorialStep(currentTutorialStep);
+                }
+            }
+
+            function showTutorialStep(index) {
+                document.getElementById('tutorial-prev').style.visibility = (index === 0) ? 'hidden' : 'visible';
+                document.getElementById('tutorial-next').textContent = (index === tutorialSteps.length - 1) ? 'Finish' : 'Next';
+                
+                const step = tutorialSteps[index];
+                document.getElementById('tutorial-text').textContent = step.text;
+                
+                const highlighted = document.querySelector('.tutorial-highlight');
+                if (highlighted) highlighted.classList.remove('tutorial-highlight');
+
+                const elementToHighlight = document.querySelector(step.element);
+                if (elementToHighlight) {
+                    elementToHighlight.classList.add('tutorial-highlight');
+                }
+            }
+
             // --- Event Listeners and Initializers ---
             UIElements.newPuzzleButton.addEventListener('click', () => { document.getElementById('grid-size-modal').style.display = 'flex'; });
             UIElements.importPuzzleButton.addEventListener('click', () => { document.getElementById('import-modal').style.display = 'flex'; document.getElementById('import-input').focus(); });
@@ -663,7 +801,6 @@
             });
             UIElements.copyCodeButton.addEventListener('click', () => copyTextToClipboard(UIElements.puzzleCodeDisplay.textContent, UIElements.copyCodeButton));
             UIElements.checkButton.addEventListener('click', checkAnswers);
-            UIElements.copyButton.addEventListener('click', copyResults);
             UIElements.solveButton.addEventListener('click', handleSolveClick);
             initializeGame();
             
@@ -722,7 +859,7 @@
             }
             function showCustomAlert(message) {
                 const alertBox = document.createElement('div');
-                alertBox.style.cssText = `position: fixed; top: 20px; left: 50%; transform: translateX(-50%); padding: 15px 25px; background-color: var(--wood-light); color: var(--parchment); border: 2px solid var(--border-gold); border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); z-index: 3000;`;
+                alertBox.style.cssText = `position: fixed; top: 20px; left: 50%; transform: translateX(-50%); padding: 15px 25px; background-color: var(--wood-light); color: var(--parchment); border: 2px solid var(--border-gold); border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); z-index: 10001;`;
                 alertBox.textContent = message;
                 document.body.appendChild(alertBox);
                 setTimeout(() => alertBox.remove(), 3000);
@@ -750,3 +887,5 @@
     </script>
 </body>
 </html>
+
+
