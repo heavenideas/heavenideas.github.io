@@ -342,6 +342,7 @@
             display: none; /* Initially hidden */
         }
 
+
         #tutorial-box p {
             margin: 0 0 15px 0;
             line-height: 1.5;
@@ -406,13 +407,13 @@
         <p id="tutorial-text"></p>
         <div id="tutorial-nav">
             <button id="tutorial-skip">Skip</button>
-                <div>
-                    <button id="tutorial-prev" style="margin-right: 10px;">Prev</button>
-                    <button id="tutorial-next">Next</button>
-                </div>
+            <div>
+                <button id="tutorial-prev" style="margin-right: 10px;">Prev</button>
+                <button id="tutorial-next">Next</button>
             </div>
         </div>
     </div>
+
 
     <main class="game-container">
         <div class="credits">
@@ -507,7 +508,9 @@
                     const response = await fetch('https://cdn.jsdelivr.net/gh/heavenideas/similcana@main/database/allCards.json');
                     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                     const data = await response.json();
-                    allCards = data.cards;
+                    
+                    allCards = data.cards.filter(card => card.setCode && !card.setCode.startsWith('Q'));
+
                     fuse = new Fuse(allCards, { includeScore: true, keys: ['fullName'], threshold: 0.4 });
                     setupConditions();
                     setupModals();
@@ -790,6 +793,7 @@
                 }
             }
 
+
             // --- Event Listeners and Initializers ---
             UIElements.newPuzzleButton.addEventListener('click', () => { document.getElementById('grid-size-modal').style.display = 'flex'; });
             UIElements.importPuzzleButton.addEventListener('click', () => { document.getElementById('import-modal').style.display = 'flex'; document.getElementById('import-input').focus(); });
@@ -859,7 +863,7 @@
             }
             function showCustomAlert(message) {
                 const alertBox = document.createElement('div');
-                alertBox.style.cssText = `position: fixed; top: 20px; left: 50%; transform: translateX(-50%); padding: 15px 25px; background-color: var(--wood-light); color: var(--parchment); border: 2px solid var(--border-gold); border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); z-index: 10001;`;
+                alertBox.style.cssText = `position: fixed; top: 20px; left: 50%; transform: translateX(-50%); padding: 15px 25px; background-color: var(--wood-light); color: var(--parchment); border: 2px solid var(--border-gold); border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); z-index: 10003;`;
                 alertBox.textContent = message;
                 document.body.appendChild(alertBox);
                 setTimeout(() => alertBox.remove(), 3000);
@@ -887,5 +891,3 @@
     </script>
 </body>
 </html>
-
-
