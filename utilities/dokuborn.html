@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dokuborn - Lorcana Puzzle</title>
+    <style>
+        :root {
+            --wood-dark: #3a2a1a;
+            --wood-medium: #6f4f28;
+            --wood-light: #8b6e4b;
+            --parchment: #f5eeda;
+            --text-gold: #e6c88a;
+            --border-gold: #b48c4a;
+            --grid-line: #a58c6d;
+            --correct-bg: rgba(29, 138, 59, 0.75);
+            --incorrect-bg: rgba(186, 30, 30, 0.75);
+            --font-main: 'Georgia', 'Times New Roman', serif;
+            --star-color: #ffd700;
+        }
+
+        body {
+            background-color: var(--wood-dark);
+            color: var(--text-gold);
+            font-family: var(--font-main);
+            margin: 0;
+            padding: 1rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .game-container {
+            width: 100%;
+            max-width: 600px;
+            background-color: var(--wood-medium);
+            border: 8px solid var(--wood-light);
+            box-shadow: 0 0 20px rgba(0,0,0,0.7), inset 0 0 15px rgba(0,0,0,0.5);
+            padding: clamp(1rem, 5vw, 2rem);
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .credits {
+            width: 100%;
+            text-align: center;
+            font-size: 0.8rem;
+            margin-bottom: 1rem;
+            color: var(--text-gold);
+        }
+        .credits p {
+            margin: 0;
+        }
+        .credits a {
+            color: var(--text-gold);
+            text-decoration: underline;
+        }
+
+        header {
+            text-align: center;
+            width: 100%;
+        }
+
+        h1 {
+            font-size: clamp(2.5rem, 8vw, 4rem);
+            color: var(--text-gold);
+            margin: 0;
+            text-shadow: 2px 2px 4px var(--wood-dark);
+            border-bottom: 2px solid var(--border-gold);
+            border-top: 2px solid var(--border-gold);
+            padding: 0.5rem 0;
+            background-color: rgba(0,0,0,0.2);
+        }
+
+        .puzzle-meta {
+            text-align: center;
+            margin: 0.5rem 0;
+        }
+
+        #puzzle-code-display {
+            font-family: monospace;
+            background: rgba(0,0,0,0.3);
+            padding: 5px 8px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        #copy-code-button {
+            background: none;
+            border: 1px solid var(--text-gold);
+            color: var(--text-gold);
+            cursor: pointer;
+            margin-left: 8px;
+            padding: 3px 6px;
+            border-radius: 3px;
+        }
+
+
+        .puzzle-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            max-width: 400px;
+            margin: 1rem auto;
+            font-size: clamp(0.9rem, 2.5vw, 1.1rem);
+            padding: 0.5rem;
+            border-bottom: 1px solid var(--border-gold);
+            border-top: 1px solid var(--border-gold);
+        }
+
+        #puzzle-level-display {
+            font-size: 1.5rem;
+            color: var(--star-color);
+            letter-spacing: 2px;
+        }
+
+
+        .puzzle-grid-area {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            grid-template-rows: auto 1fr;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .grid-labels-top {
+            grid-column: 2 / 3;
+            display: grid;
+            text-align: center;
+        }
+
+        .grid-labels-left {
+            grid-row: 2 / 3;
+            display: grid;
+            align-items: center;
+            justify-items: center;
+        }
+
+        .grid-labels-left .label {
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            transform: rotate(180deg);
+        }
+
+        .label {
+            padding: 5px;
+            font-weight: bold;
+            font-size: clamp(0.75rem, 3vw, 1rem);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            min-height: 40px;
+        }
+        
+        .puzzle-grid {
+            grid-column: 2;
+            grid-row: 2;
+            display: grid;
+            gap: 5px;
+            background-color: var(--grid-line);
+            border: 3px solid var(--grid-line);
+            padding: 5px;
+            aspect-ratio: 367 / 512;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+        }
+
+        .grid-cell {
+            background-color: var(--parchment);
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .grid-cell:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 15px var(--text-gold);
+        }
+
+        .grid-cell .feedback-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            opacity: 0; transition: opacity 0.3s ease;
+        }
+
+        .grid-cell.correct .feedback-overlay {
+            background-color: var(--correct-bg);
+            opacity: 1;
+        }
+
+        .grid-cell.incorrect .feedback-overlay {
+            background-color: var(--incorrect-bg);
+            opacity: 1;
+        }
+
+        .controls {
+            margin-top: 1.5rem;
+            display: flex; flex-wrap: wrap; justify-content: center; gap: 1rem;
+        }
+
+        .controls button {
+            background-color: var(--wood-light); color: var(--parchment);
+            border: 2px solid var(--border-gold); padding: 10px 20px;
+            font-family: var(--font-main); font-size: 1rem; cursor: pointer;
+            border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+            transition: all 0.2s ease;
+        }
+
+        .controls button:hover:not(:disabled) {
+            background-color: var(--border-gold); transform: translateY(-2px);
+        }
+        
+        .controls button:disabled {
+            background-color: #555; color: #999; cursor: not-allowed; border-color: #444;
+        }
+
+        .instructions {
+            text-align: center; margin-top: 1rem;
+            font-style: italic; font-size: 0.9rem;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none; position: fixed; z-index: 1000;
+            left: 0; top: 0; width: 100%; height: 100%;
+            overflow: auto; background-color: rgba(0,0,0,0.7);
+            align-items: center; justify-content: center;
+        }
+        
+        .modal-content {
+            background-color: var(--parchment); color: var(--wood-dark);
+            margin: auto; padding: 20px; border: 5px solid var(--border-gold);
+            border-radius: 10px; width: 90%; max-width: 500px;
+            max-height: 90vh; display: flex; flex-direction: column;
+        }
+        
+        #confirmation-modal .modal-content, #import-modal .modal-content, #difficulty-modal .modal-content, #grid-size-modal .modal-content {
+            text-align: center;
+        }
+
+        #import-input {
+             width: calc(100% - 20px); padding: 10px; margin-bottom: 1rem;
+        }
+
+        #difficulty-buttons, #grid-size-buttons {
+            display: flex; flex-direction: column; gap: 1rem;
+        }
+
+        #confirmation-buttons, #import-buttons, #difficulty-buttons button, #grid-size-buttons button {
+            display: flex; justify-content: center; gap: 1rem; margin-top: 1.5rem;
+        }
+
+        #confirmation-buttons button, #import-buttons button, #difficulty-buttons button, #grid-size-buttons button {
+             background-color: var(--wood-light); color: var(--parchment);
+            border: 2px solid var(--border-gold); padding: 10px 20px;
+            font-family: var(--font-main); font-size: 1rem; cursor: pointer;
+            border-radius: 5px;
+        }
+
+        #difficulty-buttons button, #grid-size-buttons button {
+            margin-top: 0; font-size: 1.2rem; width: 100%;
+        }
+        
+        #difficulty-buttons button .stars { color: var(--star-color); }
+
+        .modal-header {
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 2px solid var(--border-gold); padding-bottom: 10px; margin-bottom: 15px;
+        }
+        
+        #search-input {
+            width: 100%; padding: 10px; font-size: 1rem;
+            border: 2px solid var(--wood-medium); border-radius: 5px; background-color: #fff;
+        }
+        
+        #search-results {
+            list-style: none; padding: 0; margin: 0; overflow-y: auto;
+        }
+
+        #search-results li {
+            padding: 10px; cursor: pointer; border-bottom: 1px solid var(--grid-line);
+            display: flex; align-items: center; gap: 10px;
+        }
+
+        #search-results li:hover { background-color: #e8dcc4; }
+        #search-results li img { width: 40px; border-radius: 3px; }
+
+        .loader-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); color: var(--text-gold);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 2000; font-size: 1.5rem;
+        }
+        .loader {
+            border: 8px solid #f3f3f3; border-radius: 50%; border-top: 8px solid var(--wood-medium);
+            width: 60px; height: 60px; animation: spin 1s linear infinite; margin-bottom: 1rem;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        /* Tutorial Styles */
+        #tutorial-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10000;
+            background-color: rgba(0,0,0,0.7);
+            display: none;
+        }
+
+        .tutorial-highlight {
+            position: relative;
+            z-index: 10001;
+            box-shadow: 0 0 15px 5px var(--star-color);
+            border-radius: 5px;
+        }
+
+        #tutorial-box {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: var(--parchment);
+            color: var(--wood-dark);
+            padding: 20px;
+            border: 3px solid var(--border-gold);
+            border-radius: 10px;
+            width: 90%;
+            max-width: 350px;
+            z-index: 10002;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            display: none; /* Initially hidden */
+        }
+
+
+        #tutorial-box p {
+            margin: 0 0 15px 0;
+            line-height: 1.5;
+        }
+
+        #tutorial-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+         #tutorial-nav button {
+            background-color: var(--wood-light); color: var(--parchment);
+            border: 2px solid var(--border-gold); padding: 8px 15px;
+            font-family: var(--font-main); font-size: 0.9rem; cursor: pointer;
+            border-radius: 5px;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="loader" class="loader-overlay"><div class="loader"></div><p>Loading Lorcana Database...</p></div>
+    <div id="search-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header"><h2>Find a Card</h2></div>
+            <input type="text" id="search-input" placeholder="Type a card name...">
+            <ul id="search-results"></ul>
+        </div>
+    </div>
+    <div id="confirmation-modal" class="modal">
+        <div class="modal-content">
+            <p id="confirmation-message"></p>
+            <div id="confirmation-buttons">
+                <button id="confirm-yes">Yes</button><button id="confirm-no">No</button>
+            </div>
+        </div>
+    </div>
+    <div id="import-modal" class="modal">
+        <div class="modal-content">
+            <h3>Import Puzzle Code</h3>
+            <input type="text" id="import-input" placeholder="Paste puzzle code here">
+            <div id="import-buttons">
+                <button id="import-submit">Load</button><button id="import-cancel">Cancel</button>
+            </div>
+        </div>
+    </div>
+    <div id="difficulty-modal" class="modal">
+        <div class="modal-content">
+            <h3>Select Difficulty</h3>
+            <div id="difficulty-buttons"></div>
+        </div>
+    </div>
+    <div id="grid-size-modal" class="modal">
+        <div class="modal-content">
+            <h3>Select Game Mode</h3>
+            <div id="grid-size-buttons"></div>
+        </div>
+    </div>
+    <div id="tutorial-overlay"></div>
+    <div id="tutorial-box">
+        <p id="tutorial-text"></p>
+        <div id="tutorial-nav">
+            <button id="tutorial-skip">Skip</button>
+            <div>
+                <button id="tutorial-prev" style="margin-right: 10px;">Prev</button>
+                <button id="tutorial-next">Next</button>
+            </div>
+        </div>
+    </div>
+
+
+    <main class="game-container">
+        <div class="credits">
+            <p>Based on game created by <a href="https://linktr.ee/the_artopath" target="_blank" rel="noopener noreferrer">The Artopath</a></p>
+        </div>
+        <header>
+            <div class="puzzle-info">
+                <span id="puzzle-number-display">Puzzle: 1</span>
+                <span id="puzzle-level-display"></span>
+            </div>
+            <h1>Dokuborn</h1>
+             <div class="puzzle-meta">
+                <span id="puzzle-code-display"></span>
+                <button id="copy-code-button">Copy</button>
+            </div>
+        </header>
+        
+        <div class="puzzle-grid-area">
+            <div class="grid-labels-top"></div>
+            <div class="grid-labels-left"></div>
+            <div class="puzzle-grid"></div>
+        </div>
+
+        <div class="instructions">
+            <p>Find the card that fits both requirements!</p>
+            <p>• Multiple answers possible • No duplicate card names</p>
+        </div>
+        
+        <div class="controls">
+            <button id="new-puzzle-button">New Puzzle</button>
+            <button id="import-puzzle-button">Import Puzzle</button>
+            <button id="check-button">Check Answers</button>
+            <button id="copy-button">Copy Results</button>
+            <button id="solve-button">Solve Puzzle</button>
+            <button id="help-button">Help</button>
+        </div>
+    </main>
+    
+    <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // UI Elements
+            const UIElements = {
+                grid: document.querySelector('.puzzle-grid'),
+                gridLabelsTop: document.querySelector('.grid-labels-top'),
+                gridLabelsLeft: document.querySelector('.grid-labels-left'),
+                searchModal: document.getElementById('search-modal'),
+                searchInput: document.getElementById('search-input'),
+                searchResults: document.getElementById('search-results'),
+                checkButton: document.getElementById('check-button'),
+                copyButton: document.getElementById('copy-button'),
+                solveButton: document.getElementById('solve-button'),
+                newPuzzleButton: document.getElementById('new-puzzle-button'),
+                importPuzzleButton: document.getElementById('import-puzzle-button'),
+                copyCodeButton: document.getElementById('copy-code-button'),
+                puzzleCodeDisplay: document.getElementById('puzzle-code-display'),
+                puzzleLevelDisplay: document.getElementById('puzzle-level-display'),
+                loader: document.getElementById('loader'),
+                helpButton: document.getElementById('help-button'),
+            };
+
+            // Game State
+            let allCards = [];
+            let fuse;
+            let activeCell = null;
+            let gridSize = 3;
+            let gridState = [];
+            let currentConditions = { rows: [], cols: [] };
+            let puzzleCount = 1;
+            let allConditions = [];
+
+            // --- Condition Definitions ---
+            function setupConditions() {
+                const colors = [ { name: 'Amber', emoji: '🟡' }, { name: 'Amethyst', emoji: '🟣' }, { name: 'Emerald', emoji: '🟢' }, { name: 'Ruby', emoji: '🔴' }, { name: 'Sapphire', emoji: '🔵' }, { name: 'Steel', emoji: '⚫' } ];
+                colors.forEach((c, i) => allConditions.push({ id: `c${i}`, display: `${c.emoji} ${c.name}`, filter: card => card.color === c.name }));
+                for (let i = 0; i <= 10; i++) allConditions.push({ id: `o${i}`, display: `Cost ${i}`, filter: card => card.cost === i });
+                allConditions.push({ id: 'p0', display: 'Uninkable', filter: card => !card.inkwell });
+                allConditions.push({ id: 'p1', display: 'Inkable', filter: card => card.inkwell });
+                const rarities = ['Common', 'Uncommon', 'Rare', 'Super Rare', 'Legendary', 'Enchanted'];
+                rarities.forEach((r, i) => allConditions.push({ id: `r${i}`, display: r, filter: card => card.rarity === r }));
+                const types = ['Action', 'Character', 'Item', 'Location'];
+                types.forEach((t, i) => allConditions.push({ id: `t${i}`, display: t, filter: card => card.type === t }));
+                const subtypes = ['Song', 'Hero', 'Villain', 'Floodborn', 'Princess', 'Queen', 'Ally'];
+                subtypes.forEach((s, i) => allConditions.push({ id: `s${i}`, display: s, filter: c => c.subtypes?.includes(s) }));
+                const keywords = ['Bodyguard', 'Challenger', 'Evasive', 'Reckless', 'Resist', 'Rush', 'Shift', 'Singer', 'Support', 'Ward'];
+                keywords.forEach((k, i) => allConditions.push({ id: `k${i}`, display: k, filter: c => c.keywordAbilities?.includes(k) }));
+            }
+
+            async function initializeGame() {
+                try {
+                    UIElements.loader.style.display = 'flex';
+                    const response = await fetch('https://cdn.jsdelivr.net/gh/heavenideas/similcana@main/database/allCards.json');
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    const data = await response.json();
+                    
+                    allCards = data.cards.filter(card => card.setCode && !card.setCode.startsWith('Q'));
+
+                    fuse = new Fuse(allCards, { includeScore: true, keys: ['fullName'], threshold: 0.4 });
+                    setupConditions();
+                    setupModals();
+                    setupTutorial();
+                    await generateNewPuzzle(3, 2); 
+                    
+                    if (!localStorage.getItem('dokubornTutorialSeen')) {
+                        startTutorial();
+                    }
+                } catch (error) {
+                    UIElements.loader.innerHTML = `<p>Failed to load card database. Please try again later.</p>`;
+                    console.error("Error loading card data:", error);
+                } finally {
+                    UIElements.loader.style.display = 'none';
+                }
+            }
+
+            function setupModals() {
+                const difficultyContainer = document.getElementById('difficulty-buttons');
+                difficultyContainer.innerHTML = '';
+                for (let i = 1; i <= 5; i++) {
+                    const button = document.createElement('button');
+                    button.dataset.level = i;
+                    button.innerHTML = `<span class="stars">${'★'.repeat(i)}${'☆'.repeat(5 - i)}</span>`;
+                    button.addEventListener('click', () => {
+                        document.getElementById('difficulty-modal').style.display = 'none';
+                        generateNewPuzzle(gridSize, i);
+                    });
+                    difficultyContainer.appendChild(button);
+                }
+
+                const gridSizeContainer = document.getElementById('grid-size-buttons');
+                gridSizeContainer.innerHTML = '';
+                [{size: 2, text: '2x2 (Easy)'}, {size: 3, text: '3x3 (Normal)'}, {size: 4, text: '4x4 (Insane)'}].forEach(mode => {
+                    const button = document.createElement('button');
+                    button.textContent = mode.text;
+                    button.addEventListener('click', () => {
+                        gridSize = mode.size;
+                        document.getElementById('grid-size-modal').style.display = 'none';
+                        document.getElementById('difficulty-modal').style.display = 'flex';
+                    });
+                    gridSizeContainer.appendChild(button);
+                });
+            }
+
+            function updateGridUI() {
+                UIElements.grid.innerHTML = '';
+                UIElements.gridLabelsTop.innerHTML = '';
+                UIElements.gridLabelsLeft.innerHTML = '';
+                UIElements.grid.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
+                UIElements.grid.style.gridTemplateRows = `repeat(${gridSize}, 1fr)`;
+                UIElements.gridLabelsTop.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
+                UIElements.gridLabelsLeft.style.gridTemplateRows = `repeat(${gridSize}, 1fr)`;
+                for(let i=0; i<gridSize; i++) {
+                    UIElements.gridLabelsTop.appendChild(document.createElement('div')).classList.add('label');
+                    UIElements.gridLabelsLeft.appendChild(document.createElement('div')).classList.add('label');
+                }
+                for (let i = 0; i < gridSize * gridSize; i++) {
+                    const cell = document.createElement('div');
+                    cell.classList.add('grid-cell');
+                    cell.dataset.index = i;
+                    cell.appendChild(document.createElement('div')).classList.add('feedback-overlay');
+                    cell.addEventListener('click', () => { activeCell = cell; openSearchModal(); });
+                    UIElements.grid.appendChild(cell);
+                }
+            }
+            
+            function updateGridLabels() {
+                for(let i=0; i<gridSize; i++) {
+                    UIElements.gridLabelsTop.children[i].innerHTML = currentConditions.cols[i].display;
+                    UIElements.gridLabelsLeft.children[i].innerHTML = currentConditions.rows[i].display;
+                }
+            }
+
+            function calculatePuzzleDifficulty(rows, cols, size) {
+                let difficultyScore = 0;
+                for (let i = 0; i < size * size; i++) {
+                    const pool = allCards.filter(card => rows[Math.floor(i / size)].filter(card) && cols[i % size].filter(card)).length;
+                    difficultyScore += 1 / (pool || 0.1);
+                }
+                const normalizedScore = difficultyScore / (size * size);
+                if (normalizedScore < 0.15) return 1; if (normalizedScore < 0.4) return 2;
+                if (normalizedScore < 0.8) return 3; if (normalizedScore < 1.5) return 4;
+                return 5;
+            }
+
+            function displayLevel(level) {
+                UIElements.puzzleLevelDisplay.textContent = '★'.repeat(level) + '☆'.repeat(5 - level);
+            }
+            
+            function isPuzzleSolvable(rowConditions, colConditions, size) {
+                const usedCards = new Set();
+                for (let i = 0; i < size * size; i++) {
+                    const solution = allCards.find(c => !usedCards.has(c.fullName) && rowConditions[Math.floor(i/size)].filter(c) && colConditions[i%size].filter(c));
+                    if (!solution) return false;
+                    usedCards.add(solution.fullName);
+                }
+                return true;
+            }
+
+            async function generateNewPuzzle(targetGridSize, targetLevel) {
+                gridSize = targetGridSize;
+                UIElements.loader.innerHTML = `<div class="loader"></div><p>Searching for a ${gridSize}x${gridSize} level ${targetLevel} puzzle...</p>`;
+                UIElements.loader.style.display = 'flex';
+                await new Promise(resolve => setTimeout(resolve, 0));
+                let foundPuzzle = false, attempts = 0;
+                while (!foundPuzzle && attempts < 10000) {
+                    const shuffled = [...allConditions].sort(() => 0.5 - Math.random());
+                    const selectedRows = shuffled.slice(0, gridSize);
+                    const selectedCols = shuffled.slice(gridSize, gridSize * 2);
+                    if (isPuzzleSolvable(selectedRows, selectedCols, gridSize)) {
+                        const level = calculatePuzzleDifficulty(selectedRows, selectedCols, gridSize);
+                        if (level === targetLevel) {
+                            currentConditions = { rows: selectedRows, cols: selectedCols };
+                            const code = generatePuzzleCode(selectedRows, selectedCols, gridSize);
+                            resetBoard(); updateGridLabels(); displayLevel(level);
+                            UIElements.puzzleCodeDisplay.textContent = code;
+                            document.getElementById('puzzle-number-display').textContent = `Puzzle: ${puzzleCount++}`;
+                            foundPuzzle = true;
+                        }
+                    }
+                    attempts++;
+                }
+                if (!foundPuzzle) showCustomAlert(`Could not find a level ${targetLevel} puzzle. Please try another difficulty.`);
+                UIElements.loader.style.display = 'none';
+            }
+            
+            function resetBoard() {
+                updateGridUI();
+                gridState = Array(gridSize * gridSize).fill(null);
+                UIElements.copyButton.disabled = false;
+                UIElements.solveButton.disabled = false;
+            }
+            
+            function generatePuzzleCode(rows, cols, size) {
+                const idString = [...rows, ...cols].map(c => c.id).join(',');
+                return `${size}:${btoa(idString)}`;
+            }
+
+            function loadPuzzleFromCode(code) {
+                try {
+                    const [sizeStr, base64] = code.split(':');
+                    const size = parseInt(sizeStr, 10);
+                    if (![2, 3, 4].includes(size)) throw new Error("Invalid grid size in code");
+                    gridSize = size;
+                    const ids = atob(base64).split(',');
+                    if (ids.length !== size * 2) throw new Error("Invalid code format");
+                    const newRows = ids.slice(0, size).map(id => allConditions.find(c => c.id === id));
+                    const newCols = ids.slice(size).map(id => allConditions.find(c => c.id === id));
+                    if (newRows.some(c => !c) || newCols.some(c => !c)) throw new Error("Unknown condition in code");
+                    if (!isPuzzleSolvable(newRows, newCols, size)) { showCustomAlert("This puzzle is not solvable."); return; }
+                    currentConditions = { rows: newRows, cols: newCols };
+                    const level = calculatePuzzleDifficulty(newRows, newCols, size);
+                    resetBoard(); updateGridLabels(); displayLevel(level);
+                    UIElements.puzzleCodeDisplay.textContent = code;
+                    document.getElementById('puzzle-number-display').textContent = 'Imported Puzzle';
+                } catch (e) {
+                    showCustomAlert("Invalid or corrupted puzzle code.");
+                    console.error("Failed to load puzzle from code:", e);
+                }
+            }
+            
+            function checkAnswers() {
+                const cardNames = gridState.map(c => c ? c.fullName : null).filter(Boolean);
+                const hasDuplicates = new Set(cardNames).size !== cardNames.length;
+                UIElements.grid.childNodes.forEach((cell, index) => {
+                    clearCellFeedback(cell);
+                    const card = gridState[index];
+                    if (!card) return;
+                    const isDuplicate = cardNames.indexOf(card.fullName) !== cardNames.lastIndexOf(card.fullName);
+                    if (currentConditions.rows[Math.floor(index/gridSize)].filter(card) && currentConditions.cols[index%gridSize].filter(card) && !isDuplicate) {
+                        cell.classList.add('correct');
+                    } else { cell.classList.add('incorrect'); }
+                });
+                if (hasDuplicates) { showCustomAlert('Duplicates found! Each card must be unique.'); }
+            }
+            
+            async function handleSolveClick() {
+                const confirmed = await showConfirmation("Are you sure? This will solve the puzzle and disable copy results.");
+                if (confirmed) { solvePuzzle(); UIElements.copyButton.disabled = true; UIElements.solveButton.disabled = true; }
+            }
+
+            function solvePuzzle() {
+                const correctness = Array(gridSize * gridSize).fill(false);
+                const cardNames = gridState.map(c => c ? c.fullName : null);
+                for (let i = 0; i < gridSize * gridSize; i++) {
+                    const card = gridState[i];
+                    if (!card) continue;
+                    const isDuplicate = cardNames.indexOf(card.fullName) !== cardNames.lastIndexOf(card.fullName);
+                    if (currentConditions.rows[Math.floor(i/gridSize)].filter(card) && currentConditions.cols[i%gridSize].filter(card) && !isDuplicate) correctness[i] = true;
+                }
+                const cardsToKeep = new Set();
+                const indicesToSolve = [];
+                correctness.forEach((isCorrect, index) => {
+                    if (isCorrect) cardsToKeep.add(gridState[index].fullName);
+                    else indicesToSolve.push(index);
+                });
+                indicesToSolve.forEach(index => {
+                    gridState[index] = null;
+                    UIElements.grid.childNodes[index].style.backgroundImage = 'none';
+                    clearCellFeedback(UIElements.grid.childNodes[index]);
+                });
+                indicesToSolve.forEach(index => {
+                    const solution = allCards.find(c => !cardsToKeep.has(c.fullName) && currentConditions.rows[Math.floor(index/gridSize)].filter(c) && currentConditions.cols[index%gridSize].filter(c));
+                    if (solution) {
+                        gridState[index] = solution;
+                        UIElements.grid.childNodes[index].style.backgroundImage = `url(${solution.images.thumbnail})`;
+                        cardsToKeep.add(solution.fullName);
+                    }
+                });
+            }
+
+            // --- Tutorial System ---
+            let currentTutorialStep = 0;
+            let tutorialSteps = [];
+            const tutorialOverlay = document.getElementById('tutorial-overlay');
+            const tutorialBox = document.getElementById('tutorial-box');
+
+            function setupTutorial() {
+                tutorialSteps = [
+                    { element: 'h1', text: 'Welcome to Dokuborn! This quick tutorial will show you how to play.' },
+                    { element: '.puzzle-grid', text: 'This is the puzzle grid. Your goal is to place a unique Lorcana card in each cell.' },
+                    { element: '.puzzle-grid-area', text: 'Each card must satisfy BOTH the condition for its row and its column.' },
+                    { element: '.grid-cell[data-index="0"]', text: 'Click on any cell to open a search window and find the perfect card.' },
+                    { element: '#check-button', text: 'Use the "Check Answers" button to see how you\'re doing. Correct cells turn green, incorrect ones turn red.' },
+                    { element: '#new-puzzle-button', text: 'Want a new challenge? Click here to select a grid size and difficulty.' },
+                    { element: '.puzzle-meta', text: 'You can share puzzles with friends using this unique code, or import a code from them.'},
+                    { element: '#solve-button', text: 'Stuck? The "Solve Puzzle" button will fill in the missing correct answers for you.' }
+                ];
+                document.getElementById('tutorial-next').addEventListener('click', nextTutorialStep);
+                document.getElementById('tutorial-prev').addEventListener('click', prevTutorialStep);
+                document.getElementById('tutorial-skip').addEventListener('click', endTutorial);
+                UIElements.helpButton.addEventListener('click', startTutorial);
+            }
+
+            function startTutorial() {
+                currentTutorialStep = 0;
+                tutorialOverlay.style.display = 'block';
+                tutorialBox.style.display = 'block';
+                showTutorialStep(currentTutorialStep);
+            }
+
+            function endTutorial() {
+                tutorialOverlay.style.display = 'none';
+                tutorialBox.style.display = 'none';
+                const highlighted = document.querySelector('.tutorial-highlight');
+                if (highlighted) highlighted.classList.remove('tutorial-highlight');
+                localStorage.setItem('dokubornTutorialSeen', 'true');
+            }
+            
+            function nextTutorialStep() {
+                if (currentTutorialStep < tutorialSteps.length - 1) {
+                    currentTutorialStep++;
+                    showTutorialStep(currentTutorialStep);
+                } else {
+                    endTutorial();
+                }
+            }
+
+            function prevTutorialStep() {
+                if (currentTutorialStep > 0) {
+                    currentTutorialStep--;
+                    showTutorialStep(currentTutorialStep);
+                }
+            }
+
+            function showTutorialStep(index) {
+                document.getElementById('tutorial-prev').style.visibility = (index === 0) ? 'hidden' : 'visible';
+                document.getElementById('tutorial-next').textContent = (index === tutorialSteps.length - 1) ? 'Finish' : 'Next';
+                
+                const step = tutorialSteps[index];
+                document.getElementById('tutorial-text').textContent = step.text;
+                
+                const highlighted = document.querySelector('.tutorial-highlight');
+                if (highlighted) highlighted.classList.remove('tutorial-highlight');
+
+                const elementToHighlight = document.querySelector(step.element);
+                if (elementToHighlight) {
+                    elementToHighlight.classList.add('tutorial-highlight');
+                }
+            }
+
+
+            // --- Event Listeners and Initializers ---
+            UIElements.newPuzzleButton.addEventListener('click', () => { document.getElementById('grid-size-modal').style.display = 'flex'; });
+            UIElements.importPuzzleButton.addEventListener('click', () => { document.getElementById('import-modal').style.display = 'flex'; document.getElementById('import-input').focus(); });
+            document.getElementById('import-cancel').addEventListener('click', () => { document.getElementById('import-modal').style.display = 'none'; });
+            document.getElementById('import-submit').addEventListener('click', () => {
+                const code = document.getElementById('import-input').value.trim();
+                if (code) loadPuzzleFromCode(code);
+                document.getElementById('import-modal').style.display = 'none';
+            });
+            UIElements.copyCodeButton.addEventListener('click', () => copyTextToClipboard(UIElements.puzzleCodeDisplay.textContent, UIElements.copyCodeButton));
+            UIElements.checkButton.addEventListener('click', checkAnswers);
+            UIElements.solveButton.addEventListener('click', handleSolveClick);
+            initializeGame();
+            
+            // --- Unchanged/Helper Functions ---
+            function openSearchModal() { UIElements.searchModal.style.display = 'flex'; UIElements.searchInput.value = ''; UIElements.searchResults.innerHTML = ''; UIElements.searchInput.focus(); }
+            function closeSearchModal() { UIElements.searchModal.style.display = 'none'; activeCell = null; }
+            UIElements.searchModal.addEventListener('click', (e) => { if (e.target === UIElements.searchModal) closeSearchModal(); });
+            UIElements.searchInput.addEventListener('input', () => {
+                const results = fuse.search(UIElements.searchInput.value, { limit: 20 });
+                displayResults(results);
+            });
+            function displayResults(results) {
+                UIElements.searchResults.innerHTML = '';
+                results.forEach(result => {
+                    const li = document.createElement('li'), img = document.createElement('img'), name = document.createElement('span');
+                    img.src = result.item.images.thumbnail; name.textContent = result.item.fullName;
+                    li.append(img, name);
+                    li.addEventListener('click', () => selectCard(result.item));
+                    UIElements.searchResults.appendChild(li);
+                });
+            }
+            function selectCard(card) {
+                if (!activeCell) return;
+                const index = activeCell.dataset.index;
+                gridState[index] = card;
+                activeCell.style.backgroundImage = `url(${card.images.thumbnail})`;
+                clearCellFeedback(activeCell);
+                closeSearchModal();
+            }
+            function clearCellFeedback(cell) { cell.classList.remove('correct', 'incorrect'); }
+            function copyResults() {
+                let resultString = `Dokuborn Puzzle (${UIElements.puzzleCodeDisplay.textContent}):\n`;
+                let correctCount = 0;
+                UIElements.grid.childNodes.forEach((cell, index) => {
+                    const cellId = String.fromCharCode(65 + (index % gridSize)) + (Math.floor(index / gridSize) + 1);
+                    let status = '❔';
+                    if (cell.classList.contains('correct')) { status = '✅'; correctCount++; }
+                    else if (cell.classList.contains('incorrect')) { status = '❌'; }
+                    resultString += `${cellId}: ${gridState[index] ? gridState[index].fullName : 'Empty'} ${status}\n`;
+                });
+                resultString += `\nTotal Correct: ${correctCount}/${gridSize*gridSize}`;
+                copyTextToClipboard(resultString, UIElements.copyButton);
+            }
+            function copyTextToClipboard(text, button) {
+                const textArea = document.createElement("textarea");
+                textArea.value = text;
+                textArea.style.position = 'fixed'; document.body.appendChild(textArea);
+                textArea.focus(); textArea.select();
+                try {
+                    document.execCommand('copy');
+                    const originalText = button.textContent;
+                    button.textContent = 'Copied!';
+                    setTimeout(() => { button.textContent = originalText; }, 1500);
+                } catch (err) { showCustomAlert('Failed to copy text.'); }
+                document.body.removeChild(textArea);
+            }
+            function showCustomAlert(message) {
+                const alertBox = document.createElement('div');
+                alertBox.style.cssText = `position: fixed; top: 20px; left: 50%; transform: translateX(-50%); padding: 15px 25px; background-color: var(--wood-light); color: var(--parchment); border: 2px solid var(--border-gold); border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); z-index: 10003;`;
+                alertBox.textContent = message;
+                document.body.appendChild(alertBox);
+                setTimeout(() => alertBox.remove(), 3000);
+            }
+            function showConfirmation(message) {
+                return new Promise((resolve) => {
+                    const modal = document.getElementById('confirmation-modal');
+                    modal.querySelector('p').textContent = message;
+                    modal.style.display = 'flex';
+                    const yes = modal.querySelector('#confirm-yes');
+                    const no = modal.querySelector('#confirm-no');
+                    const listener = (e) => {
+                        modal.style.display = 'none';
+                        yes.removeEventListener('click', yesListener);
+                        no.removeEventListener('click', noListener);
+                        resolve(e.target === yes);
+                    };
+                    const yesListener = (e) => listener(e);
+                    const noListener = (e) => listener(e);
+                    yes.addEventListener('click', yesListener);
+                    no.addEventListener('click', noListener);
+                });
+            }
+        });
+    </script>
+</body>
+</html>
