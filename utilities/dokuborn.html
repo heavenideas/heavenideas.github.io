@@ -845,22 +845,44 @@
             function clearCellFeedback(cell) { cell.classList.remove('correct', 'incorrect'); }
             function copyResults() {
                 console.log('Copy Results function called');
+
+                // First, check answers to ensure we have the latest feedback
+                console.log('Running checkAnswers() first to get current status');
+                checkAnswers();
+
                 let resultString = `Dokuborn Puzzle (${UIElements.puzzleCodeDisplay.textContent}):\n`;
                 let correctCount = 0;
+                let filledCount = 0;
                 console.log('Grid size:', gridSize);
                 console.log('Grid state length:', gridState.length);
                 console.log('Puzzle code:', UIElements.puzzleCodeDisplay.textContent);
 
-                UIElements.grid.childNodes.forEach((cell, index) => {
-                    const cellId = String.fromCharCode(65 + (index % gridSize)) + (Math.floor(index / gridSize) + 1);
-                    let status = '❔';
-                    if (cell.classList.contains('correct')) { status = '✅'; correctCount++; }
-                    else if (cell.classList.contains('incorrect')) { status = '❌'; }
-                    const cardName = gridState[index] ? gridState[index].fullName : 'Empty';
-                    console.log(`Cell ${cellId}: ${cardName} - Status: ${status}`);
-                    resultString += `${cellId}: ${cardName} ${status}\n`;
-                });
-                resultString += `\nTotal Correct: ${correctCount}/${gridSize*gridSize}`;
+                // Build emoji grid
+                let gridRows = [];
+                for (let row = 0; row < gridSize; row++) {
+                    let rowEmojis = [];
+                    for (let col = 0; col < gridSize; col++) {
+                        const index = row * gridSize + col;
+                        let emoji = '⬜'; // Default empty
+
+                        if (gridState[index]) {
+                            filledCount++;
+                            if (UIElements.grid.childNodes[index].classList.contains('correct')) {
+                                emoji = '🟩'; // Green square for correct
+                                correctCount++;
+                            } else if (UIElements.grid.childNodes[index].classList.contains('incorrect')) {
+                                emoji = '🟥'; // Red square for incorrect
+                            }
+                        }
+
+                        rowEmojis.push(emoji);
+                    }
+                    gridRows.push(rowEmojis.join(''));
+                }
+
+                resultString += gridRows.join('\n');
+                resultString += `\n\nProgress: ${filledCount}/${gridSize*gridSize} cells filled`;
+                resultString += `\nCorrect: ${correctCount}/${gridSize*gridSize} cells correct`;
                 console.log('Result string to copy:', resultString);
                 copyTextToClipboard(resultString, UIElements.copyButton);
             }
