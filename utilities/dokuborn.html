@@ -806,6 +806,14 @@
             UIElements.copyCodeButton.addEventListener('click', () => copyTextToClipboard(UIElements.puzzleCodeDisplay.textContent, UIElements.copyCodeButton));
             UIElements.checkButton.addEventListener('click', checkAnswers);
             UIElements.solveButton.addEventListener('click', handleSolveClick);
+
+            // Add logging to copy button event listener
+            UIElements.copyButton.addEventListener('click', () => {
+                console.log('Copy Results button clicked');
+                console.log('Copy button disabled state:', UIElements.copyButton.disabled);
+                copyResults();
+            });
+
             initializeGame();
             
             // --- Unchanged/Helper Functions ---
@@ -836,30 +844,63 @@
             }
             function clearCellFeedback(cell) { cell.classList.remove('correct', 'incorrect'); }
             function copyResults() {
+                console.log('Copy Results function called');
                 let resultString = `Dokuborn Puzzle (${UIElements.puzzleCodeDisplay.textContent}):\n`;
                 let correctCount = 0;
+                console.log('Grid size:', gridSize);
+                console.log('Grid state length:', gridState.length);
+                console.log('Puzzle code:', UIElements.puzzleCodeDisplay.textContent);
+
                 UIElements.grid.childNodes.forEach((cell, index) => {
                     const cellId = String.fromCharCode(65 + (index % gridSize)) + (Math.floor(index / gridSize) + 1);
                     let status = '❔';
                     if (cell.classList.contains('correct')) { status = '✅'; correctCount++; }
                     else if (cell.classList.contains('incorrect')) { status = '❌'; }
-                    resultString += `${cellId}: ${gridState[index] ? gridState[index].fullName : 'Empty'} ${status}\n`;
+                    const cardName = gridState[index] ? gridState[index].fullName : 'Empty';
+                    console.log(`Cell ${cellId}: ${cardName} - Status: ${status}`);
+                    resultString += `${cellId}: ${cardName} ${status}\n`;
                 });
                 resultString += `\nTotal Correct: ${correctCount}/${gridSize*gridSize}`;
+                console.log('Result string to copy:', resultString);
                 copyTextToClipboard(resultString, UIElements.copyButton);
             }
-            function copyTextToClipboard(text, button) {
-                const textArea = document.createElement("textarea");
-                textArea.value = text;
-                textArea.style.position = 'fixed'; document.body.appendChild(textArea);
-                textArea.focus(); textArea.select();
+            async function copyTextToClipboard(text, button) {
+                console.log('copyTextToClipboard called with text:', text);
+                console.log('Button element:', button);
+
                 try {
-                    document.execCommand('copy');
+                    // Use modern Clipboard API first
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        await navigator.clipboard.writeText(text);
+                        console.log('Modern clipboard API succeeded');
+                    } else {
+                        // Fallback to deprecated method for older browsers
+                        console.log('Using fallback method');
+                        const textArea = document.createElement("textarea");
+                        textArea.value = text;
+                        textArea.style.position = 'fixed';
+                        textArea.style.left = '-9999px';
+                        textArea.style.top = '-9999px';
+                        document.body.appendChild(textArea);
+                        textArea.focus();
+                        textArea.select();
+
+                        const copySuccess = document.execCommand('copy');
+                        console.log('document.execCommand result:', copySuccess);
+                        document.body.removeChild(textArea);
+
+                        if (!copySuccess) {
+                            throw new Error('Fallback copy method failed');
+                        }
+                    }
+
                     const originalText = button.textContent;
                     button.textContent = 'Copied!';
                     setTimeout(() => { button.textContent = originalText; }, 1500);
-                } catch (err) { showCustomAlert('Failed to copy text.'); }
-                document.body.removeChild(textArea);
+                } catch (err) {
+                    console.error('Copy operation failed:', err);
+                    showCustomAlert('Failed to copy text. Please try again or copy manually.');
+                }
             }
             function showCustomAlert(message) {
                 const alertBox = document.createElement('div');
