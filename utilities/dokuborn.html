@@ -64,6 +64,15 @@
             width: 100%;
         }
 
+        footer {
+
+            background: var(--wood-medium);
+            padding: 1rem;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            word-wrap: break-word; /* to handle long text */
+        }
+
         h1 {
             font-size: clamp(2.5rem, 8vw, 4rem);
             color: var(--text-gold);
@@ -416,32 +425,20 @@
 
 
     <main class="game-container">
-        <div class="credits">
-            <p>Based on game created by <a href="https://linktr.ee/the_artopath" target="_blank" rel="noopener noreferrer">The Artopath</a></p>
-        </div>
         <header>
-            <div class="puzzle-info">
-                <span id="puzzle-number-display">Puzzle: 1</span>
-                <span id="puzzle-level-display"></span>
-            </div>
-            <h1>Dokuborn</h1>
-             <div class="puzzle-meta">
-                <span id="puzzle-code-display"></span>
-                <button id="copy-code-button">Copy</button>
-            </div>
+            <h1>Dokuborn
+            <small class="credits">
+                <p>Based on game created by <a href="https://linktr.ee/the_artopath" target="_blank" rel="noopener noreferrer">The Artopath</a></p>
+            </small>
+            </h1>
         </header>
-        
-        <div class="puzzle-grid-area">
-            <div class="grid-labels-top"></div>
-            <div class="grid-labels-left"></div>
-            <div class="puzzle-grid"></div>
-        </div>
 
         <div class="instructions">
+            <h3>Instructions:</h3>
             <p>Find the card that fits both requirements!</p>
             <p>• Multiple answers possible • No duplicate card names</p>
         </div>
-        
+
         <div class="controls">
             <button id="new-puzzle-button">New Puzzle</button>
             <button id="import-puzzle-button">Import Puzzle</button>
@@ -450,6 +447,26 @@
             <button id="solve-button">Solve Puzzle</button>
             <button id="help-button">Help</button>
         </div>
+
+        <div class="puzzle-info">
+            <span id="puzzle-number-display">Puzzle: 1</span>
+            <span id="puzzle-level-display"></span>
+        </div>
+
+        <div class="puzzle-grid-area">
+            <div class="grid-labels-top"></div>
+            <div class="grid-labels-left"></div>
+            <div class="puzzle-grid"></div>
+        </div>
+
+        <div class="puzzle-meta">
+            <span id="puzzle-code-display"></span>
+            <button id="copy-code-button">Copy</button>
+        </div>
+
+        <footer>
+            <small>This project is a non-commercial, fan-made game that is not affiliated with, endorsed by, or authorized by Disney, Ravensburger, or any official Disney Lorcana entities. All characters, images, and intellectual property rights are the property of their respective owners. This project is created solely for entertainment purposes and for fans of the Disney Lorcana game. No copyright infringement is intended. </small>
+        </footer>
     </main>
     
     <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0"></script>
