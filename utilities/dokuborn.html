@@ -485,6 +485,35 @@
             let puzzleCount = 1;
             let allConditions = [];
 
+            // --- URL Parameter Parsing ---
+            function parseUrlParameters() {
+                const urlParams = new URLSearchParams(window.location.search);
+                const hashParams = new URLSearchParams(window.location.hash.substring(1));
+
+                // Check for 'v' parameter first (e.g., ?v=3:YzAscjEscjUsczMsbzEw)
+                let puzzleCode = urlParams.get('v') || hashParams.get('v');
+
+                // If no 'v' parameter, check for direct puzzle code (e.g., #3:YzAscjEscjUsczMsbzEw)
+                if (!puzzleCode) {
+                    puzzleCode = urlParams.get('puzzle') || hashParams.get('puzzle');
+                }
+
+                // If still no code, check if the entire hash/query is a puzzle code (e.g., #3:YzAscjEscjUsczMsbzEw)
+                if (!puzzleCode) {
+                    const fullHash = window.location.hash.substring(1);
+                    const fullQuery = window.location.search.substring(1);
+
+                    // Check if it looks like a puzzle code (format: number:base64string)
+                    if (/^\d+:[A-Za-z0-9+/=]+$/.test(fullHash)) {
+                        puzzleCode = fullHash;
+                    } else if (/^\d+:[A-Za-z0-9+/=]+$/.test(fullQuery)) {
+                        puzzleCode = fullQuery;
+                    }
+                }
+
+                return puzzleCode;
+            }
+
             // --- Condition Definitions ---
             function setupConditions() {
                 const colors = [ { name: 'Amber', emoji: '🟡' }, { name: 'Amethyst', emoji: '🟣' }, { name: 'Emerald', emoji: '🟢' }, { name: 'Ruby', emoji: '🔴' }, { name: 'Sapphire', emoji: '🔵' }, { name: 'Steel', emoji: '⚫' } ];
@@ -515,7 +544,23 @@
                     setupConditions();
                     setupModals();
                     setupTutorial();
-                    await generateNewPuzzle(3, 2); 
+
+                    // Check for URL parameters and auto-load puzzle if present
+                    const puzzleCode = parseUrlParameters();
+                    if (puzzleCode) {
+                        UIElements.loader.innerHTML = `<div class="loader"></div><p>Loading puzzle from URL...</p>`;
+                        try {
+                            loadPuzzleFromCode(puzzleCode);
+                            // Update puzzle count for URL-loaded puzzles
+                            document.getElementById('puzzle-number-display').textContent = 'URL Puzzle';
+                        } catch (error) {
+                            console.error("Failed to load puzzle from URL:", error);
+                            showCustomAlert("Invalid puzzle code in URL. Loading default puzzle instead.");
+                            await generateNewPuzzle(3, 2);
+                        }
+                    } else {
+                        await generateNewPuzzle(3, 2);
+                    } 
                     
                     if (!localStorage.getItem('dokubornTutorialSeen')) {
                         startTutorial();
@@ -670,6 +715,7 @@
                 } catch (e) {
                     showCustomAlert("Invalid or corrupted puzzle code.");
                     console.error("Failed to load puzzle from code:", e);
+                    throw e; // Re-throw to allow caller to handle the error
                 }
             }
             
@@ -850,7 +896,7 @@
                 console.log('Running checkAnswers() first to get current status');
                 checkAnswers();
 
-                let resultString = `Dokuborn Puzzle (${UIElements.puzzleCodeDisplay.textContent}):\n`;
+                let resultString = `Dokuborn Puzzle: \n Play @\n https://heavenideas.github.io/utilities/dokuborn.html?v=${UIElements.puzzleCodeDisplay.textContent}\n`;
                 let correctCount = 0;
                 let filledCount = 0;
                 console.log('Grid size:', gridSize);
