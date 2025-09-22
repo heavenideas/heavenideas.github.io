@@ -517,7 +517,7 @@
             // --- Condition Definitions ---
             function setupConditions() {
                 const colors = [ { name: 'Amber', emoji: '🟡' }, { name: 'Amethyst', emoji: '🟣' }, { name: 'Emerald', emoji: '🟢' }, { name: 'Ruby', emoji: '🔴' }, { name: 'Sapphire', emoji: '🔵' }, { name: 'Steel', emoji: '⚫' } ];
-                colors.forEach((c, i) => allConditions.push({ id: `c${i}`, display: `${c.emoji} ${c.name}`, filter: card => card.color === c.name }));
+                colors.forEach((c, i) => allConditions.push({ id: `c${i}`, display: `${c.emoji} ${c.name}`, filter: card => card.color && card.color.includes(c.name) }));
                 for (let i = 0; i <= 10; i++) allConditions.push({ id: `o${i}`, display: `Cost ${i}`, filter: card => card.cost === i });
                 allConditions.push({ id: 'p0', display: 'Uninkable', filter: card => !card.inkwell });
                 allConditions.push({ id: 'p1', display: 'Inkable', filter: card => card.inkwell });
