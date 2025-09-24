@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lorcana Trending Decks - Enhanced</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .controls {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .controls h2 {
+            margin-bottom: 20px;
+            color: #4a5568;
+            font-size: 1.3rem;
+        }
+
+        .filter-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .filter-group label {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #4a5568;
+        }
+
+        .filter-group input,
+        .filter-group select {
+            padding: 10px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        .filter-group input:focus,
+        .filter-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .ink-colors {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .ink-color {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 8px 12px;
+            background: #f7fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            user-select: none;
+        }
+
+        .ink-color:hover {
+            background: #edf2f7;
+            border-color: #cbd5e0;
+        }
+
+        .ink-color.selected {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .ink-color input[type="checkbox"] {
+            display: none;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a67d8;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #4a5568;
+        }
+
+        .btn-secondary:hover {
+            background: #cbd5e0;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: white;
+            font-size: 1.2rem;
+        }
+
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .stats {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            display: none;
+        }
+
+        .stats.visible {
+            display: block;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 15px;
+            background: #f7fafc;
+            border-radius: 10px;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #4a5568;
+            font-size: 0.9rem;
+        }
+
+        .decks-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+            gap: 25px;
+        }
+
+        .deck-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .deck-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+            border-color: #667eea;
+        }
+
+        .deck-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+
+        .deck-name {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #2d3748;
+            margin-bottom: 5px;
+            line-height: 1.3;
+        }
+
+        .deck-creator {
+            color: #667eea;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .deck-likes {
+            background: #667eea;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .deck-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            font-size: 0.9rem;
+            color: #718096;
+        }
+
+        .deck-updated {
+            font-style: italic;
+        }
+
+        .deck-cards-count {
+            font-weight: 600;
+        }
+
+        .deck-inks {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .ink-badge {
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .ink-amber { background: #ffd89b; color: #8b4513; }
+        .ink-amethyst { background: #ddd6fe; color: #6b46c1; }
+        .ink-emerald { background: #a7f3d0; color: #047857; }
+        .ink-ruby { background: #fecaca; color: #dc2626; }
+        .ink-sapphire { background: #bfdbfe; color: #1d4ed8; }
+        .ink-steel { background: #e5e7eb; color: #374151; }
+
+        .deck-actions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 0.8rem;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-view {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-view:hover {
+            background: #5a67d8;
+        }
+
+        .deck-list {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+            background: #f8fafc;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+
+        .deck-list.expanded {
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 15px;
+        }
+
+        .card-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 0;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        .card-item:last-child {
+            border-bottom: none;
+        }
+
+        .card-count {
+            font-weight: bold;
+            color: #667eea;
+            min-width: 20px;
+        }
+
+        .card-name {
+            flex: 1;
+            margin-left: 10px;
+            color: #2d3748;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 60px 20px;
+            color: white;
+            font-size: 1.2rem;
+        }
+
+        .error {
+            background: #fed7d7;
+            color: #c53030;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #c53030;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .filter-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .decks-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .action-buttons {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🃏 Lorcana Trending Decks - Enhanced</h1>
+            <p>Discover the most popular Lorcana decklists with full card details and advanced filtering</p>
+        </div>
+
+        <div class="controls">
+            <h2>🔍 Filter & Search Options</h2>
+            
+            <div class="filter-grid">
+                <div class="filter-group">
+                    <label for="deckName">Deck Name</label>
+                    <input type="text" id="deckName" placeholder="Search by deck name...">
+                </div>
+
+                <div class="filter-group">
+                    <label for="creatorName">Creator Name</label>
+                    <input type="text" id="creatorName" placeholder="Search by creator...">
+                </div>
+
+                <div class="filter-group">
+                    <label for="daysAgo">Updated Within (Days)</label>
+                    <select id="daysAgo">
+                        <option value="">Any time</option>
+                        <option value="1">Last 24 hours</option>
+                        <option value="3">Last 3 days</option>
+                        <option value="7">Last week</option>
+                        <option value="30">Last month</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="sortBy">Sort By</label>
+                    <select id="sortBy">
+                        <option value="updated_at">Last Updated</option>
+                        <option value="likes">Popularity (Likes)</option>
+                        <option value="name">Deck Name</option>
+                        <option value="creator_name">Creator Name</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="sortOrder">Sort Order</label>
+                    <select id="sortOrder">
+                        <option value="desc">Descending</option>
+                        <option value="asc">Ascending</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="limitResults">Max Results</label>
+                    <select id="limitResults">
+                        <option value="20">20 decks</option>
+                        <option value="50">50 decks</option>
+                        <option value="100">100 decks</option>
+                        <option value="">All decks</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="filter-group">
+                <label>Ink Colors (select all that must be present)</label>
+                <div class="ink-colors">
+                    <div class="ink-color" data-ink="Amber">
+                        <input type="checkbox" id="ink-amber" value="Amber">
+                        <span>🟡 Amber</span>
+                    </div>
+                    <div class="ink-color" data-ink="Amethyst">
+                        <input type="checkbox" id="ink-amethyst" value="Amethyst">
+                        <span>🟣 Amethyst</span>
+                    </div>
+                    <div class="ink-color" data-ink="Emerald">
+                        <input type="checkbox" id="ink-emerald" value="Emerald">
+                        <span>🟢 Emerald</span>
+                    </div>
+                    <div class="ink-color" data-ink="Ruby">
+                        <input type="checkbox" id="ink-ruby" value="Ruby">
+                        <span>🔴 Ruby</span>
+                    </div>
+                    <div class="ink-color" data-ink="Sapphire">
+                        <input type="checkbox" id="ink-sapphire" value="Sapphire">
+                        <span>🔵 Sapphire</span>
+                    </div>
+                    <div class="ink-color" data-ink="Steel">
+                        <input type="checkbox" id="ink-steel" value="Steel">
+                        <span>⚪ Steel</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn btn-primary" onclick="loadAndFilterDecks()">
+                    🔄 Load Trending Decks
+                </button>
+                <button class="btn btn-secondary" onclick="clearFilters()">
+                    🗑️ Clear Filters
+                </button>
+                <button class="btn btn-secondary" onclick="toggleStats()">
+                    📊 Toggle Stats
+                </button>
+            </div>
+        </div>
+
+        <div id="stats" class="stats">
+            <h2>📈 Deck Statistics</h2>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-value" id="totalDecks">0</div>
+                    <div class="stat-label">Total Decks</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="totalLikes">0</div>
+                    <div class="stat-label">Total Likes</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="avgLikes">0</div>
+                    <div class="stat-label">Average Likes</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="creatorCount">0</div>
+                    <div class="stat-label">Unique Creators</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="loading" class="loading" style="display: none;">
+            Loading decks and card data...
+        </div>
+
+        <div id="error" class="error" style="display: none;"></div>
+
+        <div id="results" class="decks-grid"></div>
+
+        <div id="noResults" class="no-results" style="display: none;">
+            No decks found matching your criteria. Try adjusting your filters.
+        </div>
+    </div>
+
+    <script src="lorcana-decks.js"></script>
+    <script>
+        let allDecks = [];
+        let filteredDecks = [];
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            setupEventListeners();
+            loadAndFilterDecks();
+        });
+
+        function setupEventListeners() {
+            // Ink color selection
+            document.querySelectorAll('.ink-color').forEach(element => {
+                element.addEventListener('click', function() {
+                    const checkbox = this.querySelector('input[type="checkbox"]');
+                    checkbox.checked = !checkbox.checked;
+                    this.classList.toggle('selected', checkbox.checked);
+                });
+            });
+
+            // Auto-filter on input changes
+            const inputs = ['deckName', 'creatorName', 'daysAgo', 'sortBy', 'sortOrder', 'limitResults'];
+            inputs.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.addEventListener('input', debounce(applyFilters, 300));
+                    element.addEventListener('change', applyFilters);
+                }
+            });
+
+            // Ink color changes
+            document.querySelectorAll('.ink-color input[type="checkbox"]').forEach(checkbox => {
+                checkbox.addEventListener('change', applyFilters);
+            });
+        }
+
+        async function loadAndFilterDecks() {
+            showLoading(true);
+            hideError();
+
+            try {
+                // Check if user wants all decks or just trending
+                const limitResults = document.getElementById('limitResults').value;
+                const useAllDecks = limitResults === '' || parseInt(limitResults) > 50;
+                
+                allDecks = await LorcanaDecksEnhanced.getTrendingDecksWithCardNames(true, useAllDecks);
+                applyFilters();
+            } catch (error) {
+                showError('Failed to load decks: ' + error.message);
+                console.error('Error loading decks:', error);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function applyFilters() {
+            if (!allDecks.length) return;
+
+            const filters = {
+                name: document.getElementById('deckName').value.trim(),
+                creator: document.getElementById('creatorName').value.trim(),
+                daysAgo: parseInt(document.getElementById('daysAgo').value) || null,
+                inkColors: getSelectedInkColors(),
+                limit: parseInt(document.getElementById('limitResults').value) || null
+            };
+
+            // Remove empty filters
+            Object.keys(filters).forEach(key => {
+                if (filters[key] === '' || filters[key] === null || 
+                    (Array.isArray(filters[key]) && filters[key].length === 0)) {
+                    delete filters[key];
+                }
+            });
+
+            filteredDecks = LorcanaDecksEnhanced.filterDecks(allDecks, filters);
+            
+            const sortBy = document.getElementById('sortBy').value;
+            const sortOrder = document.getElementById('sortOrder').value;
+            filteredDecks = LorcanaDecksEnhanced.sortDecks(filteredDecks, sortBy, sortOrder);
+
+            displayDecks(filteredDecks);
+            updateStats(filteredDecks);
+        }
+
+        function getSelectedInkColors() {
+            const selected = [];
+            document.querySelectorAll('.ink-color input[type="checkbox"]:checked').forEach(checkbox => {
+                selected.push(checkbox.value);
+            });
+            return selected;
+        }
+
+        async function toggleDeckList(deckId, button) {
+            const deckListElement = button.parentElement.parentElement.querySelector('.deck-list');
+            
+            if (deckListElement.classList.contains('expanded')) {
+                deckListElement.classList.remove('expanded');
+                button.textContent = '👁️ View Cards';
+                return;
+            }
+
+            // Show loading state
+            button.textContent = '⏳ Loading...';
+            button.disabled = true;
+
+            try {
+                const fullDeck = await LorcanaDecksEnhanced.getDeckById(deckId);
+                
+                if (fullDeck && fullDeck.cardsWithNames) {
+                    const cardListHTML = fullDeck.cardsWithNames.map(card => `
+                        <div class="card-item">
+                            <span class="card-count">${card.count}</span>
+                            <span class="card-name">${escapeHtml(card.fullName)}</span>
+                        </div>
+                    `).join('');
+                    
+                    deckListElement.innerHTML = cardListHTML;
+                    deckListElement.classList.add('expanded');
+                    button.textContent = '🙈 Hide Cards';
+                } else {
+                    deckListElement.innerHTML = '<div class="card-item">Failed to load deck details</div>';
+                    deckListElement.classList.add('expanded');
+                    button.textContent = '❌ Error';
+                }
+            } catch (error) {
+                console.error('Error loading deck details:', error);
+                deckListElement.innerHTML = '<div class="card-item">Error loading deck details</div>';
+                deckListElement.classList.add('expanded');
+                button.textContent = '❌ Error';
+            } finally {
+                button.disabled = false;
+            }
+        }
+
+        function displayDecks(decks) {
+            const resultsContainer = document.getElementById('results');
+            const noResultsContainer = document.getElementById('noResults');
+
+            if (!decks || decks.length === 0) {
+                resultsContainer.innerHTML = '';
+                noResultsContainer.style.display = 'block';
+                return;
+            }
+
+            noResultsContainer.style.display = 'none';
+            
+            resultsContainer.innerHTML = decks.map(deck => {
+                const cardLookup = deck._cardLookup || null;
+                const inkColors = LorcanaDecksEnhanced.extractInkColors(deck, cardLookup);
+                const updatedDate = deck.updated_at ? new Date(deck.updated_at).toLocaleDateString() : 'Unknown';
+                const cardsCount = deck.cards ? deck.cards.length : 0;
+
+                return `
+                    <div class="deck-card">
+                        <div class="deck-header">
+                            <div>
+                                <div class="deck-name">${escapeHtml(deck.name || 'Unnamed Deck')}</div>
+                                <div class="deck-creator">by ${escapeHtml(deck.creator_name || 'Unknown')}</div>
+                            </div>
+                            <div class="deck-likes">
+                                ❤️ ${deck.likes || 0}
+                            </div>
+                        </div>
+                        
+                        <div class="deck-meta">
+                            <span class="deck-updated">Updated: ${updatedDate}</span>
+                            <span class="deck-cards-count">${cardsCount} cards</span>
+                        </div>
+                        
+                        <div class="deck-inks">
+                            ${Array.from(inkColors).map(ink => 
+                                `<span class="ink-badge ink-${ink.toLowerCase()}">${ink}</span>`
+                            ).join('')}
+                        </div>
+
+                        <div class="deck-actions">
+                            <button class="btn-small btn-view" onclick="toggleDeckList('${deck.uuid}', this)">
+                                👁️ View Cards
+                            </button>
+                        </div>
+
+                        <div class="deck-list"></div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function updateStats(decks) {
+            const stats = LorcanaDecksEnhanced.getDeckStats(decks);
+            
+            document.getElementById('totalDecks').textContent = stats.total;
+            document.getElementById('totalLikes').textContent = stats.totalLikes;
+            document.getElementById('avgLikes').textContent = stats.averageLikes;
+            document.getElementById('creatorCount').textContent = stats.creatorCount;
+        }
+
+        function clearFilters() {
+            document.getElementById('deckName').value = '';
+            document.getElementById('creatorName').value = '';
+            document.getElementById('daysAgo').value = '';
+            document.getElementById('sortBy').value = 'updated_at';
+            document.getElementById('sortOrder').value = 'desc';
+            document.getElementById('limitResults').value = '20';
+            
+            document.querySelectorAll('.ink-color').forEach(element => {
+                element.classList.remove('selected');
+                element.querySelector('input[type="checkbox"]').checked = false;
+            });
+
+            applyFilters();
+        }
+
+        function toggleStats() {
+            const stats = document.getElementById('stats');
+            stats.classList.toggle('visible');
+        }
+
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+        }
+
+        function showError(message) {
+            const errorElement = document.getElementById('error');
+            errorElement.textContent = message;
+            errorElement.style.display = 'block';
+        }
+
+        function hideError() {
+            document.getElementById('error').style.display = 'none';
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+    </script>
+</body>
+</html>
