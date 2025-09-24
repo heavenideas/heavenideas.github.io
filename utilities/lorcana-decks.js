@@ -112,8 +112,8 @@ const LorcanaDecksEnhanced = (() => {
      */
     function getCardFullName(dreambornId, cardLookup) {
         const card = cardLookup.get(dreambornId);
-        if (card && card.name) {
-            return card.name;
+        if (card && card.fullName) {
+            return card.fullName;
         }
         return dreambornId; // Fallback to dreamborn ID if name not found
     }
