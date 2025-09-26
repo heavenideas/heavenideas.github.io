@@ -346,7 +346,7 @@
       "name": "Keyword: Gain",
       "category": "Keyword",
       "sub_type": "Gain",
-      "regex": "/(?:you may give)? ?(?:your other characters|this character|(?:another)? ?chosen (opposing)? ?character) (?:gains?)? ?(Vanish|Ward|Evasive|Resist|Challenger|Bodyguard|Reckless|Rush|Singer|Support)/gi",
+      "regex": "/(?:you may give)? ?(?:your other characters|this character|(?:another)? ?chosen (opposing)? ?character|he|she|it) (?:gains?)? ?(Vanish|Ward|Evasive|Resist|Challenger|Bodyguard|Reckless|Rush|Singer|Support)/gi",
       "explanation": "Captures giving Keywords (Aura) to Other characters",
       "justification": "Giving keywords to own characters is mainly good, except for Reckless. However if it's the opposing characters that gain keywords that is bad, except for Reckless.",
       "calculation": {
