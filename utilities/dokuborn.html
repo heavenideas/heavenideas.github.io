@@ -13,7 +13,7 @@
             --text-gold: #e6c88a;
             --border-gold: #b48c4a;
             --grid-line: #a58c6d;
-            --correct-bg: rgba(29, 138, 59, 0.75);
+            --correct-bg: rgba(56, 118, 73, 0.75);
             --incorrect-bg: rgba(186, 30, 30, 0.75);
             --font-main: 'Georgia', 'Times New Roman', serif;
             --star-color: #ffd700;
@@ -82,6 +82,58 @@
             border-top: 2px solid var(--border-gold);
             padding: 0.5rem 0;
             background-color: rgba(0,0,0,0.2);
+        }
+
+        /* Mode Selection Styles */
+        .mode-selector {
+            display: flex;
+            justify-content: center;
+            margin: 1rem 0;
+            gap: 1rem;
+        }
+
+        .mode-button {
+            background-color: var(--wood-light);
+            color: var(--parchment);
+            border: 2px solid var(--border-gold);
+            padding: 8px 16px;
+            font-family: var(--font-main);
+            font-size: 0.9rem;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: all 0.2s ease;
+        }
+
+        .mode-button.active {
+            background-color: var(--border-gold);
+            color: var(--wood-dark);
+            font-weight: bold;
+        }
+
+        .mode-button:hover:not(.active) {
+            background-color: var(--border-gold);
+            transform: translateY(-1px);
+        }
+
+        .mode-indicator {
+            text-align: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin: 0.5rem 0;
+            padding: 0.5rem;
+            border-radius: 5px;
+        }
+
+        .daily-mode-indicator {
+            background-color: rgba(255, 215, 0, 0.2);
+            color: var(--star-color);
+            border: 2px solid var(--star-color);
+        }
+
+        .explore-mode-indicator {
+            background-color: rgba(38, 138, 29, 0.185);
+            color:  rgb(100, 173, 93);
+            border: 2px solid var(--correct-bg);
         }
 
         .puzzle-meta {
@@ -431,6 +483,16 @@
                 <p>Based on game created by <a href="https://linktr.ee/the_artopath" target="_blank" rel="noopener noreferrer">The Artopath</a></p>
             </small>
             </h1>
+
+            <div class="mode-selector">
+                <button id="daily-mode-btn" class="mode-button active">DAILY PUZZLE</button>
+                <button id="explore-mode-btn" class="mode-button">EXPLORE MODE</button>
+            </div>
+
+            <div id="mode-indicator" class="mode-indicator daily-mode-indicator">
+                DAILY PUZZLE MODE<br>
+                <small>One 3x3 puzzle per day • Check your answers and share results!</small>
+            </div>
         </header>
 
         <div class="instructions">
@@ -501,6 +563,8 @@
             let currentConditions = { rows: [], cols: [] };
             let puzzleCount = 1;
             let allConditions = [];
+            let currentMode = 'daily'; // 'daily' or 'explore'
+            let dailyPuzzleDate = null;
 
             // --- URL Parameter Parsing ---
             function parseUrlParameters() {
@@ -570,14 +634,17 @@
                             loadPuzzleFromCode(puzzleCode);
                             // Update puzzle count for URL-loaded puzzles
                             document.getElementById('puzzle-number-display').textContent = 'URL Puzzle';
+                            // Switch to explore mode when loading from URL
+                            switchToExploreMode();
                         } catch (error) {
                             console.error("Failed to load puzzle from URL:", error);
-                            showCustomAlert("Invalid puzzle code in URL. Loading default puzzle instead.");
-                            await generateNewPuzzle(3, 2);
+                            showCustomAlert("Invalid puzzle code in URL. Loading daily puzzle instead.");
+                            switchToDailyMode();
                         }
                     } else {
-                        await generateNewPuzzle(3, 2);
-                    } 
+                        // Default to daily mode
+                        switchToDailyMode();
+                    }
                     
                     if (!localStorage.getItem('dokubornTutorialSeen')) {
                         startTutorial();
@@ -661,6 +728,240 @@
 
             function displayLevel(level) {
                 UIElements.puzzleLevelDisplay.textContent = '★'.repeat(level) + '☆'.repeat(5 - level);
+            }
+
+            // --- Mode Management Functions ---
+            async function switchToDailyMode() {
+                currentMode = 'daily';
+                updateModeUI();
+                updateButtonVisibility();
+                await restoreDailyMode();
+            }
+
+            async function restoreDailyMode() {
+                const today = getDateString();
+
+                // Check if we already have today's puzzle cached
+                const cachedPuzzle = localStorage.getItem(`dailyPuzzle_${today}`);
+                if (cachedPuzzle) {
+                    try {
+                        const puzzleData = JSON.parse(cachedPuzzle);
+                        // Reconstruct conditions with filter functions
+                        currentConditions = {
+                            rows: puzzleData.conditions.rows.map(c => allConditions.find(cond => cond.id === c.id)),
+                            cols: puzzleData.conditions.cols.map(c => allConditions.find(cond => cond.id === c.id))
+                        };
+                        gridSize = 3; // Always 3x3 for daily
+                        resetBoard();
+                        updateGridLabels();
+                        displayLevel(puzzleData.level);
+                        UIElements.puzzleCodeDisplay.textContent = puzzleData.code;
+                        document.getElementById('puzzle-number-display').textContent = `Daily Puzzle - ${today}`;
+
+                        // Restore saved progress
+                        restoreDailyProgress(today);
+                        return;
+                    } catch (e) {
+                        console.error('Failed to load cached daily puzzle:', e);
+                    }
+                }
+
+                // If no cached puzzle exists, generate a new one
+                await generateDailyPuzzle();
+            }
+
+            function switchToExploreMode() {
+                currentMode = 'explore';
+                updateModeUI();
+                updateButtonVisibility();
+                // Generate a new explore puzzle
+                generateNewPuzzle(3, 2);
+            }
+
+            function updateModeUI() {
+                const dailyBtn = document.getElementById('daily-mode-btn');
+                const exploreBtn = document.getElementById('explore-mode-btn');
+                const modeIndicator = document.getElementById('mode-indicator');
+
+                if (currentMode === 'daily') {
+                    dailyBtn.classList.add('active');
+                    exploreBtn.classList.remove('active');
+                    modeIndicator.className = 'mode-indicator daily-mode-indicator';
+                    modeIndicator.innerHTML = `
+                        DAILY PUZZLE MODE<br>
+                        <small>One 3x3 puzzle per day • Check your answers and share results!</small>
+                    `;
+                } else {
+                    dailyBtn.classList.remove('active');
+                    exploreBtn.classList.add('active');
+                    modeIndicator.className = 'mode-indicator explore-mode-indicator';
+                    modeIndicator.innerHTML = `
+                        EXPLORE MODE<br>
+                        <small>Import puzzles, create new games, and play freely!</small>
+                    `;
+                }
+            }
+
+            function updateButtonVisibility() {
+                const newPuzzleBtn = UIElements.newPuzzleButton;
+                const importPuzzleBtn = UIElements.importPuzzleButton;
+
+                if (currentMode === 'daily') {
+                    // Hide/disable buttons not available in daily mode
+                    newPuzzleBtn.style.display = 'none';
+                    importPuzzleBtn.style.display = 'none';
+                } else {
+                    // Show all buttons in explore mode
+                    newPuzzleBtn.style.display = 'inline-block';
+                    importPuzzleBtn.style.display = 'inline-block';
+                }
+            }
+
+            function getDateString() {
+                const now = new Date();
+                return now.getFullYear() + '-' + (now.getMonth() + 1) + '-' + now.getDate();
+            }
+
+            function generateDailyPuzzleSeed() {
+                const dateStr = getDateString();
+                let hash = 0;
+                for (let i = 0; i < dateStr.length; i++) {
+                    const char = dateStr.charCodeAt(i);
+                    hash = ((hash << 5) - hash) + char;
+                    hash = hash & hash; // Convert to 32-bit integer
+                }
+                return Math.abs(hash);
+            }
+
+            async function generateDailyPuzzle() {
+                const today = getDateString();
+                const seed = generateDailyPuzzleSeed();
+
+                // Check if we already have today's puzzle cached
+                const cachedPuzzle = localStorage.getItem(`dailyPuzzle_${today}`);
+                if (cachedPuzzle) {
+                    try {
+                        const puzzleData = JSON.parse(cachedPuzzle);
+                        // Reconstruct conditions with filter functions
+                        currentConditions = {
+                            rows: puzzleData.conditions.rows.map(c => allConditions.find(cond => cond.id === c.id)),
+                            cols: puzzleData.conditions.cols.map(c => allConditions.find(cond => cond.id === c.id))
+                        };
+                        gridSize = 3; // Always 3x3 for daily
+                        resetBoard();
+                        updateGridLabels();
+                        displayLevel(puzzleData.level);
+                        UIElements.puzzleCodeDisplay.textContent = puzzleData.code;
+                        document.getElementById('puzzle-number-display').textContent = `Daily Puzzle - ${today}`;
+
+                        // Restore saved progress
+                        restoreDailyProgress(today);
+                        return;
+                    } catch (e) {
+                        console.error('Failed to load cached daily puzzle:', e);
+                    }
+                }
+
+                // Generate new daily puzzle
+                UIElements.loader.innerHTML = `<div class="loader"></div><p>Generating today's daily puzzle...</p>`;
+                UIElements.loader.style.display = 'flex';
+
+                // Use seed for reproducible randomization
+                const seededRandom = seedRandom(seed);
+                let foundPuzzle = false;
+                let attempts = 0;
+
+                while (!foundPuzzle && attempts < 10000) {
+                    // Create seeded shuffle of conditions
+                    const shuffled = [...allConditions].sort(() => seededRandom() - 0.5);
+                    const selectedRows = shuffled.slice(0, 3);
+                    const selectedCols = shuffled.slice(3, 6);
+
+                    if (isPuzzleSolvable(selectedRows, selectedCols, 3)) {
+                        const level = calculatePuzzleDifficulty(selectedRows, selectedCols, 3);
+                        currentConditions = { rows: selectedRows, cols: selectedCols };
+                        const code = generatePuzzleCode(selectedRows, selectedCols, 3);
+
+                        // Cache the puzzle
+                        const puzzleData = {
+                            conditions: {
+                                rows: currentConditions.rows.map(c => ({ id: c.id, display: c.display })),
+                                cols: currentConditions.cols.map(c => ({ id: c.id, display: c.display }))
+                            },
+                            level: level,
+                            code: code,
+                            date: today
+                        };
+                        localStorage.setItem(`dailyPuzzle_${today}`, JSON.stringify(puzzleData));
+
+                        resetBoard();
+                        updateGridLabels();
+                        displayLevel(level);
+                        UIElements.puzzleCodeDisplay.textContent = code;
+                        document.getElementById('puzzle-number-display').textContent = `Daily Puzzle - ${today}`;
+                        foundPuzzle = true;
+                    }
+                    attempts++;
+                }
+
+                if (!foundPuzzle) {
+                    showCustomAlert('Could not generate today\'s puzzle. Please try again later.');
+                }
+
+                UIElements.loader.style.display = 'none';
+            }
+
+            // Simple seeded random number generator
+            function seedRandom(seed) {
+                let m = 2 ** 35 - 31;
+                let a = 185852;
+                let s = seed % m;
+                return function () {
+                    return (s = (s * a) % m) / m;
+                };
+            }
+
+            function saveDailyProgress(date) {
+                if (currentMode !== 'daily') return;
+
+                const progressData = {
+                    gridState: gridState.map(card => card ? {
+                        fullName: card.fullName,
+                        thumbnail: card.images.thumbnail
+                    } : null),
+                    date: date
+                };
+
+                localStorage.setItem(`dailyProgress_${date}`, JSON.stringify(progressData));
+            }
+
+            function restoreDailyProgress(date) {
+                if (currentMode !== 'daily') return;
+
+                try {
+                    const savedProgress = localStorage.getItem(`dailyProgress_${date}`);
+                    if (savedProgress) {
+                        const progressData = JSON.parse(savedProgress);
+
+                        // Restore the grid state
+                        progressData.gridState.forEach((cardData, index) => {
+                            if (cardData && allCards.length > 0) {
+                                // Find the card by name
+                                const card = allCards.find(c => c.fullName === cardData.fullName);
+                                if (card) {
+                                    gridState[index] = card;
+                                    UIElements.grid.childNodes[index].style.backgroundImage = `url(${cardData.thumbnail})`;
+                                }
+                            }
+                        });
+                    }
+                } catch (e) {
+                    console.error('Failed to restore daily progress:', e);
+                }
+            }
+
+            function clearDailyProgress(date) {
+                localStorage.removeItem(`dailyProgress_${date}`);
             }
             
             function isPuzzleSolvable(rowConditions, colConditions, size) {
@@ -784,6 +1085,12 @@
                         cardsToKeep.add(solution.fullName);
                     }
                 });
+
+                // Save progress if in daily mode
+                if (currentMode === 'daily') {
+                    const today = getDateString();
+                    saveDailyProgress(today);
+                }
             }
 
             // --- Tutorial System ---
@@ -795,11 +1102,12 @@
             function setupTutorial() {
                 tutorialSteps = [
                     { element: 'h1', text: 'Welcome to Dokuborn! This quick tutorial will show you how to play.' },
+                    { element: '.mode-selector', text: 'Choose between DAILY PUZZLE mode (one puzzle per day) or EXPLORE mode (create and import custom puzzles).' },
                     { element: '.puzzle-grid', text: 'This is the puzzle grid. Your goal is to place a unique Lorcana card in each cell.' },
                     { element: '.puzzle-grid-area', text: 'Each card must satisfy BOTH the condition for its row and its column.' },
                     { element: '.grid-cell[data-index="0"]', text: 'Click on any cell to open a search window and find the perfect card.' },
                     { element: '#check-button', text: 'Use the "Check Answers" button to see how you\'re doing. Correct cells turn green, incorrect ones turn red.' },
-                    { element: '#new-puzzle-button', text: 'Want a new challenge? Click here to select a grid size and difficulty.' },
+                    { element: '#new-puzzle-button', text: 'In EXPLORE mode, click here to select a grid size and difficulty for a new challenge.' },
                     { element: '.puzzle-meta', text: 'You can share puzzles with friends using this unique code, or import a code from them.'},
                     { element: '#solve-button', text: 'Stuck? The "Solve Puzzle" button will fill in the missing correct answers for you.' }
                 ];
@@ -858,6 +1166,10 @@
 
 
             // --- Event Listeners and Initializers ---
+            // Mode switching buttons
+            document.getElementById('daily-mode-btn').addEventListener('click', switchToDailyMode);
+            document.getElementById('explore-mode-btn').addEventListener('click', switchToExploreMode);
+
             UIElements.newPuzzleButton.addEventListener('click', () => { document.getElementById('grid-size-modal').style.display = 'flex'; });
             UIElements.importPuzzleButton.addEventListener('click', () => { document.getElementById('import-modal').style.display = 'flex'; document.getElementById('import-input').focus(); });
             document.getElementById('import-cancel').addEventListener('click', () => { document.getElementById('import-modal').style.display = 'none'; });
@@ -904,6 +1216,12 @@
                 activeCell.style.backgroundImage = `url(${card.images.thumbnail})`;
                 clearCellFeedback(activeCell);
                 closeSearchModal();
+
+                // Save progress if in daily mode
+                if (currentMode === 'daily') {
+                    const today = getDateString();
+                    saveDailyProgress(today);
+                }
             }
             function clearCellFeedback(cell) { cell.classList.remove('correct', 'incorrect'); }
             function copyResults() {

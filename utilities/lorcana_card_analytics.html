@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Disney Lorcana Card Analytics</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #1a1a1a;
+            color: #f0f0f0;
+            font-family: 'Inter', sans-serif;
+        }
+        .stat-card {
+            background-color: #2c2c2c;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .percentage-bar-container {
+            display: flex;
+            height: 1.25rem; /* h-5 */
+            overflow: hidden;
+            border-radius: 0.375rem; /* rounded-md */
+            background-color: #4a5568; /* bg-gray-700 */
+        }
+        .modal {
+            background-color: rgba(0, 0, 0, 0.8);
+        }
+        .modal-content {
+            background-color: #2c2c2c;
+        }
+        /* Custom scrollbar for modal */
+        .modal-body::-webkit-scrollbar {
+            width: 8px;
+        }
+        .modal-body::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+        .modal-body::-webkit-scrollbar-thumb {
+            background-color: #888;
+            border-radius: 4px;
+            border: 2px solid #1a1a1a;
+        }
+        .loader {
+            border-top-color: #3498db;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="antialiased">
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="fixed inset-0 bg-black bg-opacity-75 flex flex-col justify-center items-center z-50">
+        <div class="loader ease-linear rounded-full border-8 border-t-8 border-gray-200 h-32 w-32"></div>
+        <p id="loading-text" class="mt-4 text-xl text-white">Fetching Lorcana Data...</p>
+    </div>
+
+    <div class="container mx-auto p-4 md:p-8">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-white tracking-tight">Disney Lorcana Analytics</h1>
+            <p class="text-gray-400 mt-2">Explore the stats behind the cards.</p>
+        </header>
+
+        <!-- Filters -->
+        <div id="filters" class="mb-8 p-6 bg-gray-800 rounded-lg shadow-lg">
+             <h2 class="text-2xl font-semibold mb-4 text-white">Filter Cards</h2>
+             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                 <div>
+                    <label for="filter-set" class="block text-sm font-medium text-gray-300 mb-1">Set</label>
+                    <select id="filter-set" class="w-full bg-gray-700 text-white border-gray-600 rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"></select>
+                 </div>
+                 <div>
+                    <label for="filter-ink" class="block text-sm font-medium text-gray-300 mb-1">Ink Color</label>
+                    <select id="filter-ink" class="w-full bg-gray-700 text-white border-gray-600 rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"></select>
+                </div>
+                <div>
+                    <label for="filter-type" class="block text-sm font-medium text-gray-300 mb-1">Card Type</label>
+                    <select id="filter-type" class="w-full bg-gray-700 text-white border-gray-600 rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"></select>
+                </div>
+                 <div>
+                    <label for="filter-rarity" class="block text-sm font-medium text-gray-300 mb-1">Rarity</label>
+                    <select id="filter-rarity" class="w-full bg-gray-700 text-white border-gray-600 rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"></select>
+                </div>
+                <div>
+                    <label for="filter-format" class="block text-sm font-medium text-gray-300 mb-1">Format</label>
+                    <select id="filter-format" class="w-full bg-gray-700 text-white border-gray-600 rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"></select>
+                </div>
+             </div>
+        </div>
+
+        <!-- Stats Display -->
+        <div id="stats-container">
+            <!-- Stats will be dynamically inserted here -->
+        </div>
+
+    </div>
+
+    <!-- Modal -->
+    <div id="card-modal" class="fixed inset-0 z-40 hidden items-center justify-center modal">
+        <div class="modal-content w-11/12 max-w-6xl h-5/6 rounded-lg shadow-lg flex flex-col">
+            <div class="flex justify-between items-center p-4 border-b border-gray-600">
+                <h3 id="modal-title" class="text-2xl font-semibold">Card Results</h3>
+                <button id="modal-close" class="text-gray-400 hover:text-white">&times;</button>
+            </div>
+            <div id="modal-body" class="p-6 overflow-y-auto">
+                <div id="modal-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                    <!-- Card images will be inserted here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const loadingOverlay = document.getElementById('loading-overlay');
+            const loadingText = document.getElementById('loading-text');
+            const statsContainer = document.getElementById('stats-container');
+            const modal = document.getElementById('card-modal');
+            const modalTitle = document.getElementById('modal-title');
+            const modalGrid = document.getElementById('modal-grid');
+            const modalClose = document.getElementById('modal-close');
+            
+            const filterSet = document.getElementById('filter-set');
+            const filterInk = document.getElementById('filter-ink');
+            const filterType = document.getElementById('filter-type');
+            const filterRarity = document.getElementById('filter-rarity');
+            const filterFormat = document.getElementById('filter-format');
+
+
+            let allCards = [];
+            let uniqueCards = [];
+            let setsData = {};
+
+            const inkColors = {
+                "Amber": "bg-yellow-400",
+                "Amethyst": "bg-purple-500",
+                "Emerald": "bg-green-500",
+                "Ruby": "bg-red-500",
+                "Sapphire": "bg-blue-500",
+                "Steel": "bg-gray-400"
+            };
+
+            async function fetchData() {
+                try {
+                    const response = await fetch('https://cdn.jsdelivr.net/gh/heavenideas/similcana@main/database/allCards.json');
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    const data = await response.json();
+                    allCards = data.cards.filter(card => !card.setCode.startsWith('Q'));
+                    setsData = data.sets;
+                    loadingText.textContent = 'Processing Data...';
+                    
+                    // Get unique cards (don't count variants/reprints of the same card)
+                    const seen = new Set();
+                    uniqueCards = allCards.filter(card => {
+                        const duplicate = seen.has(card.fullName);
+                        seen.add(card.fullName);
+                        return !duplicate;
+                    });
+
+                    populateFilters();
+                    renderStats();
+                    loadingOverlay.style.display = 'none';
+                } catch (error) {
+                    loadingText.textContent = 'Failed to load card data. Please try again later.';
+                    console.error('Error fetching card data:', error);
+                }
+            }
+
+            function populateSelect(selectElement, items, defaultOptionText) {
+                selectElement.innerHTML = `<option value="">${defaultOptionText}</option>`;
+                [...items].sort().forEach(item => {
+                    const option = document.createElement('option');
+                    option.value = item;
+                    option.textContent = setsData[item]?.name || item;
+                    selectElement.appendChild(option);
+                });
+            }
+
+            function populateFilters() {
+                const sets = new Set(allCards.map(c => c.setCode));
+                const inks = new Set(allCards.flatMap(c => c.colors || [c.color]).filter(Boolean));
+                const types = new Set(allCards.map(c => c.type));
+                const rarities = new Set(allCards.map(c => c.rarity));
+                const formats = new Set(['Core', 'Infinity']);
+
+                populateSelect(filterSet, sets, "All Sets");
+                populateSelect(filterInk, inks, "All Inks");
+                populateSelect(filterType, types, "All Types");
+                populateSelect(filterRarity, rarities, "All Rarities");
+                populateSelect(filterFormat, formats, "All Formats");
+                
+                [filterSet, filterInk, filterType, filterRarity, filterFormat].forEach(select => {
+                    select.addEventListener('change', renderStats);
+                });
+            }
+
+            function getFilteredCards() {
+                const selectedSet = filterSet.value;
+                const selectedInk = filterInk.value;
+                const selectedType = filterType.value;
+                const selectedRarity = filterRarity.value;
+                const selectedFormat = filterFormat.value;
+
+                return uniqueCards.filter(card => {
+                    const cardInks = card.colors || [card.color];
+
+                    let isAllowedInFormat = true;
+                    if (selectedFormat && card.allowedInFormats) {
+                        const formatInfo = card.allowedInFormats[selectedFormat];
+                        if (!formatInfo) {
+                            isAllowedInFormat = false;
+                        } else {
+                            if (selectedFormat === 'Core') {
+                                const today = new Date();
+                                const allowedUntil = formatInfo.allowedUntilDate ? new Date(formatInfo.allowedUntilDate) : null;
+                                
+                                if (allowedUntil && today > allowedUntil) {
+                                    isAllowedInFormat = false; // Card has rotated out
+                                } else {
+                                    isAllowedInFormat = formatInfo.allowed || (allowedUntil && today <= allowedUntil);
+                                }
+                            } else { // For Infinity
+                                isAllowedInFormat = formatInfo.allowed;
+                            }
+                        }
+                    } else if (selectedFormat && !card.allowedInFormats) {
+                         isAllowedInFormat = false;
+                    }
+
+
+                    return (!selectedSet || card.setCode === selectedSet) &&
+                           (!selectedInk || cardInks.includes(selectedInk)) &&
+                           (!selectedType || card.type === selectedType) &&
+                           (!selectedRarity || card.rarity === selectedRarity) &&
+                           isAllowedInFormat;
+                });
+            }
+
+            function renderStats() {
+                statsContainer.innerHTML = '';
+                const filteredCards = getFilteredCards();
+                
+                if(filteredCards.length === 0){
+                    statsContainer.innerHTML = `<div class="text-center text-gray-400 py-8">No cards match the current filters.</div>`;
+                    return;
+                }
+                
+                const inkStats = calculateAttributeStats(filteredCards, card => card.colors || [card.color]);
+                const typeStats = calculateAttributeStats(filteredCards, card => [card.type]);
+                const subtypeStats = calculateAttributeStats(filteredCards, card => card.subtypes || []);
+                const rarityStats = calculateAttributeStats(filteredCards, card => [card.rarity]);
+
+                statsContainer.appendChild(createStatSection('Ink Type Distribution', inkStats, 'ink'));
+                statsContainer.appendChild(createStatSection('Card Type Distribution', typeStats, 'type'));
+                statsContainer.appendChild(createStatSection('Subtype Distribution', subtypeStats, 'subtype'));
+                statsContainer.appendChild(createStatSection('Rarity Distribution', rarityStats, 'rarity'));
+            }
+            
+            function calculateAttributeStats(cards, attributeExtractor) {
+                const stats = {};
+                const totalFilteredCount = cards.length;
+
+                cards.forEach(card => {
+                    const attributes = attributeExtractor(card);
+                    const cardInks = (card.colors || [card.color]).filter(Boolean);
+
+                    attributes.forEach(attr => {
+                        if (!attr) return;
+
+                        if (!stats[attr]) {
+                            stats[attr] = {
+                                count: 0,
+                                inkBreakdown: {}
+                            };
+                        }
+                        stats[attr].count++;
+
+                        cardInks.forEach(ink => {
+                            stats[attr].inkBreakdown[ink] = (stats[attr].inkBreakdown[ink] || 0) + 1;
+                        });
+                    });
+                });
+
+                return Object.entries(stats)
+                    .map(([name, data]) => ({
+                        name,
+                        count: data.count,
+                        percentage: totalFilteredCount > 0 ? (data.count / totalFilteredCount) * 100 : 0,
+                        inkBreakdown: data.inkBreakdown
+                    }))
+                    .sort((a, b) => b.count - a.count);
+            }
+
+            function createStatSection(title, stats, attribute) {
+                const section = document.createElement('div');
+                section.className = 'mb-8';
+                
+                const header = document.createElement('h2');
+                header.className = 'text-2xl font-semibold mb-4 text-white';
+                header.textContent = title;
+                section.appendChild(header);
+
+                const grid = document.createElement('div');
+                grid.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6';
+                
+                stats.forEach(stat => {
+                    const cardEl = document.createElement('div');
+                    cardEl.className = 'stat-card flex flex-col justify-between';
+                    cardEl.onclick = () => showModal(stat.name, attribute);
+                    
+                    const topDiv = document.createElement('div');
+                    const name = document.createElement('h3');
+                    name.className = 'text-xl font-bold';
+                    name.textContent = stat.name;
+                    
+                    const count = document.createElement('p');
+                    count.className = 'text-gray-400';
+                    count.textContent = `${stat.count} cards (${stat.percentage.toFixed(1)}% of filtered)`;
+                    
+                    topDiv.appendChild(name);
+                    topDiv.appendChild(count);
+                    
+                    const bottomDiv = document.createElement('div');
+                    bottomDiv.className = 'mt-4';
+
+                    const percentageBarContainer = document.createElement('div');
+                    percentageBarContainer.className = 'percentage-bar-container';
+
+                    const sortedInks = Object.entries(stat.inkBreakdown).sort((a,b) => b[1] - a[1]);
+
+                    for (const [ink, inkCount] of sortedInks) {
+                        const percentageOfStat = (inkCount / stat.count) * 100;
+                        const barSegment = document.createElement('div');
+                        barSegment.className = `${inkColors[ink] || 'bg-gray-200'}`;
+                        barSegment.style.width = `${percentageOfStat}%`;
+                        barSegment.title = `${ink}: ${inkCount} (${percentageOfStat.toFixed(1)}%)`;
+                        percentageBarContainer.appendChild(barSegment);
+                    }
+                    
+                    const breakdownText = document.createElement('div');
+                    breakdownText.className = 'text-xs text-gray-400 mt-2 flex flex-wrap gap-x-3 gap-y-1';
+                    
+                    for (const [ink, inkCount] of sortedInks) {
+                        const span = document.createElement('span');
+                        const colorDot = `<div class="w-2 h-2 rounded-full ${inkColors[ink] || 'bg-gray-200'} inline-block mr-1"></div>`;
+                        const percentageOfStat = (inkCount / stat.count) * 100;
+                        span.innerHTML = `${colorDot}${ink}: ${inkCount} (${percentageOfStat.toFixed(1)}%)`;
+                        breakdownText.appendChild(span);
+                    }
+                    
+                    bottomDiv.appendChild(percentageBarContainer);
+                    bottomDiv.appendChild(breakdownText);
+
+                    cardEl.appendChild(topDiv);
+                    cardEl.appendChild(bottomDiv);
+                    grid.appendChild(cardEl);
+                });
+
+                section.appendChild(grid);
+                return section;
+            }
+
+            function showModal(value, attribute) {
+                const filteredCards = getFilteredCards();
+                let matchingCards = [];
+
+                if (attribute === 'ink') {
+                    matchingCards = filteredCards.filter(c => (c.colors || [c.color]).includes(value));
+                } else if (attribute === 'type') {
+                    matchingCards = filteredCards.filter(c => c.type === value);
+                } else if (attribute === 'subtype') {
+                    matchingCards = filteredCards.filter(c => (c.subtypes || []).includes(value));
+                } else if (attribute === 'rarity') {
+                    matchingCards = filteredCards.filter(c => c.rarity === value);
+                }
+                
+                const allMatchingVariants = allCards.filter(c => matchingCards.some(uc => uc.fullName === c.fullName));
+
+
+                modalTitle.textContent = `${value} Cards (${allMatchingVariants.length} total variants)`;
+                modalGrid.innerHTML = '';
+                
+                allMatchingVariants.forEach(card => {
+                    const img = document.createElement('img');
+                    img.src = card.images.thumbnail;
+                    img.alt = card.fullName;
+                    img.className = 'rounded-lg w-full object-cover transition-transform duration-200 hover:scale-105';
+                    img.loading = 'lazy';
+                    modalGrid.appendChild(img);
+                });
+
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
+
+            modalClose.onclick = () => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            };
+            
+            window.onclick = (event) => {
+                if (event.target == modal) {
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                }
+            };
+
+
+            fetchData();
+        });
+    </script>
+
+</body>
+</html>
