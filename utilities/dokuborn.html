@@ -285,8 +285,10 @@
         }
 
         .instructions {
+            margin-top: 0.5rem;
+            line-height: 1.2;
             text-align: center; margin-top: 1rem;
-            font-style: italic; font-size: 0.9rem;
+            font-style: italic; font-size: 0.5rem;
         }
 
         /* Modal Styles */
@@ -422,6 +424,237 @@
             border-radius: 5px;
         }
 
+        /* ===== MOBILE OPTIMIZATIONS ===== */
+
+        /* Mobile-first responsive breakpoints */
+        @media (max-width: 768px) {
+            /* Container and Layout Optimizations */
+            body {
+                padding: 0.5rem;
+            }
+
+            .game-container {
+                max-width: 100%;
+                padding: 0.75rem;
+                border-width: 4px;
+            }
+
+            /* Grid Optimizations for Mobile */
+            .puzzle-grid-area {
+                gap: 5px;
+            }
+
+            .puzzle-grid {
+                aspect-ratio: 367 / 512; /* Keep card aspect ratio */
+                gap: 3px;
+                padding: 3px;
+                border-width: 2px;
+            }
+
+            .grid-cell {
+                border-radius: 3px;
+            }
+
+            /* Label Optimizations */
+            .label {
+                padding: 2px;
+                font-size: clamp(0.65rem, 2.5vw, 0.85rem);
+                min-height: 32px;
+            }
+
+            /* Typography Reductions */
+            h1 {
+                font-size: clamp(1.8rem, 6vw, 2.2rem);
+                padding: 0.3rem 0;
+            }
+
+            .mode-button {
+                padding: 6px 12px;
+                font-size: 0.8rem;
+            }
+
+            .mode-indicator {
+                font-size: 1rem;
+                padding: 0.3rem;
+                margin: 0.3rem 0;
+            }
+
+            .puzzle-info {
+                font-size: clamp(0.8rem, 2vw, 0.9rem);
+                padding: 0.3rem;
+                margin: 0.75rem auto;
+            }
+
+            #puzzle-level-display {
+                font-size: 1.2rem;
+                letter-spacing: 1px;
+            }
+
+            .instructions {
+                font-size: 0.7rem;
+                margin-top: 0.5rem;
+                line-height: 1.2;
+            }
+
+            /* Make instructions collapsible on mobile */
+            .instructions h3 {
+                margin: 0 0 0.25rem 0;
+                font-size: 0.8rem;
+                cursor: pointer;
+            }
+
+            .instructions p {
+                margin: 0.25rem 0;
+                display: inline;
+            }
+
+            .instructions p:not(:last-child)::after {
+                content: " • ";
+                color: var(--text-gold);
+            }
+
+            .controls {
+                margin-top: 1rem;
+                gap: 0.5rem;
+            }
+
+            .controls button {
+                padding: 8px 12px;
+                font-size: 0.9rem;
+            }
+
+            .credits {
+                font-size: 0.7rem;
+                margin-bottom: 0.5rem;
+            }
+
+            footer {
+                padding: 0.75rem;
+                font-size: 0.8rem;
+                line-height: 1.3;
+            }
+
+            /* Puzzle meta optimizations */
+            #puzzle-code-display {
+                font-size: 0.8rem;
+                padding: 3px 6px;
+            }
+
+            #copy-code-button {
+                padding: 2px 4px;
+                margin-left: 4px;
+                font-size: 0.75rem;
+            }
+        }
+
+        /* Extra small mobile devices */
+        @media (max-width: 480px) {
+            .game-container {
+                padding: 0.5rem;
+                border-width: 3px;
+            }
+
+            .puzzle-grid {
+                aspect-ratio: 367 / 512; /* Keep card aspect ratio */
+                gap: 2px;
+                padding: 2px;
+            }
+
+            .puzzle-grid-area {
+                gap: 3px;
+            }
+
+            .label {
+                padding: 1px;
+                font-size: clamp(0.6rem, 2vw, 0.75rem);
+                min-height: 28px;
+            }
+
+            h1 {
+                font-size: clamp(1.5rem, 5vw, 1.8rem);
+                padding: 0.2rem 0;
+            }
+
+            .mode-button {
+                padding: 5px 10px;
+                font-size: 0.75rem;
+            }
+
+            .mode-indicator {
+                font-size: 0.9rem;
+                padding: 0.25rem;
+            }
+
+            .controls button {
+                padding: 6px 10px;
+                font-size: 0.8rem;
+            }
+
+            .instructions {
+                font-size: 0.65rem;
+                margin-top: 0.4rem;
+                line-height: 1.1;
+            }
+
+            /* Make instructions collapsible on mobile */
+            .instructions h3 {
+                margin: 0 0 0.2rem 0;
+                font-size: 0.75rem;
+                cursor: pointer;
+            }
+
+            .instructions p {
+                margin: 0.2rem 0;
+                display: inline;
+            }
+
+            .instructions p:not(:last-child)::after {
+                content: " • ";
+                color: var(--text-gold);
+            }
+
+            .puzzle-info {
+                font-size: clamp(0.75rem, 1.8vw, 0.85rem);
+                margin: 0.5rem auto;
+            }
+
+            #puzzle-level-display {
+                font-size: 1rem;
+                letter-spacing: 0.5px;
+            }
+        }
+
+        /* Touch-friendly enhancements */
+        @media (hover: none) and (pointer: coarse) {
+            .grid-cell {
+                min-height: 48px; /* Minimum touch target */
+                min-width: 48px;
+            }
+
+            .controls button {
+                min-height: 44px; /* Touch target guidelines */
+                min-width: 60px;
+            }
+
+            .mode-button {
+                min-height: 40px;
+                min-width: 80px;
+            }
+
+            /* Reduce hover effects on touch devices */
+            .grid-cell:hover {
+                transform: scale(1.02); /* Subtle scale for touch */
+            }
+
+            .controls button:hover:not(:disabled) {
+                transform: translateY(-1px); /* Reduced hover effect */
+            }
+
+            .mode-button:hover:not(.active) {
+                transform: translateY(-0.5px); /* Minimal hover effect */
+            }
+        }
+
     </style>
 </head>
 <body>
@@ -498,7 +731,8 @@
         <div class="instructions">
             <h3>Instructions:</h3>
             <p>Find the card that fits both requirements!</p>
-            <p>• Multiple answers possible • No duplicate card names</p>
+            <p>Multiple answers possible<p>
+            <p>No duplicate card names</p>
         </div>
 
         <div class="controls">
