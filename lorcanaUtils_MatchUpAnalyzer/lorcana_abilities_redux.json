@@ -76,13 +76,13 @@
       "actions": 0.15
     },
     "subtype": {
-      "Storyborn" : 0.5,
-      "Hero" : 0.26,
-      "Ally" : 0.25,
-      "Dreamborn" : 0.14,
-      "Villain" : 0.13,
-      "Floodborn" : 0.08,
-      "Princess" : 0.06
+      "Storyborn": 0.5,
+      "Hero": 0.26,
+      "Ally": 0.25,
+      "Dreamborn": 0.14,
+      "Villain": 0.13,
+      "Floodborn": 0.08,
+      "Princess": 0.06
     }
   },
   "abilities": [
@@ -409,21 +409,28 @@
       "name": "Card Effect: Opponent Discards Hand",
       "category": "Resource",
       "sub_type": "Hand Disruption",
-      "regex": "/(Each opponent|they) discards?(?: all cards)?(?: in)? their hands?/gi",
+      "regex": "/(Each opponent|they|you may) discards?(?: all cards)?(?: in)? (their|your) hands?/gi",
       "explanation": "This is extremely disruptive if timed correctly",
       "justification": "Which turn the card can be played has a direct impact on how disruptive it can be.",
       "calculation": {
-        "variables": [],
+        "variables": [
+          {
+            "name": "your",
+            "source": "regex",
+            "group": "2",
+            "type": "string"
+          }
+        ],
         "contextModifiers": [],
         "scores": {
           "resource_dominance": {
-            "value": "8.0 * @context.rds.trigger",
+            "value": "(@your === 'your' ? -0.25 : 1) * 8.0 * @context.rds.trigger",
             "explanation": "Potential for being very disruptive"
           }
         }
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
-      "lastModified": "2025-09-02T18:00:59.705Z"
+      "lastModified": "2025-10-02T18:16:57.969Z"
     },
     {
       "name": "Trigger: Draw Card",
