@@ -833,7 +833,7 @@
             function setupConditions() {
                 const colors = [ { name: 'Amber', emoji: '🟡' }, { name: 'Amethyst', emoji: '🟣' }, { name: 'Emerald', emoji: '🟢' }, { name: 'Ruby', emoji: '🔴' }, { name: 'Sapphire', emoji: '🔵' }, { name: 'Steel', emoji: '⚫' } ];
                 colors.forEach((c, i) => allConditions.push({ id: `c${i}`, display: `${c.emoji} ${c.name}`, filter: card => card.color && card.color.includes(c.name) }));
-                for (let i = 0; i <= 10; i++) allConditions.push({ id: `o${i}`, display: `Cost ${i}`, filter: card => card.cost === i });
+                for (let i = 1; i <= 10; i++) allConditions.push({ id: `o${i}`, display: `Cost ${i}`, filter: card => card.cost === i });
                 allConditions.push({ id: 'p0', display: 'Uninkable', filter: card => !card.inkwell });
                 allConditions.push({ id: 'p1', display: 'Inkable', filter: card => card.inkwell });
                 const rarities = ['Common', 'Uncommon', 'Rare', 'Super Rare', 'Legendary', 'Enchanted'];
@@ -955,8 +955,8 @@
                     difficultyScore += 1 / (pool || 0.1);
                 }
                 const normalizedScore = difficultyScore / (size * size);
-                if (normalizedScore < 0.15) return 1; if (normalizedScore < 0.4) return 2;
-                if (normalizedScore < 0.8) return 3; if (normalizedScore < 1.5) return 4;
+                if (normalizedScore < 0.2) return 1; if (normalizedScore < 0.3) return 2;
+                if (normalizedScore < 0.5) return 3; if (normalizedScore < 1.0) return 4;
                 return 5;
             }
 
@@ -1105,11 +1105,19 @@
                 let foundPuzzle = false;
                 let attempts = 0;
 
-                while (!foundPuzzle && attempts < 10000) {
+                while (!foundPuzzle && attempts < 80000) {
                     // Create seeded shuffle of conditions
                     const shuffled = [...allConditions].sort(() => seededRandom() - 0.5);
-                    const selectedRows = shuffled.slice(0, 3);
-                    const selectedCols = shuffled.slice(3, 6);
+
+                    // Select conditions while avoiding type conflicts
+                    const selectedRows = selectConditionsWithoutConflicts(shuffled, 3);
+                    const selectedCols = selectConditionsWithoutConflicts(shuffled, 3);
+
+                    // Ensure no conflicts between rows and columns
+                    if (hasConditionTypeConflict(selectedRows, selectedCols)) {
+                        attempts++;
+                        continue;
+                    }
 
                     if (isPuzzleSolvable(selectedRows, selectedCols, 3)) {
                         const level = calculatePuzzleDifficulty(selectedRows, selectedCols, 3);
@@ -1197,15 +1205,132 @@
             function clearDailyProgress(date) {
                 localStorage.removeItem(`dailyProgress_${date}`);
             }
+
+            // Helper functions to prevent condition type conflicts
+            function isExclusiveConditionType(conditionType) {
+                // These condition types should be exclusive between rows and columns
+                // because they represent mutually exclusive properties
+                const exclusiveTypes = ['o', 'p']; // o = cost, p = inkable/uninkable
+                return exclusiveTypes.includes(conditionType);
+            }
+
+            function hasConditionTypeConflict(rows, cols) {
+                const rowTypes = new Set(rows.map(r => r.id.charAt(0)));
+                const colTypes = new Set(cols.map(c => c.id.charAt(0)));
+
+                // Check for overlapping exclusive condition types
+                for (const type of rowTypes) {
+                    if (isExclusiveConditionType(type) && colTypes.has(type)) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            function selectConditionsWithoutConflicts(availableConditions, count) {
+                const selected = [];
+                const usedTypes = new Set();
+
+                for (const condition of availableConditions) {
+                    if (selected.length >= count) break;
+
+                    const conditionType = condition.id.charAt(0);
+
+                    // Allow the condition if:
+                    // 1. Its type hasn't been used yet, OR
+                    // 2. Its type is not exclusive (like colors, rarities, etc.)
+                    if (!usedTypes.has(conditionType) || !isExclusiveConditionType(conditionType)) {
+                        selected.push(condition);
+                        usedTypes.add(conditionType);
+                    }
+                }
+
+                return selected;
+            }
             
             function isPuzzleSolvable(rowConditions, colConditions, size) {
-                const usedCards = new Set();
-                for (let i = 0; i < size * size; i++) {
-                    const solution = allCards.find(c => !usedCards.has(c.fullName) && rowConditions[Math.floor(i/size)].filter(c) && colConditions[i%size].filter(c));
-                    if (!solution) return false;
-                    usedCards.add(solution.fullName);
+                // Use the step-by-step approach: start top-left, build sequentially
+                return isPuzzleSolvableSequential(rowConditions, colConditions, size);
+            }
+
+            function isPuzzleSolvableSequential(rowConditions, colConditions, size) {
+                // Create cell order: prioritize cells with most restrictive conditions (smallest domains first)
+                const cellOrder = getOptimalCellOrder(rowConditions, colConditions, size);
+
+                // Try to solve using backtracking
+                return solveWithBacktracking(rowConditions, colConditions, size, cellOrder, 0, new Set(), new Map());
+            }
+
+            function getOptimalCellOrder(rowConditions, colConditions, size) {
+                const cellInfo = [];
+
+                // Calculate domain sizes for all cells
+                for (let i = 0; i < size; i++) {
+                    for (let j = 0; j < size; j++) {
+                        const domainSize = allCards.filter(card =>
+                            rowConditions[i].filter(card) &&
+                            colConditions[j].filter(card)
+                        ).length;
+
+                        cellInfo.push({
+                            row: i,
+                            col: j,
+                            domainSize: domainSize,
+                            index: i * size + j
+                        });
+                    }
                 }
-                return true;
+
+                // Sort by domain size (smallest first) - tackle hardest cells first
+                cellInfo.sort((a, b) => a.domainSize - b.domainSize);
+
+                return cellInfo.map(cell => cell.index);
+            }
+
+            function solveWithBacktracking(rowConditions, colConditions, size, cellOrder, cellIndex, usedCards, assignments) {
+                // If we've assigned all cells, we're done!
+                if (cellIndex >= size * size) {
+                    return true;
+                }
+
+                const cellIdx = cellOrder[cellIndex];
+                const row = Math.floor(cellIdx / size);
+                const col = cellIdx % size;
+
+                // Find all available cards for this cell
+                const availableCards = allCards.filter(card =>
+                    !usedCards.has(card.fullName) &&
+                    rowConditions[row].filter(card) &&
+                    colConditions[col].filter(card)
+                );
+
+                // Try each available card
+                for (const card of availableCards) {
+                    // Assign this card
+                    assignments.set(cellIdx, card);
+                    usedCards.add(card.fullName);
+
+                    // Recursively try to solve the rest
+                    if (solveWithBacktracking(rowConditions, colConditions, size, cellOrder, cellIndex + 1, usedCards, assignments)) {
+                        return true;
+                    }
+
+                    // Backtrack: undo the assignment
+                    assignments.delete(cellIdx);
+                    usedCards.delete(card.fullName);
+                }
+
+                // No card worked for this cell - log only if it's the first failure point
+                if (cellIndex === 0) {
+                    console.log(`🚨 PUZZLE GENERATION FAILED 🚨`);
+                    console.log(`First failure at Cell (${row}, ${col})`);
+                    console.log(`Row condition: ${rowConditions[row]?.display || 'UNKNOWN'}`);
+                    console.log(`Column condition: ${colConditions[col]?.display || 'UNKNOWN'}`);
+                    console.log(`Available cards for this cell: ${availableCards.length}`);
+                    console.log(`---`);
+                }
+
+                return false;
             }
 
             async function generateNewPuzzle(targetGridSize, targetLevel) {
@@ -1214,10 +1339,19 @@
                 UIElements.loader.style.display = 'flex';
                 await new Promise(resolve => setTimeout(resolve, 0));
                 let foundPuzzle = false, attempts = 0;
-                while (!foundPuzzle && attempts < 10000) {
+                while (!foundPuzzle && attempts < 50000) {
                     const shuffled = [...allConditions].sort(() => 0.5 - Math.random());
-                    const selectedRows = shuffled.slice(0, gridSize);
-                    const selectedCols = shuffled.slice(gridSize, gridSize * 2);
+
+                    // Select conditions while avoiding type conflicts
+                    const selectedRows = selectConditionsWithoutConflicts(shuffled, gridSize);
+                    const selectedCols = selectConditionsWithoutConflicts(shuffled, gridSize);
+
+                    // Ensure no conflicts between rows and columns
+                    if (hasConditionTypeConflict(selectedRows, selectedCols)) {
+                        attempts++;
+                        continue;
+                    }
+
                     if (isPuzzleSolvable(selectedRows, selectedCols, gridSize)) {
                         const level = calculatePuzzleDifficulty(selectedRows, selectedCols, gridSize);
                         if (level === targetLevel) {
