@@ -240,6 +240,25 @@
             transition: transform 0.2s ease, box-shadow 0.2s ease;
             position: relative;
             overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .grid-cell .card-count {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.7);
+            color: var(--text-gold);
+            padding: 2px 6px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            border: 1px solid var(--border-gold);
+            z-index: 1;
+            pointer-events: none;
         }
 
         .grid-cell:hover {
@@ -455,6 +474,11 @@
                 border-radius: 3px;
             }
 
+            .grid-cell .card-count {
+                font-size: 0.6rem;
+                padding: 1px 4px;
+            }
+
             /* Label Optimizations */
             .label {
                 padding: 2px;
@@ -558,6 +582,11 @@
                 aspect-ratio: 367 / 512; /* Keep card aspect ratio */
                 gap: 2px;
                 padding: 2px;
+            }
+
+            .grid-cell .card-count {
+                font-size: 0.55rem;
+                padding: 1px 3px;
             }
 
             .puzzle-grid-area {
@@ -935,6 +964,13 @@
                     const cell = document.createElement('div');
                     cell.classList.add('grid-cell');
                     cell.dataset.index = i;
+
+                    // Add card count display
+                    const countDisplay = document.createElement('div');
+                    countDisplay.classList.add('card-count');
+                    countDisplay.textContent = '?';
+                    cell.appendChild(countDisplay);
+
                     cell.appendChild(document.createElement('div')).classList.add('feedback-overlay');
                     cell.addEventListener('click', () => { activeCell = cell; openSearchModal(); });
                     UIElements.grid.appendChild(cell);
@@ -946,17 +982,43 @@
                     UIElements.gridLabelsTop.children[i].innerHTML = currentConditions.cols[i].display;
                     UIElements.gridLabelsLeft.children[i].innerHTML = currentConditions.rows[i].display;
                 }
+                updateCardCounts();
+            }
+
+            function updateCardCounts() {
+                if (!currentConditions.rows.length || !currentConditions.cols.length) return;
+
+                UIElements.grid.childNodes.forEach((cell, index) => {
+                    const countDisplay = cell.querySelector('.card-count');
+                    if (countDisplay) {
+                        const rowIndex = Math.floor(index / gridSize);
+                        const colIndex = index % gridSize;
+
+                        if (currentConditions.rows[rowIndex] && currentConditions.cols[colIndex]) {
+                            const count = allCards.filter(card =>
+                                currentConditions.rows[rowIndex].filter(card) &&
+                                currentConditions.cols[colIndex].filter(card)
+                            ).length;
+
+                            countDisplay.textContent = count;
+
+                            // Style the count based on availability
+                            countDisplay.style.backgroundColor = count === 0 ? 'rgba(186, 30, 30, 0.8)' : 'rgba(0, 0, 0, 0.7)';
+                            countDisplay.style.color = count === 0 ? 'var(--parchment)' : 'var(--text-gold)';
+                        }
+                    }
+                });
             }
 
             function calculatePuzzleDifficulty(rows, cols, size) {
                 let difficultyScore = 0;
                 for (let i = 0; i < size * size; i++) {
                     const pool = allCards.filter(card => rows[Math.floor(i / size)].filter(card) && cols[i % size].filter(card)).length;
-                    difficultyScore += 1 / (pool || 0.1);
+                    difficultyScore += 1 / (pool || 0.01);
                 }
                 const normalizedScore = difficultyScore / (size * size);
                 if (normalizedScore < 0.15) return 1; if (normalizedScore < 0.4) return 2;
-                if (normalizedScore < 0.8) return 3; if (normalizedScore < 1.5) return 4;
+                if (normalizedScore < 0.8) return 3; if (normalizedScore < 0.5) return 4;
                 return 5;
             }
 
@@ -1185,6 +1247,12 @@
                                 if (card) {
                                     gridState[index] = card;
                                     UIElements.grid.childNodes[index].style.backgroundImage = `url(${cardData.thumbnail})`;
+
+                                    // Hide the card count when a card is restored
+                                    const countDisplay = UIElements.grid.childNodes[index].querySelector('.card-count');
+                                    if (countDisplay) {
+                                        countDisplay.style.display = 'none';
+                                    }
                                 }
                             }
                         });
@@ -1240,6 +1308,7 @@
                 gridState = Array(gridSize * gridSize).fill(null);
                 UIElements.copyButton.disabled = false;
                 UIElements.solveButton.disabled = false;
+                updateCardCounts();
             }
             
             function generatePuzzleCode(rows, cols, size) {
@@ -1310,6 +1379,12 @@
                     gridState[index] = null;
                     UIElements.grid.childNodes[index].style.backgroundImage = 'none';
                     clearCellFeedback(UIElements.grid.childNodes[index]);
+
+                    // Show the card count again when card is removed
+                    const countDisplay = UIElements.grid.childNodes[index].querySelector('.card-count');
+                    if (countDisplay) {
+                        countDisplay.style.display = 'block';
+                    }
                 });
                 indicesToSolve.forEach(index => {
                     const solution = allCards.find(c => !cardsToKeep.has(c.fullName) && currentConditions.rows[Math.floor(index/gridSize)].filter(c) && currentConditions.cols[index%gridSize].filter(c));
@@ -1449,6 +1524,13 @@
                 gridState[index] = card;
                 activeCell.style.backgroundImage = `url(${card.images.thumbnail})`;
                 clearCellFeedback(activeCell);
+
+                // Hide the card count when a card is placed
+                const countDisplay = activeCell.querySelector('.card-count');
+                if (countDisplay) {
+                    countDisplay.style.display = 'none';
+                }
+
                 closeSearchModal();
 
                 // Save progress if in daily mode
