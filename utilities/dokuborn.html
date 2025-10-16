@@ -894,10 +894,10 @@
             function setupModals() {
                 const difficultyContainer = document.getElementById('difficulty-buttons');
                 difficultyContainer.innerHTML = '';
-                for (let i = 1; i <= 5; i++) {
+                for (let i = 1; i <= 3; i++) {
                     const button = document.createElement('button');
                     button.dataset.level = i;
-                    button.innerHTML = `<span class="stars">${'★'.repeat(i)}${'☆'.repeat(5 - i)}</span>`;
+                    button.innerHTML = `<span class="stars">${'★'.repeat(i)}${'☆'.repeat(3 - i)}</span>`;
                     button.addEventListener('click', () => {
                         document.getElementById('difficulty-modal').style.display = 'none';
                         generateNewPuzzle(gridSize, i);
@@ -955,13 +955,12 @@
                     difficultyScore += 1 / (pool || 0.1);
                 }
                 const normalizedScore = difficultyScore / (size * size);
-                if (normalizedScore < 0.15) return 1; if (normalizedScore < 0.4) return 2;
-                if (normalizedScore < 0.8) return 3; if (normalizedScore < 1.5) return 4;
-                return 5;
+                if (normalizedScore < 0.1) return 1; if (normalizedScore < 0.45) return 2;
+                return 3;
             }
 
             function displayLevel(level) {
-                UIElements.puzzleLevelDisplay.textContent = '★'.repeat(level) + '☆'.repeat(5 - level);
+                UIElements.puzzleLevelDisplay.textContent = '★'.repeat(level) + '☆'.repeat(3 - level);
             }
 
             // --- Mode Management Functions ---
@@ -1105,7 +1104,7 @@
                 let foundPuzzle = false;
                 let attempts = 0;
 
-                while (!foundPuzzle && attempts < 10000) {
+                while (!foundPuzzle && attempts < 50000) {
                     // Create seeded shuffle of conditions
                     const shuffled = [...allConditions].sort(() => seededRandom() - 0.5);
                     const selectedRows = shuffled.slice(0, 3);
