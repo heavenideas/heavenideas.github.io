@@ -197,6 +197,15 @@
             </section>
 
             <section class="container">
+                <h2>Decklist Input</h2>
+                <div class="form-group">
+                    <label for="decklist-input">Paste your decklist here (one card per line, numbers ignored):</label>
+                    <textarea id="decklist-input" placeholder="e.g.,&#10;They Never Come Back&#10;Thunderbolt - Wonder Dog&#10;4 Timothy Q. Mouse - Flight Instructor"></textarea>
+                </div>
+                <button id="process-decklist-btn">Process Decklist</button>
+            </section>
+
+            <section class="container">
                 <h2>2. Select Export Fields</h2>
                 <div id="output-fields-container">
                     <!-- Checkboxes will be populated by JavaScript -->
@@ -241,6 +250,10 @@
             const filterLore = document.getElementById('filter-lore');
             const filterRarity = document.getElementById('filter-rarity');
             const filterSet = document.getElementById('filter-set');
+
+            // --- Decklist Elements ---
+            const decklistInput = document.getElementById('decklist-input');
+            const processDecklistBtn = document.getElementById('process-decklist-btn');
 
             const exportableFields = [
                 { id: 'image', label: 'Image (Thumbnail)', checked: true },
@@ -409,6 +422,95 @@
                 outputTextEl.scrollTop = 0; // Scroll to top of textarea
             }
 
+            function generateMarkdownFromDecklist() {
+                const decklistText = decklistInput.value.trim();
+                if (!decklistText) {
+                    alert('Please enter a decklist.');
+                    return;
+                }
+
+                const lines = decklistText.split('\n').map(line => line.trim()).filter(line => line);
+                const uniqueCardNames = [...new Set(lines.map(line => line.replace(/^\d+\s*/, '').trim()))];
+
+                const selectedFields = Array.from(outputFieldsContainer.querySelectorAll('input:checked')).map(cb => cb.value);
+
+                const foundCards = [];
+                uniqueCardNames.forEach(name => {
+                    const nameQuery = name.toLowerCase();
+                    const matches = allCards.filter(card =>
+                        card.simpleName.toLowerCase().includes(nameQuery) || card.fullName.toLowerCase().includes(nameQuery)
+                    );
+                    if (matches.length > 0) {
+                        foundCards.push(...matches);
+                    }
+                });
+
+                if (foundCards.length === 0) {
+                    outputTextEl.value = 'No cards found for the provided decklist.';
+                    resultsContainer.style.display = 'block';
+                    return;
+                }
+
+                const markdownParts = foundCards.map(card => {
+                    const cardMd = [];
+
+                    if (selectedFields.includes('image') && card.images?.thumbnail) {
+                        cardMd.push(`![${card.fullName}](${card.images.thumbnail})`);
+                    }
+                    if (selectedFields.includes('fullName') && card.fullName) {
+                        cardMd.push(`## ${card.fullName}`);
+                    }
+                    if (selectedFields.includes('set') && card.setCode && allSets[card.setCode]) {
+                        cardMd.push(`**Set:** ${allSets[card.setCode].name}`);
+                    }
+                    if (selectedFields.includes('rarity') && card.rarity) {
+                        cardMd.push(`**Rarity:** ${card.rarity}`);
+                    }
+                    if (selectedFields.includes('fullIdentifier') && card.fullIdentifier) {
+                        cardMd.push(`**ID:** ${card.fullIdentifier}`);
+                    }
+                    if (selectedFields.includes('type') && card.type) {
+                        let typeInfo = card.type;
+                        if (selectedFields.includes('subtypes') && card.subtypesText) {
+                            typeInfo += ` - ${card.subtypesText}`;
+                        }
+                        cardMd.push(`**Type:** ${typeInfo}`);
+                    }
+                    if (selectedFields.includes('color') && card.color) {
+                        cardMd.push(`**Color(s):** ${card.color}`);
+                    }
+                    if (selectedFields.includes('cost') && typeof card.cost !== 'undefined') {
+                        let costText = `**Cost:** ${card.cost}`;
+                        if (selectedFields.includes('inkwell')) {
+                            costText += ` (${card.inkwell ? 'Inkable' : 'Not Inkable'})`;
+                        }
+                        cardMd.push(costText);
+                    }
+                    if (selectedFields.includes('stats')) {
+                        let statsLine = [];
+                        if (typeof card.strength !== 'undefined') statsLine.push(`Strength: ${card.strength}`);
+                        if (typeof card.willpower !== 'undefined') statsLine.push(`Willpower: ${card.willpower}`);
+                        if (typeof card.lore !== 'undefined') statsLine.push(`Lore: ${card.lore}`);
+                        if (statsLine.length > 0) cardMd.push(`**Stats:** ${statsLine.join(' / ')}`);
+                    }
+                    if (selectedFields.includes('fullText') && card.fullText) {
+                        cardMd.push('\n### Abilities / Effects\n');
+                        cardMd.push(card.fullText.replace(/\n/g, '\n\n'));
+                    }
+                    if (selectedFields.includes('flavorText') && card.flavorText) {
+                        cardMd.push(`\n*${card.flavorText.replace(/\n/g, ' ')}*`);
+                    }
+                    if (selectedFields.includes('artists') && card.artistsText) {
+                        cardMd.push(`\n**Artist:** ${card.artistsText}`);
+                    }
+                    return cardMd.join('\n');
+                });
+
+                outputTextEl.value = markdownParts.join('\n\n---\n\n');
+                resultsContainer.style.display = 'block';
+                outputTextEl.scrollTop = 0;
+            }
+
             function copyToClipboard() {
                 navigator.clipboard.writeText(outputTextEl.value).then(() => {
                     copyBtn.textContent = 'Copied!';
@@ -424,6 +526,7 @@
             // --- Event Listeners ---
             generateBtn.addEventListener('click', generateMarkdown);
             copyBtn.addEventListener('click', copyToClipboard);
+            processDecklistBtn.addEventListener('click', generateMarkdownFromDecklist);
 
             // --- Start the application ---
             initialize();
