@@ -465,11 +465,18 @@
       "name": "Trigger: Character Challenges",
       "category": "Trigger",
       "sub_type": "Challenge",
-      "regex": "/When(?:ever)? one of your characters challenges/gi",
+      "regex": "/When(?:ever)? one of your (\\w+)? ?characters ?(?:named (\\w+))? ?challenges/gi",
       "explanation": "This is a condition that is easy to meet, but exposes the character and deals damage. so it's not a massive win",
       "justification": "Trigger: On of your Character Challenges -> Easy to trigger but downsides for the character that challenges",
       "calculation": {
-        "variables": [],
+        "variables": [
+          {
+            "name": "characterType",
+            "source": "regex",
+            "group": 1,
+            "type": "string"
+          }
+        ],
         "contextModifiers": [
           {
             "targetMetric": "all",
@@ -481,7 +488,7 @@
         "scores": {}
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
-      "lastModified": "2025-09-09T09:17:16.713Z"
+      "lastModified": "2025-10-29T10:32:03.777Z"
     },
     {
       "name": "Condition: Opposing Character Exerted",
