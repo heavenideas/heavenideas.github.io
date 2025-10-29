@@ -1138,26 +1138,26 @@
       "lastModified": "2025-09-09T18:55:12.565Z"
     },
     {
-      "name": "Condition: No Cards",
+      "name": "Condition: Less Cards in Hand",
       "category": "Condition",
-      "sub_type": "No Cards",
+      "sub_type": "Less Cards",
       "quick_description": "",
-      "regex": "/(while|if|and) you have no cards in (?:your )hand/gi",
+      "regex": "/(?:while|if|and) you have (no|\\d+ or (less|more)) cards in (?:your )hand/gi",
       "value_type": "raw",
-      "explanation": "This condition has a direct impact on resource dominance control as it does the opposite of generating resources. It looks for you to have no resources",
-      "justification": "Having an empty hand is generally a bad position to be in. This will be offset by other abilities in the",
+      "explanation": "This condition has a direct impact on resource dominance control as it does the opposite of generating resources. It looks for you to have no or a specific number of resources",
+      "justification": "Having an empty hand or lower cards in hand is generally a bad position to be in. This will be offset by other abilities in the",
       "calculation": {
         "variables": [],
         "contextModifiers": [],
         "scores": {
           "resource_dominance": {
             "value": "-1.0",
-            "explanation": "Having an empty hand is generally a bad position to be in. This will be offset by other abilities in the"
+            "explanation": "Having less hand is generally a bad position to be in. This will be offset by other abilities in the"
           }
         }
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
-      "lastModified": "2025-09-02T18:00:59.705Z"
+      "lastModified": "2025-10-29T08:53:02.601Z"
     },
     {
       "name": "Condition: Character exerted",
@@ -1851,43 +1851,57 @@
       "name": "State: Exert Character",
       "category": "State",
       "sub_type": "Control",
-      "regex": "/Exert chosen (?:opposing |opponent's )?(character|item)(?: with \\d+ (?:¤|⬡|⛉) or (?:less|more))?/gi",
+      "regex": "/Exert (chosen|(?:up to )\\d+|all) (?:opposing|opponent's|chosen)? ?(characters?|items?)(?: with \\d+ (?:¤|⬡|⛉) or (?:less|more))?/gi",
       "value_type": "raw",
       "explanation": "Significant tempo advantage gained by neutralizing a character for a turn, preventing questing, challenging, or singing. And leaving him open to challenges.",
       "justification": "Tempo advantage gained by neutralizing a character for a turn, Leaving him open to challenges.",
       "calculation": {
-        "variables": [],
+        "variables": [
+          {
+            "name": "targets",
+            "source": "regex",
+            "group": 1,
+            "type": "textOrNumber"
+          }
+        ],
         "contextModifiers": [],
         "scores": {
           "board_control": {
-            "value": "2.5",
+            "value": "2.5*@targets",
             "explanation": "Exert Character"
           }
         }
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
-      "lastModified": "2025-09-02T18:00:59.705Z"
+      "lastModified": "2025-10-29T09:04:05.598Z"
     },
     {
       "name": "State: Prevent Readying",
       "category": "State",
       "sub_type": "Control",
-      "regex": "/chosen (?:opposing )?character can't ready at the start of (?:their|your) next turn/gi",
+      "regex": "/(chosen (?:opposing )|this|your) ?characters? can't ready ?(?:at the start of (?:their|your) next turn)?/gi",
       "value_type": "raw",
       "explanation": "Prevents an opponent's character from readying.",
       "justification": "A stronger form of soft removal.",
       "calculation": {
-        "variables": [],
+        "variables": [
+          {
+            "name": "own",
+            "source": "regex",
+            "group": 1,
+            "type": "string"
+          }
+        ],
         "contextModifiers": [],
         "scores": {
           "board_control": {
-            "value": "1.1 * @context.bcr.trigger",
-            "explanation": "Affects Tempo"
+            "value": "(@own== \"this\"? -1 : @own== \"your\"? -1 : 1)*1.1 * @context.bcr.trigger",
+            "explanation": "Affects Tempo (negatively if it's own characters)"
           }
         }
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
-      "lastModified": "2025-09-02T18:00:59.705Z"
+      "lastModified": "2025-10-29T08:58:44.051Z"
     },
     {
       "name": "Movement: To Location",
