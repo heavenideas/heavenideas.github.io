@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Disney Lorcana Card Analytics</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="unified_win_probability_utilities.js"></script>
+    <script src="card_stat_analysis_module.js"></script>
+    <script src="CardThreatLevelInspector.js"></script>
     <style>
         body {
             background-color: #1a1a1a;
@@ -142,6 +145,7 @@
             let allCards = [];
             let uniqueCards = [];
             let setsData = {};
+            let inspector = null;
 
             const inkColors = {
                 "Amber": "bg-yellow-400",
@@ -150,6 +154,15 @@
                 "Ruby": "bg-red-500",
                 "Sapphire": "bg-blue-500",
                 "Steel": "bg-gray-400"
+            };
+
+            const INK_COLORS = {
+                "Amber": "#fecb00",
+                "Amethyst": "#9333ea",
+                "Emerald": "#10b981",
+                "Ruby": "#ef4444",
+                "Sapphire": "#3b82f6",
+                "Steel": "#9ca3af"
             };
 
             async function fetchData() {
@@ -174,6 +187,9 @@
                     populateFilters();
                     renderStats();
                     loadingOverlay.style.display = 'none';
+
+                    // Initialize dependencies and inspector
+                    initializeInspector();
                 } catch (error) {
                     loadingText.textContent = 'Failed to load card data. Please try again later.';
                     console.error('Error fetching card data:', error);
@@ -398,8 +414,15 @@
                     const img = document.createElement('img');
                     img.src = card.images.thumbnail;
                     img.alt = card.fullName;
-                    img.className = 'rounded-lg w-full object-cover transition-transform duration-200 hover:scale-105';
+                    img.className = 'rounded-lg w-full object-cover transition-transform duration-200 hover:scale-105 cursor-pointer';
                     img.loading = 'lazy';
+                    img.addEventListener('click', () => {
+                        if (inspector) {
+                            inspector.showCard(card);
+                        } else {
+                            console.warn('Inspector not initialized yet');
+                        }
+                    });
                     modalGrid.appendChild(img);
                 });
 
@@ -419,6 +442,29 @@
                 }
             };
 
+
+            async function initializeInspector() {
+                try {
+                    // Load abilities configuration
+                    await UnifiedWinProbabiliyCalculation.loadAbilitiesConfig();
+
+                    // Initialize CardStatAnalysisModule
+                    CardStatAnalysisModule.initialize(allCards, INK_COLORS);
+
+                    // Create CardThreatLevelInspector instance
+                    inspector = new CardThreatLevelInspector({
+                        theme: 'dark',
+                        zIndex: 60, // Higher than the existing modal (which is 40)
+                        onClose: () => {
+                            console.log('Inspector closed');
+                        }
+                    });
+
+                    console.log('CardThreatLevelInspector initialized successfully');
+                } catch (error) {
+                    console.error('Failed to initialize inspector:', error);
+                }
+            }
 
             fetchData();
         });
