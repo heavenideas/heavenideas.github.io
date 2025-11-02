@@ -177,12 +177,13 @@
                     loadingText.textContent = 'Processing Data...';
                     
                     // Get unique cards (don't count variants/reprints of the same card)
-                    const seen = new Set();
-                    uniqueCards = allCards.filter(card => {
-                        const duplicate = seen.has(card.fullName);
-                        seen.add(card.fullName);
-                        return !duplicate;
+                    const uniqueCardsMap = new Map();
+                    allCards.forEach(card => {
+                        if (!uniqueCardsMap.has(card.fullName)) {
+                            uniqueCardsMap.set(card.fullName, card);
+                        }
                     });
+                    uniqueCards = Array.from(uniqueCardsMap.values());
 
                     populateFilters();
                     renderStats();
@@ -404,13 +405,10 @@
                     matchingCards = filteredCards.filter(c => c.rarity === value);
                 }
                 
-                const allMatchingVariants = allCards.filter(c => matchingCards.some(uc => uc.fullName === c.fullName));
-
-
-                modalTitle.textContent = `${value} Cards (${allMatchingVariants.length} total variants)`;
+                modalTitle.textContent = `${value} Cards (${matchingCards.length})`;
                 modalGrid.innerHTML = '';
-                
-                allMatchingVariants.forEach(card => {
+
+                matchingCards.forEach(card => {
                     const img = document.createElement('img');
                     img.src = card.images.thumbnail;
                     img.alt = card.fullName;
