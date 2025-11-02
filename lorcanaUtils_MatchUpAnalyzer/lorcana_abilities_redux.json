@@ -87,6 +87,26 @@
   },
   "abilities": [
     {
+      "name": "Keyword: Alert",
+      "category": "Keywords",
+      "sub_type": "Offensive",
+      "regex": "/(Alert) \\(/gi",
+      "explanation": "This character can challenge as if they\nhad Evasive",
+      "justification": "Not as good as being evasive",
+      "lastModified": "2025-11-02T11:27:58.013Z",
+      "createdAt": "2025-11-02T11:26:46.936Z",
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [],
+        "scores": {
+          "board_control": {
+            "value": "1.5",
+            "explanation": "Can Challange Evasive Characters"
+          }
+        }
+      }
+    },
+    {
       "name": "State: Can't be challenged",
       "category": "State",
       "sub_type": "Control",
