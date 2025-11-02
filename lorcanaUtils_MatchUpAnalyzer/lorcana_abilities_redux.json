@@ -61,7 +61,8 @@
       "Reckless": -1.2,
       "Rush": 1.75,
       "Singer": 1.25,
-      "Support": 1.25
+      "Support": 1.25,
+      "Alert": 1.25
     },
     "cardTypesMult": {
       "character": 0.73,
@@ -78,10 +79,11 @@
     "subtype": {
       "Storyborn": 0.5,
       "Hero": 0.26,
-      "Ally": 0.25,
+      "Ally": 0.26,
       "Dreamborn": 0.14,
       "Villain": 0.13,
       "Floodborn": 0.08,
+      "Sorcerer": 0.07,
       "Princess": 0.06
     }
   },
@@ -90,25 +92,37 @@
       "name": "Card Effect: Put card underneath",
       "category": "Card Effect",
       "sub_type": "",
-      "regex": "/put the top card of your deck facedown under this character/gi",
-      "explanation": "Part of boost",
+      "regex": "/put the top card of your deck facedown under (?:this|one of your) (?:characters?)? ?(?:or)? ?(?:locations?)? ?(with Boost)?/gi",
+      "explanation": "Part of boost or boost related abilities",
       "justification": "You loose a card, but you could recover so it should be better than inking in terms of the penalty",
-      "lastModified": "2025-11-02T12:05:50.202Z",
+      "lastModified": "2025-11-02T12:31:02.934Z",
       "createdAt": "2025-11-02T12:03:20.806Z",
       "calculation": {
-        "variables": [],
+        "variables": [
+          {
+            "name": "boost",
+            "source": "regex",
+            "group": 1,
+            "type": "string"
+          }
+        ],
         "contextModifiers": [],
-        "scores": {}
+        "scores": {
+          "resource_dominance": {
+            "value": "@context.rds.trigger * -0.25 * (@boost === \"with Boost\" ? 0.2 : 1 ) ",
+            "explanation": "Less than filtering to the bottom of your deck as you can recover this card more easily"
+          }
+        }
       }
     },
     {
       "name": "Condition: Card Underneath",
       "category": "Contion",
       "sub_type": "Card Underneath",
-      "regex": "/(character|location|item)? ?(with|if there's) a card under (she|her?|it|them|him)/gi",
+      "regex": "/(character|location|item)? ?(with|if there's|if (?:(?:she|her?|it|them|him) had)) a card under (she|her?|it|them|him)/gi",
       "explanation": "This applies to effects such as shift or boost",
       "justification": "By itself this just lower the potential of the ability this affects triggering.",
-      "lastModified": "2025-11-02T12:01:55.629Z",
+      "lastModified": "2025-11-02T12:23:57.915Z",
       "createdAt": "2025-11-02T11:42:32.742Z",
       "calculation": {
         "variables": [
@@ -839,7 +853,7 @@
       "name": "Card Effect: Put into hand",
       "category": "Resource",
       "sub_type": "Card Draw",
-      "regex": "/put (\\d+|a|one|two|three|it)(?: card)?s? into your hand/gi",
+      "regex": "/(?:you may reveal an? (character|location|song|action|item) card and)? put (\\d+|a|one|two|three|it)(?: card)?s? into your hand/gi",
       "value_type": "raw",
       "explanation": "Same as draw if you are putting into hand",
       "justification": "Card draw is the primary engine for resource advantage. (Put into Hand)",
@@ -848,21 +862,27 @@
           {
             "name": "putCount",
             "source": "regex",
-            "group": 1,
+            "group": "2",
             "type": "textOrNumber"
+          },
+          {
+            "name": "cardType",
+            "source": "regex",
+            "group": 1,
+            "type": "string"
           }
         ],
         "contextModifiers": [],
         "scores": {
           "resource_dominance": {
-            "value": "putCount * @cardDrawValue * @context.rds.trigger",
-            "explanation": "Draw (drawCount) * Card Draw Value (2.0) * Triggers",
+            "value": "putCount * @cardTypesMult[cardType] * @cardDrawValue * @context.rds.trigger",
+            "explanation": "Draw (drawCount) * Card Type * Card Draw Value (2.0) * Triggers",
             "condition": ""
           }
         }
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
-      "lastModified": "2025-09-02T18:00:59.705Z"
+      "lastModified": "2025-11-02T12:39:24.578Z"
     },
     {
       "name": "Trigger: This Character Banishes",
