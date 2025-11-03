@@ -83,11 +83,45 @@
       "Dreamborn": 0.14,
       "Villain": 0.13,
       "Floodborn": 0.08,
-      "Sorcerer": 0.07,
+      "Sorcerer": 0.06,
       "Princess": 0.06
     }
   },
   "abilities": [
+    {
+      "name": "State: Enters Play",
+      "category": "State",
+      "sub_type": "Enters Play",
+      "regex": "/this (?:item|character) enters play (exerted|with (\\d+) damage)/gi",
+      "explanation": "Characters/items that enter exerted have an inherent disadvantage. Also entering with damage is on it's own detrimental.",
+      "justification": "Entering play with damage or exerted should be a penalty",
+      "lastModified": "2025-11-03T22:52:46.955Z",
+      "createdAt": "2025-11-03T22:40:01.470Z",
+      "calculation": {
+        "variables": [
+          {
+            "name": "howEnters",
+            "source": "regex",
+            "group": 1,
+            "type": "string"
+          },
+          {
+            "name": "damage",
+            "source": "regex",
+            "group": "2",
+            "type": "textOrNumber"
+          }
+        ],
+        "contextModifiers": [],
+        "scores": {
+          "board_control": {
+            "condition": "",
+            "value": "@howEnters === \"exerted\" ? -0.5 : -@damage/@card.willpower",
+            "explanation": "Entering exerted or having damage has a penalty"
+          }
+        }
+      }
+    },
     {
       "name": "Card Effect: Put card underneath",
       "category": "Card Effect",
@@ -117,12 +151,12 @@
     },
     {
       "name": "Condition: Card Underneath",
-      "category": "Contion",
+      "category": "Condition",
       "sub_type": "Card Underneath",
       "regex": "/(character|location|item)? ?(with|if there's|if (?:(?:she|her?|it|them|him) had)) a card under (she|her?|it|them|him)/gi",
       "explanation": "This applies to effects such as shift or boost",
       "justification": "By itself this just lower the potential of the ability this affects triggering.",
-      "lastModified": "2025-11-02T12:23:57.915Z",
+      "lastModified": "2025-11-03T22:41:36.805Z",
       "createdAt": "2025-11-02T11:42:32.742Z",
       "calculation": {
         "variables": [
@@ -146,12 +180,12 @@
     },
     {
       "name": "Keyword: Alert",
-      "category": "Keywords",
+      "category": "Keyword",
       "sub_type": "Offensive",
       "regex": "/(Alert) \\(/gi",
       "explanation": "This character can challenge as if they\nhad Evasive",
       "justification": "Not as good as being evasive",
-      "lastModified": "2025-11-02T11:27:58.013Z",
+      "lastModified": "2025-11-03T22:41:48.244Z",
       "createdAt": "2025-11-02T11:26:46.936Z",
       "calculation": {
         "variables": [],

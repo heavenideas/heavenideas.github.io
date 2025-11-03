@@ -358,13 +358,41 @@ class CardThreatLevelInspector {
             return '<p class="text-gray-400">No specific abilities found. Scores based on stats.</p>';
         }
 
-        return metrics.breakdown.map(item => `
-            <div class="bg-gray-700 p-3 rounded-lg">
-                <p class="font-bold text-purple-400">${item.abilityName}</p>
-                <p class="text-sm">Contributes <span class="font-mono">${item.value.toFixed(2)}</span> to <span class="font-semibold">${item.metric.replace(/_/g, ' ')}</span></p>
-                <p class="text-xs text-gray-400 mt-1">${item.explanation}</p>
-            </div>
-        `).join('');
+        return metrics.breakdown.map(item => {
+            // Extract ability number from ability name if present
+            let abilityNumber = null;
+            const abilityMatch = item.abilityName.match(/\(Ability (\d+)\)/);
+            if (abilityMatch) {
+                abilityNumber = parseInt(abilityMatch[1]);
+            }
+
+            const colorClass = abilityNumber ? this.getAbilityColorClass(abilityNumber) : 'text-orange-400';
+
+            return `
+                <div class="bg-gray-700 p-3 rounded-lg">
+                    <p class="font-bold ${colorClass}">${item.abilityName}</p>
+                    <p class="text-sm">Contributes <span class="font-mono">${item.value.toFixed(2)}</span> to <span class="font-semibold">${item.metric.replace(/_/g, ' ')}</span></p>
+                    <p class="text-xs text-gray-400 mt-1">${item.explanation}</p>
+                </div>
+            `;
+        }).join('');
+    }
+
+    /**
+     * Get color class for ability number
+     */
+    getAbilityColorClass(abilityNumber) {
+        const colors = [
+            'text-purple-400', // Ability 1
+            'text-sky-400',    // Ability 2
+            'text-amber-400',  // Ability 3
+            'text-rose-400',   // Ability 4
+            'text-emerald-400', // Ability 5
+            'text-indigo-400',  // Ability 6
+            'text-orange-400',  // Ability 7
+            'text-pink-400'     // Ability 8
+        ];
+        return colors[(abilityNumber - 1) % colors.length];
     }
 
     /**
@@ -382,14 +410,20 @@ class CardThreatLevelInspector {
         const sanitizedText = originalText.replace(/\n/g, ' ');
         let allMatches = [];
         const abilitiesConfig = this.options.unifiedWinProbabilityCalculation.getAbilitiesConfig();
-        
+
         if (!abilitiesConfig || !abilitiesConfig.abilities) {
             return { highlightedHtml: originalText.replace(/\n/g, '<br>'), foundPatterns: new Set() };
         }
-        
+
+        // Create ability index map for consistent coloring
+        const abilityIndexMap = new Map();
+        abilitiesConfig.abilities.forEach((pattern, index) => {
+            abilityIndexMap.set(pattern.name, index + 1);
+        });
+
         abilitiesConfig.abilities.forEach(pattern => {
             if (!pattern.regex) return;
-            
+
             try {
                 const lastSlash = pattern.regex.lastIndexOf('/');
                 if (lastSlash <= 0) return;
@@ -397,15 +431,16 @@ class CardThreatLevelInspector {
                 const regexBody = pattern.regex.substring(1, lastSlash);
                 const flags = pattern.regex.substring(lastSlash + 1);
                 const regex = new RegExp(regexBody, flags);
-                
+
                 let match;
                 while ((match = regex.exec(sanitizedText)) !== null) {
                     if (match[0].length === 0) continue;
-                    allMatches.push({ 
-                        name: pattern.name, 
-                        text: match[0], 
-                        start: match.index, 
-                        end: match.index + match[0].length 
+                    allMatches.push({
+                        name: pattern.name,
+                        abilityNumber: abilityIndexMap.get(pattern.name),
+                        text: match[0],
+                        start: match.index,
+                        end: match.index + match[0].length
                     });
                 }
             } catch (e) {
@@ -421,20 +456,18 @@ class CardThreatLevelInspector {
 
         let highlightedHtml = "";
         let lastIndex = 0;
-        const colorPool = ['#fef9c3', '#dbeafe', '#dcfce7', '#fee2e2', '#e0f2fe', '#f3e8ff'];
-        let colorIndex = 0;
-        
+
         filteredMatches.forEach(match => {
             highlightedHtml += originalText.substring(lastIndex, match.start);
-            const color = colorPool[colorIndex++ % colorPool.length];
-            highlightedHtml += `<span style="background-color: ${color}; padding: 2px 4px; border-radius: 4px; font-weight: 600; color: #1e293b;" title="${match.name}">${match.text}</span>`;
+            const colorClass = this.getAbilityColorClass(match.abilityNumber);
+            highlightedHtml += `<span class="${colorClass} font-bold" title="${match.name} (Ability ${match.abilityNumber})">${match.text}</span>`;
             lastIndex = match.end;
         });
         highlightedHtml += originalText.substring(lastIndex);
-        
-        return { 
-            highlightedHtml: highlightedHtml.replace(/\n/g, '<br>'), 
-            foundPatterns: new Set(filteredMatches.map(m => m.name)) 
+
+        return {
+            highlightedHtml: highlightedHtml.replace(/\n/g, '<br>'),
+            foundPatterns: new Set(filteredMatches.map(m => m.name))
         };
     }
 
