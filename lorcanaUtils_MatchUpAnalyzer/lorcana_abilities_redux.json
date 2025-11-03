@@ -89,6 +89,63 @@
   },
   "abilities": [
     {
+      "name": "Trigger: Card Under",
+      "category": "Trigger",
+      "sub_type": "Card Under",
+      "regex": "/Whenever you put a card under (this|one of your) ?(characters?)? (or)? ?(locations?)?/gi",
+      "explanation": "Whenever you put a card under another card",
+      "justification": "Adding Cards under another card might not be trivial to do",
+      "lastModified": "2025-11-03T23:31:38.095Z",
+      "createdAt": "2025-11-03T23:26:33.690Z",
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [
+          {
+            "targetMetric": "all",
+            "name": "trigger",
+            "operation": "multiply",
+            "value": "0.75"
+          }
+        ],
+        "scores": {}
+      }
+    },
+    {
+      "name": "Keyword: Vanish",
+      "category": "Keyword",
+      "sub_type": "Vanish",
+      "regex": "/(Vanish) \\(/gi",
+      "explanation": "When an opponent chooses this character\nfor an action, banish them.",
+      "justification": "Vanish makes characters vulnerable",
+      "lastModified": "2025-11-03T23:01:35.080Z",
+      "createdAt": "2025-11-03T23:00:04.475Z",
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [],
+        "scores": {
+          "board_control": {
+            "value": "-0.5",
+            "explanation": "Vanish makes character vulnerable"
+          }
+        }
+      }
+    },
+    {
+      "name": "Boost",
+      "category": "Keyword",
+      "sub_type": "Boost",
+      "regex": "/(Boost) \\d+ ⬡ \\(/gi",
+      "explanation": "TBD",
+      "justification": "TBD",
+      "lastModified": "2025-11-03T23:05:16.408Z",
+      "createdAt": "2025-11-03T22:59:50.623Z",
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [],
+        "scores": {}
+      }
+    },
+    {
       "name": "State: Enters Play",
       "category": "State",
       "sub_type": "Enters Play",
@@ -116,7 +173,7 @@
         "scores": {
           "board_control": {
             "condition": "",
-            "value": "@howEnters === \"exerted\" ? -0.5 : -@damage/@card.willpower",
+            "value": "@howEnters === 'exerted' ? -0.5 : -@damage/@card.willpower",
             "explanation": "Entering exerted or having damage has a penalty"
           }
         }
@@ -129,7 +186,7 @@
       "regex": "/put the top card of your deck facedown under (?:this|one of your) (?:characters?)? ?(?:or)? ?(?:locations?)? ?(with Boost)?/gi",
       "explanation": "Part of boost or boost related abilities",
       "justification": "You loose a card, but you could recover so it should be better than inking in terms of the penalty",
-      "lastModified": "2025-11-02T12:31:02.934Z",
+      "lastModified": "2025-11-03T23:38:22.198Z",
       "createdAt": "2025-11-02T12:03:20.806Z",
       "calculation": {
         "variables": [
@@ -143,7 +200,7 @@
         "contextModifiers": [],
         "scores": {
           "resource_dominance": {
-            "value": "@context.rds.trigger * -0.25 * (@boost === \"with Boost\" ? 0.2 : 1 ) ",
+            "value": "@context.rds.trigger * -0.25 * (@boost === 'with Boost' ? 0.2 : 1 ) ",
             "explanation": "Less than filtering to the bottom of your deck as you can recover this card more easily"
           }
         }
@@ -327,10 +384,10 @@
       "name": "Condition: Pay",
       "category": "Condition",
       "sub_type": "Pay",
-      "regex": "/\\s+you may pay (\\d+) (?:⬡|ink) to/gi",
+      "regex": "/\\s+you may pay (\\d+) (?:⬡|ink)/gi",
       "explanation": "Paying ink it does the opposite of cheating ink",
       "justification": "opposite of cheating ink",
-      "lastModified": "2025-09-02T21:28:06.461Z",
+      "lastModified": "2025-11-03T23:35:40.898Z",
       "createdAt": "2025-09-02T21:15:49.903Z",
       "calculation": {
         "variables": [
@@ -344,7 +401,7 @@
         "contextModifiers": [],
         "scores": {
           "resource_dominance": {
-            "value": "-1.0 * payCost * @context.rds.trigger"
+            "value": "-1.0 * @payCost * @context.rds.trigger"
           }
         }
       },
@@ -488,7 +545,7 @@
         "contextModifiers": [],
         "scores": {
           "resource_dominance": {
-            "value": "@keywords[auraGained] * (@opposing === \"opposing\" ? -1.0 : 1.0)",
+            "value": "@keywords[auraGained] * (@opposing === 'opposing' ? -1.0 : 1.0)",
             "explanation": "Giving different keywords to characters can be beneficial"
           }
         }
@@ -647,26 +704,33 @@
       "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
-      "name": "Condition: Has No Damage",
+      "name": "Condition: Has No Damage or Not",
       "category": "Condition",
       "sub_type": "Damage",
-      "regex": "/(?:if|while) (?:this character|it|he|she) has no damage/gi",
-      "explanation": "Having no damage can be powerful as both when you play and with synergies of removal of damage",
-      "justification": "Guaranteed on play, with high potential to be recurring",
+      "regex": "/(?:if|while) (?:this character|it|he|she) has (no)? ?damage/gi",
+      "explanation": "Having or not having damage can be powerful as both when you play and with synergies of removal of damage.",
+      "justification": "Having no damage is easy to trigger (x1.75), having damage should be a penalty multiplier (x0.5).",
       "calculation": {
-        "variables": [],
+        "variables": [
+          {
+            "name": "no",
+            "source": "regex",
+            "group": 1,
+            "type": "string"
+          }
+        ],
         "contextModifiers": [
           {
             "targetMetric": "all",
             "name": "trigger",
             "operation": "multiply",
-            "value": "1.75"
+            "value": "@no === 'no' ? 1.75 : 0.5"
           }
         ],
         "scores": {}
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
-      "lastModified": "2025-09-02T18:00:59.705Z"
+      "lastModified": "2025-11-03T23:12:54.575Z"
     },
     {
       "name": "Trigger: Start/End Turn",
@@ -1802,22 +1866,35 @@
       "name": "Damage: Deal to One",
       "category": "Board Control",
       "sub_type": "Direct Damage",
-      "regex": "/(Deal|move)(?: up to)? (\\d+)?(:? )?damage( counters?)?( from (chosen|another|another chosen)?( character| location| character or location)?( of yours)?)? to (chosen|another|another chosen) (?:opposing )?(character|location|character or location)(?! of yours)(?: with \\d+ (?:¤|⬡|⛉) or (?:less|more))?/gi",
+      "regex": "/(Deal|move)(?: up to)? (\\d+)? ?damage(?: counters?)?(?: from (chosen|another|another chosen)?(?: character| location| character or location)?(?: of yours)?)? to (?:chosen|another|another chosen) (?:opposing )?(?:character|location|character or location)(?! of yours)(?: with \\d+ (?:¤|⬡|⛉) or (?:less|more))?/gi",
       "value_type": "raw",
       "explanation": "Deals a specified amount of damage to a single opposing card.",
       "justification": "A flexible form of removal that can banish weakened cards.",
       "calculation": {
-        "variables": [],
+        "variables": [
+          {
+            "name": "moveOrDeal",
+            "source": "regex",
+            "group": 1,
+            "type": "string"
+          },
+          {
+            "name": "damageAmount",
+            "source": "regex",
+            "group": "2",
+            "type": "textOrNumber"
+          }
+        ],
         "contextModifiers": [],
         "scores": {
           "board_control": {
-            "value": "4.0 * @context.bcr.trigger",
+            "value": "4.0 * (@moveOrDeal === 'move' ? 2 : 1) * damageAmount * @context.bcr.trigger",
             "explanation": "Deal Damage to one"
           }
         }
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
-      "lastModified": "2025-09-02T18:00:59.705Z"
+      "lastModified": "2025-11-03T23:20:06.385Z"
     },
     {
       "name": "Damage: Put Damage Counters",
@@ -1893,7 +1970,7 @@
         "contextModifiers": [],
         "scores": {
           "board_control": {
-            "value": "4.0 * @context.bcr.trigger",
+            "value": "4.0 * (@moveOrDeal === 'move' ? 2 : 1) * damageAmount * 2 * @context.bcr.trigger",
             "explanation": "Deal Damage"
           }
         }
