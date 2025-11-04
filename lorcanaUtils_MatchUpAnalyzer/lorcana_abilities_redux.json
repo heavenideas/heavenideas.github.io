@@ -180,13 +180,13 @@
       }
     },
     {
-      "name": "Card Effect: Put card underneath",
+      "name": "Card Effect: Put card under",
       "category": "Card Effect",
       "sub_type": "",
       "regex": "/put the top card of your deck facedown under (?:this|one of your) (?:characters?)? ?(?:or)? ?(?:locations?)? ?(with Boost)?/gi",
       "explanation": "Part of boost or boost related abilities",
       "justification": "You loose a card, but you could recover so it should be better than inking in terms of the penalty",
-      "lastModified": "2025-11-03T23:38:22.198Z",
+      "lastModified": "2025-11-03T23:41:59.343Z",
       "createdAt": "2025-11-02T12:03:20.806Z",
       "calculation": {
         "variables": [
@@ -207,13 +207,13 @@
       }
     },
     {
-      "name": "Condition: Card Underneath",
+      "name": "Condition: Card Under",
       "category": "Condition",
       "sub_type": "Card Underneath",
       "regex": "/(character|location|item)? ?(with|if there's|if (?:(?:she|her?|it|them|him) had)) a card under (she|her?|it|them|him)/gi",
       "explanation": "This applies to effects such as shift or boost",
       "justification": "By itself this just lower the potential of the ability this affects triggering.",
-      "lastModified": "2025-11-03T22:41:36.805Z",
+      "lastModified": "2025-11-03T23:42:11.355Z",
       "createdAt": "2025-11-02T11:42:32.742Z",
       "calculation": {
         "variables": [
@@ -565,7 +565,7 @@
         "contextModifiers": [],
         "scores": {
           "board_control": {
-            "value": "@bcr.highStrengthMult * (@card.strength - @bcr.highStrengthThreshold)",
+            "value": "@bcr.highStrengthMult * (@card.strength - @bcr.highStrengthThreshold +1)",
             "condition": "@card.strength >= @bcr.highStrengthThreshold"
           }
         }
@@ -1052,10 +1052,10 @@
       "lastModified": "2025-09-09T09:17:41.035Z"
     },
     {
-      "name": "Trigger: You Play an Card Type",
+      "name": "Trigger: Play a Card Type",
       "category": "Trigger",
       "sub_type": "Play Card Type",
-      "regex": "/When(?:ever)? you play (?:an|a|another) (action|song|item|character|location)/gi",
+      "regex": "/When(?:ever)? (you|an opponent) plays? (?:an|a|another) (action|song|item|character|location)/gi",
       "value_type": "raw",
       "explanation": "This ability triggers whenever you play a card of a 'specific' type.",
       "justification": "Trigger: You Play an Card Type -> Its reliability is conditional and therefore it should be a multiplier that reduces the reliability of whatever it's triggering",
@@ -1063,6 +1063,12 @@
         "variables": [
           {
             "name": "cardType",
+            "source": "regex",
+            "group": "2",
+            "type": "string"
+          },
+          {
+            "name": "opponent",
             "source": "regex",
             "group": 1,
             "type": "string"
@@ -1079,7 +1085,7 @@
         "scores": {}
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
-      "lastModified": "2025-09-09T09:18:11.238Z"
+      "lastModified": "2025-11-04T00:12:38.965Z"
     },
     {
       "name": "Keyword: Shift (Normal)",
@@ -1921,7 +1927,7 @@
       "name": "Damage: Deal to Many",
       "category": "Board Control",
       "sub_type": "Area of Effect",
-      "regex": "/(deal|move)(?: up to)? (\\d+) damage ?(?:counters?)? to (?:each|up to (\\d+))? ?(?:opposing|chosen) (characters?|locations?)/gi",
+      "regex": "/(deal|move)(?: up to)? (\\d+) damage ?(?:counters?)? to (each|up to (\\d+)) ?(?:opposing|chosen) (characters?|locations?)/gi",
       "value_type": "raw",
       "explanation": "Deals or moves damage to all opposing characters or locations.",
       "justification": "An area-of-effect (AoE) ability that can control wide boards.",
@@ -1942,20 +1948,26 @@
           {
             "name": "numberOfCharacters",
             "source": "regex",
-            "group": "3",
+            "group": "4",
             "type": "textOrNumber"
+          },
+          {
+            "name": "each",
+            "source": "regex",
+            "group": "3",
+            "type": "string"
           }
         ],
         "contextModifiers": [],
         "scores": {
           "board_control": {
-            "value": "4.0 * (@moveOrDeal === 'move' ? 2 : 1) * damageAmount *numberOfCharacters* @context.bcr.trigger",
+            "value": "4.0 * (@moveOrDeal === 'move' ? 2 : 1) * damageAmount * (@each === 'each' ? 3 : numberOfCharacters ) * @context.bcr.trigger",
             "explanation": "Deal Damage to multiple characters"
           }
         }
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
-      "lastModified": "2025-11-02T11:59:39.831Z"
+      "lastModified": "2025-11-04T00:03:40.341Z"
     },
     {
       "name": "Damage: Deal Divided",
@@ -2010,7 +2022,7 @@
       "name": "Damage: Deal to Self",
       "category": "Board Control",
       "sub_type": "Cost",
-      "regex": "/(?:Deal|move)(?: up to)? (\\d+)?(:? )?damage( counters)?( from (chosen|another|another chosen)?( character| location| character or location)?( of yours)?)? to (chosen|another|another chosen) (?:opposing )?(character|location|character or location)( of yours)(?: with \\d+ (?:¤|⬡|⛉) or (?:less|more))?/gi",
+      "regex": "(?:Deal|move)(?: up to)? (\\d+)?(:? )?damage( counters)?( from (chosen|another|another chosen)?( character| location| character or location)?( of yours)?)? to (chosen|another|another chosen)? ?(?:opposing )?(character|location|character or location)? ?(of yours|this character)",
       "value_type": "raw",
       "explanation": "One of your own cards takes damage, usually as a cost or effect.",
       "justification": "Has potential to remove one of your characters.",
@@ -2032,7 +2044,7 @@
         }
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
-      "lastModified": "2025-09-02T18:00:59.705Z"
+      "lastModified": "2025-11-03T23:57:21.881Z"
     },
     {
       "name": "State: Ready Character",
