@@ -2126,7 +2126,7 @@
       "name": "State: Prevent Readying",
       "category": "State",
       "sub_type": "Control",
-      "regex": "/(chosen (?:opposing )|this|your) ?characters? can't ready ?(?:at the start of (?:their|your) next turn)?/gi",
+      "regex": "/(chosen (?:opposing )|this|your|they) ?characters? can't ready ?(?:at the start of (?:their|your) next turn)?/gi",
       "value_type": "raw",
       "explanation": "Prevents an opponent's character from readying.",
       "justification": "A stronger form of soft removal.",
@@ -2142,13 +2142,13 @@
         "contextModifiers": [],
         "scores": {
           "board_control": {
-            "value": "(@own== \"this\"? -1 : @own== \"your\"? -1 : 1)*1.1 * @context.bcr.trigger",
+            "value": "(@own== 'this'? -1 : @own== 'your'? -1 : 1)*1.1 * @context.bcr.trigger",
             "explanation": "Affects Tempo (negatively if it's own characters)"
           }
         }
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
-      "lastModified": "2025-10-29T08:58:44.051Z"
+      "lastModified": "2025-11-04T01:00:30.558Z"
     },
     {
       "name": "Movement: To Location",
