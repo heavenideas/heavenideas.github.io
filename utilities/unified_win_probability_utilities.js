@@ -94,7 +94,7 @@ const UnifiedWinProbabiliyCalculation = (function() {
         if (typeof text === 'number') return text;
         if (!text || typeof text !== 'string') return 0;
         const lowerText = text.toLowerCase().trim();
-        const wordMap = { 'it': 1, 'another': 1, 'an': 1, 'a': 1, 'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5, 'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10, 'all':10 };
+        const wordMap = { 'he':1, 'she':1, 'him':1, 'chosen':1, 'it': 1, 'another': 1, 'an': 1, 'a': 1, 'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5, 'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10, 'all':10 };
         if (wordMap[lowerText] !== undefined) {
             return wordMap[lowerText];
         }
