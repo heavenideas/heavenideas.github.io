@@ -330,7 +330,7 @@
                     cardDataMap.set(card.simpleName.toLowerCase().trim(), card);
                 });
 
-                CardStatAnalysisModule.initialize(allCards, INK_COLORS);
+                CardStatAnalysisModule.initialize(allCards, INK_COLORS, UnifiedWinProbabiliyCalculation);
 
                 // Initialize Card Threat Level Inspector
                 cardThreatInspector = new CardThreatLevelInspector({

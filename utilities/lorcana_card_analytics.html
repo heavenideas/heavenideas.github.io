@@ -449,6 +449,21 @@
                     // Initialize CardStatAnalysisModule
                     CardStatAnalysisModule.initialize(allCards, INK_COLORS, UnifiedWinProbabiliyCalculation);
 
+                    // Setup threshold slider event listener for dynamic updates
+                    document.addEventListener('input', (e) => {
+                        if (e.target.id === 'similarity-threshold') {
+                            const newThreshold = parseFloat(e.target.value);
+                            const container = e.target.closest('.modal-content') || document.querySelector('.modal-content');
+                            if (container) {
+                                // Find the currently analyzed card from the inspector
+                                const currentCard = inspector.originalCard || allCards.find(c => c.fullName === document.querySelector('.modal-content h3')?.textContent?.split(' vs ')[0]);
+                                if (currentCard) {
+                                    CardStatAnalysisModule.updateThreshold(newThreshold, currentCard, container);
+                                }
+                            }
+                        }
+                    });
+
                     // Create CardThreatLevelInspector instance
                     inspector = new CardThreatLevelInspector({
                         theme: 'dark',

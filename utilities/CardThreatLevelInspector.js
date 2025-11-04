@@ -22,6 +22,8 @@ class CardThreatLevelInspector {
         
         this.modal = null;
         this.isInitialized = false;
+        this.comparisonMode = false;
+        this.originalCard = null;
         
         // Auto-detect dependencies if not provided
         if (!this.options.cardStatAnalysisModule && typeof CardStatAnalysisModule !== 'undefined') {
@@ -58,11 +60,15 @@ class CardThreatLevelInspector {
      */
     showCard(card, options = {}) {
         this.initialize();
-        
+
         if (!this.validateCard(card)) {
             console.error('Invalid card object provided to CardThreatLevelInspector');
             return;
         }
+
+        // Reset to single card mode
+        this.comparisonMode = false;
+        this.originalCard = null;
 
         const modalContent = this.getInspectorHtml(card, 'single');
         this.showModal(`Card Threat Level Inspector`, modalContent);
@@ -79,7 +85,7 @@ class CardThreatLevelInspector {
      */
     compareCards(cards, options = {}) {
         this.initialize();
-        
+
         if (!Array.isArray(cards) || cards.length < 2) {
             console.error('compareCards requires an array of at least 2 cards');
             return;
@@ -95,10 +101,47 @@ class CardThreatLevelInspector {
             return;
         }
 
+        // Set comparison mode
+        this.comparisonMode = true;
+        this.originalCard = cards[0]; // Store first card as original for context
+
         const modalTitle = `Card Comparison (${cards.length} cards)`;
         const modalContent = this.getMultiCardComparisonHtml(cards);
         this.showModal(modalTitle, modalContent);
         this.setupMultiCardEventListeners(this.modal.querySelector('.tab-content'), cards);
+    }
+
+    /**
+     * Switch the existing inspector modal to comparison mode
+     * @param {Object} originalCard - The original card being analyzed
+     * @param {Object} comparisonCard - The card to compare against
+     */
+    switchToComparisonMode(originalCard, comparisonCard) {
+        if (!this.modal) return;
+
+        // Set comparison mode state
+        this.comparisonMode = true;
+        this.originalCard = originalCard;
+
+        // Update modal title
+        const titleElement = this.modal.querySelector('h3');
+        if (titleElement) {
+            titleElement.textContent = `Card Comparison: ${originalCard.fullName} vs ${comparisonCard.fullName}`;
+        }
+
+        // Update modal content to comparison layout
+        const modalContent = this.modal.querySelector('.modal-content');
+        if (modalContent) {
+            const comparisonContent = this.getMultiCardComparisonHtml([originalCard, comparisonCard]);
+            modalContent.innerHTML = comparisonContent;
+            this.setupMultiCardEventListeners(this.modal.querySelector('.tab-content'), [originalCard, comparisonCard]);
+        }
+
+        // Close drill-down modal if it exists
+        const drilldownContainer = document.getElementById('drilldown-modal-container');
+        if (drilldownContainer) {
+            drilldownContainer.innerHTML = '';
+        }
     }
 
     /**
@@ -109,14 +152,16 @@ class CardThreatLevelInspector {
             this.modal.remove();
             this.modal = null;
         }
-        
+
         // Remove drilldown container
         const drilldownContainer = document.getElementById('drilldown-modal-container');
         if (drilldownContainer) {
             drilldownContainer.remove();
         }
-        
+
         this.isInitialized = false;
+        this.comparisonMode = false;
+        this.originalCard = null;
     }
 
     /**
@@ -342,7 +387,7 @@ class CardThreatLevelInspector {
             return '<div class="text-center text-gray-400 py-8">CardStatAnalysisModule not available</div>';
         }
 
-        return this.options.cardStatAnalysisModule.renderCompleteAnalysis(card, { threshold: 0.1 });
+        return this.options.cardStatAnalysisModule.renderCompleteAnalysis(card);
     }
 
     /**
@@ -519,7 +564,6 @@ class CardThreatLevelInspector {
         // Use setTimeout to ensure DOM is fully rendered
         setTimeout(() => {
             this.setupStatClickHandlers(container, card);
-            this.setupThresholdSlider(container, card);
         }, 10);
     }
 
@@ -605,7 +649,7 @@ class CardThreatLevelInspector {
                 const statItem = event.target.closest('.stat-item');
                 if (statItem) {
                     this.options.cardStatAnalysisModule.handleStatItemClick(event, card, (criteria, title, analyzedCard, colorFilter) => {
-                        this.showDrillDownModal(criteria, title, analyzedCard, colorFilter);
+                        this.showDrillDownModal(criteria, title, analyzedCard, colorFilter, this.originalCard || card);
                     });
                 }
             });
@@ -624,37 +668,17 @@ class CardThreatLevelInspector {
             // Add new listener
             newItem.addEventListener('click', (event) => {
                 this.options.cardStatAnalysisModule.handleStatItemClick(event, card, (criteria, title, analyzedCard, colorFilter) => {
-                    this.showDrillDownModal(criteria, title, analyzedCard, colorFilter);
+                    this.showDrillDownModal(criteria, title, analyzedCard, colorFilter, this.originalCard || card);
                 });
             });
         });
     }
 
-    /**
-     * Setup threshold slider event listeners
-     */
-    setupThresholdSlider(container, card) {
-        if (!this.options.cardStatAnalysisModule) return;
-
-        const thresholdSlider = container.querySelector('#similarity-threshold');
-        if (thresholdSlider) {
-            thresholdSlider.addEventListener('input', (e) => {
-                const newThreshold = parseFloat(e.target.value);
-                // Update the threshold value display
-                const thresholdValueEl = container.querySelector('#threshold-value');
-                if (thresholdValueEl) {
-                    thresholdValueEl.textContent = newThreshold.toFixed(1);
-                }
-                // Update the analysis with new threshold
-                this.options.cardStatAnalysisModule.updateThreshold(newThreshold, card, container);
-            });
-        }
-    }
 
     /**
      * Show drill-down modal for stat analysis
      */
-    showDrillDownModal(criteria, title, analyzedCard, colorFilter) {
+    showDrillDownModal(criteria, title, analyzedCard, colorFilter, originalCard = null) {
         if (!this.options.cardStatAnalysisModule) return;
 
         const container = document.getElementById('drilldown-modal-container');
@@ -670,20 +694,35 @@ class CardThreatLevelInspector {
                     <div id="drilldown-content" class="flex-grow overflow-y-auto px-6 pb-6" style="scrollbar-width: thin; scrollbar-color: #4a4a4a #2d2d2d;"></div>
                 </div>
             </div>`;
-        
+
         container.innerHTML = modalHtml;
-        
+
         const matchingCards = this.options.cardStatAnalysisModule.findMatchingCards(criteria, analyzedCard);
         let cardsToShow = criteria.type === 'static' ? matchingCards.filter(c => c.id !== analyzedCard.id) : matchingCards;
-        
+
         if (colorFilter) {
             cardsToShow = cardsToShow.filter(c => this.options.cardStatAnalysisModule.getCardColors(c).includes(colorFilter));
         }
-        
+
         const contentEl = container.querySelector('#drilldown-content');
-        contentEl.innerHTML = cardsToShow.length === 0 
-            ? '<div class="text-center text-gray-400 py-8">No matching cards found.</div>'
-            : `<div class="flex flex-wrap justify-center gap-2">${cardsToShow.map(card => `<img src="${card.images.thumbnail}" alt="${card.fullName}" class="w-24 rounded-md" title="${card.fullName}">`).join('')}</div>`;
+        if (cardsToShow.length === 0) {
+            contentEl.innerHTML = '<div class="text-center text-gray-400 py-8">No matching cards found.</div>';
+        } else {
+            contentEl.innerHTML = `<div class="flex flex-wrap justify-center gap-2">${cardsToShow.map(card =>
+                `<img src="${card.images.thumbnail}" alt="${card.fullName}" class="w-24 rounded-md cursor-pointer hover:scale-105 transition-transform" title="${card.fullName}" data-card-id="${card.id}">`
+            ).join('')}</div>`;
+
+            // Add click handlers for card comparison
+            contentEl.querySelectorAll('img[data-card-id]').forEach(img => {
+                img.addEventListener('click', () => {
+                    const cardId = img.getAttribute('data-card-id');
+                    const clickedCard = cardsToShow.find(c => String(c.id) === String(cardId));
+                    if (clickedCard && originalCard) {
+                        this.switchToComparisonMode(originalCard, clickedCard);
+                    }
+                });
+            });
+        }
 
         container.querySelector('#close-drilldown-btn').addEventListener('click', () => {
             container.innerHTML = '';

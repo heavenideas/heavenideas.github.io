@@ -95,7 +95,7 @@
                 };
 
                 // Initialize module
-                CardStatAnalysisModule.initialize(mockCards, mockColors);
+                CardStatAnalysisModule.initialize(mockCards, mockColors, UnifiedWinProbabiliyCalculation);
 
                 // Test analysis
                 const analysisHtml = CardStatAnalysisModule.renderIdenticalStatsProfile(mockCards[0]);

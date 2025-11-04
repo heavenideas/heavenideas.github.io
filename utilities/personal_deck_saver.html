@@ -1552,7 +1552,7 @@ FORMAT YOUR RESPONSE as a structured, professional guide with clear headings. In
                     cardFuse = new Fuse(allCards, { keys: ['fullName', 'simpleName', 'name', 'title'], includeScore: true, threshold: 0.3 });
 
                     // Initialize the CardStatAnalysisModule
-                    CardStatAnalysisModule.initialize(allCards, INK_COLORS);
+                    CardStatAnalysisModule.initialize(allCards, INK_COLORS, UnifiedWinProbabiliyCalculation);
 
                     await UnifiedWinProbabiliyCalculation.loadAbilitiesConfig(); // Load abilities for CTL scores
 

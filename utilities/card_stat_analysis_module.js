@@ -200,23 +200,8 @@ const CardStatAnalysisModule = (function() {
     function renderCombatAnalysis(card, options = {}) {
         if (card.type !== 'Character') return '';
 
-        const threshold = options.threshold || 0.1;
         const statsToCompare = ['strength', 'willpower', 'lore'];
-        let html = `<div class="analysis-section"><h3>Combat & Stat Analysis</h3>`;
-
-        // Threshold slider
-        html += `
-            <div class="threshold-control" style="margin-bottom: 1rem; padding: 1rem; background: #2d2d2d; border-radius: 8px; border: 1px solid #5a5a5a;">
-                <label for="similarity-threshold" style="display: block; margin-bottom: 0.5rem; font-weight: bold; color: #a78bfa;">Similarity Threshold: <span id="threshold-value">${threshold.toFixed(1)}</span></label>
-                <input type="range" id="similarity-threshold" min="0.1" max="5.0" step="0.1" value="${threshold}" style="width: 100%; accent-color: #a78bfa;">
-                <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: #9ca3af; margin-top: 0.25rem;">
-                    <span>0.1</span>
-                    <span>5.0</span>
-                </div>
-            </div>
-        `;
-
-        html += `<div class="stat-grid">`;
+        let html = `<div class="analysis-section"><h3>Combat & Stat Analysis</h3><div class="stat-grid">`;
 
         statsToCompare.forEach(stat => {
             // MORE THAN
@@ -357,7 +342,7 @@ const CardStatAnalysisModule = (function() {
         if (unifiedWinProbabilityCalculation) {
             const metrics = unifiedWinProbabilityCalculation.calculateCardMetrics(card);
             const ctl = metrics.rds + metrics.lvi + metrics.bcr;
-            const similarCtlCriteria = { type: 'similar', metric: 'ctl', threshold: threshold };
+            const similarCtlCriteria = { type: 'similar', metric: 'ctl', threshold: 0.1 };
             const similarCtlCards = findMatchingCards(similarCtlCriteria, card);
             const similarCtlPercentage = ((similarCtlCards.length / totalCharacterCount) * 100).toFixed(1);
             const similarCtlBreakdown = countByColor(similarCtlCards);
@@ -366,12 +351,12 @@ const CardStatAnalysisModule = (function() {
 
             html += `
                 <div class="stat-item" data-criteria='${JSON.stringify(similarCtlCriteria)}'>
-                    <div class="stat-item-header">Similar CTL (±${threshold})</div>
+                    <div class="stat-item-header">Similar CTL</div>
                     <div class="stat-item-value-container">
                         <div class="stat-item-value">${similarCtlCards.length}</div>
                         <div class="stat-item-percentage">(${similarCtlPercentage}%)</div>
                     </div>
-                    <div class="stat-item-header" style="font-size:0.9rem; margin-top:5px; color:var(--text-muted)">Cards with CTL ${ctl.toFixed(2)} ± ${threshold}</div>
+                    <div class="stat-item-header" style="font-size:0.9rem; margin-top:5px; color:var(--text-muted)">Cards with CTL ${ctl.toFixed(2)} ± 0.1</div>
                     <div class="stat-breakdown">${similarCtlChips}</div>
                 </div>
             `;
@@ -381,7 +366,7 @@ const CardStatAnalysisModule = (function() {
         if (unifiedWinProbabilityCalculation) {
             const metrics = unifiedWinProbabilityCalculation.calculateCardMetrics(card);
             const rds = metrics.rds;
-            const similarRdsCriteria = { type: 'similar', metric: 'rds', threshold: threshold };
+            const similarRdsCriteria = { type: 'similar', metric: 'rds', threshold: 0.1 };
             const similarRdsCards = findMatchingCards(similarRdsCriteria, card);
             const similarRdsPercentage = ((similarRdsCards.length / totalCharacterCount) * 100).toFixed(1);
             const similarRdsBreakdown = countByColor(similarRdsCards);
@@ -390,12 +375,12 @@ const CardStatAnalysisModule = (function() {
 
             html += `
                 <div class="stat-item" data-criteria='${JSON.stringify(similarRdsCriteria)}'>
-                    <div class="stat-item-header">Similar RDS (±${threshold})</div>
+                    <div class="stat-item-header">Similar RDS</div>
                     <div class="stat-item-value-container">
                         <div class="stat-item-value">${similarRdsCards.length}</div>
                         <div class="stat-item-percentage">(${similarRdsPercentage}%)</div>
                     </div>
-                    <div class="stat-item-header" style="font-size:0.9rem; margin-top:5px; color:var(--text-muted)">Cards with RDS ${rds.toFixed(2)} ± ${threshold}</div>
+                    <div class="stat-item-header" style="font-size:0.9rem; margin-top:5px; color:var(--text-muted)">Cards with RDS ${rds.toFixed(2)} ± 0.1</div>
                     <div class="stat-breakdown">${similarRdsChips}</div>
                 </div>
             `;
@@ -405,7 +390,7 @@ const CardStatAnalysisModule = (function() {
         if (unifiedWinProbabilityCalculation) {
             const metrics = unifiedWinProbabilityCalculation.calculateCardMetrics(card);
             const lvi = metrics.lvi;
-            const similarLviCriteria = { type: 'similar', metric: 'lvi', threshold: threshold };
+            const similarLviCriteria = { type: 'similar', metric: 'lvi', threshold: 0.1 };
             const similarLviCards = findMatchingCards(similarLviCriteria, card);
             const similarLviPercentage = ((similarLviCards.length / totalCharacterCount) * 100).toFixed(1);
             const similarLviBreakdown = countByColor(similarLviCards);
@@ -414,12 +399,12 @@ const CardStatAnalysisModule = (function() {
 
             html += `
                 <div class="stat-item" data-criteria='${JSON.stringify(similarLviCriteria)}'>
-                    <div class="stat-item-header">Similar LVI (±${threshold})</div>
+                    <div class="stat-item-header">Similar LVI</div>
                     <div class="stat-item-value-container">
                         <div class="stat-item-value">${similarLviCards.length}</div>
                         <div class="stat-item-percentage">(${similarLviPercentage}%)</div>
                     </div>
-                    <div class="stat-item-header" style="font-size:0.9rem; margin-top:5px; color:var(--text-muted)">Cards with LVI ${lvi.toFixed(2)} ± ${threshold}</div>
+                    <div class="stat-item-header" style="font-size:0.9rem; margin-top:5px; color:var(--text-muted)">Cards with LVI ${lvi.toFixed(2)} ± 0.1</div>
                     <div class="stat-breakdown">${similarLviChips}</div>
                 </div>
             `;
@@ -429,7 +414,7 @@ const CardStatAnalysisModule = (function() {
         if (unifiedWinProbabilityCalculation) {
             const metrics = unifiedWinProbabilityCalculation.calculateCardMetrics(card);
             const bcr = metrics.bcr;
-            const similarBcrCriteria = { type: 'similar', metric: 'bcr', threshold: threshold };
+            const similarBcrCriteria = { type: 'similar', metric: 'bcr', threshold: 0.1 };
             const similarBcrCards = findMatchingCards(similarBcrCriteria, card);
             const similarBcrPercentage = ((similarBcrCards.length / totalCharacterCount) * 100).toFixed(1);
             const similarBcrBreakdown = countByColor(similarBcrCards);
@@ -438,12 +423,12 @@ const CardStatAnalysisModule = (function() {
 
             html += `
                 <div class="stat-item" data-criteria='${JSON.stringify(similarBcrCriteria)}'>
-                    <div class="stat-item-header">Similar BCR (±${threshold})</div>
+                    <div class="stat-item-header">Similar BCR</div>
                     <div class="stat-item-value-container">
                         <div class="stat-item-value">${similarBcrCards.length}</div>
                         <div class="stat-item-percentage">(${similarBcrPercentage}%)</div>
                     </div>
-                    <div class="stat-item-header" style="font-size:0.9rem; margin-top:5px; color:var(--text-muted)">Cards with BCR ${bcr.toFixed(2)} ± ${threshold}</div>
+                    <div class="stat-item-header" style="font-size:0.9rem; margin-top:5px; color:var(--text-muted)">Cards with BCR ${bcr.toFixed(2)} ± 0.1</div>
                     <div class="stat-breakdown">${similarBcrChips}</div>
                 </div>
             `;
@@ -466,22 +451,6 @@ const CardStatAnalysisModule = (function() {
         `;
     }
 
-    /**
-     * Update threshold for similar stats analysis
-     * @param {number} newThreshold - New threshold value
-     * @param {Object} card - Card object to re-analyze
-     * @param {HTMLElement} container - Container element to update
-     */
-    function updateThreshold(newThreshold, card, container) {
-        if (!container) return;
-
-        // Re-render the combat analysis section with new threshold
-        const analysisSection = container.querySelector('.analysis-section');
-        if (analysisSection) {
-            const newHtml = renderCombatAnalysis(card, { threshold: newThreshold });
-            analysisSection.outerHTML = newHtml;
-        }
-    }
 
     /**
      * Handle click events on stat items (for drill-down functionality)
@@ -501,9 +470,9 @@ const CardStatAnalysisModule = (function() {
         if (colorChip) {
             event.stopPropagation();
             const colorFilter = colorChip.dataset.color;
-            drillDownCallback(criteria, title, analyzedCard, colorFilter);
+            drillDownCallback(criteria, title, analyzedCard, colorFilter, analyzedCard);
         } else {
-            drillDownCallback(criteria, title, analyzedCard, null);
+            drillDownCallback(criteria, title, analyzedCard, null, analyzedCard);
         }
     }
 
@@ -516,8 +485,7 @@ const CardStatAnalysisModule = (function() {
         handleStatItemClick,
         findMatchingCards,
         countByColor,
-        getCardColors,
-        updateThreshold
+        getCardColors
     };
 
 })();
