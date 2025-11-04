@@ -170,7 +170,10 @@ const CardStatAnalysisModule = (function() {
         const breakdown = countByColor(otherCards);
         const breakdownChips = Object.entries(breakdown)
             .filter(([_, num]) => num > 0)
-            .map(([color, num]) => `<div class="color-chip" data-color="${color}" style="background-color:${INK_COLORS[color] || '#9CA3AF'}">${num}</div>`)
+            .map(([color, num]) => {
+                const colorValue = INK_COLORS[color]?.hex || INK_COLORS[color] || '#9CA3AF';
+                return `<div class="color-chip" data-color="${color}" style="background-color:${colorValue}">${num}</div>`;
+            })
             .join('');
 
         return `
@@ -210,7 +213,10 @@ const CardStatAnalysisModule = (function() {
             const morePercentage = ((moreCards.length / totalCharacterCount) * 100).toFixed(1);
             const moreBreakdown = countByColor(moreCards);
             const moreChips = Object.entries(moreBreakdown)
-               .filter(([_, num]) => num > 0).map(([color, num]) => `<div class="color-chip" data-color="${color}" style="background-color:${INK_COLORS[color] || '#9CA3AF'}">${num}</div>`).join('');
+               .filter(([_, num]) => num > 0).map(([color, num]) => {
+                   const colorValue = INK_COLORS[color]?.hex || INK_COLORS[color] || '#9CA3AF';
+                   return `<div class="color-chip" data-color="${color}" style="background-color:${colorValue}">${num}</div>`;
+               }).join('');
 
             html += `
                <div class="stat-item" data-criteria='${JSON.stringify(moreCriteria)}'>
@@ -229,7 +235,10 @@ const CardStatAnalysisModule = (function() {
             const lessPercentage = ((lessCards.length / totalCharacterCount) * 100).toFixed(1);
             const lessBreakdown = countByColor(lessCards);
             const lessChips = Object.entries(lessBreakdown)
-               .filter(([_, num]) => num > 0).map(([color, num]) => `<div class="color-chip" data-color="${color}" style="background-color:${INK_COLORS[color] || '#9CA3AF'}">${num}</div>`).join('');
+                .filter(([_, num]) => num > 0).map(([color, num]) => {
+                    const colorValue = INK_COLORS[color]?.hex || INK_COLORS[color] || '#9CA3AF';
+                    return `<div class="color-chip" data-color="${color}" style="background-color:${colorValue}">${num}</div>`;
+                }).join('');
 
             html += `
                <div class="stat-item" data-criteria='${JSON.stringify(lessCriteria)}'>
@@ -249,7 +258,10 @@ const CardStatAnalysisModule = (function() {
         const favorablePercentage = ((favorableCards.length / totalCharacterCount) * 100).toFixed(1);
         const favorableBreakdown = countByColor(favorableCards);
         const favorableChips = Object.entries(favorableBreakdown)
-            .filter(([_, num]) => num > 0).map(([color, num]) => `<div class="color-chip" data-color="${color}" style="background-color:${INK_COLORS[color] || '#9CA3AF'}">${num}</div>`).join('');
+            .filter(([_, num]) => num > 0).map(([color, num]) => {
+                const colorValue = INK_COLORS[color]?.hex || INK_COLORS[color] || '#9CA3AF';
+                return `<div class="color-chip" data-color="${color}" style="background-color:${colorValue}">${num}</div>`;
+            }).join('');
 
         html += `
             <div class="stat-item" data-criteria='${JSON.stringify(favorableCriteria)}'>
@@ -268,7 +280,10 @@ const CardStatAnalysisModule = (function() {
         const unfavorablePercentage = ((unfavorableCards.length / totalCharacterCount) * 100).toFixed(1);
         const unfavorableBreakdown = countByColor(unfavorableCards);
         const unfavorableChips = Object.entries(unfavorableBreakdown)
-            .filter(([_, num]) => num > 0).map(([color, num]) => `<div class="color-chip" data-color="${color}" style="background-color:${INK_COLORS[color] || '#9CA3AF'}">${num}</div>`).join('');
+            .filter(([_, num]) => num > 0).map(([color, num]) => {
+                const colorValue = INK_COLORS[color]?.hex || INK_COLORS[color] || '#9CA3AF';
+                return `<div class="color-chip" data-color="${color}" style="background-color:${colorValue}">${num}</div>`;
+            }).join('');
 
         html += `
             <div class="stat-item" data-criteria='${JSON.stringify(unfavorableCriteria)}'>
@@ -287,7 +302,10 @@ const CardStatAnalysisModule = (function() {
         const mutualFavPercentage = ((mutualFavCards.length / totalCharacterCount) * 100).toFixed(1);
         const mutualFavBreakdown = countByColor(mutualFavCards);
         const mutualFavChips = Object.entries(mutualFavBreakdown)
-            .filter(([_, num]) => num > 0).map(([color, num]) => `<div class="color-chip" data-color="${color}" style="background-color:${INK_COLORS[color] || '#9CA3AF'}">${num}</div>`).join('');
+            .filter(([_, num]) => num > 0).map(([color, num]) => {
+                const colorValue = INK_COLORS[color]?.hex || INK_COLORS[color] || '#9CA3AF';
+                return `<div class="color-chip" data-color="${color}" style="background-color:${colorValue}">${num}</div>`;
+            }).join('');
 
         html += `
             <div class="stat-item" data-criteria='${JSON.stringify(mutualFavCriteria)}'>
@@ -306,7 +324,10 @@ const CardStatAnalysisModule = (function() {
         const mutualNeuPercentage = ((mutualNeuCards.length / totalCharacterCount) * 100).toFixed(1);
         const mutualNeuBreakdown = countByColor(mutualNeuCards);
         const mutualNeuChips = Object.entries(mutualNeuBreakdown)
-            .filter(([_, num]) => num > 0).map(([color, num]) => `<div class="color-chip" data-color="${color}" style="background-color:${INK_COLORS[color] || '#9CA3AF'}">${num}</div>`).join('');
+            .filter(([_, num]) => num > 0).map(([color, num]) => {
+                const colorValue = INK_COLORS[color]?.hex || INK_COLORS[color] || '#9CA3AF';
+                return `<div class="color-chip" data-color="${color}" style="background-color:${colorValue}">${num}</div>`;
+            }).join('');
 
         html += `
             <div class="stat-item" data-criteria='${JSON.stringify(mutualNeuCriteria)}'>
@@ -325,7 +346,10 @@ const CardStatAnalysisModule = (function() {
         const mutualUnfavPercentage = ((mutualUnfavCards.length / totalCharacterCount) * 100).toFixed(1);
         const mutualUnfavBreakdown = countByColor(mutualUnfavCards);
         const mutualUnfavChips = Object.entries(mutualUnfavBreakdown)
-            .filter(([_, num]) => num > 0).map(([color, num]) => `<div class="color-chip" data-color="${color}" style="background-color:${INK_COLORS[color] || '#9CA3AF'}">${num}</div>`).join('');
+            .filter(([_, num]) => num > 0).map(([color, num]) => {
+                const colorValue = INK_COLORS[color]?.hex || INK_COLORS[color] || '#9CA3AF';
+                return `<div class="color-chip" data-color="${color}" style="background-color:${colorValue}">${num}</div>`;
+            }).join('');
 
         html += `
             <div class="stat-item" data-criteria='${JSON.stringify(mutualUnfavCriteria)}'>
@@ -347,7 +371,10 @@ const CardStatAnalysisModule = (function() {
             const similarCtlPercentage = ((similarCtlCards.length / totalCharacterCount) * 100).toFixed(1);
             const similarCtlBreakdown = countByColor(similarCtlCards);
             const similarCtlChips = Object.entries(similarCtlBreakdown)
-                .filter(([_, num]) => num > 0).map(([color, num]) => `<div class="color-chip" data-color="${color}" style="background-color:${INK_COLORS[color] || '#9CA3AF'}">${num}</div>`).join('');
+                .filter(([_, num]) => num > 0).map(([color, num]) => {
+                    const colorValue = INK_COLORS[color]?.hex || INK_COLORS[color] || '#9CA3AF';
+                    return `<div class="color-chip" data-color="${color}" style="background-color:${colorValue}">${num}</div>`;
+                }).join('');
 
             html += `
                 <div class="stat-item" data-criteria='${JSON.stringify(similarCtlCriteria)}'>
@@ -371,7 +398,10 @@ const CardStatAnalysisModule = (function() {
             const similarRdsPercentage = ((similarRdsCards.length / totalCharacterCount) * 100).toFixed(1);
             const similarRdsBreakdown = countByColor(similarRdsCards);
             const similarRdsChips = Object.entries(similarRdsBreakdown)
-                .filter(([_, num]) => num > 0).map(([color, num]) => `<div class="color-chip" data-color="${color}" style="background-color:${INK_COLORS[color] || '#9CA3AF'}">${num}</div>`).join('');
+                .filter(([_, num]) => num > 0).map(([color, num]) => {
+                    const colorValue = INK_COLORS[color]?.hex || INK_COLORS[color] || '#9CA3AF';
+                    return `<div class="color-chip" data-color="${color}" style="background-color:${colorValue}">${num}</div>`;
+                }).join('');
 
             html += `
                 <div class="stat-item" data-criteria='${JSON.stringify(similarRdsCriteria)}'>
@@ -395,7 +425,10 @@ const CardStatAnalysisModule = (function() {
             const similarLviPercentage = ((similarLviCards.length / totalCharacterCount) * 100).toFixed(1);
             const similarLviBreakdown = countByColor(similarLviCards);
             const similarLviChips = Object.entries(similarLviBreakdown)
-                .filter(([_, num]) => num > 0).map(([color, num]) => `<div class="color-chip" data-color="${color}" style="background-color:${INK_COLORS[color] || '#9CA3AF'}">${num}</div>`).join('');
+                .filter(([_, num]) => num > 0).map(([color, num]) => {
+                    const colorValue = INK_COLORS[color]?.hex || INK_COLORS[color] || '#9CA3AF';
+                    return `<div class="color-chip" data-color="${color}" style="background-color:${colorValue}">${num}</div>`;
+                }).join('');
 
             html += `
                 <div class="stat-item" data-criteria='${JSON.stringify(similarLviCriteria)}'>
@@ -419,7 +452,10 @@ const CardStatAnalysisModule = (function() {
             const similarBcrPercentage = ((similarBcrCards.length / totalCharacterCount) * 100).toFixed(1);
             const similarBcrBreakdown = countByColor(similarBcrCards);
             const similarBcrChips = Object.entries(similarBcrBreakdown)
-                .filter(([_, num]) => num > 0).map(([color, num]) => `<div class="color-chip" data-color="${color}" style="background-color:${INK_COLORS[color] || '#9CA3AF'}">${num}</div>`).join('');
+                .filter(([_, num]) => num > 0).map(([color, num]) => {
+                    const colorValue = INK_COLORS[color]?.hex || INK_COLORS[color] || '#9CA3AF';
+                    return `<div class="color-chip" data-color="${color}" style="background-color:${colorValue}">${num}</div>`;
+                }).join('');
 
             html += `
                 <div class="stat-item" data-criteria='${JSON.stringify(similarBcrCriteria)}'>
