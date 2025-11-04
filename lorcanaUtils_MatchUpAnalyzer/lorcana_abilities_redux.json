@@ -89,6 +89,33 @@
   },
   "abilities": [
     {
+      "name": "State: Can't quest",
+      "category": "State",
+      "sub_type": "Can't Quest",
+      "regex": "/(this character|they|he|she|it)? ?can't quest for the rest of this turn/gi",
+      "explanation": "Not questing is a direct impact on lore gain",
+      "justification": "This is a downside to powerful abilities",
+      "lastModified": "2025-11-04T00:36:30.524Z",
+      "createdAt": "2025-11-04T00:33:23.243Z",
+      "calculation": {
+        "variables": [
+          {
+            "name": "whoCanQuest",
+            "source": "regex",
+            "group": 1,
+            "type": "string"
+          }
+        ],
+        "contextModifiers": [],
+        "scores": {
+          "lore_velocity": {
+            "value": "(@whoCanQuest === 'they'? -0.75 : -1",
+            "explanation": "Directly impacts ability to Gain Lore"
+          }
+        }
+      }
+    },
+    {
       "name": "Trigger: Card Under",
       "category": "Trigger",
       "sub_type": "Card Under",
@@ -1333,9 +1360,9 @@
       "lastModified": "2025-09-09T18:55:12.565Z"
     },
     {
-      "name": "Condition: Less Cards in Hand",
+      "name": "Condition: Cards in Hand",
       "category": "Condition",
-      "sub_type": "Less Cards",
+      "sub_type": "Cards in Hand",
       "quick_description": "",
       "regex": "/(?:while|if|and) you have (no|\\d+ or (less|more)) cards in (?:your )hand/gi",
       "value_type": "raw",
@@ -1352,7 +1379,7 @@
         }
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
-      "lastModified": "2025-10-29T08:53:02.601Z"
+      "lastModified": "2025-11-04T00:28:50.495Z"
     },
     {
       "name": "Condition: Character exerted",
@@ -1459,7 +1486,7 @@
       "name": "Card Effect: Draw",
       "category": "Resource",
       "sub_type": "Card Draw",
-      "regex": "/(?<!Whenever you )draws?\\s+(?:until you have\\s+)?(\\d+|a|one|two|three)? ?cards?/gi",
+      "regex": "/(?<!Whenever you )draws?\\s+(?:until (you|they) have\\s+)? ?(\\d+|a|one|two|three)? ?(cards?)?/gi",
       "value_type": "raw",
       "explanation": "Allows the player to draw one or more cards from their deck.",
       "justification": "Card draw is the primary engine for resource advantage.",
@@ -1481,7 +1508,7 @@
         }
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
-      "lastModified": "2025-09-10T17:47:56.883Z"
+      "lastModified": "2025-11-04T00:25:40.675Z"
     },
     {
       "name": "Card Effect: Opponent Discards",
@@ -1872,7 +1899,7 @@
       "name": "Damage: Deal to One",
       "category": "Board Control",
       "sub_type": "Direct Damage",
-      "regex": "/(Deal|move)(?: up to)? (\\d+)? ?damage(?: counters?)?(?: from (chosen|another|another chosen)?(?: character| location| character or location)?(?: of yours)?)? to (?:chosen|another|another chosen) (?:opposing )?(?:character|location|character or location)(?! of yours)(?: with \\d+ (?:¤|⬡|⛉) or (?:less|more))?/gi",
+      "regex": "/(Deal|move)(?: up to)? (\\d+)? ?damage(?: counters?)?(?: from (this|chosen|another|another chosen)?(?: character| location| character or location)?(?: of yours)?)? to (?:chosen|another|another chosen) (?:opposing )?(?:character|location|character or location)(?! of yours)(?: with \\d+ (?:¤|⬡|⛉) or (?:less|more))?/gi",
       "value_type": "raw",
       "explanation": "Deals a specified amount of damage to a single opposing card.",
       "justification": "A flexible form of removal that can banish weakened cards.",
@@ -1894,13 +1921,13 @@
         "contextModifiers": [],
         "scores": {
           "board_control": {
-            "value": "4.0 * (@moveOrDeal === 'move' ? 2 : 1) * damageAmount * @context.bcr.trigger",
+            "value": "(@moveOrDeal === 'move' ? 2 : 1) * damageAmount * @context.bcr.trigger",
             "explanation": "Deal Damage to one"
           }
         }
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
-      "lastModified": "2025-11-03T23:20:06.385Z"
+      "lastModified": "2025-11-04T00:20:26.565Z"
     },
     {
       "name": "Damage: Put Damage Counters",
@@ -2050,7 +2077,7 @@
       "name": "State: Ready Character",
       "category": "State",
       "sub_type": "Action",
-      "regex": "/Ready (chosen|this)? (?:your |another )?(character|item)/gi",
+      "regex": "/Ready (chosen|this|it|them)? (?:your|another|your other)? ?(characters?|items?) (?:with cost (\\d+) or (?:less|more))?/gi",
       "value_type": "raw",
       "explanation": "Readies one of your exerted characters.",
       "justification": "Enables action advantage.",
@@ -2065,7 +2092,7 @@
         }
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
-      "lastModified": "2025-09-02T18:00:59.705Z"
+      "lastModified": "2025-11-04T00:42:32.136Z"
     },
     {
       "name": "State: Exert Character",
