@@ -447,7 +447,7 @@
                     await UnifiedWinProbabiliyCalculation.loadAbilitiesConfig();
 
                     // Initialize CardStatAnalysisModule
-                    CardStatAnalysisModule.initialize(allCards, INK_COLORS);
+                    CardStatAnalysisModule.initialize(allCards, INK_COLORS, UnifiedWinProbabiliyCalculation);
 
                     // Create CardThreatLevelInspector instance
                     inspector = new CardThreatLevelInspector({

@@ -203,7 +203,7 @@ const UnifiedWinProbabiliyCalculation = (function() {
     function evaluateFormula(formula, formulaContext) {
         const processedFormula = resolveFormulaVariables(formula, formulaContext, false);
 
-        console.log(`Processed Formula ${processedFormula}`)
+        //console.log(`Processed Formula ${processedFormula}`)
         // Use the Function constructor to safely evaluate the processed formula string.
         try {
             return new Function(`return ${processedFormula}`)();

@@ -11,6 +11,8 @@ The Card Statistical Analysis Module is a reusable JavaScript library that provi
   - Higher/lower strength, willpower, lore (with cost considerations)
   - Favorable/unfavorable trade scenarios
   - Mutual banishment outcomes (favorable/neutral/unfavorable ink costs)
+  - **Similar Threat Metrics**: Find cards with similar CTL, RDS, LVI, and BCR values within a configurable threshold
+- **Threshold Control**: Interactive slider to adjust similarity threshold (0.1 to 5.0)
 - **Color Distribution Analysis**: Breakdown of matching cards by ink color
 - **Modular Architecture**: Clean API for easy integration
 
@@ -34,12 +36,13 @@ The Card Statistical Analysis Module is a reusable JavaScript library that provi
 ### Initialization
 
 ```javascript
-CardStatAnalysisModule.initialize(cardsData, inkColors);
+CardStatAnalysisModule.initialize(cardsData, inkColors, unifiedWinProbabilityCalculation);
 ```
 
 **Parameters:**
 - `cardsData`: Array of card objects from the Lorcana database
 - `inkColors`: Object mapping color names to hex codes (e.g., `{Amber: '#fecb00', ...}`)
+- `unifiedWinProbabilityCalculation`: (Optional) Instance of UnifiedWinProbabilityCalculation for CTL/RDS/LVI/BCR analysis
 
 ### Analysis Functions
 
@@ -62,28 +65,30 @@ const html = CardStatAnalysisModule.renderIdenticalStatsProfile(card);
 Generates HTML for combat and statistical analysis.
 
 ```javascript
-const html = CardStatAnalysisModule.renderCombatAnalysis(card);
+const html = CardStatAnalysisModule.renderCombatAnalysis(card, { threshold: 0.5 });
 ```
 
 **Parameters:**
 - `card`: Card object to analyze
 - `options`: Rendering options (optional)
+  - `threshold`: Similarity threshold for CTL/RDS/LVI/BCR comparisons (default: 0.1)
 
-**Returns:** HTML string with combat analysis
+**Returns:** HTML string with combat analysis including threshold slider and similar metrics sections
 
 #### `renderCompleteAnalysis(card, options)`
 
 Generates complete analysis HTML combining all analysis types.
 
 ```javascript
-const html = CardStatAnalysisModule.renderCompleteAnalysis(card);
+const html = CardStatAnalysisModule.renderCompleteAnalysis(card, { threshold: 0.5 });
 ```
 
 **Parameters:**
 - `card`: Card object to analyze
 - `options`: Rendering options (optional)
+  - `threshold`: Similarity threshold for CTL/RDS/LVI/BCR comparisons (default: 0.1)
 
-**Returns:** Complete HTML analysis
+**Returns:** Complete HTML analysis including identical stats, combat analysis, and similar metrics
 
 ### Event Handling
 
@@ -147,6 +152,21 @@ const colors = CardStatAnalysisModule.getCardColors(card);
 
 **Returns:** Array of color names
 
+#### `updateThreshold(newThreshold, card, container)`
+
+Update the similarity threshold for threat metrics analysis and re-render the analysis.
+
+```javascript
+CardStatAnalysisModule.updateThreshold(0.5, card, containerElement);
+```
+
+**Parameters:**
+- `newThreshold`: New threshold value (0.1 to 5.0)
+- `card`: Card object being analyzed
+- `container`: HTML container element to update
+
+**Returns:** void - Updates the container with new analysis
+
 ## Integration Examples
 
 ### Basic Integration
@@ -165,13 +185,22 @@ const colors = CardStatAnalysisModule.getCardColors(card);
         // Initialize with your card data
         const cardsData = [/* your card array */];
         const inkColors = {Amber: '#fecb00', /* ... */};
+        const uwpc = UnifiedWinProbabilityCalculation; // Assuming it's loaded
 
-        CardStatAnalysisModule.initialize(cardsData, inkColors);
+        CardStatAnalysisModule.initialize(cardsData, inkColors, uwpc);
 
         // Use in your application
         const card = cardsData[0];
-        const analysisHtml = CardStatAnalysisModule.renderCompleteAnalysis(card);
+        const analysisHtml = CardStatAnalysisModule.renderCompleteAnalysis(card, { threshold: 0.1 });
         document.getElementById('analysis-container').innerHTML = analysisHtml;
+
+        // Setup threshold slider event listener
+        document.addEventListener('input', (e) => {
+            if (e.target.id === 'similarity-threshold') {
+                const newThreshold = parseFloat(e.target.value);
+                CardStatAnalysisModule.updateThreshold(newThreshold, card, document.getElementById('analysis-container'));
+            }
+        });
     </script>
 </body>
 </html>
@@ -232,6 +261,15 @@ The module supports various analysis criteria:
 }
 ```
 
+### Similar Metrics Analysis
+```javascript
+{
+    type: 'similar',
+    metric: 'ctl', // 'rds', 'lvi', or 'bcr'
+    threshold: 0.5 // Optional, defaults to 0.1
+}
+```
+
 ## Styling
 
 The module generates HTML with the following CSS classes that should be styled:
@@ -264,6 +302,7 @@ The module generates HTML with the following CSS classes that should be styled:
 - Implement caching for repeated analyses
 - Add export functionality for analysis results
 - Support for custom analysis criteria
+- Add more threat metrics (e.g., synergy scores, matchup-specific ratings)
 
 ## Troubleshooting
 

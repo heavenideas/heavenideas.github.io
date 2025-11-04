@@ -109,7 +109,7 @@
         "contextModifiers": [],
         "scores": {
           "lore_velocity": {
-            "value": "(@whoCanQuest === 'they'? -0.75 : -1",
+            "value": "(@whoCanQuest === 'they'? -0.75 : -1)",
             "explanation": "Directly impacts ability to Gain Lore"
           }
         }

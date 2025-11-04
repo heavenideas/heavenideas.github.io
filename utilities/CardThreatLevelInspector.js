@@ -342,7 +342,7 @@ class CardThreatLevelInspector {
             return '<div class="text-center text-gray-400 py-8">CardStatAnalysisModule not available</div>';
         }
 
-        return this.options.cardStatAnalysisModule.renderCompleteAnalysis(card);
+        return this.options.cardStatAnalysisModule.renderCompleteAnalysis(card, { threshold: 0.1 });
     }
 
     /**
@@ -519,6 +519,7 @@ class CardThreatLevelInspector {
         // Use setTimeout to ensure DOM is fully rendered
         setTimeout(() => {
             this.setupStatClickHandlers(container, card);
+            this.setupThresholdSlider(container, card);
         }, 10);
     }
 
@@ -592,12 +593,12 @@ class CardThreatLevelInspector {
 
         // Find all stat content areas in the container
         const statContents = cardContainer.querySelectorAll('.stat-analysis-content');
-        
+
         statContents.forEach(statContent => {
             // Remove existing event listeners by cloning the element
             const newStatContent = statContent.cloneNode(true);
             statContent.parentNode.replaceChild(newStatContent, statContent);
-            
+
             // Add event listener using event delegation
             newStatContent.addEventListener('click', (event) => {
                 // Check if the clicked element or its parent is a stat item
@@ -615,11 +616,11 @@ class CardThreatLevelInspector {
         statItems.forEach(item => {
             // Skip if already handled by stat-analysis-content
             if (item.closest('.stat-analysis-content')) return;
-            
+
             // Remove existing listeners to prevent duplicates
             const newItem = item.cloneNode(true);
             item.parentNode.replaceChild(newItem, item);
-            
+
             // Add new listener
             newItem.addEventListener('click', (event) => {
                 this.options.cardStatAnalysisModule.handleStatItemClick(event, card, (criteria, title, analyzedCard, colorFilter) => {
@@ -627,6 +628,27 @@ class CardThreatLevelInspector {
                 });
             });
         });
+    }
+
+    /**
+     * Setup threshold slider event listeners
+     */
+    setupThresholdSlider(container, card) {
+        if (!this.options.cardStatAnalysisModule) return;
+
+        const thresholdSlider = container.querySelector('#similarity-threshold');
+        if (thresholdSlider) {
+            thresholdSlider.addEventListener('input', (e) => {
+                const newThreshold = parseFloat(e.target.value);
+                // Update the threshold value display
+                const thresholdValueEl = container.querySelector('#threshold-value');
+                if (thresholdValueEl) {
+                    thresholdValueEl.textContent = newThreshold.toFixed(1);
+                }
+                // Update the analysis with new threshold
+                this.options.cardStatAnalysisModule.updateThreshold(newThreshold, card, container);
+            });
+        }
     }
 
     /**
