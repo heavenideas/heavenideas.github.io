@@ -1340,24 +1340,31 @@
       "category": "Trigger",
       "sub_type": "On Banish",
       "quick_description": "other or your characters are banished",
-      "regex": "/when(?:ever)? (a character of yours|one of your (other )?(\\w+ )?characters|a(n other?) character) is banished/gi",
+      "regex": "/when(?:ever)? (?:a character of yours|one of your (?:other )?(?:\\w+ )?characters|a(?:n other?) character) is banished ?(in a challenge)?/gi",
       "value_type": "raw",
       "explanation": "Whenever other of your characters are banished",
-      "justification": "Trigger: On Banish (Other) -> better than nothing",
+      "justification": "Trigger: On Banish (Other) -> Banish 1.5 but if it's only in a challenge 1.15",
       "calculation": {
-        "variables": [],
+        "variables": [
+          {
+            "name": "inAChallenge",
+            "source": "regex",
+            "group": 1,
+            "type": "string"
+          }
+        ],
         "contextModifiers": [
           {
             "targetMetric": "all",
             "name": "trigger",
             "operation": "multiply",
-            "value": "1.25"
+            "value": "(@inAChallenge === 'in a challenge' ? 1.15 : 1.5)"
           }
         ],
         "scores": {}
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
-      "lastModified": "2025-09-09T18:55:12.565Z"
+      "lastModified": "2025-11-07T14:38:19.981Z"
     },
     {
       "name": "Condition: Cards in Hand",
