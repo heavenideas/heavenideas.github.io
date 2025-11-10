@@ -1934,7 +1934,7 @@
         "contextModifiers": [],
         "scores": {
           "board_control": {
-            "value": "(@moveOrDeal === 'move' ? 2 : 1) * damageAmount * (@damaged === 'damaged' ? 0.5 * 1 ) * @context.bcr.trigger",
+            "value": "(@moveOrDeal === 'move' ? 2 : 1) * damageAmount * (@damaged === 'damaged' ? 0.5 : 1 ) * @context.bcr.trigger",
             "explanation": "Deal Damage to one"
           }
         }
