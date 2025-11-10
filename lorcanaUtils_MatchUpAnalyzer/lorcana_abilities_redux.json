@@ -1760,11 +1760,11 @@
         "contextModifiers": [],
         "scores": {
           "board_control": {
-            "value": "12",
+            "value": "@bcr.banishCharacterValue * 0.93 * @context.bcr.trigger",
             "explanation": "Add opposing character to inkwell"
           },
           "resource_dominance": {
-            "value": "",
+            "value": "- 1.25  * @context.bcr.trigger",
             "explanation": "Opposite of putting a card into your inkwell as it ramps the opponent"
           }
         }
