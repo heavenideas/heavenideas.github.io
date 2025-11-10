@@ -417,6 +417,7 @@ class CardThreatLevelInspector {
                 <div class="bg-gray-700 p-3 rounded-lg">
                     <p class="font-bold ${colorClass}">${item.abilityName}</p>
                     <p class="text-sm">Contributes <span class="font-mono">${item.value.toFixed(2)}</span> to <span class="font-semibold">${item.metric.replace(/_/g, ' ')}</span></p>
+                    <p class="text-xs text-gray-300 italic mt-1">"${item.textCaptured}"</p>
                     <p class="text-xs text-gray-400 mt-1">${item.explanation}</p>
                 </div>
             `;

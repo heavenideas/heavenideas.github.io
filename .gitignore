@@ -7,3 +7,4 @@ lorcanaUtils_MatchUpAnalyzer/matchup_analyzer_batchmode_example.html
 .idx/dev.nix
 .kiro
 test_*
+utilities/cardThreatLevelInspector.todo

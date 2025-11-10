@@ -347,6 +347,7 @@ const UnifiedWinProbabiliyCalculation = (function() {
                             abilityName: `Context Modifier: ${modDef.name}`,
                             metric: 'all',
                             value: value,
+                            textCaptured: 'Base card properties',
                             explanation: `${modDef.operation} ${def.justification}`
                         });
                     } else {
@@ -364,6 +365,7 @@ const UnifiedWinProbabiliyCalculation = (function() {
                                 abilityName: `Context Modifier: ${modDef.name}`,
                                 metric: modDef.targetMetric,
                                 value: value,
+                                textCaptured: 'Base card properties',
                                 explanation: `${modDef.operation} ${def.justification}`
                             });
                         }
@@ -395,6 +397,7 @@ const UnifiedWinProbabiliyCalculation = (function() {
                         abilityName: def.name,
                         metric: metric,
                         value: finalValue,
+                        textCaptured: 'Base card properties',
                         explanation: explanationText
                     });
 
@@ -471,7 +474,7 @@ const UnifiedWinProbabiliyCalculation = (function() {
             });
 
             // --- PHASE 4: Process context modifiers (isolated per ability) ---
-            abilityContexts.forEach(({ def, context: abilityContext }) => {
+            abilityContexts.forEach(({ def, match, context: abilityContext }) => {
                 (def.calculation.contextModifiers || []).forEach(modDef => {
                     let shouldApply = modDef.condition ? evaluateFormula(modDef.condition, abilityContext) : true;
                     if (shouldApply) {
@@ -496,6 +499,7 @@ const UnifiedWinProbabiliyCalculation = (function() {
                                 abilityName: `Context Modifier: ${modDef.name} (Ability ${abilityIndex + 1})`,
                                 metric: 'all',
                                 value: value,
+                                textCaptured: match ? match[0] : 'No text match',
                                 explanation: `${modDef.operation} ${def.justification}`
                             });
                         } else {
@@ -513,6 +517,7 @@ const UnifiedWinProbabiliyCalculation = (function() {
                                     abilityName: `Context Modifier: ${modDef.name} (Ability ${abilityIndex + 1})`,
                                     metric: modDef.targetMetric,
                                     value: value,
+                                    textCaptured: match ? match[0] : 'No text match',
                                     explanation: `${modDef.operation} ${def.justification}`
                                 });
                             }
@@ -522,7 +527,7 @@ const UnifiedWinProbabiliyCalculation = (function() {
             });
 
             // --- PHASE 5: Process scores using per-ability contexts ---
-            abilityContexts.forEach(({ def, context: abilityContext }) => {
+            abilityContexts.forEach(({ def, match, context: abilityContext }) => {
                 const scores = def.calculation.scores || {};
                 for (const [metric, scoreDef] of Object.entries(scores)) {
                     let shouldApply = scoreDef.condition ? evaluateFormula(scoreDef.condition, abilityContext) : true;
@@ -546,6 +551,7 @@ const UnifiedWinProbabiliyCalculation = (function() {
                             abilityName: `${def.name} (Ability ${abilityIndex + 1})`,
                             metric: metric,
                             value: finalValue,
+                            textCaptured: match ? match[0] : 'No text match',
                             explanation: explanationText
                         });
 

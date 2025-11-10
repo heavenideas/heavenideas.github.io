@@ -661,7 +661,7 @@
       "name": "Trigger: Character Challenges",
       "category": "Trigger",
       "sub_type": "Challenge",
-      "regex": "/When(?:ever)? one of your (\\w+)? ?characters ?(?:named (\\w+))? ?challenges/gi",
+      "regex": "/When(?:ever)? (one of your (\\w+)? ?characters ?(?:named (\\w+))|this character)? ?(challenges|is challenged)/gi",
       "explanation": "This is a condition that is easy to meet, but exposes the character and deals damage. so it's not a massive win",
       "justification": "Trigger: On of your Character Challenges -> Easy to trigger but downsides for the character that challenges",
       "calculation": {
@@ -684,7 +684,7 @@
         "scores": {}
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
-      "lastModified": "2025-10-29T10:32:03.777Z"
+      "lastModified": "2025-11-07T15:11:02.164Z"
     },
     {
       "name": "Condition: Opposing Character Exerted",
@@ -1521,7 +1521,7 @@
       "name": "Card Effect: Opponent Discards",
       "category": "Resource",
       "sub_type": "Hand Disruption",
-      "regex": "/(chosen opponent|each opponent) (chooses and |reveals their hand and )?discard(?:s)? (\\d+|a|one|two|three) (song|item|character|action|location)?(?: )?card(?:s?)( at random)?/gi",
+      "regex": "/(chosen opponent|each opponent|player)? ?(chooses and |reveals their hand and ) ?discards? (\\d+|a|one|two|three) ?(song|item|character|action|location)? ?cards? ?(at random)?/gi",
       "value_type": "raw",
       "explanation": "Forces an opponent to discard one or more cards from their hand.",
       "justification": "Directly attacks the opponent's resources.",
@@ -1536,7 +1536,7 @@
         }
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
-      "lastModified": "2025-09-02T18:00:59.705Z"
+      "lastModified": "2025-11-07T15:07:32.765Z"
     },
     {
       "name": "Card Effect: Self Discard",
@@ -1760,11 +1760,11 @@
         "contextModifiers": [],
         "scores": {
           "board_control": {
-            "value": "@bcr.banishCharacterValue * 0.93 * @context.bcr.trigger",
+            "value": "12",
             "explanation": "Add opposing character to inkwell"
           },
           "resource_dominance": {
-            "value": "- 1.25  * @context.bcr.trigger",
+            "value": "",
             "explanation": "Opposite of putting a card into your inkwell as it ramps the opponent"
           }
         }
@@ -1906,7 +1906,7 @@
       "name": "Damage: Deal to One",
       "category": "Board Control",
       "sub_type": "Direct Damage",
-      "regex": "/(Deal|move)(?: up to)? (\\d+)? ?damage(?: counters?)?(?: from (this|chosen|another|another chosen)?(?: character| location| character or location)?(?: of yours)?)? to (?:chosen|another|another chosen) (?:opposing )?(?:character|location|character or location)(?! of yours)(?: with \\d+ (?:¤|⬡|⛉) or (?:less|more))?/gi",
+      "regex": "/(Deal|move)(?: up to)? (\\d+)? ?damage(?: counters?)?(?: from (this|chosen|another|another chosen)?(?: character| location| character or location)?(?: of yours)?)? to (?:chosen|another|another chosen) ?(damaged)? ?(?:opposing )?(?:character|location|character or location)(?! of yours)(?: with \\d+ (?:¤|⬡|⛉) or (?:less|more))?/gi",
       "value_type": "raw",
       "explanation": "Deals a specified amount of damage to a single opposing card.",
       "justification": "A flexible form of removal that can banish weakened cards.",
@@ -1923,18 +1923,24 @@
             "source": "regex",
             "group": "2",
             "type": "textOrNumber"
+          },
+          {
+            "name": "damaged",
+            "source": "regex",
+            "group": "4",
+            "type": "string"
           }
         ],
         "contextModifiers": [],
         "scores": {
           "board_control": {
-            "value": "(@moveOrDeal === 'move' ? 2 : 1) * damageAmount * @context.bcr.trigger",
+            "value": "(@moveOrDeal === 'move' ? 2 : 1) * damageAmount * (@damaged === 'damaged' ? 0.5 * 1 ) * @context.bcr.trigger",
             "explanation": "Deal Damage to one"
           }
         }
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
-      "lastModified": "2025-11-04T00:20:26.565Z"
+      "lastModified": "2025-11-10T14:03:29.228Z"
     },
     {
       "name": "Damage: Put Damage Counters",
