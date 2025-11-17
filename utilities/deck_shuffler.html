@@ -9,6 +9,8 @@
     <!-- Load Unified Win Probability Utilities -->
     <!-- We use jsDelivr CDN to ensure correct MIME types -->
     <script src="https://cdn.jsdelivr.net/gh/heavenideas/heavenideas.github.io@main/utilities/unified_win_probability_utilities.js"></script>
+    <script src="card_stat_analysis_module.js"></script>
+    <script src="CardThreatLevelInspector.js"></script>
     <style>
         /* Custom scrollbar for dark mode */
         ::-webkit-scrollbar {
@@ -340,6 +342,7 @@
         let recentShuffles = []; // Stores { id, hand, score, rating }
         let currentShuffleAnalysis = {}; // Holds all analysis data for the current shuffle
         let combinationsCache = {}; // Cache for combinations function
+        let cardInspector = null; // Card Threat Level Inspector instance
 
         // --- DOM ELEMENTS ---
         const DOMElements = {
@@ -449,6 +452,10 @@
                 // The library is loaded via <script> tag, so we just init it
                 // We must provide the correct CDN URL for the JSON file
                 await UnifiedWinProbabiliyCalculation.loadAbilitiesConfig(ABILITIES_CONFIG_URL);
+
+                DOMElements.loadingMessage.textContent = "Initializing Modules...";
+                CardStatAnalysisModule.initialize(allCardsData, COLOR_HEX, UnifiedWinProbabiliyCalculation);
+                cardInspector = new CardThreatLevelInspector();
 
                 DOMElements.loadingMessage.textContent = "Ready!";
                 DOMElements.loadingOverlay.style.display = 'none';
@@ -898,6 +905,24 @@
                 `;
                 container.appendChild(cardWrapper);
             });
+
+            // Add click handlers for card inspection
+            let cardIndex = 0;
+            container.querySelectorAll('img').forEach((img) => {
+                if (img.closest('.card-tooltip')) return; // skip tooltip imgs
+                const card = cards[cardIndex];
+                img.style.cursor = 'pointer';
+                img.addEventListener('click', () => {
+                    if (cardInspector && card) {
+                        try {
+                            cardInspector.showCard(card);
+                        } catch (error) {
+                            console.error('Error opening card inspector:', error, card);
+                        }
+                    }
+                });
+                cardIndex++;
+            });
         }
         
         function renderDeckTimeline(deck) {
@@ -927,6 +952,24 @@
                     </div>
                 `;
                 DOMElements.deckTimelineCards.innerHTML += cardHTML;
+            });
+
+            // Add click handlers for timeline cards
+            let cardIndex = 0;
+            DOMElements.deckTimelineCards.querySelectorAll('img').forEach((img) => {
+                if (img.closest('.card-tooltip')) return; // skip tooltip imgs
+                const card = deck[cardIndex];
+                img.style.cursor = 'pointer';
+                img.addEventListener('click', () => {
+                    if (cardInspector && card) {
+                        try {
+                            cardInspector.showCard(card);
+                        } catch (error) {
+                            console.error('Error opening card inspector:', error, card);
+                        }
+                    }
+                });
+                cardIndex++;
             });
         }
         
