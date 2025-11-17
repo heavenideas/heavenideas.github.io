@@ -6,6 +6,7 @@
     <title>Lorcana Deck Draw Analyzer</title>
     <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- Load Unified Win Probability Utilities -->
     <!-- We use jsDelivr CDN to ensure correct MIME types -->
     <script src="https://cdn.jsdelivr.net/gh/heavenideas/heavenideas.github.io@main/utilities/unified_win_probability_utilities.js"></script>
@@ -73,7 +74,12 @@
         <div class="lg:col-span-1 p-4 bg-gray-800 rounded-lg shadow-lg">
             <h2 class="text-2xl font-bold mb-4 text-white">Deck Input</h2>
             <p class="text-sm text-gray-400 mb-3">Paste your decklist below. Format: <br><code class="bg-gray-700 p-1 rounded">4x Card Name</code> or <code class="bg-gray-700 p-1 rounded">4 Card Name</code></p>
-            
+
+            <label for="deck-select" class="block text-sm font-medium text-gray-300 mb-1">Load from My Decks</label>
+            <select id="deck-select" class="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:outline-none mb-3">
+                <option value="">Select a deck...</option>
+            </select>
+
             <textarea id="decklist-input" class="w-full h-80 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="4x Mickey Mouse - Brave Little Tailor&#10;2x Lilo - Making a Wish&#10;..."></textarea>
             
             <button id="load-deck-button" class="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50" disabled>
@@ -335,6 +341,7 @@
     <script type="module">
         // --- GLOBAL STATE ---
         let allCardsData = [];
+        let allDecks = [];
         let decklist = []; // Array of full card objects, expanded by quantity (e.g., 60 cards)
         let deckInfo = {}; // Parsed deck info (counts, etc.)
         let shuffledDeck = [];
@@ -348,6 +355,7 @@
         const DOMElements = {
             loadingOverlay: document.getElementById('loading-overlay'),
             loadingMessage: document.getElementById('loading-message'),
+            deckSelect: document.getElementById('deck-select'),
             decklistInput: document.getElementById('decklist-input'),
             loadDeckButton: document.getElementById('load-deck-button'),
             deckLoadStatus: document.getElementById('deck-load-status'),
@@ -415,6 +423,8 @@
         // --- CONSTANTS ---
         const CARD_DATABASE_URL = "https://cdn.jsdelivr.net/gh/heavenideas/similcana@main/database/allCards.json";
         const ABILITIES_CONFIG_URL = "https://cdn.jsdelivr.net/gh/heavenideas/heavenideas.github.io@main/lorcanaUtils_MatchUpAnalyzer/lorcana_abilities_redux.json";
+        const SUPABASE_URL = 'https://cjlhrfhximjldqrfblkj.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNqbGhyZmh4aW1qbGRxcmZibGtqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA0MTcxNzQsImV4cCI6MjA2NTk5MzE3NH0.zLiQcPnKt2SnNfQIkUnOG7bOo6F7MPMh8MsasdFF6lw';
         const COLOR_MAP = {
             "Amber": "bg-amber-500",
             "Amethyst": "bg-purple-500",
@@ -457,6 +467,9 @@
                 CardStatAnalysisModule.initialize(allCardsData, COLOR_HEX, UnifiedWinProbabiliyCalculation);
                 cardInspector = new CardThreatLevelInspector();
 
+                DOMElements.loadingMessage.textContent = "Loading Decks...";
+                await loadDecks();
+
                 DOMElements.loadingMessage.textContent = "Ready!";
                 DOMElements.loadingOverlay.style.display = 'none';
                 DOMElements.loadDeckButton.disabled = false;
@@ -467,6 +480,7 @@
         };
 
         // --- EVENT LISTENERS ---
+        DOMElements.deckSelect.addEventListener('change', handleDeckSelect);
         DOMElements.loadDeckButton.addEventListener('click', handleLoadDeck);
         DOMElements.shuffleButton.addEventListener('click', handleShuffleDeck);
         DOMElements.resetButton.addEventListener('click', handleReset);
@@ -474,6 +488,44 @@
 
         const hyperInputs = [DOMElements.hyperDeckSize, DOMElements.hyperCopies, DOMElements.hyperHandSize, DOMElements.hyperDesired];
         hyperInputs.forEach(input => input.addEventListener('input', updateHypergeometricCalculator));
+
+        // --- SUPABASE DECK LOADING ---
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        async function loadDecks() {
+            try {
+                const { data, error } = await supabaseClient.from('decks').select('*').order('created_at', { ascending: false });
+                if (error) {
+                    console.error('Error fetching decks:', error);
+                    return;
+                }
+                allDecks = data || [];
+                populateDeckSelect();
+            } catch (error) {
+                console.error('Failed to load decks:', error);
+            }
+        }
+
+        function populateDeckSelect() {
+            DOMElements.deckSelect.innerHTML = '<option value="">Select a deck...</option>';
+            allDecks.forEach(deck => {
+                const option = document.createElement('option');
+                option.value = deck.id;
+                option.textContent = deck.name;
+                DOMElements.deckSelect.appendChild(option);
+            });
+        }
+
+        function handleDeckSelect() {
+            const selectedId = DOMElements.deckSelect.value;
+            if (!selectedId) return;
+            const deck = allDecks.find(d => d.id == selectedId);
+            if (deck) {
+                DOMElements.decklistInput.value = deck.decklist;
+                // Reset select
+                DOMElements.deckSelect.value = '';
+            }
+        }
 
         // --- DECK LOADING & PARSING ---
         function handleLoadDeck() {
