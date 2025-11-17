@@ -17,6 +17,9 @@ const UnifiedWinProbabiliyCalculation = (function() {
     // URL for loading abilities JSON
     const ABILITIES_URL = 'https://raw.githubusercontent.com/heavenideas/heavenideas.github.io/refs/heads/main/lorcanaUtils_MatchUpAnalyzer/lorcana_abilities_redux.json';
 
+    // Debug mode flag - disabled by default
+    let debug = false;
+
     /**
      * Loads abilities configuration from the remote URL
      * @returns {Promise<object>} The loaded abilities configuration
@@ -78,12 +81,20 @@ const UnifiedWinProbabiliyCalculation = (function() {
     }
 
     /**
-     * Gets the current abilities configuration
-     * @returns {object} The current abilities configuration
-     */
-    function getAbilitiesConfig() {
-        return ABILITIES_CONFIG;
-    }
+      * Gets the current abilities configuration
+      * @returns {object} The current abilities configuration
+      */
+     function getAbilitiesConfig() {
+         return ABILITIES_CONFIG;
+     }
+
+     /**
+      * Sets the debug mode for console logging
+      * @param {boolean} enabled - Whether to enable debug logging
+      */
+     function setDebugMode(enabled) {
+         debug = enabled;
+     }
 
     /**
      * Converts a string that might be a word ("one", "two") or a digit ("1", "2") into a number.
@@ -203,7 +214,8 @@ const UnifiedWinProbabiliyCalculation = (function() {
     function evaluateFormula(formula, formulaContext) {
         const processedFormula = resolveFormulaVariables(formula, formulaContext, false);
 
-        //console.log(`Processed Formula ${processedFormula}`)
+        if (debug) console.log(`Evaluating formula: ${formula}`);
+        if (debug) console.log(`Processed Formula: ${processedFormula}`);
         // Use the Function constructor to safely evaluate the processed formula string.
         try {
             return new Function(`return ${processedFormula}`)();
@@ -278,6 +290,7 @@ const UnifiedWinProbabiliyCalculation = (function() {
         let rds = 0, lvi = 0, bcr = 0;
 
         // --- PHASE 1: Process base abilities (WILL_NOT_MATCH_TEXT) once per card ---
+        if (debug) console.log('Starting Phase 1: Processing base abilities');
         const baseAbilities = [];
         configToUse.abilities.forEach(abilityDef => {
             if (abilityDef.regex === "WILL_NOT_MATCH_TEXT") {
@@ -322,6 +335,7 @@ const UnifiedWinProbabiliyCalculation = (function() {
 
         // Process base ability context modifiers and scores
         baseAbilityContexts.forEach(({ def, context: abilityContext }) => {
+            if (debug) console.log(`Processing base ability: ${def.name}`);
             // Context modifiers
             (def.calculation.contextModifiers || []).forEach(modDef => {
                 let shouldApply = modDef.condition ? evaluateFormula(modDef.condition, abilityContext) : true;
@@ -416,6 +430,7 @@ const UnifiedWinProbabiliyCalculation = (function() {
             if (!currentText || typeof currentText !== 'string') return;
 
             // --- PHASE 2: Find text-matching abilities for this specific text ---
+            if (debug) console.log(`Starting Phase 2-5 for ability text ${abilityIndex + 1}: ${currentText}`);
             const textMatchingAbilities = [];
             configToUse.abilities.forEach(abilityDef => {
                 // Skip base abilities (already processed above)
@@ -475,6 +490,7 @@ const UnifiedWinProbabiliyCalculation = (function() {
 
             // --- PHASE 4: Process context modifiers (isolated per ability) ---
             abilityContexts.forEach(({ def, match, context: abilityContext }) => {
+                if (debug) console.log(`Processing text-matching ability: ${def.name}`);
                 (def.calculation.contextModifiers || []).forEach(modDef => {
                     let shouldApply = modDef.condition ? evaluateFormula(modDef.condition, abilityContext) : true;
                     if (shouldApply) {
@@ -570,7 +586,8 @@ const UnifiedWinProbabiliyCalculation = (function() {
         calculateCardMetrics,
         loadAbilitiesConfig,
         setAbilitiesConfig,
-        getAbilitiesConfig
+        getAbilitiesConfig,
+        setDebugMode
     };
 
 })();

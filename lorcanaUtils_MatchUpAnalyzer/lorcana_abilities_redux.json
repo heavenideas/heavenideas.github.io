@@ -2558,7 +2558,7 @@
       "name": "Play: Song",
       "category": "Play",
       "sub_type": "Song",
-      "regex": "/\\(A character with cost (\\d+) or more can ⟳ to sing this song for free\\.\\)/gi",
+      "regex": "/A character with cost (\\d+) or more can ⟳ to sing this song for free/gi",
       "value_type": "raw",
       "explanation": "The reminder text for songs, indicating they can be played for free by exerting a character of sufficient cost.",
       "justification": "This is the core mechanic of song cards, providing resource advantage.",
