@@ -1838,7 +1838,7 @@
         "contextModifiers": [],
         "scores": {
           "board_control": {
-            "value": "@bcr.banishCharacterValue * (@opposing === 'opposing '? 2.0 : 1.15) * (@state=== 'damaged ' ? 0.75 : 1.0) * (1/@stats) * @context.bcr.trigger",
+            "value": "@bcr.banishCharacterValue * (@opposing === 'opposing '? 2.0 : 1.15) * (@state=== 'damaged ' ? 0.75 : 1.0) * (1/(@stats === 0.00 ? 1 : @stats)) * @context.bcr.trigger",
             "explanation": "Banish All - Best in the game"
           }
         }
