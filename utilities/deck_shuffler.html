@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en" class="dark">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,7 +10,8 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- Load Unified Win Probability Utilities -->
     <!-- We use jsDelivr CDN to ensure correct MIME types -->
-    <script src="https://cdn.jsdelivr.net/gh/heavenideas/heavenideas.github.io@main/utilities/unified_win_probability_utilities.js"></script>
+    <script
+        src="https://cdn.jsdelivr.net/gh/heavenideas/heavenideas.github.io@main/utilities/unified_win_probability_utilities.js"></script>
     <script src="card_stat_analysis_module.js"></script>
     <script src="CardThreatLevelInspector.js"></script>
     <style>
@@ -18,36 +20,46 @@
             width: 8px;
             height: 8px;
         }
+
         ::-webkit-scrollbar-track {
             background: #1e1e1e;
         }
+
         ::-webkit-scrollbar-thumb {
             background: #4a4a4a;
             border-radius: 4px;
         }
+
         ::-webkit-scrollbar-thumb:hover {
             background: #6a6a6a;
         }
+
         /* Basic styles for Inter font and dark mode */
-        html, body {
+        html,
+        body {
             font-family: 'Inter', sans-serif;
-            background-color: #111827; /* gray-900 */
-            color: #d1d5db; /* gray-300 */
+            background-color: #111827;
+            /* gray-900 */
+            color: #d1d5db;
+            /* gray-300 */
             height: 100%;
         }
+
         /* Style for the card tooltips */
         .card-tooltip {
             display: none;
             position: absolute;
-            bottom: 110%; /* Position above the element */
+            bottom: 110%;
+            /* Position above the element */
             left: 50%;
             transform: translateX(-50%);
             z-index: 50;
             pointer-events: none;
             transition: opacity 0.2s;
         }
-        .card-tooltip-trigger:hover + .card-tooltip,
-        .card-tooltip-trigger:focus + .card-tooltip {
+
+        .card-tooltip-trigger:hover+.card-tooltip,
+        .card-tooltip-trigger:focus+.card-tooltip {
             display: block;
         }
     </style>
@@ -56,33 +68,45 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
+
 <body class="p-4 md:p-8">
 
     <!-- Loading Overlay -->
-    <div id="loading-overlay" class="fixed inset-0 bg-gray-900 bg-opacity-80 flex flex-col items-center justify-center z-50">
-        <svg class="animate-spin h-12 w-12 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+    <div id="loading-overlay"
+        class="fixed inset-0 bg-gray-900 bg-opacity-80 flex flex-col items-center justify-center z-50">
+        <svg class="animate-spin h-12 w-12 text-white" xmlns="http://www.w3.org/2000/svg" fill="none"
+            viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            <path class="opacity-75" fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+            </path>
         </svg>
         <p id="loading-message" class="text-white text-lg mt-4">Initializing...</p>
     </div>
 
     <!-- Main Content Grid -->
     <div class="container mx-auto max-w-7xl grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
+
         <!-- Left Column: Deck Input -->
         <div class="lg:col-span-1 p-4 bg-gray-800 rounded-lg shadow-lg">
             <h2 class="text-2xl font-bold mb-4 text-white">Deck Input</h2>
-            <p class="text-sm text-gray-400 mb-3">Paste your decklist below. Format: <br><code class="bg-gray-700 p-1 rounded">4x Card Name</code> or <code class="bg-gray-700 p-1 rounded">4 Card Name</code></p>
+            <p class="text-sm text-gray-400 mb-3">Paste your decklist below. Format: <br><code
+                    class="bg-gray-700 p-1 rounded">4x Card Name</code> or <code
+                    class="bg-gray-700 p-1 rounded">4 Card Name</code></p>
 
             <label for="deck-select" class="block text-sm font-medium text-gray-300 mb-1">Load from My Decks</label>
-            <select id="deck-select" class="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:outline-none mb-3">
+            <select id="deck-select"
+                class="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:outline-none mb-3">
                 <option value="">Select a deck...</option>
             </select>
 
-            <textarea id="decklist-input" class="w-full h-80 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="4x Mickey Mouse - Brave Little Tailor&#10;2x Lilo - Making a Wish&#10;..."></textarea>
-            
-            <button id="load-deck-button" class="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50" disabled>
+            <textarea id="decklist-input"
+                class="w-full h-80 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                placeholder="4x Mickey Mouse - Brave Little Tailor&#10;2x Lilo - Making a Wish&#10;..."></textarea>
+
+            <button id="load-deck-button"
+                class="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50"
+                disabled>
                 Load Deck & Analyze
             </button>
             <p id="deck-load-status" class="text-sm text-center mt-3 h-4"></p>
@@ -92,139 +116,395 @@
         <div class="lg:col-span-2">
             <!-- Tab Headers -->
             <div class="bg-gray-800 rounded-lg p-1.5 inline-flex items-center justify-center">
-                <button class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline h-4 w-4 mr-1.5"><path d="M2 18h1.4c1.3 0 2.5-.6 3.3-1.7l6.1-8.6c.7-1.1 2-1.7 3.3-1.7H22"></path><path d="m18 2 4 4-4 4"></path><path d="M2 6h1.9c1.5 0 2.9.9 3.6 2.2"></path><path d="M22 18h-5.9c-1.3 0-2.6-.7-3.3-1.8l-.5-.8"></path><path d="m18 14 4 4-4 4"></path></svg>
+                <button id="tab-draw"
+                    class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        class="inline h-4 w-4 mr-1.5">
+                        <path d="M2 18h1.4c1.3 0 2.5-.6 3.3-1.7l6.1-8.6c.7-1.1 2-1.7 3.3-1.7H22"></path>
+                        <path d="m18 2 4 4-4 4"></path>
+                        <path d="M2 6h1.9c1.5 0 2.9.9 3.6 2.2"></path>
+                        <path d="M22 18h-5.9c-1.3 0-2.6-.7-3.3-1.8l-.5-.8"></path>
+                        <path d="m18 14 4 4-4 4"></path>
+                    </svg>
                     Draw
                 </button>
-                <!-- Other tabs could be added here -->
+                <button id="tab-simulation"
+                    class="px-4 py-2 text-sm font-medium text-gray-400 hover:text-white rounded-md transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        class="inline h-4 w-4 mr-1.5">
+                        <path d="M12 2v20"></path>
+                        <path d="M2 12h20"></path>
+                        <path d="m4.93 4.93 14.14 14.14"></path>
+                        <path d="m19.07 4.93-14.14 14.14"></path>
+                    </svg>
+                    Simulation
+                </button>
             </div>
 
             <!-- Tab Content -->
             <div id="analyzer-content" class="mt-4 space-y-6 opacity-50 pointer-events-none">
-                
-                <!-- Deck Shuffle Simulator -->
-                <div class="bg-gray-800 rounded-lg shadow-lg border border-gray-700">
-                    <div class="p-6">
-                        <h3 class="text-xl font-bold text-white flex items-center gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5 text-blue-400"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"></path><path d="M20 3v4"></path><path d="M22 5h-4"></path><path d="M4 17v2"></path><path d="M5 18H3"></path></svg>
-                            Deck Shuffle Simulator
-                        </h3>
-                        <p class="text-sm text-gray-400 mt-2">Simulate shuffles using the Fisher-Yates algorithm.</p>
-                    </div>
-                    <div class="p-6 pt-0">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <!-- Shuffle Controls -->
-                            <div class="space-y-4">
-                                <div class="flex gap-2">
-                                    <button id="shuffle-button" class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-blue-600 text-white hover:bg-blue-700 h-11 px-8 flex-1">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2 h-4 w-4"><path d="M2 18h1.4c1.3 0 2.5-.6 3.3-1.7l6.1-8.6c.7-1.1 2-1.7 3.3-1.7H22"></path><path d="m18 2 4 4-4 4"></path><path d="M2 6h1.9c1.5 0 2.9.9 3.6 2.2"></path><path d="M22 18h-5.9c-1.3 0-2.6-.7-3.3-1.8l-.5-.8"></path><path d="m18 14 4 4-4 4"></path></svg>
-                                        Shuffle Deck
-                                    </button>
-                                    <button id="reset-button" class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-gray-700 text-white hover:bg-gray-600 h-11 px-8">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2 h-4 w-4"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path><path d="M8 16H3v5"></path></svg>
-                                        Reset
-                                    </button>
-                                </div>
-                                <!-- Hand Quality -->
-                                <div id="hand-quality-container" class="space-y-3 pt-2 hidden">
-                                    <p class="text-xs text-gray-500">Hand Quality</p>
-                                    <div class="flex items-center gap-3">
-                                        <span id="hand-quality-score" class="text-3xl font-bold tabular-nums text-indigo-400">0.0<span class="text-lg text-gray-500">/10</span></span>
-                                        <div id="hand-quality-rating" class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-sm font-semibold"></div>
-                                    </div>
-                                    <div class="w-full bg-gray-700 rounded-full h-2.5">
-                                        <div id="hand-quality-bar" class="bg-indigo-500 h-2.5 rounded-full" style="width: 0%"></div>
-                                    </div>
-                                </div>
-                            </div>
-                            <!-- Recent Shuffles -->
-                            <div class="space-y-2">
-                                <div class="flex items-center gap-2">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 text-gray-500"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                                    <h3 class="text-sm font-medium text-white">Recent Shuffles</h3>
-                                </div>
-                                <div id="recent-shuffles-list" class="space-y-2 max-h-36 overflow-y-auto pr-2">
-                                    <p class="text-xs text-gray-500 text-center py-4">Shuffle the deck to see results.</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
-                <!-- Hand Analysis -->
-                <div id="hand-analysis-container" class="bg-gray-800 rounded-lg shadow-lg border border-gray-700 overflow-hidden hidden">
-                    <div class="p-6">
-                        <h3 class="text-xl font-bold text-white">Hand Analysis</h3>
-                        <p class="text-sm text-gray-400 mt-2">Compare your opening hand with early game potential.</p>
+                <!-- DRAW TAB CONTENT -->
+                <div id="draw-content" class="space-y-6">
+
+                    <!-- Deck Shuffle Simulator -->
+                    <div class="bg-gray-800 rounded-lg shadow-lg border border-gray-700">
+                        <div class="p-6">
+                            <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round" class="h-5 w-5 text-blue-400">
+                                    <path
+                                        d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z">
+                                    </path>
+                                    <path d="M20 3v4"></path>
+                                    <path d="M22 5h-4"></path>
+                                    <path d="M4 17v2"></path>
+                                    <path d="M5 18H3"></path>
+                                </svg>
+                                Deck Shuffle Simulator
+                            </h3>
+                            <p class="text-sm text-gray-400 mt-2">Simulate shuffles using the Fisher-Yates algorithm.
+                            </p>
+                        </div>
+                        <div class="p-6 pt-0">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <!-- Shuffle Controls -->
+                                <div class="space-y-4">
+                                    <div class="flex gap-2">
+                                        <button id="shuffle-button"
+                                            class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-blue-600 text-white hover:bg-blue-700 h-11 px-8 flex-1">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                                                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                                stroke-linecap="round" stroke-linejoin="round" class="mr-2 h-4 w-4">
+                                                <path
+                                                    d="M2 18h1.4c1.3 0 2.5-.6 3.3-1.7l6.1-8.6c.7-1.1 2-1.7 3.3-1.7H22">
+                                                </path>
+                                                <path d="m18 2 4 4-4 4"></path>
+                                                <path d="M2 6h1.9c1.5 0 2.9.9 3.6 2.2"></path>
+                                                <path d="M22 18h-5.9c-1.3 0-2.6-.7-3.3-1.8l-.5-.8"></path>
+                                                <path d="m18 14 4 4-4 4"></path>
+                                            </svg>
+                                            Shuffle Deck
+                                        </button>
+                                        <button id="reset-button"
+                                            class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-gray-700 text-white hover:bg-gray-600 h-11 px-8">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                                                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                                stroke-linecap="round" stroke-linejoin="round" class="mr-2 h-4 w-4">
+                                                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
+                                                <path d="M21 3v5h-5"></path>
+                                                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
+                                                <path d="M8 16H3v5"></path>
+                                            </svg>
+                                            Reset
+                                        </button>
+                                    </div>
+                                    <!-- Hand Quality -->
+                                    <div id="hand-quality-container" class="space-y-4 pt-2 hidden">
+                                        <!-- Opening Hand Score -->
+                                        <div>
+                                            <p class="text-xs text-gray-500 mb-1">Opening Hand Quality</p>
+                                            <div class="flex items-center gap-2">
+                                                <span id="opening-quality-score"
+                                                    class="text-xl font-bold text-gray-300">0.0</span>
+                                                <div id="opening-quality-rating"
+                                                    class="text-xs px-2 py-0.5 rounded border"></div>
+                                            </div>
+                                            <div class="w-full bg-gray-700 rounded-full h-1.5 mt-1">
+                                                <div id="opening-quality-bar" class="bg-gray-500 h-1.5 rounded-full"
+                                                    style="width: 0%"></div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Final Hand Score -->
+                                        <div>
+                                            <p class="text-xs text-indigo-300 mb-1">Final Hand Quality</p>
+                                            <div class="flex items-center gap-2">
+                                                <span id="final-quality-score"
+                                                    class="text-3xl font-bold text-indigo-400">0.0</span>
+                                                <div id="final-quality-rating"
+                                                    class="text-sm px-2.5 py-0.5 rounded border font-semibold"></div>
+                                            </div>
+                                            <div class="w-full bg-gray-700 rounded-full h-2.5 mt-1">
+                                                <div id="final-quality-bar" class="bg-indigo-500 h-2.5 rounded-full"
+                                                    style="width: 0%"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Recent Shuffles -->
+                                <div class="space-y-2">
+                                    <div class="flex items-center gap-2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                            stroke-linecap="round" stroke-linejoin="round"
+                                            class="h-4 w-4 text-gray-500">
+                                            <circle cx="12" cy="12" r="10"></circle>
+                                            <polyline points="12 6 12 12 16 14"></polyline>
+                                        </svg>
+                                        <h3 class="text-sm font-medium text-white">Recent Shuffles</h3>
+                                    </div>
+                                    <div id="recent-shuffles-list" class="space-y-2 max-h-36 overflow-y-auto pr-2">
+                                        <p class="text-xs text-gray-500 text-center py-4">Shuffle the deck to see
+                                            results.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="p-6 pt-0">
-                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            <!-- Opening Hand -->
-                            <div class="space-y-4 min-w-0">
+
+                    <!-- Hand Analysis -->
+                    <div id="hand-analysis-container"
+                        class="bg-gray-800 rounded-lg shadow-lg border border-gray-700 overflow-hidden hidden">
+                        <div class="p-6">
+                            <h3 class="text-xl font-bold text-white">Hand Analysis</h3>
+                            <p class="text-sm text-gray-400 mt-2">Compare your opening hand with early game potential.
+                            </p>
+                        </div>
+                        <div class="p-6 pt-0">
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                <!-- Opening Hand -->
+                                <div class="space-y-4 min-w-0">
+                                    <div class="flex items-center justify-between">
+                                        <h3 class="text-sm font-semibold text-white">Opening Hand (7 Cards)</h3>
+                                        <div id="opening-hand-rating"
+                                            class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-sm font-semibold">
+                                        </div>
+                                    </div>
+                                    <div id="opening-hand-analysis-points" class="space-y-1 text-sm"></div>
+                                    <!-- Stats Grid -->
+                                    <div class="grid grid-cols-2 gap-3 text-sm">
+                                        <div class="space-y-1">
+                                            <p class="text-gray-500">Inkable</p>
+                                            <p id="hand-inkable-stat" class="font-bold text-lg text-white"></p>
+                                        </div>
+                                        <div class="space-y-1">
+                                            <p class="text-gray-500">Curve</p>
+                                            <div id="hand-curve-stat" class="flex flex-wrap gap-1"></div>
+                                        </div>
+                                        <div class="space-y-1">
+                                            <p class="text-gray-500">Types</p>
+                                            <div id="hand-types-stat" class="flex flex-wrap gap-1"></div>
+                                        </div>
+                                        <div class="space-y-1">
+                                            <p class="text-gray-500">Colors</p>
+                                            <div id="hand-colors-stat" class="flex flex-wrap gap-1"></div>
+                                        </div>
+                                    </div>
+                                    <!-- Card Images -->
+                                    <div class="space-y-4">
+                                        <!-- Opening Hand -->
+                                        <div>
+                                            <div class="flex items-center justify-between mb-1">
+                                                <span
+                                                    class="text-xs text-gray-400 uppercase tracking-wider font-bold">Opening
+                                                    Hand</span>
+                                                <span id="opening-hand-score-display"
+                                                    class="text-xs font-mono text-gray-500"></span>
+                                            </div>
+                                            <div class="w-full overflow-x-auto">
+                                                <div id="opening-hand-container"
+                                                    class="grid grid-cols-7 gap-1 w-max sm:w-full"></div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Final Hand -->
+                                        <div>
+                                            <div class="flex items-center justify-between mb-1">
+                                                <span
+                                                    class="text-xs text-gray-400 uppercase tracking-wider font-bold">Final
+                                                    Hand</span>
+                                                <span id="final-hand-score-display"
+                                                    class="text-xs font-mono text-gray-500"></span>
+                                            </div>
+                                            <div class="w-full overflow-x-auto">
+                                                <div id="final-hand-container"
+                                                    class="grid grid-cols-7 gap-1 w-max sm:w-full"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div id="hand-comparison" class="pt-2 space-y-1 text-sm"></div>
+                                </div>
+
+                                <!-- Early Game -->
+                                <div class="space-y-4 min-w-0">
+                                    <div class="flex items-center gap-2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                            stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 text-white">
+                                            <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
+                                            <polyline points="16 7 22 7 22 13"></polyline>
+                                        </svg>
+                                        <h3 class="text-sm font-semibold text-white">Early Game (First 15 Cards)</h3>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-3 text-sm">
+                                        <div class="space-y-1">
+                                            <p class="text-gray-500">Inkable</p>
+                                            <p id="early-inkable-stat" class="font-bold text-lg text-white"></p>
+                                        </div>
+                                        <div class="space-y-1">
+                                            <p class="text-gray-500">Curve</p>
+                                            <div id="early-curve-stat" class="flex flex-wrap gap-1"></div>
+                                        </div>
+                                        <div class="space-y-1">
+                                            <p class="text-gray-500">Types</p>
+                                            <div id="early-types-stat" class="flex flex-wrap gap-1"></div>
+                                        </div>
+                                        <div class="space-y-1">
+                                            <p class="text-gray-500">Colors</p>
+                                            <div id="early-colors-stat" class="flex flex-wrap gap-1"></div>
+                                        </div>
+                                    </div>
+                                    <div id="early-tags-stat" class="flex flex-wrap gap-2 text-sm"></div>
+                                    <p class="pt-2 text-sm text-gray-500">Showing analysis of cards 1-15 from this
+                                        shuffle.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Deck Timeline -->
+                        <div id="deck-timeline-container" class="w-full min-w-0 border-t border-gray-700 p-6">
+                            <div class="space-y-3">
                                 <div class="flex items-center justify-between">
-                                    <h3 class="text-sm font-semibold text-white">Opening Hand (7 Cards)</h3>
-                                    <div id="opening-hand-rating" class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-sm font-semibold"></div>
+                                    <h3 id="deck-timeline-header" class="text-sm font-semibold text-white">Deck Timeline
+                                    </h3>
+                                    <div class="flex items-center gap-2 text-sm text-gray-500">
+                                        <span>Scroll to see turn progression</span>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                            stroke-linecap="round" stroke-linejoin="round" class="h-3 w-3">
+                                            <path d="M5 12h14"></path>
+                                            <path d="m12 5 7 7-7 7"></path>
+                                        </svg>
+                                    </div>
                                 </div>
-                                <div id="opening-hand-analysis-points" class="space-y-1 text-sm"></div>
-                                <!-- Stats Grid -->
-                                <div class="grid grid-cols-2 gap-3 text-sm">
-                                    <div class="space-y-1"><p class="text-gray-500">Inkable</p><p id="hand-inkable-stat" class="font-bold text-lg text-white"></p></div>
-                                    <div class="space-y-1"><p class="text-gray-500">Curve</p><div id="hand-curve-stat" class="flex flex-wrap gap-1"></div></div>
-                                    <div class="space-y-1"><p class="text-gray-500">Types</p><div id="hand-types-stat" class="flex flex-wrap gap-1"></div></div>
-                                    <div class="space-y-1"><p class="text-gray-500">Colors</p><div id="hand-colors-stat" class="flex flex-wrap gap-1"></div></div>
+                                <div class="w-full overflow-x-auto overflow-y-hidden pb-4">
+                                    <div id="deck-timeline-cards" class="flex gap-4 w-max"></div>
                                 </div>
-                                <!-- Card Images -->
-                                <div class="w-full overflow-x-auto">
-                                    <div id="hand-card-images" class="grid grid-cols-7 gap-1 w-max sm:w-full"></div>
+                                <div class="flex items-center justify-center gap-4 text-xs text-gray-500 pt-2">
+                                    <div class="flex items-center gap-1.5">
+                                        <div class="w-3 h-3 bg-blue-500 rounded-full"></div><span>Early (T1-7)</span>
+                                    </div>
+                                    <div class="flex items-center gap-1.5">
+                                        <div class="w-3 h-3 bg-yellow-500 rounded-full"></div><span>Mid (T8-14)</span>
+                                    </div>
+                                    <div class="flex items-center gap-1.5">
+                                        <div class="w-3 h-3 bg-purple-500 rounded-full"></div><span>Late (T15+)</span>
+                                    </div>
                                 </div>
-                                <div id="hand-comparison" class="pt-2 space-y-1 text-sm"></div>
-                            </div>
-                            
-                            <!-- Early Game -->
-                            <div class="space-y-4 min-w-0">
-                                <div class="flex items-center gap-2">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 text-white"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline><polyline points="16 7 22 7 22 13"></polyline></svg>
-                                    <h3 class="text-sm font-semibold text-white">Early Game (First 15 Cards)</h3>
-                                </div>
-                                <div class="grid grid-cols-2 gap-3 text-sm">
-                                    <div class="space-y-1"><p class="text-gray-500">Inkable</p><p id="early-inkable-stat" class="font-bold text-lg text-white"></p></div>
-                                    <div class="space-y-1"><p class="text-gray-500">Curve</p><div id="early-curve-stat" class="flex flex-wrap gap-1"></div></div>
-                                    <div class="space-y-1"><p class="text-gray-500">Types</p><div id="early-types-stat" class="flex flex-wrap gap-1"></div></div>
-                                    <div class="space-y-1"><p class="text-gray-500">Colors</p><div id="early-colors-stat" class="flex flex-wrap gap-1"></div></div>
-                                </div>
-                                <div id="early-tags-stat" class="flex flex-wrap gap-2 text-sm"></div>
-                                <p class="pt-2 text-sm text-gray-500">Showing analysis of cards 1-15 from this shuffle.</p>
                             </div>
                         </div>
                     </div>
-                    <!-- Deck Timeline -->
-                    <div id="deck-timeline-container" class="w-full min-w-0 border-t border-gray-700 p-6">
-                        <div class="space-y-3">
-                            <div class="flex items-center justify-between">
-                                <h3 id="deck-timeline-header" class="text-sm font-semibold text-white">Deck Timeline</h3>
-                                <div class="flex items-center gap-2 text-sm text-gray-500">
-                                    <span>Scroll to see turn progression</span>
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-3 w-3"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
+                    <!-- END DRAW TAB CONTENT -->
+
+                    <!-- SIMULATION TAB CONTENT -->
+                    <div id="simulation-content" class="space-y-6 hidden">
+                        <!-- Simulation Controls -->
+                        <div class="bg-gray-800 rounded-lg shadow-lg border border-gray-700 p-6">
+                            <h3 class="text-xl font-bold text-white flex items-center gap-2 mb-4">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round" class="h-5 w-5 text-purple-400">
+                                    <path d="M12 2v20"></path>
+                                    <path d="M2 12h20"></path>
+                                    <path d="m4.93 4.93 14.14 14.14"></path>
+                                    <path d="m19.07 4.93-14.14 14.14"></path>
+                                </svg>
+                                Batch Simulation
+                            </h3>
+                            <div class="flex items-end gap-4">
+                                <div class="space-y-1">
+                                    <label class="text-sm text-gray-400">Iterations</label>
+                                    <input id="sim-iterations" type="number" value="1000"
+                                        class="w-32 bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-white focus:ring-2 focus:ring-purple-500 focus:outline-none">
+                                </div>
+                                <button id="run-sim-button"
+                                    class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-6 rounded-lg transition duration-200 disabled:opacity-50">
+                                    Run Simulation
+                                </button>
+                            </div>
+                            <p id="sim-status" class="text-sm text-gray-500 mt-2 h-5"></p>
+                        </div>
+
+                        <!-- Simulation Results -->
+                        <div id="sim-results" class="hidden space-y-6">
+                            <!-- Key Metrics Grid -->
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <!-- Avg Hand Quality -->
+                                <div class="bg-gray-800 rounded-lg shadow-lg border border-gray-700 p-6">
+                                    <h4 class="text-sm font-semibold text-gray-400 mb-2">Avg. Hand Quality</h4>
+                                    <div class="flex items-baseline gap-2">
+                                        <span id="sim-avg-quality" class="text-3xl font-bold text-white">0.0</span>
+                                        <span class="text-sm text-gray-500">/ 10</span>
+                                    </div>
+                                    <div class="mt-2 text-sm">
+                                        <span class="text-gray-500">Opening: </span>
+                                        <span id="sim-avg-opening-quality" class="text-gray-300">0.0</span>
+                                    </div>
+                                </div>
+                                <!-- Mulligan Stats -->
+                                <div class="bg-gray-800 rounded-lg shadow-lg border border-gray-700 p-6">
+                                    <h4 class="text-sm font-semibold text-gray-400 mb-2">Mulligan Stats</h4>
+                                    <div class="space-y-2">
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-500">Mulligan Rate</span>
+                                            <span id="sim-mulligan-rate" class="font-bold text-white">0%</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-500">Avg. Replaced</span>
+                                            <span id="sim-avg-replaced" class="font-bold text-white">0.0</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Consistency -->
+                                <div class="bg-gray-800 rounded-lg shadow-lg border border-gray-700 p-6">
+                                    <h4 class="text-sm font-semibold text-gray-400 mb-2">Consistency</h4>
+                                    <div class="space-y-2">
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-500">Brick Rate (&lt;2 Ink)</span>
+                                            <span id="sim-brick-rate" class="font-bold text-white">0%</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-500">Perfect Curve (T1-3)</span>
+                                            <span id="sim-curve-rate" class="font-bold text-white">0%</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="w-full overflow-x-auto overflow-y-hidden pb-4">
-                                <div id="deck-timeline-cards" class="flex gap-4 w-max"></div>
-                            </div>
-                            <div class="flex items-center justify-center gap-4 text-xs text-gray-500 pt-2">
-                                <div class="flex items-center gap-1.5"><div class="w-3 h-3 bg-blue-500 rounded-full"></div><span>Early (T1-7)</span></div>
-                                <div class="flex items-center gap-1.5"><div class="w-3 h-3 bg-yellow-500 rounded-full"></div><span>Mid (T8-14)</span></div>
-                                <div class="flex items-center gap-1.5"><div class="w-3 h-3 bg-purple-500 rounded-full"></div><span>Late (T15+)</span></div>
+
+                            <!-- Detailed Stats -->
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                <!-- Hand Quality Distribution -->
+                                <div class="bg-gray-800 rounded-lg shadow-lg border border-gray-700 p-6">
+                                    <h4 class="text-lg font-bold text-white mb-4">Hand Quality Distribution
+                                        (Post-Mulligan)</h4>
+                                    <div id="sim-quality-dist" class="space-y-2"></div>
+                                </div>
+
+                                <!-- Most Frequent Cards -->
+                                <div class="bg-gray-800 rounded-lg shadow-lg border border-gray-700 p-6">
+                                    <h4 class="text-lg font-bold text-white mb-4">Most Frequent Opening Cards</h4>
+                                    <div id="sim-freq-cards" class="space-y-2 max-h-60 overflow-y-auto pr-2"></div>
+                                </div>
                             </div>
                         </div>
                     </div>
+                    <!-- END SIMULATION TAB CONTENT -->
                 </div>
 
                 <!-- Shuffle Quality Analysis -->
-                <div id="shuffle-quality-container" class="bg-gray-800 rounded-lg shadow-lg border border-gray-700 hidden">
+                <div id="shuffle-quality-container"
+                    class="bg-gray-800 rounded-lg shadow-lg border border-gray-700 hidden">
                     <div class="p-6">
                         <h3 class="text-xl leading-none font-bold text-white flex items-center justify-between">
                             <span>Shuffle Quality Analysis</span>
-                            <div id="shuffle-quality-rating" class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-sm font-semibold"></div>
+                            <div id="shuffle-quality-rating"
+                                class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-sm font-semibold">
+                            </div>
                         </h3>
                         <p class="text-sm text-gray-400 mt-2">Statistical analysis of shuffle randomization.</p>
                     </div>
@@ -232,8 +512,13 @@
                         <div class="space-y-2">
                             <div id="shuffle-quality-issues" class="space-y-1 text-sm"></div>
                         </div>
-                        <button id="toggle-stats-button" type="button" class="w-full flex items-center justify-center gap-2 py-2 text-sm text-gray-500 hover:text-white transition-colors border-t border-gray-700 pt-4">
-                            <svg id="toggle-stats-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 transition-transform"><path d="m6 9 6 6 6-6"></path></svg>
+                        <button id="toggle-stats-button" type="button"
+                            class="w-full flex items-center justify-center gap-2 py-2 text-sm text-gray-500 hover:text-white transition-colors border-t border-gray-700 pt-4">
+                            <svg id="toggle-stats-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 transition-transform">
+                                <path d="m6 9 6 6 6-6"></path>
+                            </svg>
                             <span id="toggle-stats-text">Show Detailed Statistics</span>
                         </button>
                         <div id="detailed-stats-container" class="pt-4 border-t border-gray-700 hidden">
@@ -248,17 +533,37 @@
                                     <div id="clustering-stat" class="grid grid-cols-2 gap-3 text-sm"></div>
                                 </div>
                                 <!-- Alert Box -->
-                                <div id="clustering-alert-box" class="hidden relative w-full rounded-lg border border-yellow-700 bg-yellow-900 text-yellow-300 p-4">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-alert h-4 w-4 absolute left-4 top-4"><circle cx="12" cy="12" r="10"></circle><line x1="12" x2="12" y1="8" y2="12"></line><line x1="12" x2="12.01" y1="16" y2="16"></line></svg>
+                                <div id="clustering-alert-box"
+                                    class="hidden relative w-full rounded-lg border border-yellow-700 bg-yellow-900 text-yellow-300 p-4">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        class="lucide lucide-circle-alert h-4 w-4 absolute left-4 top-4">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <line x1="12" x2="12" y1="8" y2="12"></line>
+                                        <line x1="12" x2="12.01" y1="16" y2="16"></line>
+                                    </svg>
                                     <div id="clustering-alert-text" class="ml-7 text-sm"></div>
                                 </div>
                                 <!-- Distribution -->
                                 <div class="space-y-2">
-                                    <h4 class="text-sm font-semibold text-white flex items-center gap-1"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-3 w-3"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline><polyline points="16 7 22 7 22 13"></polyline></svg>Distribution (Full Deck)</h4>
+                                    <h4 class="text-sm font-semibold text-white flex items-center gap-1"><svg
+                                            xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                            stroke-linecap="round" stroke-linejoin="round" class="h-3 w-3">
+                                            <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
+                                            <polyline points="16 7 22 7 22 13"></polyline>
+                                        </svg>Distribution (Full Deck)</h4>
                                     <div class="space-y-2 text-sm">
-                                        <div><span class="text-gray-500">Colors:</span><div id="dist-colors-stat" class="flex flex-wrap gap-1 mt-1"></div></div>
-                                        <div><span class="text-gray-500">Costs:</span><div id="dist-costs-stat" class="flex flex-wrap gap-1 mt-1"></div></div>
-                                        <div><span class="text-gray-500">Inkwell:</span><div id="dist-inkwell-stat" class="flex flex-wrap gap-1 mt-1"></div></div>
+                                        <div><span class="text-gray-500">Colors:</span>
+                                            <div id="dist-colors-stat" class="flex flex-wrap gap-1 mt-1"></div>
+                                        </div>
+                                        <div><span class="text-gray-500">Costs:</span>
+                                            <div id="dist-costs-stat" class="flex flex-wrap gap-1 mt-1"></div>
+                                        </div>
+                                        <div><span class="text-gray-500">Inkwell:</span>
+                                            <div id="dist-inkwell-stat" class="flex flex-wrap gap-1 mt-1"></div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -272,7 +577,8 @@
                     <div class="bg-gray-800 rounded-lg shadow-lg border border-gray-700">
                         <div class="p-6">
                             <h3 class="text-xl font-bold text-white">Hand Draw Probabilities</h3>
-                            <p class="text-sm text-gray-400 mt-2">Probability of drawing cards by category in opening hand (7 cards).</p>
+                            <p class="text-sm text-gray-400 mt-2">Probability of drawing cards by category in opening
+                                hand (7 cards).</p>
                         </div>
                         <div class="p-6 pt-0">
                             <div class="rounded-md border border-gray-700">
@@ -280,17 +586,27 @@
                                     <table class="w-full caption-bottom text-sm">
                                         <thead class="[&_tr]:border-b border-gray-700">
                                             <tr class="border-b border-gray-700 transition-colors">
-                                                <th class="h-12 px-4 text-left align-middle font-medium text-white w-[160px]">Category</th>
-                                                <th class="h-12 px-4 align-middle font-medium text-white text-center">0</th>
-                                                <th class="h-12 px-4 align-middle font-medium text-white text-center">1</th>
-                                                <th class="h-12 px-4 align-middle font-medium text-white text-center">2</th>
-                                                <th class="h-12 px-4 align-middle font-medium text-white text-center">3</th>
-                                                <th class="h-12 px-4 align-middle font-medium text-white text-center">4+</th>
+                                                <th
+                                                    class="h-12 px-4 text-left align-middle font-medium text-white w-[160px]">
+                                                    Category</th>
+                                                <th class="h-12 px-4 align-middle font-medium text-white text-center">0
+                                                </th>
+                                                <th class="h-12 px-4 align-middle font-medium text-white text-center">1
+                                                </th>
+                                                <th class="h-12 px-4 align-middle font-medium text-white text-center">2
+                                                </th>
+                                                <th class="h-12 px-4 align-middle font-medium text-white text-center">3
+                                                </th>
+                                                <th class="h-12 px-4 align-middle font-medium text-white text-center">4+
+                                                </th>
                                             </tr>
                                         </thead>
                                         <tbody id="probability-table-body" class="[&_tr:last-child]:border-0">
                                             <!-- Rows will be injected by JS -->
-                                            <tr><td colspan="6" class="p-4 text-center text-gray-500">Load a deck to see probabilities.</td></tr>
+                                            <tr>
+                                                <td colspan="6" class="p-4 text-center text-gray-500">Load a deck to see
+                                                    probabilities.</td>
+                                            </tr>
                                         </tbody>
                                     </table>
                                 </div>
@@ -308,26 +624,37 @@
                             <div class="space-y-4">
                                 <div class="flex flex-wrap items-end gap-3">
                                     <div class="flex items-center gap-2">
-                                        <input class="flex h-8 w-16 text-center text-sm rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-white" id="hyper-deck-size" type="number" value="60">
+                                        <input
+                                            class="flex h-8 w-16 text-center text-sm rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-white"
+                                            id="hyper-deck-size" type="number" value="60">
                                         <span class="text-sm text-gray-500">Deck</span>
                                     </div>
                                     <div class="flex items-center gap-2">
-                                        <input class="flex h-8 w-16 text-center text-sm rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-white" id="hyper-copies" type="number" value="4">
+                                        <input
+                                            class="flex h-8 w-16 text-center text-sm rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-white"
+                                            id="hyper-copies" type="number" value="4">
                                         <span class="text-sm text-gray-500">Copies</span>
                                     </div>
                                     <div class="flex items-center gap-2">
-                                        <input class="flex h-8 w-16 text-center text-sm rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-white" id="hyper-hand-size" type="number" value="7">
+                                        <input
+                                            class="flex h-8 w-16 text-center text-sm rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-white"
+                                            id="hyper-hand-size" type="number" value="7">
                                         <span class="text-sm text-gray-500">Hand</span>
                                     </div>
                                     <div class="flex items-center gap-2">
-                                        <input class="flex h-8 w-16 text-center text-sm rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-white" id="hyper-desired" type="number" value="1">
+                                        <input
+                                            class="flex h-8 w-16 text-center text-sm rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-white"
+                                            id="hyper-desired" type="number" value="1">
                                         <span class="text-sm text-gray-500">Desired</span>
                                     </div>
                                 </div>
                                 <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-                                    <div class="flex items-center gap-2"><span class="text-gray-500">≥ 1:</span><span id="hyper-gte" class="font-mono font-semibold text-white">...</span></div>
-                                    <div class="flex items-center gap-2"><span class="text-gray-500">= 1:</span><span id="hyper-eq" class="font-mono font-semibold text-white">...</span></div>
-                                    <div class="flex items-center gap-2"><span class="text-gray-500">&lt; 1:</span><span id="hyper-lt" class="font-mono font-semibold text-white">...</span></div>
+                                    <div class="flex items-center gap-2"><span class="text-gray-500">≥ 1:</span><span
+                                            id="hyper-gte" class="font-mono font-semibold text-white">...</span></div>
+                                    <div class="flex items-center gap-2"><span class="text-gray-500">= 1:</span><span
+                                            id="hyper-eq" class="font-mono font-semibold text-white">...</span></div>
+                                    <div class="flex items-center gap-2"><span class="text-gray-500">&lt; 1:</span><span
+                                            id="hyper-lt" class="font-mono font-semibold text-white">...</span></div>
                                 </div>
                             </div>
                         </div>
@@ -360,14 +687,17 @@
             loadDeckButton: document.getElementById('load-deck-button'),
             deckLoadStatus: document.getElementById('deck-load-status'),
             analyzerContent: document.getElementById('analyzer-content'),
-            
+
             // Shuffle Sim
             shuffleButton: document.getElementById('shuffle-button'),
             resetButton: document.getElementById('reset-button'),
             handQualityContainer: document.getElementById('hand-quality-container'),
-            handQualityScore: document.getElementById('hand-quality-score'),
-            handQualityRating: document.getElementById('hand-quality-rating'),
-            handQualityBar: document.getElementById('hand-quality-bar'),
+            openingQualityScore: document.getElementById('opening-quality-score'),
+            openingQualityRating: document.getElementById('opening-quality-rating'),
+            openingQualityBar: document.getElementById('opening-quality-bar'),
+            finalQualityScore: document.getElementById('final-quality-score'),
+            finalQualityRating: document.getElementById('final-quality-rating'),
+            finalQualityBar: document.getElementById('final-quality-bar'),
             recentShufflesList: document.getElementById('recent-shuffles-list'),
 
             // Hand Analysis
@@ -378,7 +708,12 @@
             handCurveStat: document.getElementById('hand-curve-stat'),
             handTypesStat: document.getElementById('hand-types-stat'),
             handColorsStat: document.getElementById('hand-colors-stat'),
-            handCardImages: document.getElementById('hand-card-images'),
+            handColorsStat: document.getElementById('hand-colors-stat'),
+            // handCardImages: document.getElementById('hand-card-images'), // Removed
+            openingHandContainer: document.getElementById('opening-hand-container'),
+            finalHandContainer: document.getElementById('final-hand-container'),
+            openingHandScoreDisplay: document.getElementById('opening-hand-score-display'),
+            finalHandScoreDisplay: document.getElementById('final-hand-score-display'),
             handComparison: document.getElementById('hand-comparison'),
 
             // Early Game
@@ -418,6 +753,26 @@
             hyperGte: document.getElementById('hyper-gte'),
             hyperEq: document.getElementById('hyper-eq'),
             hyperLt: document.getElementById('hyper-lt'),
+
+            // Tabs
+            tabDraw: document.getElementById('tab-draw'),
+            tabSimulation: document.getElementById('tab-simulation'),
+            drawContent: document.getElementById('draw-content'),
+            simulationContent: document.getElementById('simulation-content'),
+
+            // Simulation
+            simIterations: document.getElementById('sim-iterations'),
+            runSimButton: document.getElementById('run-sim-button'),
+            simStatus: document.getElementById('sim-status'),
+            simResults: document.getElementById('sim-results'),
+            simAvgQuality: document.getElementById('sim-avg-quality'),
+            simAvgOpeningQuality: document.getElementById('sim-avg-opening-quality'),
+            simMulliganRate: document.getElementById('sim-mulligan-rate'),
+            simAvgReplaced: document.getElementById('sim-avg-replaced'),
+            simBrickRate: document.getElementById('sim-brick-rate'),
+            simCurveRate: document.getElementById('sim-curve-rate'),
+            simQualityDist: document.getElementById('sim-quality-dist'),
+            simFreqCards: document.getElementById('sim-freq-cards'),
         };
 
         // --- CONSTANTS ---
@@ -487,7 +842,33 @@
         DOMElements.toggleStatsButton.addEventListener('click', toggleDetailedStats);
 
         const hyperInputs = [DOMElements.hyperDeckSize, DOMElements.hyperCopies, DOMElements.hyperHandSize, DOMElements.hyperDesired];
+
         hyperInputs.forEach(input => input.addEventListener('input', updateHypergeometricCalculator));
+
+        // Tab Switching
+        DOMElements.tabDraw.addEventListener('click', () => switchTab('draw'));
+        DOMElements.tabSimulation.addEventListener('click', () => switchTab('simulation'));
+
+        // Simulation
+        DOMElements.runSimButton.addEventListener('click', runSimulation);
+
+        function switchTab(tab) {
+            if (tab === 'draw') {
+                DOMElements.drawContent.classList.remove('hidden');
+                DOMElements.simulationContent.classList.add('hidden');
+                DOMElements.tabDraw.classList.replace('text-gray-400', 'text-white');
+                DOMElements.tabDraw.classList.add('bg-blue-600');
+                DOMElements.tabSimulation.classList.replace('text-white', 'text-gray-400');
+                DOMElements.tabSimulation.classList.remove('bg-blue-600');
+            } else {
+                DOMElements.drawContent.classList.add('hidden');
+                DOMElements.simulationContent.classList.remove('hidden');
+                DOMElements.tabSimulation.classList.replace('text-gray-400', 'text-white');
+                DOMElements.tabSimulation.classList.add('bg-blue-600');
+                DOMElements.tabDraw.classList.replace('text-white', 'text-gray-400');
+                DOMElements.tabDraw.classList.remove('bg-blue-600');
+            }
+        }
 
         // --- SUPABASE DECK LOADING ---
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -592,17 +973,17 @@
                 cardCounts[card.id] = (cardCounts[card.id] || 0) + quantity;
                 parsedInfo.totalCards += quantity;
                 if (card.inkwell) parsedInfo.inkableCount += quantity;
-                
+
                 const cardColor = card.color.split('-')[0]; // Handle dual-ink
                 parsedInfo.colors[cardColor] = (parsedInfo.colors[cardColor] || 0) + quantity;
                 if (card.colors) { // Handle dual-ink second color
-                     parsedInfo.colors[card.colors[1]] = (parsedInfo.colors[card.colors[1]] || 0) + quantity;
+                    parsedInfo.colors[card.colors[1]] = (parsedInfo.colors[card.colors[1]] || 0) + quantity;
                 }
-                
+
                 parsedInfo.types[card.type] = (parsedInfo.types[card.type] || 0) + quantity;
                 parsedInfo.costs[card.cost] = (parsedInfo.costs[card.cost] || 0) + quantity;
             }
-            
+
             // Calculate byCopyCount
             const counts = {};
             for (const card of parsedDeck) {
@@ -623,7 +1004,7 @@
         function findCard(name) {
             const simpleName = s => s.toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ');
             const searchName = simpleName(name);
-            
+
             // Prioritize exact fullName match
             let found = allCardsData.find(c => c.fullName.toLowerCase() === name.toLowerCase());
             if (found) return found;
@@ -638,34 +1019,146 @@
         }
 
         // --- SHUFFLE & ANALYSIS ---
-        function handleShuffleDeck() {
-            // 1. Shuffle
-            shuffledDeck = fisherYatesShuffle([...decklist]);
-            openingHand = shuffledDeck.slice(0, 7);
+        // --- SHUFFLE & ANALYSIS ---
 
-            // 2. Analyze
-            currentShuffleAnalysis = analyzeShuffle(shuffledDeck);
-            
-            // 3. Add to Recent
+        // Module 1: The "Mulligan Heuristic"
+        function determineMulligan(initialHand) {
+            const cardsToKeep = [];
+            const cardsToMulligan = [];
+
+            // 1. Assign Priorities
+            // Priority 0: Keep
+            // Priority 1: Maybe (Un-inkable cost 3-4; Inkable cost 6+)
+            // Priority 2: Mulligan (Un-inkable cost 5+; Any cost 7+)
+
+            const handWithPriority = initialHand.map(card => {
+                let priority = 0;
+                if (!card.inkwell && card.cost >= 5) priority = 2;
+                else if (card.cost >= 7) priority = 2;
+                else if (!card.inkwell && (card.cost === 3 || card.cost === 4)) priority = 1;
+                else if (card.inkwell && card.cost >= 6) priority = 1;
+                return { card, priority };
+            });
+
+            // 2. Analyze Issues
+            const analysis = analyzeCardGroup(initialHand);
+            const issueBadInk = analysis.inkable <= 2;
+            const issueNoEarlyPlay = analysis.costs["1-3"] === 0;
+
+            // 3. Upgrade Priorities based on Issues
+            for (let item of handWithPriority) {
+                // Issue 1: Bad Ink -> Upgrade un-inkable Priority 1 to 2
+                if (issueBadInk && item.priority === 1 && !item.card.inkwell) {
+                    item.priority = 2;
+                }
+                // Issue 2: No Early Play -> Upgrade Priority 1 with cost 4+ to 2
+                if (issueNoEarlyPlay && item.priority === 1 && item.card.cost >= 4) {
+                    item.priority = 2;
+                }
+            }
+
+            // 4. Sort into Keep/Mulligan
+            for (let item of handWithPriority) {
+                if (item.priority === 2) {
+                    cardsToMulligan.push(item.card);
+                } else {
+                    cardsToKeep.push(item.card);
+                }
+            }
+
+            return { cardsToKeep, cardsToMulligan };
+        }
+
+        // Module 2: The Core Simulation Engine
+        function runSingleShuffleSimulation(baseDecklist) {
+            // 1. Initial Shuffle
+            const initialDeck = [...baseDecklist];
+            const shuffle1 = fisherYatesShuffle(initialDeck);
+            const initialHand = shuffle1.slice(0, 7);
+            const restOfDeck = shuffle1.slice(7);
+
+            // 2. Initial Analysis
+            const initialHandAnalysis = analyzeCardGroup(initialHand);
+            const initialHandQuality = calculateHandQuality(initialHandAnalysis);
+
+            // 3. Run Heuristic
+            const mulliganDecision = determineMulligan(initialHand);
+            const numMulliganed = mulliganDecision.cardsToMulligan.length;
+
+            // 4. The Re-Shuffle & Final Hand
+            let finalHand, finalShuffledDeck, postMulliganQuality;
+
+            if (numMulliganed === 0) {
+                // Case A: No Mulligan
+                finalHand = initialHand;
+                postMulliganQuality = initialHandQuality;
+                finalShuffledDeck = shuffle1;
+            } else {
+                // Case B: Mulligan 1+ Cards
+                // Create Re-shuffle Pile: restOfDeck + mulliganed cards
+                const deckToReshuffle = [...restOfDeck, ...mulliganDecision.cardsToMulligan];
+
+                // Second Shuffle
+                const shuffle2 = fisherYatesShuffle(deckToReshuffle);
+
+                // Draw New Cards
+                const newCardsDrawn = shuffle2.slice(0, numMulliganed);
+
+                // Create Final Hand
+                finalHand = [...mulliganDecision.cardsToKeep, ...newCardsDrawn];
+
+                // Analyze Final Hand
+                const finalHandAnalysis = analyzeCardGroup(finalHand);
+                postMulliganQuality = calculateHandQuality(finalHandAnalysis);
+
+                // Create Final Deck State: Final Hand + Remaining Shuffled Deck
+                finalShuffledDeck = [...finalHand, ...shuffle2.slice(numMulliganed)];
+            }
+
+            // 5. Final Analysis
+            const finalHandStats = analyzeCardGroup(finalHand);
+            const finalEarlyGameStats = analyzeCardGroup(finalShuffledDeck.slice(7, 22)); // Cards 8-22 (Next 15)
+            const finalQualityStats = analyzeDeckRandomness(finalShuffledDeck);
+
+            return {
+                initialHand,
+                initialHandQuality,
+                mulliganDecision,
+                finalHand,
+                finalHandQuality: postMulliganQuality,
+                finalShuffledDeck,
+                finalAnalysis: {
+                    hand: finalHandStats,
+                    earlyGame: finalEarlyGameStats,
+                    quality: finalQualityStats
+                }
+            };
+        }
+
+        function handleShuffleDeck() {
+            if (decklist.length === 0) return;
+
+            // 1. Run Simulation
+            const simulationResult = runSingleShuffleSimulation(decklist);
+
+            // 2. Add to Recent
             const shuffleEntry = {
                 id: recentShuffles.length + 1,
-                hand: openingHand,
-                deck: shuffledDeck,
-                analysis: currentShuffleAnalysis,
+                ...simulationResult
             };
-            recentShuffles.unshift(shuffleEntry); // Add to beginning
-            if (recentShuffles.length > 10) recentShuffles.pop(); // Limit history
+            recentShuffles.unshift(shuffleEntry);
+            if (recentShuffles.length > 10) recentShuffles.pop();
 
-            // 4. Render
+            // 3. Render
             renderAll(shuffleEntry);
         }
-        
+
         function handleReset() {
             shuffledDeck = [];
             openingHand = [];
             recentShuffles = [];
             currentShuffleAnalysis = {};
-            
+
             // Clear UI
             DOMElements.handAnalysisContainer.classList.add('hidden');
             DOMElements.shuffleQualityContainer.classList.add('hidden');
@@ -683,24 +1176,107 @@
             return array;
         }
 
-        function analyzeShuffle(deck) {
-            const analysis = {};
-            const hand = deck.slice(0, 7);
-            const earlyGame = deck.slice(0, 15);
+        // --- BATCH SIMULATION ---
+        async function runSimulation() {
+            if (decklist.length === 0) return;
 
-            // Hand Analysis
-            analysis.hand = analyzeCardGroup(hand);
-            analysis.hand.quality = calculateHandQuality(analysis.hand);
+            const iterations = parseInt(DOMElements.simIterations.value, 10) || 1000;
+            DOMElements.runSimButton.disabled = true;
+            DOMElements.simStatus.textContent = `Running ${iterations} simulations...`;
+            DOMElements.simResults.classList.add('hidden');
 
-            // Early Game Analysis
-            analysis.earlyGame = analyzeCardGroup(earlyGame);
+            // Allow UI to update
+            await new Promise(r => setTimeout(r, 10));
 
-            // Shuffle Quality
-            analysis.quality = analyzeDeckRandomness(deck);
+            const agg = {
+                initialQualitySum: 0,
+                finalQualitySum: 0,
+                totalMulligans: 0,
+                totalCardsMulliganed: 0,
+                bricks: 0, // < 2 inkable
+                perfectCurves: 0, // T1, T2, T3 plays
+                qualityDistribution: { "Excellent": 0, "Good": 0, "Average": 0, "Poor": 0, "Bad": 0 },
+                cardFrequency: {}
+            };
 
-            return analysis;
+            const start = performance.now();
+
+            for (let i = 0; i < iterations; i++) {
+                const result = runSingleShuffleSimulation(decklist);
+
+                // Aggregate
+                agg.initialQualitySum += result.initialHandQuality.score;
+                agg.finalQualitySum += result.finalHandQuality.score;
+
+                if (result.mulliganDecision.cardsToMulligan.length > 0) {
+                    agg.totalMulligans++;
+                    agg.totalCardsMulliganed += result.mulliganDecision.cardsToMulligan.length;
+                }
+
+                // Consistency Stats (Post-Mulligan)
+                const handStats = result.finalAnalysis.hand;
+                if (handStats.inkable < 2) agg.bricks++;
+                if (handStats.costs["1-3"] >= 3) agg.perfectCurves++; // Simplified check for curve potential
+
+                // Distribution
+                agg.qualityDistribution[result.finalHandQuality.rating]++;
+
+                // Card Frequency
+                result.finalHand.forEach(card => {
+                    agg.cardFrequency[card.fullName] = (agg.cardFrequency[card.fullName] || 0) + 1;
+                });
+            }
+
+            const duration = performance.now() - start;
+            DOMElements.simStatus.textContent = `Completed ${iterations} simulations in ${duration.toFixed(0)}ms.`;
+            DOMElements.runSimButton.disabled = false;
+
+            renderSimulationResults(agg, iterations);
         }
-        
+
+        function renderSimulationResults(agg, N) {
+            DOMElements.simResults.classList.remove('hidden');
+
+            // Key Metrics
+            DOMElements.simAvgQuality.textContent = (agg.finalQualitySum / N).toFixed(1);
+            DOMElements.simAvgOpeningQuality.textContent = (agg.initialQualitySum / N).toFixed(1);
+
+            DOMElements.simMulliganRate.textContent = ((agg.totalMulligans / N) * 100).toFixed(0) + '%';
+            const avgReplaced = agg.totalMulligans > 0 ? (agg.totalCardsMulliganed / agg.totalMulligans) : 0;
+            DOMElements.simAvgReplaced.textContent = avgReplaced.toFixed(1);
+
+            DOMElements.simBrickRate.textContent = ((agg.bricks / N) * 100).toFixed(1) + '%';
+            DOMElements.simCurveRate.textContent = ((agg.perfectCurves / N) * 100).toFixed(1) + '%';
+
+            // Distribution Chart
+            const maxCount = Math.max(...Object.values(agg.qualityDistribution));
+            DOMElements.simQualityDist.innerHTML = Object.entries(agg.qualityDistribution).map(([rating, count]) => {
+                const pct = ((count / N) * 100).toFixed(1);
+                const width = maxCount > 0 ? (count / maxCount) * 100 : 0;
+                return `
+                    <div class="flex items-center gap-2 text-sm">
+                        <div class="w-20 text-gray-400">${rating}</div>
+                        <div class="flex-1 bg-gray-700 rounded-full h-4 overflow-hidden">
+                            <div class="${RATING_CLASSES[rating].split(' ')[2]} h-full" style="width: ${width}%"></div>
+                        </div>
+                        <div class="w-12 text-right text-white">${pct}%</div>
+                    </div>
+                `;
+            }).join('');
+
+            // Frequent Cards
+            const sortedCards = Object.entries(agg.cardFrequency).sort((a, b) => b[1] - a[1]).slice(0, 10);
+            DOMElements.simFreqCards.innerHTML = sortedCards.map(([name, count]) => {
+                const pct = ((count / N) * 100).toFixed(1);
+                return `
+                    <div class="flex justify-between text-sm border-b border-gray-700 py-1 last:border-0">
+                        <span class="text-gray-300 truncate pr-2">${name}</span>
+                        <span class="font-mono text-blue-400">${pct}%</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
         function analyzeCardGroup(cards) {
             const group = {
                 cards: cards,
@@ -718,23 +1294,23 @@
             for (const card of cards) {
                 if (card.inkwell) group.inkable++;
                 totalCost += card.cost;
-                
+
                 if (card.cost <= 3) group.costs["1-3"]++;
                 else if (card.cost <= 5) group.costs["4-5"]++;
                 else group.costs["6+"]++;
-                
+
                 if (card.cost <= 2) group.hasLowCost = true;
                 if (card.cost >= 5) group.hasHighCost = true;
 
                 group.types[card.type] = (group.types[card.type] || 0) + 1;
-                
+
                 const cardColor = card.color.split('-')[0];
                 group.colors[cardColor] = (group.colors[cardColor] || 0) + 1;
                 if (card.colors) {
                     group.colors[card.colors[1]] = (group.colors[card.colors[1]] || 0) + 1;
                 }
             }
-            
+
             group.avgCost = group.count > 0 ? (totalCost / group.count) : 0;
             return group;
         }
@@ -756,7 +1332,7 @@
             if (earlyPlays >= 3) score += 6;
             else if (earlyPlays === 2) score += 4;
             else if (earlyPlays === 1) score += 2;
-            
+
             let rating = "Bad";
             if (score >= 9) rating = "Excellent";
             else if (score >= 7) rating = "Good";
@@ -765,10 +1341,10 @@
 
             return { score, rating };
         }
-        
+
         function analyzeDeckRandomness(deck) {
             const quality = {};
-            
+
             // 1. Consecutive Cards
             quality.consecutive = { 2: 0, 3: 0, 4: 0 };
             let consecutiveCount = 1;
@@ -794,14 +1370,14 @@
                 type: findClusters(deck, c => c.type),
                 inkless: findClusters(deck, c => !c.inkwell),
             };
-            
+
             // 3. Overall Rating & Issues
             quality.issues = [];
             if (quality.consecutive[3] > 0) quality.issues.push(`• ${quality.consecutive[3]} instance(s) of 3 same cards in a row.`);
             if (quality.consecutive[4] > 0) quality.issues.push(`• ${quality.consecutive[4]} instance(s) of 4+ same cards in a row.`);
             if (quality.clusters.color.max > 5) quality.issues.push(`• ${quality.clusters.color.max} cards of same color in a row.`);
             if (quality.clusters.inkless.max > 3) quality.issues.push(`• ${quality.clusters.inkless.max} inkless cards in a row.`);
-            
+
             if (quality.issues.length === 0) {
                 quality.rating = "Excellent";
                 quality.issues.push("✓ No critical issues detected. Cards are well-distributed.");
@@ -810,19 +1386,19 @@
             } else {
                 quality.rating = "Poor";
             }
-            
+
             return quality;
         }
-        
+
         function findClusters(deck, getProperty) {
             let maxCluster = 0;
             let currentCluster = 1;
             let clusterCount = 0;
-            
+
             if (deck.length === 0) return { max: 0, count: 0 };
-            
+
             let lastProp = getProperty(deck[0]);
-            
+
             for (let i = 1; i < deck.length; i++) {
                 const currentProp = getProperty(deck[i]);
                 if (currentProp === lastProp) {
@@ -837,7 +1413,7 @@
             // Check last run
             if (currentCluster > 1) clusterCount++;
             maxCluster = Math.max(maxCluster, currentCluster);
-            
+
             return { max: maxCluster, count: clusterCount };
         }
 
@@ -847,34 +1423,65 @@
             DOMElements.shuffleQualityContainer.classList.remove('hidden');
             DOMElements.handQualityContainer.classList.remove('hidden');
 
-            const { analysis } = shuffleEntry;
+            const { finalAnalysis, finalHand, finalShuffledDeck } = shuffleEntry;
 
-            // 1. Render Shuffle Sim
+            // 1. Render Shuffle Sim (Hand Quality)
             renderShuffleSimulator(shuffleEntry);
             renderRecentShuffles();
-            
+
             // 2. Render Hand Analysis
-            renderHandAnalysis(analysis.hand, analysis.earlyGame);
-            renderCardImages(DOMElements.handCardImages, shuffleEntry.hand);
-            
+            renderHandAnalysis(shuffleEntry);
+
+            // Render Opening Hand
+            const dimIndices = [];
+            shuffleEntry.initialHand.forEach((card, index) => {
+                // If this card is in the mulligan list, dim it
+                // Note: This simple check assumes unique card objects or consistent ordering.
+                // Since we use the exact objects from the shuffle, reference equality works if we are careful.
+                // However, determineMulligan returns a list of cards.
+                if (shuffleEntry.mulliganDecision.cardsToMulligan.includes(card)) {
+                    dimIndices.push(index);
+                }
+            });
+            renderCardImages(DOMElements.openingHandContainer, shuffleEntry.initialHand, { dimIndices });
+            DOMElements.openingHandScoreDisplay.textContent = `Score: ${shuffleEntry.initialHandQuality.score.toFixed(1)} (${shuffleEntry.initialHandQuality.rating})`;
+
+            // Render Final Hand
+            const keptCount = shuffleEntry.mulliganDecision.cardsToKeep.length;
+            const highlightIndices = [];
+            // The new cards are appended after the kept cards
+            for (let i = keptCount; i < shuffleEntry.finalHand.length; i++) {
+                highlightIndices.push(i);
+            }
+            renderCardImages(DOMElements.finalHandContainer, shuffleEntry.finalHand, { highlightIndices });
+            DOMElements.finalHandScoreDisplay.textContent = `Score: ${shuffleEntry.finalHandQuality.score.toFixed(1)} (${shuffleEntry.finalHandQuality.rating})`;
+
             // 3. Render Early Game
-            renderEarlyGame(analysis.earlyGame);
-            
+            renderEarlyGame(finalAnalysis.earlyGame);
+
             // 4. Render Timeline
-            renderDeckTimeline(shuffleEntry.deck.slice(7));
-            
+            renderDeckTimeline(finalShuffledDeck.slice(7));
+
             // 5. Render Shuffle Quality
-            renderShuffleQuality(analysis.quality);
+            renderShuffleQuality(finalAnalysis.quality);
         }
-        
+
         function renderShuffleSimulator(entry) {
-            const { score, rating } = entry.analysis.hand.quality;
-            DOMElements.handQualityScore.innerHTML = `${score.toFixed(1)}<span class="text-lg text-gray-500">/10</span>`;
-            DOMElements.handQualityRating.textContent = rating;
-            DOMElements.handQualityRating.className = `inline-flex items-center rounded-full border px-2.5 py-0.5 text-sm font-semibold ${RATING_CLASSES[rating]}`;
-            DOMElements.handQualityBar.style.width = `${score * 10}%`;
+            // Opening Hand
+            const initial = entry.initialHandQuality;
+            DOMElements.openingQualityScore.textContent = initial.score.toFixed(1);
+            DOMElements.openingQualityRating.textContent = initial.rating;
+            DOMElements.openingQualityRating.className = `inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold ${RATING_CLASSES[initial.rating]}`;
+            DOMElements.openingQualityBar.style.width = `${initial.score * 10}%`;
+
+            // Final Hand
+            const final = entry.finalHandQuality;
+            DOMElements.finalQualityScore.innerHTML = `${final.score.toFixed(1)}<span class="text-lg text-gray-500">/10</span>`;
+            DOMElements.finalQualityRating.textContent = final.rating;
+            DOMElements.finalQualityRating.className = `inline-flex items-center rounded-full border px-2.5 py-0.5 text-sm font-semibold ${RATING_CLASSES[final.rating]}`;
+            DOMElements.finalQualityBar.style.width = `${final.score * 10}%`;
         }
-        
+
         function renderRecentShuffles() {
             DOMElements.recentShufflesList.innerHTML = '';
             recentShuffles.forEach((entry, index) => {
@@ -888,35 +1495,48 @@
                             <div class="inline-flex items-center rounded-md border border-gray-600 bg-gray-800 px-2.5 py-0.5 text-xs text-white">#${entry.id}</div>
                             ${index === 0 ? '<span class="text-xs text-blue-400 font-medium">Current</span>' : ''}
                         </div>
-                        <span class="text-xs ${index === 0 ? 'text-blue-400' : 'text-gray-500'}">${entry.analysis.hand.quality.rating} (${entry.analysis.hand.quality.score.toFixed(1)})</span>
+                        <span class="text-xs ${index === 0 ? 'text-blue-400' : 'text-gray-500'}">${entry.finalHandQuality.rating} (${entry.finalHandQuality.score.toFixed(1)})</span>
                     </div>
                 `;
                 DOMElements.recentShufflesList.appendChild(button);
             });
         }
-        
-        function renderHandAnalysis(hand, early) {
-            const { rating } = hand.quality;
+
+        function renderHandAnalysis(entry) {
+            const hand = entry.finalAnalysis.hand;
+            const { rating } = entry.finalHandQuality;
+
+            // Update Header to show Mulligan info
+            const keptCount = entry.mulliganDecision.cardsToKeep.length;
+            const mulliganedCount = entry.mulliganDecision.cardsToMulligan.length;
+
             DOMElements.openingHandRating.textContent = rating;
             DOMElements.openingHandRating.className = `inline-flex items-center rounded-full border px-2.5 py-0.5 text-sm font-semibold ${RATING_CLASSES[rating]}`;
 
             // Analysis Points
             const points = [
+                { ok: true, text: `Mulligan: Kept ${keptCount}, Replaced ${mulliganedCount}` }, // New Mulligan Stat
                 { ok: hand.inkable >= 2 && hand.inkable <= 5, text: `Inkable: ${hand.inkable} (Ideal 2-5)` },
                 { ok: hand.costs["1-3"] > 0, text: `Early Plays (1-3): ${hand.costs["1-3"]}` },
                 { ok: hand.costs["6+"] <= 2, text: `High Cost (6+): ${hand.costs["6+"]} (Ideal <= 2)` },
                 { ok: hand.avgCost < 4.0, text: `Avg Cost: ${hand.avgCost.toFixed(1)}` }
             ];
-            DOMElements.openingHandAnalysisPoints.innerHTML = points.map(p => 
+
+            // Add Opening Hand Score comparison if different
+            if (entry.initialHandQuality.score !== entry.finalHandQuality.score) {
+                points.push({ ok: true, text: `Opening Hand: ${entry.initialHandQuality.score.toFixed(1)} -> Final: ${entry.finalHandQuality.score.toFixed(1)}` });
+            }
+
+            DOMElements.openingHandAnalysisPoints.innerHTML = points.map(p =>
                 `<p class="text-sm ${p.ok ? 'text-green-400' : 'text-yellow-400'}">${p.ok ? '✓' : '⚠'} ${p.text}</p>`
             ).join('');
-            
+
             // Stats
             DOMElements.handInkableStat.textContent = `${hand.inkable} out of 7`;
             DOMElements.handCurveStat.innerHTML = Object.entries(hand.costs).map(([key, val]) => createTag(`T${key}: ${val}`)).join('');
             DOMElements.handTypesStat.innerHTML = Object.entries(hand.types).map(([key, val]) => createTag(`${key}: ${val}`)).join('');
             DOMElements.handColorsStat.innerHTML = Object.entries(hand.colors).map(([key, val]) => createTag(`${key}: ${val}`, COLOR_HEX[key])).join('');
-            
+
             // Comparison
             let comparisonHTML = '';
             if (hand.inkable / 7 > deckInfo.inkableCount / deckInfo.totalCards) {
@@ -926,36 +1546,53 @@
             }
             DOMElements.handComparison.innerHTML = comparisonHTML;
         }
-        
+
         function renderEarlyGame(early) {
             DOMElements.earlyInkableStat.textContent = `${early.inkable} out of 15`;
             DOMElements.earlyCurveStat.innerHTML = Object.entries(early.costs).map(([key, val]) => createTag(`T${key}: ${val}`)).join('');
             DOMElements.earlyTypesStat.innerHTML = Object.entries(early.types).map(([key, val]) => createTag(`${key}: ${val}`)).join('');
             DOMElements.earlyColorsStat.innerHTML = Object.entries(early.colors).map(([key, val]) => createTag(`${key}: ${val}`, COLOR_HEX[key])).join('');
-            
+
             let tags = [];
-            if(early.hasLowCost) tags.push(createTag('✓ Has Low Costs (1-2)', null, 'bg-gray-700 text-gray-300'));
-            if(early.hasHighCost) tags.push(createTag('⚠ Has High Costs (5+)', null, 'bg-gray-700 text-gray-300'));
+            if (early.hasLowCost) tags.push(createTag('✓ Has Low Costs (1-2)', null, 'bg-gray-700 text-gray-300'));
+            if (early.hasHighCost) tags.push(createTag('⚠ Has High Costs (5+)', null, 'bg-gray-700 text-gray-300'));
             DOMElements.earlyTagsStat.innerHTML = tags.join('');
         }
-        
-        function renderCardImages(container, cards) {
+
+        function renderCardImages(container, cards, options = {}) {
             container.innerHTML = '';
+            const { dimIndices = [], highlightIndices = [] } = options;
+
             cards.forEach((card, index) => {
-                const cardWrapper = document.createElement('div');
-                cardWrapper.className = 'space-y-0.5 max-w-32 relative';
-                cardWrapper.innerHTML = `
-                    <div class="relative card-tooltip-trigger">
-                        <div class="aspect-[2/3] relative rounded border border-gray-700 overflow-hidden cursor-help transition-all hover:border-blue-500">
-                            <img alt="${card.fullName}" class="w-full h-full object-cover" loading="lazy" src="${card.images.thumbnail}">
-                        </div>
+                const div = document.createElement('div');
+
+                let extraClasses = '';
+                if (dimIndices.includes(index)) {
+                    extraClasses = 'opacity-40 grayscale';
+                } else if (highlightIndices.includes(index)) {
+                    extraClasses = 'ring-2 ring-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]';
+                }
+
+                div.className = `relative aspect-[2.5/3.5] bg-gray-700 rounded-lg overflow-hidden border border-gray-600 hover:scale-150 hover:z-10 transition-transform origin-center cursor-pointer group ${extraClasses}`;
+
+                // Add "NEW" badge for highlighted cards
+                let badgeHTML = '';
+                if (highlightIndices.includes(index)) {
+                    badgeHTML = `<div class="absolute top-0 right-0 bg-green-600 text-white text-[8px] font-bold px-1 rounded-bl shadow-sm z-20">NEW</div>`;
+                }
+
+                div.innerHTML = `
+                    <img src="${card.images.thumbnail}" alt="${card.name}" class="w-full h-full object-cover" loading="lazy">
+                    <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-75 text-[8px] text-white p-0.5 truncate text-center">
+                        ${card.name}
                     </div>
-                    <p class="text-[0.6rem] text-center text-gray-500">#${index + 1}</p>
-                    <div class="card-tooltip w-48">
-                        <img alt="${card.fullName}" class="w-full h-full rounded-lg" src="${card.images.full}">
+                    <div class="absolute top-0 left-0 bg-black bg-opacity-60 text-white text-[8px] px-1 rounded-br">
+                        ${card.cost}
                     </div>
+                    <div class="absolute top-0 right-0 ${card.inkwell ? 'bg-yellow-500' : 'bg-gray-500'} w-2 h-2 rounded-bl"></div>
+                    ${badgeHTML}
                 `;
-                container.appendChild(cardWrapper);
+                container.appendChild(div);
             });
 
             // Add click handlers for card inspection
@@ -976,7 +1613,7 @@
                 cardIndex++;
             });
         }
-        
+
         function renderDeckTimeline(deck) {
             DOMElements.deckTimelineHeader.textContent = `Deck Timeline (${deck.length} cards)`;
             DOMElements.deckTimelineCards.innerHTML = '';
@@ -985,7 +1622,7 @@
                 let borderColor = 'border-blue-500'; // Early
                 if (turn >= 8 && turn <= 14) borderColor = 'border-yellow-500'; // Mid
                 else if (turn >= 15) borderColor = 'border-purple-500'; // Late
-                
+
                 const cardHTML = `
                     <div class="flex-shrink-0 space-y-2 ${turn === 8 || turn === 15 ? `border-l-4 pl-3 ${borderColor}` : ''}">
                         <div class="text-center"><p class="text-xs font-semibold text-gray-500">Turn ${turn}</p></div>
@@ -1024,30 +1661,30 @@
                 cardIndex++;
             });
         }
-        
+
         function renderShuffleQuality(quality) {
             DOMElements.shuffleQualityRating.textContent = quality.rating;
             DOMElements.shuffleQualityRating.className = `inline-flex items-center rounded-full border px-2.5 py-0.5 text-sm font-semibold ${RATING_CLASSES[quality.rating]}`;
-            
+
             DOMElements.shuffleQualityIssues.innerHTML = quality.issues.map(issue => {
                 const isGood = issue.startsWith('✓');
                 return `<p class="${isGood ? 'text-green-400' : 'text-yellow-400'} flex items-center gap-2"><span>${isGood ? '✓' : '⚠'}</span><span>${issue.substring(2)}</span></p>`;
             }).join('');
-            
+
             // Stats
             DOMElements.consecutiveCardsStat.innerHTML = `
                 <div class="flex justify-between"><span>2 in a row:</span>${createTag(quality.consecutive[2], null, quality.consecutive[2] > 2 ? RATING_CLASSES['Poor'] : 'bg-gray-700 text-gray-300')}</div>
                 <div class="flex justify-between"><span>3 in a row:</span>${createTag(quality.consecutive[3], null, quality.consecutive[3] > 0 ? RATING_CLASSES['Poor'] : 'bg-gray-700 text-gray-300')}</div>
                 <div class="flex justify-between"><span>4+ in a row:</span>${createTag(quality.consecutive[4], null, quality.consecutive[4] > 0 ? RATING_CLASSES['Bad'] : 'bg-gray-700 text-gray-300')}</div>
             `;
-            
+
             DOMElements.clusteringStat.innerHTML = `
                 <div class="space-y-1"><span class="text-gray-500">Color Clusters:</span><div class="flex items-center gap-2">${createTag(`Max: ${quality.clusters.color.max}`, null, quality.clusters.color.max > 5 ? RATING_CLASSES['Poor'] : 'bg-gray-700 text-gray-300')}<span class="text-gray-500">(${quality.clusters.color.count} clusters)</span></div></div>
                 <div class="space-y-1"><span class="text-gray-500">Cost Clusters:</span><div class="flex items-center gap-2">${createTag(`Max: ${quality.clusters.cost.max}`, null, 'bg-gray-700 text-gray-300')}<span class="text-gray-500">(${quality.clusters.cost.count} clusters)</span></div></div>
                 <div class="space-y-1"><span class="text-gray-500">Type Clusters:</span><div class="flex items-center gap-2">${createTag(`Max: ${quality.clusters.type.max}`, null, quality.clusters.type.max > 7 ? RATING_CLASSES['Poor'] : 'bg-gray-700 text-gray-300')}<span class="text-gray-500">(${quality.clusters.type.count} clusters)</span></div></div>
                 <div class="space-y-1"><span class="text-gray-500">Inkless Clusters:</span><div class="flex items-center gap-2">${createTag(`Max: ${quality.clusters.inkless.max}`, null, quality.clusters.inkless.max > 3 ? RATING_CLASSES['Poor'] : 'bg-gray-700 text-gray-300')}<span class="text-gray-500">(${quality.clusters.inkless.count} clusters)</span></div></div>
             `;
-            
+
             // Alert Box
             const alerts = quality.issues.filter(i => !i.startsWith('✓'));
             if (alerts.length > 0) {
@@ -1057,10 +1694,10 @@
                 DOMElements.clusteringAlertBox.classList.add('hidden');
             }
         }
-        
+
         function populateDeckDistributionStats() {
             DOMElements.distColorsStat.innerHTML = Object.entries(deckInfo.colors).map(([key, val]) => createTag(`${key}: ${val}`, COLOR_HEX[key])).join('');
-            DOMElements.distCostsStat.innerHTML = Object.entries(deckInfo.costs).sort((a,b) => a[0] - b[0]).map(([key, val]) => createTag(`${key}: ${val}`)).join('');
+            DOMElements.distCostsStat.innerHTML = Object.entries(deckInfo.costs).sort((a, b) => a[0] - b[0]).map(([key, val]) => createTag(`${key}: ${val}`)).join('');
             DOMElements.distInkwellStat.innerHTML = `${createTag(`Inkable: ${deckInfo.inkableCount}`)} ${createTag(`Inkless: ${deckInfo.totalCards - deckInfo.inkableCount}`)}`;
         }
 
@@ -1080,7 +1717,7 @@
             if (k < 0 || k > n) return 0;
             if (k === 0 || k === n) return 1;
             if (k > n / 2) k = n - k;
-            
+
             const cacheKey = `${n},${k}`;
             if (combinationsCache[cacheKey]) return combinationsCache[cacheKey];
 
@@ -1088,7 +1725,7 @@
             for (let i = 1; i <= k; i++) {
                 res = res * (n - i + 1) / i;
             }
-            
+
             combinationsCache[cacheKey] = res;
             return res;
         }
@@ -1100,7 +1737,7 @@
             if (C_Nn === 0) return 0;
             return (C_kx * C_Nknx) / C_Nn;
         }
-        
+
         function updateHypergeometricCalculator() {
             const N = parseInt(DOMElements.hyperDeckSize.value, 10);
             const k = parseInt(DOMElements.hyperCopies.value, 10);
@@ -1118,8 +1755,8 @@
             for (let i = x; i <= Math.min(n, k); i++) {
                 p_gte += hypergeometricProbability(N, k, n, i);
             }
-            
-            let p_eq = (x > Math.min(n,k)) ? 0 : hypergeometricProbability(N, k, n, x);
+
+            let p_eq = (x > Math.min(n, k)) ? 0 : hypergeometricProbability(N, k, n, x);
             let p_lt = 1 - p_gte;
 
             DOMElements.hyperGte.textContent = (p_gte * 100).toFixed(1) + '%';
@@ -1131,15 +1768,15 @@
             const N = deckInfo.totalCards;
             const n = 7; // Opening hand size
             DOMElements.probabilityTableBody.innerHTML = '';
-            
+
             const categories = [];
-            
+
             // Colors
             Object.entries(deckInfo.colors).forEach(([name, count]) => {
                 categories.push({ name: name, count: count, color: COLOR_HEX[name] });
             });
             categories.push({ separator: true });
-            
+
             // Inkable/Inkless
             categories.push({ name: 'Inkable', count: deckInfo.inkableCount });
             categories.push({ name: 'Inkless', count: N - deckInfo.inkableCount });
@@ -1150,10 +1787,10 @@
                 categories.push({ name: `${name}s`, count: count });
             });
             categories.push({ separator: true });
-            
+
             // By Copy Count
             Object.entries(deckInfo.byCopyCount).forEach(([name, count]) => {
-                 if(count > 0) categories.push({ name: `Cards with ${name} ${name > 1 ? 'copies' : 'copy'}`, count: count * parseInt(name) });
+                if (count > 0) categories.push({ name: `Cards with ${name} ${name > 1 ? 'copies' : 'copy'}`, count: count * parseInt(name) });
             });
 
             // Calculate probs for each category
@@ -1162,11 +1799,11 @@
                     DOMElements.probabilityTableBody.innerHTML += `<tr class="border-b border-gray-700 bg-gray-700 bg-opacity-30"><td class="p-4 h-2" colspan="6"></td></tr>`;
                     return;
                 }
-                
+
                 const k = cat.count;
                 const p = [0, 0, 0, 0, 0]; // 0, 1, 2, 3, 4+
                 let p_total = 0;
-                
+
                 for (let x = 0; x <= Math.min(n, k); x++) {
                     const prob = hypergeometricProbability(N, k, n, x);
                     if (x <= 2) {
@@ -1178,7 +1815,7 @@
                     }
                     p_total += prob;
                 }
-                
+
                 const row = document.createElement('tr');
                 row.className = 'border-b border-gray-700 transition-colors';
                 row.innerHTML = `
@@ -1193,7 +1830,7 @@
                 `;
                 DOMElements.probabilityTableBody.appendChild(row);
             });
-            
+
             // Init hypercalc
             updateHypergeometricCalculator();
         }
@@ -1211,4 +1848,5 @@
 
     </script>
 </body>
+
 </html>
