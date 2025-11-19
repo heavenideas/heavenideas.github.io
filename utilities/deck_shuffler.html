@@ -14,6 +14,7 @@
         src="https://cdn.jsdelivr.net/gh/heavenideas/heavenideas.github.io@main/utilities/unified_win_probability_utilities.js"></script>
     <script src="card_stat_analysis_module.js"></script>
     <script src="CardThreatLevelInspector.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         /* Custom scrollbar for dark mode */
         ::-webkit-scrollbar {
@@ -401,1095 +402,1234 @@
                     </div>
                     <!-- END DRAW TAB CONTENT -->
 
-                    <!-- SIMULATION TAB CONTENT -->
-                    <div id="simulation-content" class="space-y-6 hidden">
-                        <!-- Simulation Controls -->
-                        <div class="bg-gray-800 rounded-lg shadow-lg border border-gray-700 p-6">
-                            <h3 class="text-xl font-bold text-white flex items-center gap-2 mb-4">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
-                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                    stroke-linejoin="round" class="h-5 w-5 text-purple-400">
-                                    <path d="M12 2v20"></path>
-                                    <path d="M2 12h20"></path>
-                                    <path d="m4.93 4.93 14.14 14.14"></path>
-                                    <path d="m19.07 4.93-14.14 14.14"></path>
-                                </svg>
-                                Batch Simulation
+
+
+                    <!-- Shuffle Quality Analysis -->
+                    <div id="shuffle-quality-container"
+                        class="bg-gray-800 rounded-lg shadow-lg border border-gray-700 hidden">
+                        <div class="p-6">
+                            <h3 class="text-xl leading-none font-bold text-white flex items-center justify-between">
+                                <span>Shuffle Quality Analysis</span>
+                                <div id="shuffle-quality-rating"
+                                    class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-sm font-semibold">
+                                </div>
                             </h3>
-                            <div class="flex items-end gap-4">
-                                <div class="space-y-1">
-                                    <label class="text-sm text-gray-400">Iterations</label>
-                                    <input id="sim-iterations" type="number" value="1000"
-                                        class="w-32 bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-white focus:ring-2 focus:ring-purple-500 focus:outline-none">
-                                </div>
-                                <button id="run-sim-button"
-                                    class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-6 rounded-lg transition duration-200 disabled:opacity-50">
-                                    Run Simulation
-                                </button>
-                            </div>
-                            <p id="sim-status" class="text-sm text-gray-500 mt-2 h-5"></p>
+                            <p class="text-sm text-gray-400 mt-2">Statistical analysis of shuffle randomization.</p>
                         </div>
-
-                        <!-- Simulation Results -->
-                        <div id="sim-results" class="hidden space-y-6">
-                            <!-- Key Metrics Grid -->
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <!-- Avg Hand Quality -->
-                                <div class="bg-gray-800 rounded-lg shadow-lg border border-gray-700 p-6">
-                                    <h4 class="text-sm font-semibold text-gray-400 mb-2">Avg. Hand Quality</h4>
-                                    <div class="flex items-baseline gap-2">
-                                        <span id="sim-avg-quality" class="text-3xl font-bold text-white">0.0</span>
-                                        <span class="text-sm text-gray-500">/ 10</span>
-                                    </div>
-                                    <div class="mt-2 text-sm">
-                                        <span class="text-gray-500">Opening: </span>
-                                        <span id="sim-avg-opening-quality" class="text-gray-300">0.0</span>
-                                    </div>
-                                </div>
-                                <!-- Mulligan Stats -->
-                                <div class="bg-gray-800 rounded-lg shadow-lg border border-gray-700 p-6">
-                                    <h4 class="text-sm font-semibold text-gray-400 mb-2">Mulligan Stats</h4>
+                        <div class="p-6 pt-0 space-y-4">
+                            <div class="space-y-2">
+                                <div id="shuffle-quality-issues" class="space-y-1 text-sm"></div>
+                            </div>
+                            <button id="toggle-stats-button" type="button"
+                                class="w-full flex items-center justify-center gap-2 py-2 text-sm text-gray-500 hover:text-white transition-colors border-t border-gray-700 pt-4">
+                                <svg id="toggle-stats-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 transition-transform">
+                                    <path d="m6 9 6 6 6-6"></path>
+                                </svg>
+                                <span id="toggle-stats-text">Show Detailed Statistics</span>
+                            </button>
+                            <div id="detailed-stats-container" class="pt-4 border-t border-gray-700 hidden">
+                                <div class="space-y-4">
+                                    <!-- Cluster/Consecutive Stats -->
                                     <div class="space-y-2">
-                                        <div class="flex justify-between">
-                                            <span class="text-gray-500">Mulligan Rate</span>
-                                            <span id="sim-mulligan-rate" class="font-bold text-white">0%</span>
-                                        </div>
-                                        <div class="flex justify-between">
-                                            <span class="text-gray-500">Avg. Replaced</span>
-                                            <span id="sim-avg-replaced" class="font-bold text-white">0.0</span>
-                                        </div>
+                                        <h4 class="text-sm font-semibold text-white">Consecutive Same Cards</h4>
+                                        <div id="consecutive-cards-stat" class="grid grid-cols-3 gap-2 text-sm"></div>
                                     </div>
-                                </div>
-                                <!-- Consistency -->
-                                <div class="bg-gray-800 rounded-lg shadow-lg border border-gray-700 p-6">
-                                    <h4 class="text-sm font-semibold text-gray-400 mb-2">Consistency</h4>
                                     <div class="space-y-2">
-                                        <div class="flex justify-between">
-                                            <span class="text-gray-500">Brick Rate (&lt;2 Ink)</span>
-                                            <span id="sim-brick-rate" class="font-bold text-white">0%</span>
-                                        </div>
-                                        <div class="flex justify-between">
-                                            <span class="text-gray-500">Perfect Curve (T1-3)</span>
-                                            <span id="sim-curve-rate" class="font-bold text-white">0%</span>
-                                        </div>
+                                        <h4 class="text-sm font-semibold text-white">Clustering Analysis</h4>
+                                        <div id="clustering-stat" class="grid grid-cols-2 gap-3 text-sm"></div>
                                     </div>
-                                </div>
-                            </div>
-
-                            <!-- Detailed Stats -->
-                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                <!-- Hand Quality Distribution -->
-                                <div class="bg-gray-800 rounded-lg shadow-lg border border-gray-700 p-6">
-                                    <h4 class="text-lg font-bold text-white mb-4">Hand Quality Distribution
-                                        (Post-Mulligan)</h4>
-                                    <div id="sim-quality-dist" class="space-y-2"></div>
-                                </div>
-
-                                <!-- Most Frequent Cards -->
-                                <div class="bg-gray-800 rounded-lg shadow-lg border border-gray-700 p-6">
-                                    <h4 class="text-lg font-bold text-white mb-4">Most Frequent Opening Cards</h4>
-                                    <div id="sim-freq-cards" class="space-y-2 max-h-60 overflow-y-auto pr-2"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- END SIMULATION TAB CONTENT -->
-                </div>
-
-                <!-- Shuffle Quality Analysis -->
-                <div id="shuffle-quality-container"
-                    class="bg-gray-800 rounded-lg shadow-lg border border-gray-700 hidden">
-                    <div class="p-6">
-                        <h3 class="text-xl leading-none font-bold text-white flex items-center justify-between">
-                            <span>Shuffle Quality Analysis</span>
-                            <div id="shuffle-quality-rating"
-                                class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-sm font-semibold">
-                            </div>
-                        </h3>
-                        <p class="text-sm text-gray-400 mt-2">Statistical analysis of shuffle randomization.</p>
-                    </div>
-                    <div class="p-6 pt-0 space-y-4">
-                        <div class="space-y-2">
-                            <div id="shuffle-quality-issues" class="space-y-1 text-sm"></div>
-                        </div>
-                        <button id="toggle-stats-button" type="button"
-                            class="w-full flex items-center justify-center gap-2 py-2 text-sm text-gray-500 hover:text-white transition-colors border-t border-gray-700 pt-4">
-                            <svg id="toggle-stats-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
-                                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 transition-transform">
-                                <path d="m6 9 6 6 6-6"></path>
-                            </svg>
-                            <span id="toggle-stats-text">Show Detailed Statistics</span>
-                        </button>
-                        <div id="detailed-stats-container" class="pt-4 border-t border-gray-700 hidden">
-                            <div class="space-y-4">
-                                <!-- Cluster/Consecutive Stats -->
-                                <div class="space-y-2">
-                                    <h4 class="text-sm font-semibold text-white">Consecutive Same Cards</h4>
-                                    <div id="consecutive-cards-stat" class="grid grid-cols-3 gap-2 text-sm"></div>
-                                </div>
-                                <div class="space-y-2">
-                                    <h4 class="text-sm font-semibold text-white">Clustering Analysis</h4>
-                                    <div id="clustering-stat" class="grid grid-cols-2 gap-3 text-sm"></div>
-                                </div>
-                                <!-- Alert Box -->
-                                <div id="clustering-alert-box"
-                                    class="hidden relative w-full rounded-lg border border-yellow-700 bg-yellow-900 text-yellow-300 p-4">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
-                                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        class="lucide lucide-circle-alert h-4 w-4 absolute left-4 top-4">
-                                        <circle cx="12" cy="12" r="10"></circle>
-                                        <line x1="12" x2="12" y1="8" y2="12"></line>
-                                        <line x1="12" x2="12.01" y1="16" y2="16"></line>
-                                    </svg>
-                                    <div id="clustering-alert-text" class="ml-7 text-sm"></div>
-                                </div>
-                                <!-- Distribution -->
-                                <div class="space-y-2">
-                                    <h4 class="text-sm font-semibold text-white flex items-center gap-1"><svg
-                                            xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                                    <!-- Alert Box -->
+                                    <div id="clustering-alert-box"
+                                        class="hidden relative w-full rounded-lg border border-yellow-700 bg-yellow-900 text-yellow-300 p-4">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
                                             viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                            stroke-linecap="round" stroke-linejoin="round" class="h-3 w-3">
-                                            <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
-                                            <polyline points="16 7 22 7 22 13"></polyline>
-                                        </svg>Distribution (Full Deck)</h4>
-                                    <div class="space-y-2 text-sm">
-                                        <div><span class="text-gray-500">Colors:</span>
-                                            <div id="dist-colors-stat" class="flex flex-wrap gap-1 mt-1"></div>
-                                        </div>
-                                        <div><span class="text-gray-500">Costs:</span>
-                                            <div id="dist-costs-stat" class="flex flex-wrap gap-1 mt-1"></div>
-                                        </div>
-                                        <div><span class="text-gray-500">Inkwell:</span>
-                                            <div id="dist-inkwell-stat" class="flex flex-wrap gap-1 mt-1"></div>
+                                            stroke-linecap="round" stroke-linejoin="round"
+                                            class="lucide lucide-circle-alert h-4 w-4 absolute left-4 top-4">
+                                            <circle cx="12" cy="12" r="10"></circle>
+                                            <line x1="12" x2="12" y1="8" y2="12"></line>
+                                            <line x1="12" x2="12.01" y1="16" y2="16"></line>
+                                        </svg>
+                                        <div id="clustering-alert-text" class="ml-7 text-sm"></div>
+                                    </div>
+                                    <!-- Distribution -->
+                                    <div class="space-y-2">
+                                        <h4 class="text-sm font-semibold text-white flex items-center gap-1"><svg
+                                                xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                                                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                                stroke-linecap="round" stroke-linejoin="round" class="h-3 w-3">
+                                                <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
+                                                <polyline points="16 7 22 7 22 13"></polyline>
+                                            </svg>Distribution (Full Deck)</h4>
+                                        <div class="space-y-2 text-sm">
+                                            <div><span class="text-gray-500">Colors:</span>
+                                                <div id="dist-colors-stat" class="flex flex-wrap gap-1 mt-1"></div>
+                                            </div>
+                                            <div><span class="text-gray-500">Costs:</span>
+                                                <div id="dist-costs-stat" class="flex flex-wrap gap-1 mt-1"></div>
+                                            </div>
+                                            <div><span class="text-gray-500">Inkwell:</span>
+                                                <div id="dist-inkwell-stat" class="flex flex-wrap gap-1 mt-1"></div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
+
+                    <!-- Probability Calculators -->
+                    <div class="grid gap-6 md:grid-cols-2">
+                        <!-- Hand Draw Probabilities -->
+                        <div class="bg-gray-800 rounded-lg shadow-lg border border-gray-700">
+                            <div class="p-6">
+                                <h3 class="text-xl font-bold text-white">Hand Draw Probabilities</h3>
+                                <p class="text-sm text-gray-400 mt-2">Probability of drawing cards by category in
+                                    opening
+                                    hand (7 cards).</p>
+                            </div>
+                            <div class="p-6 pt-0">
+                                <div class="rounded-md border border-gray-700">
+                                    <div class="relative w-full overflow-auto">
+                                        <table class="w-full caption-bottom text-sm">
+                                            <thead class="[&_tr]:border-b border-gray-700">
+                                                <tr class="border-b border-gray-700 transition-colors">
+                                                    <th
+                                                        class="h-12 px-4 text-left align-middle font-medium text-white w-[160px]">
+                                                        Category</th>
+                                                    <th
+                                                        class="h-12 px-4 align-middle font-medium text-white text-center">
+                                                        0
+                                                    </th>
+                                                    <th
+                                                        class="h-12 px-4 align-middle font-medium text-white text-center">
+                                                        1
+                                                    </th>
+                                                    <th
+                                                        class="h-12 px-4 align-middle font-medium text-white text-center">
+                                                        2
+                                                    </th>
+                                                    <th
+                                                        class="h-12 px-4 align-middle font-medium text-white text-center">
+                                                        3
+                                                    </th>
+                                                    <th
+                                                        class="h-12 px-4 align-middle font-medium text-white text-center">
+                                                        4+
+                                                    </th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="probability-table-body" class="[&_tr:last-child]:border-0">
+                                                <!-- Rows will be injected by JS -->
+                                                <tr>
+                                                    <td colspan="6" class="p-4 text-center text-gray-500">Load a deck to
+                                                        see
+                                                        probabilities.</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Hypergeometric Calculator -->
+                        <div class="bg-gray-800 rounded-lg shadow-lg border border-gray-700">
+                            <div class="p-6">
+                                <h3 class="text-xl font-bold text-white">Hypergeometric Calculator</h3>
+                                <p class="text-sm text-gray-400 mt-2">Calculate draw probabilities for specific cards.
+                                </p>
+                            </div>
+                            <div class="p-6 pt-0">
+                                <div class="space-y-4">
+                                    <div class="flex flex-wrap items-end gap-3">
+                                        <div class="flex items-center gap-2">
+                                            <input
+                                                class="flex h-8 w-16 text-center text-sm rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-white"
+                                                id="hyper-deck-size" type="number" value="60">
+                                            <span class="text-sm text-gray-500">Deck</span>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <input
+                                                class="flex h-8 w-16 text-center text-sm rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-white"
+                                                id="hyper-copies" type="number" value="4">
+                                            <span class="text-sm text-gray-500">Copies</span>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <input
+                                                class="flex h-8 w-16 text-center text-sm rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-white"
+                                                id="hyper-hand-size" type="number" value="7">
+                                            <span class="text-sm text-gray-500">Hand</span>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <input
+                                                class="flex h-8 w-16 text-center text-sm rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-white"
+                                                id="hyper-desired" type="number" value="1">
+                                            <span class="text-sm text-gray-500">Desired</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+                                        <div class="flex items-center gap-2"><span class="text-gray-500">≥
+                                                1:</span><span id="hyper-gte"
+                                                class="font-mono font-semibold text-white">...</span></div>
+                                        <div class="flex items-center gap-2"><span class="text-gray-500">=
+                                                1:</span><span id="hyper-eq"
+                                                class="font-mono font-semibold text-white">...</span></div>
+                                        <div class="flex items-center gap-2"><span class="text-gray-500">&lt;
+                                                1:</span><span id="hyper-lt"
+                                                class="font-mono font-semibold text-white">...</span></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
-
-                <!-- Probability Calculators -->
-                <div class="grid gap-6 md:grid-cols-2">
-                    <!-- Hand Draw Probabilities -->
-                    <div class="bg-gray-800 rounded-lg shadow-lg border border-gray-700">
-                        <div class="p-6">
-                            <h3 class="text-xl font-bold text-white">Hand Draw Probabilities</h3>
-                            <p class="text-sm text-gray-400 mt-2">Probability of drawing cards by category in opening
-                                hand (7 cards).</p>
-                        </div>
-                        <div class="p-6 pt-0">
-                            <div class="rounded-md border border-gray-700">
-                                <div class="relative w-full overflow-auto">
-                                    <table class="w-full caption-bottom text-sm">
-                                        <thead class="[&_tr]:border-b border-gray-700">
-                                            <tr class="border-b border-gray-700 transition-colors">
-                                                <th
-                                                    class="h-12 px-4 text-left align-middle font-medium text-white w-[160px]">
-                                                    Category</th>
-                                                <th class="h-12 px-4 align-middle font-medium text-white text-center">0
-                                                </th>
-                                                <th class="h-12 px-4 align-middle font-medium text-white text-center">1
-                                                </th>
-                                                <th class="h-12 px-4 align-middle font-medium text-white text-center">2
-                                                </th>
-                                                <th class="h-12 px-4 align-middle font-medium text-white text-center">3
-                                                </th>
-                                                <th class="h-12 px-4 align-middle font-medium text-white text-center">4+
-                                                </th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="probability-table-body" class="[&_tr:last-child]:border-0">
-                                            <!-- Rows will be injected by JS -->
-                                            <tr>
-                                                <td colspan="6" class="p-4 text-center text-gray-500">Load a deck to see
-                                                    probabilities.</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Hypergeometric Calculator -->
-                    <div class="bg-gray-800 rounded-lg shadow-lg border border-gray-700">
-                        <div class="p-6">
-                            <h3 class="text-xl font-bold text-white">Hypergeometric Calculator</h3>
-                            <p class="text-sm text-gray-400 mt-2">Calculate draw probabilities for specific cards.</p>
-                        </div>
-                        <div class="p-6 pt-0">
-                            <div class="space-y-4">
-                                <div class="flex flex-wrap items-end gap-3">
-                                    <div class="flex items-center gap-2">
-                                        <input
-                                            class="flex h-8 w-16 text-center text-sm rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-white"
-                                            id="hyper-deck-size" type="number" value="60">
-                                        <span class="text-sm text-gray-500">Deck</span>
-                                    </div>
-                                    <div class="flex items-center gap-2">
-                                        <input
-                                            class="flex h-8 w-16 text-center text-sm rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-white"
-                                            id="hyper-copies" type="number" value="4">
-                                        <span class="text-sm text-gray-500">Copies</span>
-                                    </div>
-                                    <div class="flex items-center gap-2">
-                                        <input
-                                            class="flex h-8 w-16 text-center text-sm rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-white"
-                                            id="hyper-hand-size" type="number" value="7">
-                                        <span class="text-sm text-gray-500">Hand</span>
-                                    </div>
-                                    <div class="flex items-center gap-2">
-                                        <input
-                                            class="flex h-8 w-16 text-center text-sm rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-white"
-                                            id="hyper-desired" type="number" value="1">
-                                        <span class="text-sm text-gray-500">Desired</span>
-                                    </div>
-                                </div>
-                                <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-                                    <div class="flex items-center gap-2"><span class="text-gray-500">≥ 1:</span><span
-                                            id="hyper-gte" class="font-mono font-semibold text-white">...</span></div>
-                                    <div class="flex items-center gap-2"><span class="text-gray-500">= 1:</span><span
-                                            id="hyper-eq" class="font-mono font-semibold text-white">...</span></div>
-                                    <div class="flex items-center gap-2"><span class="text-gray-500">&lt; 1:</span><span
-                                            id="hyper-lt" class="font-mono font-semibold text-white">...</span></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
             </div>
+            <!-- SIMULATION TAB CONTENT -->
+            <div id="simulation-content" class="space-y-6 hidden">
+                <!-- Simulation Controls -->
+                <div class="bg-gray-800 rounded-lg shadow-lg border border-gray-700 p-6">
+                    <h3 class="text-xl font-bold text-white flex items-center gap-2 mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                            class="h-5 w-5 text-purple-400">
+                            <path d="M12 2v20"></path>
+                            <path d="M2 12h20"></path>
+                            <path d="m4.93 4.93 14.14 14.14"></path>
+                            <path d="m19.07 4.93-14.14 14.14"></path>
+                        </svg>
+                        Batch Simulation
+                    </h3>
+                    <div class="flex items-end gap-4">
+                        <div class="space-y-1">
+                            <label class="text-sm text-gray-400">Iterations</label>
+                            <input id="sim-iterations" type="number" value="1000"
+                                class="w-32 bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-white focus:ring-2 focus:ring-purple-500 focus:outline-none">
+                        </div>
+                        <button id="run-sim-button"
+                            class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-6 rounded-lg transition duration-200 disabled:opacity-50">
+                            Run Simulation
+                        </button>
+                    </div>
+                    <p id="sim-status" class="text-sm text-gray-500 mt-2 h-5"></p>
+                </div>
+
+                <!-- Simulation Results -->
+                <div id="sim-results" class="hidden space-y-6">
+                    <!-- Key Metrics Grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <!-- Avg Hand Quality -->
+                        <div class="bg-gray-800 rounded-lg shadow-lg border border-gray-700 p-6">
+                            <h4 class="text-sm font-semibold text-gray-400 mb-2">Avg. Hand Quality</h4>
+                            <div class="flex items-baseline gap-2">
+                                <span id="sim-avg-quality" class="text-3xl font-bold text-white">0.0</span>
+                                <span class="text-sm text-gray-500">/ 10</span>
+                            </div>
+                            <div class="mt-2 text-sm">
+                                <span class="text-gray-500">Opening: </span>
+                                <span id="sim-avg-opening-quality" class="text-gray-300">0.0</span>
+                            </div>
+                        </div>
+                        <!-- Mulligan Stats -->
+                        <div class="bg-gray-800 rounded-lg shadow-lg border border-gray-700 p-6">
+                            <h4 class="text-sm font-semibold text-gray-400 mb-2">Mulligan Stats</h4>
+                            <div class="space-y-2">
+                                <div class="flex justify-between">
+                                    <span class="text-gray-500">Mulligan Rate</span>
+                                    <span id="sim-mulligan-rate" class="font-bold text-white">0%</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-500">Avg. Replaced</span>
+                                    <span id="sim-avg-replaced" class="font-bold text-white">0.0</span>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Consistency -->
+                        <div class="bg-gray-800 rounded-lg shadow-lg border border-gray-700 p-6">
+                            <h4 class="text-sm font-semibold text-gray-400 mb-2">Consistency</h4>
+                            <div class="space-y-2">
+                                <div class="flex justify-between">
+                                    <span class="text-gray-500">Brick Rate (&lt;2 Ink)</span>
+                                    <span id="sim-brick-rate" class="font-bold text-white">0%</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-500">Perfect Curve (T1-3)</span>
+                                    <span id="sim-curve-rate" class="font-bold text-white">0%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Detailed Stats & Graphs -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- Hand Quality Chart -->
+                        <div class="bg-gray-800 rounded-lg shadow-lg border border-gray-700 p-6">
+                            <h4 class="text-lg font-bold text-white mb-4">Hand Quality Distribution</h4>
+                            <div class="relative h-64 w-full">
+                                <canvas id="sim-quality-chart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Issues Chart -->
+                        <div class="bg-gray-800 rounded-lg shadow-lg border border-gray-700 p-6">
+                            <h4 class="text-lg font-bold text-white mb-4">Hand Issues Frequency</h4>
+                            <div class="relative h-64 w-full">
+                                <canvas id="sim-issues-chart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Additional Stats -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- Most Frequent Cards -->
+                        <div class="bg-gray-800 rounded-lg shadow-lg border border-gray-700 p-6">
+                            <h4 class="text-lg font-bold text-white mb-4">Most Frequent Opening Cards</h4>
+                            <div id="sim-freq-cards" class="space-y-2 max-h-60 overflow-y-auto pr-2"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- END SIMULATION TAB CONTENT -->
         </div>
-    </div>
 
-    <script type="module">
-        // --- GLOBAL STATE ---
-        let allCardsData = [];
-        let allDecks = [];
-        let decklist = []; // Array of full card objects, expanded by quantity (e.g., 60 cards)
-        let deckInfo = {}; // Parsed deck info (counts, etc.)
-        let shuffledDeck = [];
-        let openingHand = [];
-        let recentShuffles = []; // Stores { id, hand, score, rating }
-        let currentShuffleAnalysis = {}; // Holds all analysis data for the current shuffle
-        let combinationsCache = {}; // Cache for combinations function
-        let cardInspector = null; // Card Threat Level Inspector instance
+        <script type="module">
+            // --- GLOBAL STATE ---
+            let allCardsData = [];
+            let allDecks = [];
+            let decklist = []; // Array of full card objects, expanded by quantity (e.g., 60 cards)
+            let deckInfo = {}; // Parsed deck info (counts, etc.)
+            let shuffledDeck = [];
+            let openingHand = [];
+            let recentShuffles = []; // Stores { id, hand, score, rating }
+            let currentShuffleAnalysis = {}; // Holds all analysis data for the current shuffle
+            let combinationsCache = {}; // Cache for combinations function
+            let cardInspector = null; // Card Threat Level Inspector instance
 
-        // --- DOM ELEMENTS ---
-        const DOMElements = {
-            loadingOverlay: document.getElementById('loading-overlay'),
-            loadingMessage: document.getElementById('loading-message'),
-            deckSelect: document.getElementById('deck-select'),
-            decklistInput: document.getElementById('decklist-input'),
-            loadDeckButton: document.getElementById('load-deck-button'),
-            deckLoadStatus: document.getElementById('deck-load-status'),
-            analyzerContent: document.getElementById('analyzer-content'),
+            // --- DOM ELEMENTS ---
+            const DOMElements = {
+                loadingOverlay: document.getElementById('loading-overlay'),
+                loadingMessage: document.getElementById('loading-message'),
+                deckSelect: document.getElementById('deck-select'),
+                decklistInput: document.getElementById('decklist-input'),
+                loadDeckButton: document.getElementById('load-deck-button'),
+                deckLoadStatus: document.getElementById('deck-load-status'),
+                analyzerContent: document.getElementById('analyzer-content'),
 
-            // Shuffle Sim
-            shuffleButton: document.getElementById('shuffle-button'),
-            resetButton: document.getElementById('reset-button'),
-            handQualityContainer: document.getElementById('hand-quality-container'),
-            openingQualityScore: document.getElementById('opening-quality-score'),
-            openingQualityRating: document.getElementById('opening-quality-rating'),
-            openingQualityBar: document.getElementById('opening-quality-bar'),
-            finalQualityScore: document.getElementById('final-quality-score'),
-            finalQualityRating: document.getElementById('final-quality-rating'),
-            finalQualityBar: document.getElementById('final-quality-bar'),
-            recentShufflesList: document.getElementById('recent-shuffles-list'),
+                // Shuffle Sim
+                shuffleButton: document.getElementById('shuffle-button'),
+                resetButton: document.getElementById('reset-button'),
+                handQualityContainer: document.getElementById('hand-quality-container'),
+                openingQualityScore: document.getElementById('opening-quality-score'),
+                openingQualityRating: document.getElementById('opening-quality-rating'),
+                openingQualityBar: document.getElementById('opening-quality-bar'),
+                finalQualityScore: document.getElementById('final-quality-score'),
+                finalQualityRating: document.getElementById('final-quality-rating'),
+                finalQualityBar: document.getElementById('final-quality-bar'),
+                recentShufflesList: document.getElementById('recent-shuffles-list'),
 
-            // Hand Analysis
-            handAnalysisContainer: document.getElementById('hand-analysis-container'),
-            openingHandRating: document.getElementById('opening-hand-rating'),
-            openingHandAnalysisPoints: document.getElementById('opening-hand-analysis-points'),
-            handInkableStat: document.getElementById('hand-inkable-stat'),
-            handCurveStat: document.getElementById('hand-curve-stat'),
-            handTypesStat: document.getElementById('hand-types-stat'),
-            handColorsStat: document.getElementById('hand-colors-stat'),
-            handColorsStat: document.getElementById('hand-colors-stat'),
-            // handCardImages: document.getElementById('hand-card-images'), // Removed
-            openingHandContainer: document.getElementById('opening-hand-container'),
-            finalHandContainer: document.getElementById('final-hand-container'),
-            openingHandScoreDisplay: document.getElementById('opening-hand-score-display'),
-            finalHandScoreDisplay: document.getElementById('final-hand-score-display'),
-            handComparison: document.getElementById('hand-comparison'),
+                // Hand Analysis
+                handAnalysisContainer: document.getElementById('hand-analysis-container'),
+                openingHandRating: document.getElementById('opening-hand-rating'),
+                openingHandAnalysisPoints: document.getElementById('opening-hand-analysis-points'),
+                handInkableStat: document.getElementById('hand-inkable-stat'),
+                handCurveStat: document.getElementById('hand-curve-stat'),
+                handTypesStat: document.getElementById('hand-types-stat'),
+                handColorsStat: document.getElementById('hand-colors-stat'),
+                handColorsStat: document.getElementById('hand-colors-stat'),
+                // handCardImages: document.getElementById('hand-card-images'), // Removed
+                openingHandContainer: document.getElementById('opening-hand-container'),
+                finalHandContainer: document.getElementById('final-hand-container'),
+                openingHandScoreDisplay: document.getElementById('opening-hand-score-display'),
+                finalHandScoreDisplay: document.getElementById('final-hand-score-display'),
+                handComparison: document.getElementById('hand-comparison'),
 
-            // Early Game
-            earlyInkableStat: document.getElementById('early-inkable-stat'),
-            earlyCurveStat: document.getElementById('early-curve-stat'),
-            earlyTypesStat: document.getElementById('early-types-stat'),
-            earlyColorsStat: document.getElementById('early-colors-stat'),
-            earlyTagsStat: document.getElementById('early-tags-stat'),
+                // Early Game
+                earlyInkableStat: document.getElementById('early-inkable-stat'),
+                earlyCurveStat: document.getElementById('early-curve-stat'),
+                earlyTypesStat: document.getElementById('early-types-stat'),
+                earlyColorsStat: document.getElementById('early-colors-stat'),
+                earlyTagsStat: document.getElementById('early-tags-stat'),
 
-            // Timeline
-            deckTimelineContainer: document.getElementById('deck-timeline-container'),
-            deckTimelineHeader: document.getElementById('deck-timeline-header'),
-            deckTimelineCards: document.getElementById('deck-timeline-cards'),
+                // Timeline
+                deckTimelineContainer: document.getElementById('deck-timeline-container'),
+                deckTimelineHeader: document.getElementById('deck-timeline-header'),
+                deckTimelineCards: document.getElementById('deck-timeline-cards'),
 
-            // Shuffle Quality
-            shuffleQualityContainer: document.getElementById('shuffle-quality-container'),
-            shuffleQualityRating: document.getElementById('shuffle-quality-rating'),
-            shuffleQualityIssues: document.getElementById('shuffle-quality-issues'),
-            toggleStatsButton: document.getElementById('toggle-stats-button'),
-            toggleStatsIcon: document.getElementById('toggle-stats-icon'),
-            toggleStatsText: document.getElementById('toggle-stats-text'),
-            detailedStatsContainer: document.getElementById('detailed-stats-container'),
-            consecutiveCardsStat: document.getElementById('consecutive-cards-stat'),
-            clusteringStat: document.getElementById('clustering-stat'),
-            clusteringAlertBox: document.getElementById('clustering-alert-box'),
-            clusteringAlertText: document.getElementById('clustering-alert-text'),
-            distColorsStat: document.getElementById('dist-colors-stat'),
-            distCostsStat: document.getElementById('dist-costs-stat'),
-            distInkwellStat: document.getElementById('dist-inkwell-stat'),
+                // Shuffle Quality
+                shuffleQualityContainer: document.getElementById('shuffle-quality-container'),
+                shuffleQualityRating: document.getElementById('shuffle-quality-rating'),
+                shuffleQualityIssues: document.getElementById('shuffle-quality-issues'),
+                toggleStatsButton: document.getElementById('toggle-stats-button'),
+                toggleStatsIcon: document.getElementById('toggle-stats-icon'),
+                toggleStatsText: document.getElementById('toggle-stats-text'),
+                detailedStatsContainer: document.getElementById('detailed-stats-container'),
+                consecutiveCardsStat: document.getElementById('consecutive-cards-stat'),
+                clusteringStat: document.getElementById('clustering-stat'),
+                clusteringAlertBox: document.getElementById('clustering-alert-box'),
+                clusteringAlertText: document.getElementById('clustering-alert-text'),
+                distColorsStat: document.getElementById('dist-colors-stat'),
+                distCostsStat: document.getElementById('dist-costs-stat'),
+                distInkwellStat: document.getElementById('dist-inkwell-stat'),
 
-            // Probabilities
-            probabilityTableBody: document.getElementById('probability-table-body'),
-            hyperDeckSize: document.getElementById('hyper-deck-size'),
-            hyperCopies: document.getElementById('hyper-copies'),
-            hyperHandSize: document.getElementById('hyper-hand-size'),
-            hyperDesired: document.getElementById('hyper-desired'),
-            hyperGte: document.getElementById('hyper-gte'),
-            hyperEq: document.getElementById('hyper-eq'),
-            hyperLt: document.getElementById('hyper-lt'),
+                // Probabilities
+                probabilityTableBody: document.getElementById('probability-table-body'),
+                hyperDeckSize: document.getElementById('hyper-deck-size'),
+                hyperCopies: document.getElementById('hyper-copies'),
+                hyperHandSize: document.getElementById('hyper-hand-size'),
+                hyperDesired: document.getElementById('hyper-desired'),
+                hyperGte: document.getElementById('hyper-gte'),
+                hyperEq: document.getElementById('hyper-eq'),
+                hyperLt: document.getElementById('hyper-lt'),
 
-            // Tabs
-            tabDraw: document.getElementById('tab-draw'),
-            tabSimulation: document.getElementById('tab-simulation'),
-            drawContent: document.getElementById('draw-content'),
-            simulationContent: document.getElementById('simulation-content'),
+                // Tabs
+                tabDraw: document.getElementById('tab-draw'),
+                tabSimulation: document.getElementById('tab-simulation'),
+                drawContent: document.getElementById('draw-content'),
+                simulationContent: document.getElementById('simulation-content'),
+
+                // Simulation
+                simIterations: document.getElementById('sim-iterations'),
+                runSimButton: document.getElementById('run-sim-button'),
+                simStatus: document.getElementById('sim-status'),
+                simResults: document.getElementById('sim-results'),
+                simAvgQuality: document.getElementById('sim-avg-quality'),
+                simAvgOpeningQuality: document.getElementById('sim-avg-opening-quality'),
+                simMulliganRate: document.getElementById('sim-mulligan-rate'),
+                simAvgReplaced: document.getElementById('sim-avg-replaced'),
+                simBrickRate: document.getElementById('sim-brick-rate'),
+                simCurveRate: document.getElementById('sim-curve-rate'),
+                simFreqCards: document.getElementById('sim-freq-cards'),
+                simQualityChart: document.getElementById('sim-quality-chart'),
+                simIssuesChart: document.getElementById('sim-issues-chart'),
+            };
+
+            // Chart Instances
+            let qualityChartInstance = null;
+            let issuesChartInstance = null;
+
+            // --- CONSTANTS ---
+            const CARD_DATABASE_URL = "https://cdn.jsdelivr.net/gh/heavenideas/similcana@main/database/allCards.json";
+            const ABILITIES_CONFIG_URL = "https://cdn.jsdelivr.net/gh/heavenideas/heavenideas.github.io@main/lorcanaUtils_MatchUpAnalyzer/lorcana_abilities_redux.json";
+            const SUPABASE_URL = 'https://cjlhrfhximjldqrfblkj.supabase.co';
+            const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNqbGhyZmh4aW1qbGRxcmZibGtqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA0MTcxNzQsImV4cCI6MjA2NTk5MzE3NH0.zLiQcPnKt2SnNfQIkUnOG7bOo6F7MPMh8MsasdFF6lw';
+            const COLOR_MAP = {
+                "Amber": "bg-amber-500",
+                "Amethyst": "bg-purple-500",
+                "Emerald": "bg-emerald-500",
+                "Ruby": "bg-red-600",
+                "Sapphire": "bg-blue-500",
+                "Steel": "bg-gray-500"
+            };
+            const COLOR_HEX = {
+                "Amber": "#f59e0b",
+                "Amethyst": "#a855f7",
+                "Emerald": "#10b981",
+                "Ruby": "#dc2626",
+                "Sapphire": "#3b82f6",
+                "Steel": "#6b7280"
+            };
+            const RATING_CLASSES = {
+                "Excellent": "text-green-400 border-green-700 bg-green-900",
+                "Good": "text-blue-400 border-blue-700 bg-blue-900",
+                "Average": "text-yellow-400 border-yellow-700 bg-yellow-900",
+                "Poor": "text-red-400 border-red-700 bg-red-900",
+                "Bad": "text-red-600 border-red-800 bg-red-950",
+            };
+
+            // --- INITIALIZATION ---
+            window.onload = async () => {
+                try {
+                    DOMElements.loadingMessage.textContent = "Loading Card Database...";
+                    const response = await fetch(CARD_DATABASE_URL);
+                    if (!response.ok) throw new Error(`Failed to fetch card database: ${response.statusText}`);
+                    const data = await response.json();
+                    allCardsData = data.cards;
+
+                    DOMElements.loadingMessage.textContent = "Loading Abilities Config...";
+                    // The library is loaded via <script> tag, so we just init it
+                    // We must provide the correct CDN URL for the JSON file
+                    await UnifiedWinProbabiliyCalculation.loadAbilitiesConfig(ABILITIES_CONFIG_URL);
+
+                    DOMElements.loadingMessage.textContent = "Initializing Modules...";
+                    CardStatAnalysisModule.initialize(allCardsData, COLOR_HEX, UnifiedWinProbabiliyCalculation);
+                    cardInspector = new CardThreatLevelInspector();
+
+                    DOMElements.loadingMessage.textContent = "Loading Decks...";
+                    await loadDecks();
+
+                    DOMElements.loadingMessage.textContent = "Ready!";
+                    DOMElements.loadingOverlay.style.display = 'none';
+                    DOMElements.loadDeckButton.disabled = false;
+                } catch (error) {
+                    DOMElements.loadingMessage.textContent = "Failed to load critical data. Please refresh.";
+                    console.error("Initialization failed:", error);
+                }
+            };
+
+            // --- EVENT LISTENERS ---
+            DOMElements.deckSelect.addEventListener('change', handleDeckSelect);
+            DOMElements.loadDeckButton.addEventListener('click', handleLoadDeck);
+            DOMElements.shuffleButton.addEventListener('click', handleShuffleDeck);
+            DOMElements.resetButton.addEventListener('click', handleReset);
+            DOMElements.toggleStatsButton.addEventListener('click', toggleDetailedStats);
+
+            const hyperInputs = [DOMElements.hyperDeckSize, DOMElements.hyperCopies, DOMElements.hyperHandSize, DOMElements.hyperDesired];
+
+            hyperInputs.forEach(input => input.addEventListener('input', updateHypergeometricCalculator));
+
+            // Tab Switching
+            DOMElements.tabDraw.addEventListener('click', () => switchTab('draw'));
+            DOMElements.tabSimulation.addEventListener('click', () => switchTab('simulation'));
 
             // Simulation
-            simIterations: document.getElementById('sim-iterations'),
-            runSimButton: document.getElementById('run-sim-button'),
-            simStatus: document.getElementById('sim-status'),
-            simResults: document.getElementById('sim-results'),
-            simAvgQuality: document.getElementById('sim-avg-quality'),
-            simAvgOpeningQuality: document.getElementById('sim-avg-opening-quality'),
-            simMulliganRate: document.getElementById('sim-mulligan-rate'),
-            simAvgReplaced: document.getElementById('sim-avg-replaced'),
-            simBrickRate: document.getElementById('sim-brick-rate'),
-            simCurveRate: document.getElementById('sim-curve-rate'),
-            simQualityDist: document.getElementById('sim-quality-dist'),
-            simFreqCards: document.getElementById('sim-freq-cards'),
-        };
+            DOMElements.runSimButton.addEventListener('click', runSimulation);
 
-        // --- CONSTANTS ---
-        const CARD_DATABASE_URL = "https://cdn.jsdelivr.net/gh/heavenideas/similcana@main/database/allCards.json";
-        const ABILITIES_CONFIG_URL = "https://cdn.jsdelivr.net/gh/heavenideas/heavenideas.github.io@main/lorcanaUtils_MatchUpAnalyzer/lorcana_abilities_redux.json";
-        const SUPABASE_URL = 'https://cjlhrfhximjldqrfblkj.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNqbGhyZmh4aW1qbGRxcmZibGtqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA0MTcxNzQsImV4cCI6MjA2NTk5MzE3NH0.zLiQcPnKt2SnNfQIkUnOG7bOo6F7MPMh8MsasdFF6lw';
-        const COLOR_MAP = {
-            "Amber": "bg-amber-500",
-            "Amethyst": "bg-purple-500",
-            "Emerald": "bg-emerald-500",
-            "Ruby": "bg-red-600",
-            "Sapphire": "bg-blue-500",
-            "Steel": "bg-gray-500"
-        };
-        const COLOR_HEX = {
-            "Amber": "#f59e0b",
-            "Amethyst": "#a855f7",
-            "Emerald": "#10b981",
-            "Ruby": "#dc2626",
-            "Sapphire": "#3b82f6",
-            "Steel": "#6b7280"
-        };
-        const RATING_CLASSES = {
-            "Excellent": "text-green-400 border-green-700 bg-green-900",
-            "Good": "text-blue-400 border-blue-700 bg-blue-900",
-            "Average": "text-yellow-400 border-yellow-700 bg-yellow-900",
-            "Poor": "text-red-400 border-red-700 bg-red-900",
-            "Bad": "text-red-600 border-red-800 bg-red-950",
-        };
-
-        // --- INITIALIZATION ---
-        window.onload = async () => {
-            try {
-                DOMElements.loadingMessage.textContent = "Loading Card Database...";
-                const response = await fetch(CARD_DATABASE_URL);
-                if (!response.ok) throw new Error(`Failed to fetch card database: ${response.statusText}`);
-                const data = await response.json();
-                allCardsData = data.cards;
-
-                DOMElements.loadingMessage.textContent = "Loading Abilities Config...";
-                // The library is loaded via <script> tag, so we just init it
-                // We must provide the correct CDN URL for the JSON file
-                await UnifiedWinProbabiliyCalculation.loadAbilitiesConfig(ABILITIES_CONFIG_URL);
-
-                DOMElements.loadingMessage.textContent = "Initializing Modules...";
-                CardStatAnalysisModule.initialize(allCardsData, COLOR_HEX, UnifiedWinProbabiliyCalculation);
-                cardInspector = new CardThreatLevelInspector();
-
-                DOMElements.loadingMessage.textContent = "Loading Decks...";
-                await loadDecks();
-
-                DOMElements.loadingMessage.textContent = "Ready!";
-                DOMElements.loadingOverlay.style.display = 'none';
-                DOMElements.loadDeckButton.disabled = false;
-            } catch (error) {
-                DOMElements.loadingMessage.textContent = "Failed to load critical data. Please refresh.";
-                console.error("Initialization failed:", error);
-            }
-        };
-
-        // --- EVENT LISTENERS ---
-        DOMElements.deckSelect.addEventListener('change', handleDeckSelect);
-        DOMElements.loadDeckButton.addEventListener('click', handleLoadDeck);
-        DOMElements.shuffleButton.addEventListener('click', handleShuffleDeck);
-        DOMElements.resetButton.addEventListener('click', handleReset);
-        DOMElements.toggleStatsButton.addEventListener('click', toggleDetailedStats);
-
-        const hyperInputs = [DOMElements.hyperDeckSize, DOMElements.hyperCopies, DOMElements.hyperHandSize, DOMElements.hyperDesired];
-
-        hyperInputs.forEach(input => input.addEventListener('input', updateHypergeometricCalculator));
-
-        // Tab Switching
-        DOMElements.tabDraw.addEventListener('click', () => switchTab('draw'));
-        DOMElements.tabSimulation.addEventListener('click', () => switchTab('simulation'));
-
-        // Simulation
-        DOMElements.runSimButton.addEventListener('click', runSimulation);
-
-        function switchTab(tab) {
-            if (tab === 'draw') {
-                DOMElements.drawContent.classList.remove('hidden');
-                DOMElements.simulationContent.classList.add('hidden');
-                DOMElements.tabDraw.classList.replace('text-gray-400', 'text-white');
-                DOMElements.tabDraw.classList.add('bg-blue-600');
-                DOMElements.tabSimulation.classList.replace('text-white', 'text-gray-400');
-                DOMElements.tabSimulation.classList.remove('bg-blue-600');
-            } else {
-                DOMElements.drawContent.classList.add('hidden');
-                DOMElements.simulationContent.classList.remove('hidden');
-                DOMElements.tabSimulation.classList.replace('text-gray-400', 'text-white');
-                DOMElements.tabSimulation.classList.add('bg-blue-600');
-                DOMElements.tabDraw.classList.replace('text-white', 'text-gray-400');
-                DOMElements.tabDraw.classList.remove('bg-blue-600');
-            }
-        }
-
-        // --- SUPABASE DECK LOADING ---
-        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-        async function loadDecks() {
-            try {
-                const { data, error } = await supabaseClient.from('decks').select('*').order('created_at', { ascending: false });
-                if (error) {
-                    console.error('Error fetching decks:', error);
-                    return;
-                }
-                allDecks = data || [];
-                populateDeckSelect();
-            } catch (error) {
-                console.error('Failed to load decks:', error);
-            }
-        }
-
-        function populateDeckSelect() {
-            DOMElements.deckSelect.innerHTML = '<option value="">Select a deck...</option>';
-            allDecks.forEach(deck => {
-                const option = document.createElement('option');
-                option.value = deck.id;
-                option.textContent = deck.name;
-                DOMElements.deckSelect.appendChild(option);
-            });
-        }
-
-        function handleDeckSelect() {
-            const selectedId = DOMElements.deckSelect.value;
-            if (!selectedId) return;
-            const deck = allDecks.find(d => d.id == selectedId);
-            if (deck) {
-                DOMElements.decklistInput.value = deck.decklist;
-                // Reset select
-                DOMElements.deckSelect.value = '';
-            }
-        }
-
-        // --- DECK LOADING & PARSING ---
-        function handleLoadDeck() {
-            const inputText = DOMElements.decklistInput.value;
-            const { parsedDeck, parsedInfo, error } = parseDecklist(inputText);
-
-            if (error) {
-                DOMElements.deckLoadStatus.textContent = error;
-                DOMElements.deckLoadStatus.classList.remove('text-green-500');
-                DOMElements.deckLoadStatus.classList.add('text-red-500');
-                return;
-            }
-
-            decklist = parsedDeck;
-            deckInfo = parsedInfo;
-
-            DOMElements.deckLoadStatus.textContent = `Deck loaded! (${deckInfo.totalCards} cards)`;
-            DOMElements.deckLoadStatus.classList.remove('text-red-500');
-            DOMElements.deckLoadStatus.classList.add('text-green-500');
-
-            // Populate UI
-            DOMElements.analyzerContent.classList.remove('opacity-50', 'pointer-events-none');
-            DOMElements.hyperDeckSize.value = deckInfo.totalCards;
-            populateProbabilityTable();
-            populateDeckDistributionStats();
-            handleReset(); // Clear any previous shuffle data
-        }
-
-        function parseDecklist(text) {
-            let parsedDeck = [];
-            let parsedInfo = {
-                totalCards: 0,
-                inkableCount: 0,
-                colors: {},
-                types: {},
-                costs: {},
-                byCopyCount: { 1: 0, 2: 0, 3: 0, 4: 0 }
-            };
-            const lines = text.split('\n').filter(line => line.trim() !== '');
-            const cardCounts = {};
-
-            const lineRegex = /^(\d+)x?\s+(.*)$/i;
-
-            for (const line of lines) {
-                const match = line.trim().match(lineRegex);
-                if (!match) continue;
-
-                const quantity = parseInt(match[1], 10);
-                const cardName = match[2].trim();
-
-                // Find card in database
-                const card = findCard(cardName);
-
-                if (!card) {
-                    return { error: `Error: Card not found "${cardName}"` };
-                }
-
-                // Add to decklist
-                for (let i = 0; i < quantity; i++) {
-                    parsedDeck.push(card);
-                }
-
-                // Update info
-                cardCounts[card.id] = (cardCounts[card.id] || 0) + quantity;
-                parsedInfo.totalCards += quantity;
-                if (card.inkwell) parsedInfo.inkableCount += quantity;
-
-                const cardColor = card.color.split('-')[0]; // Handle dual-ink
-                parsedInfo.colors[cardColor] = (parsedInfo.colors[cardColor] || 0) + quantity;
-                if (card.colors) { // Handle dual-ink second color
-                    parsedInfo.colors[card.colors[1]] = (parsedInfo.colors[card.colors[1]] || 0) + quantity;
-                }
-
-                parsedInfo.types[card.type] = (parsedInfo.types[card.type] || 0) + quantity;
-                parsedInfo.costs[card.cost] = (parsedInfo.costs[card.cost] || 0) + quantity;
-            }
-
-            // Calculate byCopyCount
-            const counts = {};
-            for (const card of parsedDeck) {
-                counts[card.fullName] = (counts[card.fullName] || 0) + 1;
-            }
-            for (const count of Object.values(counts)) {
-                if (count > 4) continue; // Ignore >4 copies
-                parsedInfo.byCopyCount[count] = (parsedInfo.byCopyCount[count] || 0) + 1;
-            }
-
-            if (parsedDeck.length === 0) {
-                return { error: "Error: No valid cards found in decklist." };
-            }
-
-            return { parsedDeck, parsedInfo, error: null };
-        }
-
-        function findCard(name) {
-            const simpleName = s => s.toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ');
-            const searchName = simpleName(name);
-
-            // Prioritize exact fullName match
-            let found = allCardsData.find(c => c.fullName.toLowerCase() === name.toLowerCase());
-            if (found) return found;
-
-            // Fallback to simpleName match (handles "Mickey Mouse Brave Little Tailor")
-            found = allCardsData.find(c => simpleName(c.fullName) === searchName);
-            if (found) return found;
-
-            // Fallback to name + version match
-            found = allCardsData.find(c => c.name.toLowerCase() === name.toLowerCase() || c.simpleName === searchName);
-            return found; // Might be ambiguous, but best effort
-        }
-
-        // --- SHUFFLE & ANALYSIS ---
-        // --- SHUFFLE & ANALYSIS ---
-
-        // Module 1: The "Mulligan Heuristic"
-        function determineMulligan(initialHand) {
-            const cardsToKeep = [];
-            const cardsToMulligan = [];
-
-            // 1. Assign Priorities
-            // Priority 0: Keep
-            // Priority 1: Maybe (Un-inkable cost 3-4; Inkable cost 6+)
-            // Priority 2: Mulligan (Un-inkable cost 5+; Any cost 7+)
-
-            const handWithPriority = initialHand.map(card => {
-                let priority = 0;
-                if (!card.inkwell && card.cost >= 5) priority = 2;
-                else if (card.cost >= 7) priority = 2;
-                else if (!card.inkwell && (card.cost === 3 || card.cost === 4)) priority = 1;
-                else if (card.inkwell && card.cost >= 6) priority = 1;
-                return { card, priority };
-            });
-
-            // 2. Analyze Issues
-            const analysis = analyzeCardGroup(initialHand);
-            const issueBadInk = analysis.inkable <= 2;
-            const issueNoEarlyPlay = analysis.costs["1-3"] === 0;
-
-            // 3. Upgrade Priorities based on Issues
-            for (let item of handWithPriority) {
-                // Issue 1: Bad Ink -> Upgrade un-inkable Priority 1 to 2
-                if (issueBadInk && item.priority === 1 && !item.card.inkwell) {
-                    item.priority = 2;
-                }
-                // Issue 2: No Early Play -> Upgrade Priority 1 with cost 4+ to 2
-                if (issueNoEarlyPlay && item.priority === 1 && item.card.cost >= 4) {
-                    item.priority = 2;
-                }
-            }
-
-            // 4. Sort into Keep/Mulligan
-            for (let item of handWithPriority) {
-                if (item.priority === 2) {
-                    cardsToMulligan.push(item.card);
+            function switchTab(tab) {
+                if (tab === 'draw') {
+                    DOMElements.drawContent.classList.remove('hidden');
+                    DOMElements.simulationContent.classList.add('hidden');
+                    DOMElements.tabDraw.classList.replace('text-gray-400', 'text-white');
+                    DOMElements.tabDraw.classList.add('bg-blue-600');
+                    DOMElements.tabSimulation.classList.replace('text-white', 'text-gray-400');
+                    DOMElements.tabSimulation.classList.remove('bg-blue-600');
                 } else {
-                    cardsToKeep.push(item.card);
+                    DOMElements.drawContent.classList.add('hidden');
+                    DOMElements.simulationContent.classList.remove('hidden');
+                    DOMElements.tabSimulation.classList.replace('text-gray-400', 'text-white');
+                    DOMElements.tabSimulation.classList.add('bg-blue-600');
+                    DOMElements.tabDraw.classList.replace('text-white', 'text-gray-400');
+                    DOMElements.tabDraw.classList.remove('bg-blue-600');
                 }
             }
 
-            return { cardsToKeep, cardsToMulligan };
-        }
+            // --- SUPABASE DECK LOADING ---
+            const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // Module 2: The Core Simulation Engine
-        function runSingleShuffleSimulation(baseDecklist) {
-            // 1. Initial Shuffle
-            const initialDeck = [...baseDecklist];
-            const shuffle1 = fisherYatesShuffle(initialDeck);
-            const initialHand = shuffle1.slice(0, 7);
-            const restOfDeck = shuffle1.slice(7);
-
-            // 2. Initial Analysis
-            const initialHandAnalysis = analyzeCardGroup(initialHand);
-            const initialHandQuality = calculateHandQuality(initialHandAnalysis);
-
-            // 3. Run Heuristic
-            const mulliganDecision = determineMulligan(initialHand);
-            const numMulliganed = mulliganDecision.cardsToMulligan.length;
-
-            // 4. The Re-Shuffle & Final Hand
-            let finalHand, finalShuffledDeck, postMulliganQuality;
-
-            if (numMulliganed === 0) {
-                // Case A: No Mulligan
-                finalHand = initialHand;
-                postMulliganQuality = initialHandQuality;
-                finalShuffledDeck = shuffle1;
-            } else {
-                // Case B: Mulligan 1+ Cards
-                // Create Re-shuffle Pile: restOfDeck + mulliganed cards
-                const deckToReshuffle = [...restOfDeck, ...mulliganDecision.cardsToMulligan];
-
-                // Second Shuffle
-                const shuffle2 = fisherYatesShuffle(deckToReshuffle);
-
-                // Draw New Cards
-                const newCardsDrawn = shuffle2.slice(0, numMulliganed);
-
-                // Create Final Hand
-                finalHand = [...mulliganDecision.cardsToKeep, ...newCardsDrawn];
-
-                // Analyze Final Hand
-                const finalHandAnalysis = analyzeCardGroup(finalHand);
-                postMulliganQuality = calculateHandQuality(finalHandAnalysis);
-
-                // Create Final Deck State: Final Hand + Remaining Shuffled Deck
-                finalShuffledDeck = [...finalHand, ...shuffle2.slice(numMulliganed)];
+            async function loadDecks() {
+                try {
+                    const { data, error } = await supabaseClient.from('decks').select('*').order('created_at', { ascending: false });
+                    if (error) {
+                        console.error('Error fetching decks:', error);
+                        return;
+                    }
+                    allDecks = data || [];
+                    populateDeckSelect();
+                } catch (error) {
+                    console.error('Failed to load decks:', error);
+                }
             }
 
-            // 5. Final Analysis
-            const finalHandStats = analyzeCardGroup(finalHand);
-            const finalEarlyGameStats = analyzeCardGroup(finalShuffledDeck.slice(7, 22)); // Cards 8-22 (Next 15)
-            const finalQualityStats = analyzeDeckRandomness(finalShuffledDeck);
-
-            return {
-                initialHand,
-                initialHandQuality,
-                mulliganDecision,
-                finalHand,
-                finalHandQuality: postMulliganQuality,
-                finalShuffledDeck,
-                finalAnalysis: {
-                    hand: finalHandStats,
-                    earlyGame: finalEarlyGameStats,
-                    quality: finalQualityStats
-                }
-            };
-        }
-
-        function handleShuffleDeck() {
-            if (decklist.length === 0) return;
-
-            // 1. Run Simulation
-            const simulationResult = runSingleShuffleSimulation(decklist);
-
-            // 2. Add to Recent
-            const shuffleEntry = {
-                id: recentShuffles.length + 1,
-                ...simulationResult
-            };
-            recentShuffles.unshift(shuffleEntry);
-            if (recentShuffles.length > 10) recentShuffles.pop();
-
-            // 3. Render
-            renderAll(shuffleEntry);
-        }
-
-        function handleReset() {
-            shuffledDeck = [];
-            openingHand = [];
-            recentShuffles = [];
-            currentShuffleAnalysis = {};
-
-            // Clear UI
-            DOMElements.handAnalysisContainer.classList.add('hidden');
-            DOMElements.shuffleQualityContainer.classList.add('hidden');
-            DOMElements.recentShufflesList.innerHTML = '<p class="text-xs text-gray-500 text-center py-4">Shuffle the deck to see results.</p>';
-            DOMElements.handQualityContainer.classList.add('hidden');
-        }
-
-        function fisherYatesShuffle(array) {
-            let currentIndex = array.length, randomIndex;
-            while (currentIndex != 0) {
-                randomIndex = Math.floor(Math.random() * currentIndex);
-                currentIndex--;
-                [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
-            }
-            return array;
-        }
-
-        // --- BATCH SIMULATION ---
-        async function runSimulation() {
-            if (decklist.length === 0) return;
-
-            const iterations = parseInt(DOMElements.simIterations.value, 10) || 1000;
-            DOMElements.runSimButton.disabled = true;
-            DOMElements.simStatus.textContent = `Running ${iterations} simulations...`;
-            DOMElements.simResults.classList.add('hidden');
-
-            // Allow UI to update
-            await new Promise(r => setTimeout(r, 10));
-
-            const agg = {
-                initialQualitySum: 0,
-                finalQualitySum: 0,
-                totalMulligans: 0,
-                totalCardsMulliganed: 0,
-                bricks: 0, // < 2 inkable
-                perfectCurves: 0, // T1, T2, T3 plays
-                qualityDistribution: { "Excellent": 0, "Good": 0, "Average": 0, "Poor": 0, "Bad": 0 },
-                cardFrequency: {}
-            };
-
-            const start = performance.now();
-
-            for (let i = 0; i < iterations; i++) {
-                const result = runSingleShuffleSimulation(decklist);
-
-                // Aggregate
-                agg.initialQualitySum += result.initialHandQuality.score;
-                agg.finalQualitySum += result.finalHandQuality.score;
-
-                if (result.mulliganDecision.cardsToMulligan.length > 0) {
-                    agg.totalMulligans++;
-                    agg.totalCardsMulliganed += result.mulliganDecision.cardsToMulligan.length;
-                }
-
-                // Consistency Stats (Post-Mulligan)
-                const handStats = result.finalAnalysis.hand;
-                if (handStats.inkable < 2) agg.bricks++;
-                if (handStats.costs["1-3"] >= 3) agg.perfectCurves++; // Simplified check for curve potential
-
-                // Distribution
-                agg.qualityDistribution[result.finalHandQuality.rating]++;
-
-                // Card Frequency
-                result.finalHand.forEach(card => {
-                    agg.cardFrequency[card.fullName] = (agg.cardFrequency[card.fullName] || 0) + 1;
+            function populateDeckSelect() {
+                DOMElements.deckSelect.innerHTML = '<option value="">Select a deck...</option>';
+                allDecks.forEach(deck => {
+                    const option = document.createElement('option');
+                    option.value = deck.id;
+                    option.textContent = deck.name;
+                    DOMElements.deckSelect.appendChild(option);
                 });
             }
 
-            const duration = performance.now() - start;
-            DOMElements.simStatus.textContent = `Completed ${iterations} simulations in ${duration.toFixed(0)}ms.`;
-            DOMElements.runSimButton.disabled = false;
+            function handleDeckSelect() {
+                const selectedId = DOMElements.deckSelect.value;
+                if (!selectedId) return;
+                const deck = allDecks.find(d => d.id == selectedId);
+                if (deck) {
+                    DOMElements.decklistInput.value = deck.decklist;
+                    // Reset select
+                    DOMElements.deckSelect.value = '';
+                }
+            }
 
-            renderSimulationResults(agg, iterations);
-        }
+            // --- DECK LOADING & PARSING ---
+            function handleLoadDeck() {
+                const inputText = DOMElements.decklistInput.value;
+                const { parsedDeck, parsedInfo, error } = parseDecklist(inputText);
 
-        function renderSimulationResults(agg, N) {
-            DOMElements.simResults.classList.remove('hidden');
+                if (error) {
+                    DOMElements.deckLoadStatus.textContent = error;
+                    DOMElements.deckLoadStatus.classList.remove('text-green-500');
+                    DOMElements.deckLoadStatus.classList.add('text-red-500');
+                    return;
+                }
 
-            // Key Metrics
-            DOMElements.simAvgQuality.textContent = (agg.finalQualitySum / N).toFixed(1);
-            DOMElements.simAvgOpeningQuality.textContent = (agg.initialQualitySum / N).toFixed(1);
+                decklist = parsedDeck;
+                deckInfo = parsedInfo;
 
-            DOMElements.simMulliganRate.textContent = ((agg.totalMulligans / N) * 100).toFixed(0) + '%';
-            const avgReplaced = agg.totalMulligans > 0 ? (agg.totalCardsMulliganed / agg.totalMulligans) : 0;
-            DOMElements.simAvgReplaced.textContent = avgReplaced.toFixed(1);
+                DOMElements.deckLoadStatus.textContent = `Deck loaded! (${deckInfo.totalCards} cards)`;
+                DOMElements.deckLoadStatus.classList.remove('text-red-500');
+                DOMElements.deckLoadStatus.classList.add('text-green-500');
 
-            DOMElements.simBrickRate.textContent = ((agg.bricks / N) * 100).toFixed(1) + '%';
-            DOMElements.simCurveRate.textContent = ((agg.perfectCurves / N) * 100).toFixed(1) + '%';
+                // Populate UI
+                DOMElements.analyzerContent.classList.remove('opacity-50', 'pointer-events-none');
+                DOMElements.hyperDeckSize.value = deckInfo.totalCards;
+                populateProbabilityTable();
+                populateDeckDistributionStats();
+                handleReset(); // Clear any previous shuffle data
+            }
 
-            // Distribution Chart
-            const maxCount = Math.max(...Object.values(agg.qualityDistribution));
-            DOMElements.simQualityDist.innerHTML = Object.entries(agg.qualityDistribution).map(([rating, count]) => {
-                const pct = ((count / N) * 100).toFixed(1);
-                const width = maxCount > 0 ? (count / maxCount) * 100 : 0;
-                return `
-                    <div class="flex items-center gap-2 text-sm">
-                        <div class="w-20 text-gray-400">${rating}</div>
-                        <div class="flex-1 bg-gray-700 rounded-full h-4 overflow-hidden">
-                            <div class="${RATING_CLASSES[rating].split(' ')[2]} h-full" style="width: ${width}%"></div>
-                        </div>
-                        <div class="w-12 text-right text-white">${pct}%</div>
-                    </div>
-                `;
-            }).join('');
+            function parseDecklist(text) {
+                let parsedDeck = [];
+                let parsedInfo = {
+                    totalCards: 0,
+                    inkableCount: 0,
+                    colors: {},
+                    types: {},
+                    costs: {},
+                    byCopyCount: { 1: 0, 2: 0, 3: 0, 4: 0 }
+                };
+                const lines = text.split('\n').filter(line => line.trim() !== '');
+                const cardCounts = {};
 
-            // Frequent Cards
-            const sortedCards = Object.entries(agg.cardFrequency).sort((a, b) => b[1] - a[1]).slice(0, 10);
-            DOMElements.simFreqCards.innerHTML = sortedCards.map(([name, count]) => {
-                const pct = ((count / N) * 100).toFixed(1);
-                return `
+                const lineRegex = /^(\d+)x?\s+(.*)$/i;
+
+                for (const line of lines) {
+                    const match = line.trim().match(lineRegex);
+                    if (!match) continue;
+
+                    const quantity = parseInt(match[1], 10);
+                    const cardName = match[2].trim();
+
+                    // Find card in database
+                    const card = findCard(cardName);
+
+                    if (!card) {
+                        return { error: `Error: Card not found "${cardName}"` };
+                    }
+
+                    // Add to decklist
+                    for (let i = 0; i < quantity; i++) {
+                        parsedDeck.push(card);
+                    }
+
+                    // Update info
+                    cardCounts[card.id] = (cardCounts[card.id] || 0) + quantity;
+                    parsedInfo.totalCards += quantity;
+                    if (card.inkwell) parsedInfo.inkableCount += quantity;
+
+                    const cardColor = card.color.split('-')[0]; // Handle dual-ink
+                    parsedInfo.colors[cardColor] = (parsedInfo.colors[cardColor] || 0) + quantity;
+                    if (card.colors) { // Handle dual-ink second color
+                        parsedInfo.colors[card.colors[1]] = (parsedInfo.colors[card.colors[1]] || 0) + quantity;
+                    }
+
+                    parsedInfo.types[card.type] = (parsedInfo.types[card.type] || 0) + quantity;
+                    parsedInfo.costs[card.cost] = (parsedInfo.costs[card.cost] || 0) + quantity;
+                }
+
+                // Calculate byCopyCount
+                const counts = {};
+                for (const card of parsedDeck) {
+                    counts[card.fullName] = (counts[card.fullName] || 0) + 1;
+                }
+                for (const count of Object.values(counts)) {
+                    if (count > 4) continue; // Ignore >4 copies
+                    parsedInfo.byCopyCount[count] = (parsedInfo.byCopyCount[count] || 0) + 1;
+                }
+
+                if (parsedDeck.length === 0) {
+                    return { error: "Error: No valid cards found in decklist." };
+                }
+
+                return { parsedDeck, parsedInfo, error: null };
+            }
+
+            function findCard(name) {
+                const simpleName = s => s.toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ');
+                const searchName = simpleName(name);
+
+                // Prioritize exact fullName match
+                let found = allCardsData.find(c => c.fullName.toLowerCase() === name.toLowerCase());
+                if (found) return found;
+
+                // Fallback to simpleName match (handles "Mickey Mouse Brave Little Tailor")
+                found = allCardsData.find(c => simpleName(c.fullName) === searchName);
+                if (found) return found;
+
+                // Fallback to name + version match
+                found = allCardsData.find(c => c.name.toLowerCase() === name.toLowerCase() || c.simpleName === searchName);
+                return found; // Might be ambiguous, but best effort
+            }
+
+            // --- SHUFFLE & ANALYSIS ---
+            // --- SHUFFLE & ANALYSIS ---
+
+            // Module 1: The "Mulligan Heuristic"
+            function determineMulligan(initialHand) {
+                const cardsToKeep = [];
+                const cardsToMulligan = [];
+
+                // 1. Assign Priorities
+                // Priority 0: Keep
+                // Priority 1: Maybe (Un-inkable cost 3-4; Inkable cost 6+)
+                // Priority 2: Mulligan (Un-inkable cost 5+; Any cost 7+)
+
+                const handWithPriority = initialHand.map(card => {
+                    let priority = 0;
+                    if (!card.inkwell && card.cost >= 5) priority = 2;
+                    else if (card.cost >= 7) priority = 2;
+                    else if (!card.inkwell && (card.cost === 3 || card.cost === 4)) priority = 1;
+                    else if (card.inkwell && card.cost >= 6) priority = 1;
+                    return { card, priority };
+                });
+
+                // 2. Analyze Issues
+                const analysis = analyzeCardGroup(initialHand);
+                const issueBadInk = analysis.inkable <= 2;
+                const issueNoEarlyPlay = analysis.costs["1-3"] === 0;
+
+                // 3. Upgrade Priorities based on Issues
+                for (let item of handWithPriority) {
+                    // Issue 1: Bad Ink -> Upgrade un-inkable Priority 1 to 2
+                    if (issueBadInk && item.priority === 1 && !item.card.inkwell) {
+                        item.priority = 2;
+                    }
+                    // Issue 2: No Early Play -> Upgrade Priority 1 with cost 4+ to 2
+                    if (issueNoEarlyPlay && item.priority === 1 && item.card.cost >= 4) {
+                        item.priority = 2;
+                    }
+                }
+
+                // 4. Sort into Keep/Mulligan
+                for (let item of handWithPriority) {
+                    if (item.priority === 2) {
+                        cardsToMulligan.push(item.card);
+                    } else {
+                        cardsToKeep.push(item.card);
+                    }
+                }
+
+                return { cardsToKeep, cardsToMulligan };
+            }
+
+            // Module 2: The Core Simulation Engine
+            function runSingleShuffleSimulation(baseDecklist) {
+                // 1. Initial Shuffle
+                const initialDeck = [...baseDecklist];
+                const shuffle1 = fisherYatesShuffle(initialDeck);
+                const initialHand = shuffle1.slice(0, 7);
+                const restOfDeck = shuffle1.slice(7);
+
+                // 2. Initial Analysis
+                const initialHandAnalysis = analyzeCardGroup(initialHand);
+                const initialHandQuality = calculateHandQuality(initialHandAnalysis);
+
+                // 3. Run Heuristic
+                const mulliganDecision = determineMulligan(initialHand);
+                const numMulliganed = mulliganDecision.cardsToMulligan.length;
+
+                // 4. The Re-Shuffle & Final Hand
+                let finalHand, finalShuffledDeck, postMulliganQuality;
+
+                if (numMulliganed === 0) {
+                    // Case A: No Mulligan
+                    finalHand = initialHand;
+                    postMulliganQuality = initialHandQuality;
+                    finalShuffledDeck = shuffle1;
+                } else {
+                    // Case B: Mulligan 1+ Cards
+                    // Create Re-shuffle Pile: restOfDeck + mulliganed cards
+                    const deckToReshuffle = [...restOfDeck, ...mulliganDecision.cardsToMulligan];
+
+                    // Second Shuffle
+                    const shuffle2 = fisherYatesShuffle(deckToReshuffle);
+
+                    // Draw New Cards
+                    const newCardsDrawn = shuffle2.slice(0, numMulliganed);
+
+                    // Create Final Hand
+                    finalHand = [...mulliganDecision.cardsToKeep, ...newCardsDrawn];
+
+                    // Analyze Final Hand
+                    const finalHandAnalysis = analyzeCardGroup(finalHand);
+                    postMulliganQuality = calculateHandQuality(finalHandAnalysis);
+
+                    // Create Final Deck State: Final Hand + Remaining Shuffled Deck
+                    finalShuffledDeck = [...finalHand, ...shuffle2.slice(numMulliganed)];
+                }
+
+                // 5. Final Analysis
+                const finalHandStats = analyzeCardGroup(finalHand);
+                const finalEarlyGameStats = analyzeCardGroup(finalShuffledDeck.slice(7, 22)); // Cards 8-22 (Next 15)
+                const finalQualityStats = analyzeDeckRandomness(finalShuffledDeck);
+
+                return {
+                    initialHand,
+                    initialHandQuality,
+                    mulliganDecision,
+                    finalHand,
+                    finalHandQuality: postMulliganQuality,
+                    finalShuffledDeck,
+                    finalAnalysis: {
+                        hand: finalHandStats,
+                        earlyGame: finalEarlyGameStats,
+                        quality: finalQualityStats
+                    }
+                };
+            }
+
+            function handleShuffleDeck() {
+                if (decklist.length === 0) return;
+
+                // 1. Run Simulation
+                const simulationResult = runSingleShuffleSimulation(decklist);
+
+                // 2. Add to Recent
+                const shuffleEntry = {
+                    id: recentShuffles.length + 1,
+                    ...simulationResult
+                };
+                recentShuffles.unshift(shuffleEntry);
+                if (recentShuffles.length > 10) recentShuffles.pop();
+
+                // 3. Render
+                renderAll(shuffleEntry);
+            }
+
+            function handleReset() {
+                shuffledDeck = [];
+                openingHand = [];
+                recentShuffles = [];
+                currentShuffleAnalysis = {};
+
+                // Clear UI
+                DOMElements.handAnalysisContainer.classList.add('hidden');
+                DOMElements.shuffleQualityContainer.classList.add('hidden');
+                DOMElements.recentShufflesList.innerHTML = '<p class="text-xs text-gray-500 text-center py-4">Shuffle the deck to see results.</p>';
+                DOMElements.handQualityContainer.classList.add('hidden');
+            }
+
+            function fisherYatesShuffle(array) {
+                let currentIndex = array.length, randomIndex;
+                while (currentIndex != 0) {
+                    randomIndex = Math.floor(Math.random() * currentIndex);
+                    currentIndex--;
+                    [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+                }
+                return array;
+            }
+
+            // --- BATCH SIMULATION ---
+            async function runSimulation() {
+                if (decklist.length === 0) return;
+
+                const iterations = parseInt(DOMElements.simIterations.value, 10) || 1000;
+                DOMElements.runSimButton.disabled = true;
+                DOMElements.simStatus.textContent = `Running ${iterations} simulations...`;
+                DOMElements.simResults.classList.add('hidden');
+
+                // Allow UI to update
+                await new Promise(r => setTimeout(r, 10));
+
+                const agg = {
+                    initialQualitySum: 0,
+                    finalQualitySum: 0,
+                    totalMulligans: 0,
+                    totalCardsMulliganed: 0,
+                    bricks: 0, // < 2 inkable
+                    perfectCurves: 0, // T1, T2, T3 plays
+                    initialQualityDistribution: { "Excellent": 0, "Good": 0, "Average": 0, "Poor": 0, "Bad": 0 },
+                    finalQualityDistribution: { "Excellent": 0, "Good": 0, "Average": 0, "Poor": 0, "Bad": 0 },
+                    initialIssues: { "Brick (<2 Ink)": 0, "No Turn 1": 0, "High Cost (>2 6+)": 0 },
+                    finalIssues: { "Brick (<2 Ink)": 0, "No Turn 1": 0, "High Cost (>2 6+)": 0 },
+                    cardFrequency: {}
+                };
+
+                const start = performance.now();
+
+                for (let i = 0; i < iterations; i++) {
+                    const result = runSingleShuffleSimulation(decklist);
+
+                    // Aggregate Quality Scores
+                    agg.initialQualitySum += result.initialHandQuality.score;
+                    agg.finalQualitySum += result.finalHandQuality.score;
+
+                    // Aggregate Distribution
+                    agg.initialQualityDistribution[result.initialHandQuality.rating]++;
+                    agg.finalQualityDistribution[result.finalHandQuality.rating]++;
+
+                    // Aggregate Mulligan Stats
+                    if (result.mulliganDecision.cardsToMulligan.length > 0) {
+                        agg.totalMulligans++;
+                        agg.totalCardsMulliganed += result.mulliganDecision.cardsToMulligan.length;
+                    }
+
+                    // Helper to analyze issues
+                    const checkIssues = (analysis, targetObj) => {
+                        if (analysis.inkable < 2) targetObj["Brick (<2 Ink)"]++;
+                        if (analysis.costs["1-3"] === 0) targetObj["No Turn 1"]++; // Simplified "No Early Play"
+                        if (analysis.costs["6+"] > 2) targetObj["High Cost (>2 6+)"]++;
+                    };
+
+                    // Analyze Initial Hand Issues
+                    const initialAnalysis = analyzeCardGroup(result.initialHand);
+                    checkIssues(initialAnalysis, agg.initialIssues);
+
+                    // Analyze Final Hand Issues
+                    const finalAnalysis = result.finalAnalysis.hand;
+                    checkIssues(finalAnalysis, agg.finalIssues);
+
+                    // Legacy Consistency Stats (Post-Mulligan)
+                    if (finalAnalysis.inkable < 2) agg.bricks++;
+                    if (finalAnalysis.costs["1-3"] >= 3) agg.perfectCurves++;
+
+                    // Card Frequency
+                    result.finalHand.forEach(card => {
+                        agg.cardFrequency[card.fullName] = (agg.cardFrequency[card.fullName] || 0) + 1;
+                    });
+                }
+
+                const duration = performance.now() - start;
+                DOMElements.simStatus.textContent = `Completed ${iterations} simulations in ${duration.toFixed(0)}ms.`;
+                DOMElements.runSimButton.disabled = false;
+
+                renderSimulationResults(agg, iterations);
+            }
+
+            function renderSimulationResults(agg, N) {
+                DOMElements.simResults.classList.remove('hidden');
+
+                // Key Metrics
+                DOMElements.simAvgQuality.textContent = (agg.finalQualitySum / N).toFixed(1);
+                DOMElements.simAvgOpeningQuality.textContent = (agg.initialQualitySum / N).toFixed(1);
+
+                DOMElements.simMulliganRate.textContent = ((agg.totalMulligans / N) * 100).toFixed(0) + '%';
+                const avgReplaced = agg.totalMulligans > 0 ? (agg.totalCardsMulliganed / agg.totalMulligans) : 0;
+                DOMElements.simAvgReplaced.textContent = avgReplaced.toFixed(1);
+
+                DOMElements.simBrickRate.textContent = ((agg.bricks / N) * 100).toFixed(1) + '%';
+                DOMElements.simCurveRate.textContent = ((agg.perfectCurves / N) * 100).toFixed(1) + '%';
+
+                // Render Charts
+                renderSimulationCharts(agg, N);
+
+                // Frequent Cards
+                const sortedCards = Object.entries(agg.cardFrequency).sort((a, b) => b[1] - a[1]).slice(0, 10);
+                DOMElements.simFreqCards.innerHTML = sortedCards.map(([name, count]) => {
+                    const pct = ((count / N) * 100).toFixed(1);
+                    return `
                     <div class="flex justify-between text-sm border-b border-gray-700 py-1 last:border-0">
                         <span class="text-gray-300 truncate pr-2">${name}</span>
                         <span class="font-mono text-blue-400">${pct}%</span>
                     </div>
                 `;
-            }).join('');
-        }
-
-        function analyzeCardGroup(cards) {
-            const group = {
-                cards: cards,
-                count: cards.length,
-                inkable: 0,
-                avgCost: 0,
-                costs: { "1-3": 0, "4-5": 0, "6+": 0 },
-                types: {},
-                colors: {},
-                hasLowCost: false,
-                hasHighCost: false,
-            };
-
-            let totalCost = 0;
-            for (const card of cards) {
-                if (card.inkwell) group.inkable++;
-                totalCost += card.cost;
-
-                if (card.cost <= 3) group.costs["1-3"]++;
-                else if (card.cost <= 5) group.costs["4-5"]++;
-                else group.costs["6+"]++;
-
-                if (card.cost <= 2) group.hasLowCost = true;
-                if (card.cost >= 5) group.hasHighCost = true;
-
-                group.types[card.type] = (group.types[card.type] || 0) + 1;
-
-                const cardColor = card.color.split('-')[0];
-                group.colors[cardColor] = (group.colors[cardColor] || 0) + 1;
-                if (card.colors) {
-                    group.colors[card.colors[1]] = (group.colors[card.colors[1]] || 0) + 1;
-                }
+                }).join('');
             }
 
-            group.avgCost = group.count > 0 ? (totalCost / group.count) : 0;
-            return group;
-        }
+            function renderSimulationCharts(agg, N) {
+                // 1. Quality Distribution Chart
+                const labels = ["Bad", "Poor", "Average", "Good", "Excellent"];
+                const initialData = labels.map(l => ((agg.initialQualityDistribution[l] / N) * 100).toFixed(1));
+                const finalData = labels.map(l => ((agg.finalQualityDistribution[l] / N) * 100).toFixed(1));
 
-        function calculateHandQuality(handStats) {
-            let score = 0;
+                if (qualityChartInstance) qualityChartInstance.destroy();
 
-            // 1. Inkable Cards (Max 4 points)
-            // Ideal is 3-5 inkable.
-            const inkable = handStats.inkable;
-            if (inkable === 3 || inkable === 4) score += 4;
-            else if (inkable === 2 || inkable === 5) score += 3;
-            else if (inkable === 1 || inkable === 6) score += 1;
-            // 0 or 7 inkable gives 0 points for this.
+                qualityChartInstance = new Chart(DOMElements.simQualityChart, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Original Hand',
+                                data: initialData,
+                                backgroundColor: 'rgba(156, 163, 175, 0.5)', // Gray
+                                borderColor: 'rgba(156, 163, 175, 1)',
+                                borderWidth: 1
+                            },
+                            {
+                                label: 'Final Hand',
+                                data: finalData,
+                                backgroundColor: 'rgba(147, 51, 234, 0.6)', // Purple
+                                borderColor: 'rgba(147, 51, 234, 1)',
+                                borderWidth: 1
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: { display: true, text: 'Frequency (%)', color: '#9ca3af' },
+                                grid: { color: '#374151' },
+                                ticks: { color: '#d1d5db' }
+                            },
+                            x: {
+                                grid: { display: false },
+                                ticks: { color: '#d1d5db' }
+                            }
+                        },
+                        plugins: {
+                            legend: { labels: { color: '#d1d5db' } }
+                        }
+                    }
+                });
 
-            // 2. Early Curve (Max 6 points)
-            // Ideal is having plays on T1, T2, T3.
-            const earlyPlays = handStats.costs["1-3"];
-            if (earlyPlays >= 3) score += 6;
-            else if (earlyPlays === 2) score += 4;
-            else if (earlyPlays === 1) score += 2;
+                // 2. Issues Chart
+                const issueLabels = Object.keys(agg.initialIssues);
+                const initialIssuesData = issueLabels.map(l => ((agg.initialIssues[l] / N) * 100).toFixed(1));
+                const finalIssuesData = issueLabels.map(l => ((agg.finalIssues[l] / N) * 100).toFixed(1));
 
-            let rating = "Bad";
-            if (score >= 9) rating = "Excellent";
-            else if (score >= 7) rating = "Good";
-            else if (score >= 5) rating = "Average";
-            else if (score >= 3) rating = "Poor";
+                if (issuesChartInstance) issuesChartInstance.destroy();
 
-            return { score, rating };
-        }
+                issuesChartInstance = new Chart(DOMElements.simIssuesChart, {
+                    type: 'bar',
+                    data: {
+                        labels: issueLabels,
+                        datasets: [
+                            {
+                                label: 'Original Hand',
+                                data: initialIssuesData,
+                                backgroundColor: 'rgba(156, 163, 175, 0.5)',
+                                borderColor: 'rgba(156, 163, 175, 1)',
+                                borderWidth: 1
+                            },
+                            {
+                                label: 'Final Hand',
+                                data: finalIssuesData,
+                                backgroundColor: 'rgba(239, 68, 68, 0.6)', // Red
+                                borderColor: 'rgba(239, 68, 68, 1)',
+                                borderWidth: 1
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: { display: true, text: 'Frequency (%)', color: '#9ca3af' },
+                                grid: { color: '#374151' },
+                                ticks: { color: '#d1d5db' }
+                            },
+                            x: {
+                                grid: { display: false },
+                                ticks: { color: '#d1d5db' }
+                            }
+                        },
+                        plugins: {
+                            legend: { labels: { color: '#d1d5db' } }
+                        }
+                    }
+                });
+            }
 
-        function analyzeDeckRandomness(deck) {
-            const quality = {};
+            function analyzeCardGroup(cards) {
+                const group = {
+                    cards: cards,
+                    count: cards.length,
+                    inkable: 0,
+                    avgCost: 0,
+                    costs: { "1-3": 0, "4-5": 0, "6+": 0 },
+                    types: {},
+                    colors: {},
+                    hasLowCost: false,
+                    hasHighCost: false,
+                };
 
-            // 1. Consecutive Cards
-            quality.consecutive = { 2: 0, 3: 0, 4: 0 };
-            let consecutiveCount = 1;
-            for (let i = 1; i < deck.length; i++) {
-                if (deck[i].id === deck[i - 1].id) {
-                    consecutiveCount++;
+                let totalCost = 0;
+                for (const card of cards) {
+                    if (card.inkwell) group.inkable++;
+                    totalCost += card.cost;
+
+                    if (card.cost <= 3) group.costs["1-3"]++;
+                    else if (card.cost <= 5) group.costs["4-5"]++;
+                    else group.costs["6+"]++;
+
+                    if (card.cost <= 2) group.hasLowCost = true;
+                    if (card.cost >= 5) group.hasHighCost = true;
+
+                    group.types[card.type] = (group.types[card.type] || 0) + 1;
+
+                    const cardColor = card.color.split('-')[0];
+                    group.colors[cardColor] = (group.colors[cardColor] || 0) + 1;
+                    if (card.colors) {
+                        group.colors[card.colors[1]] = (group.colors[card.colors[1]] || 0) + 1;
+                    }
+                }
+
+                group.avgCost = group.count > 0 ? (totalCost / group.count) : 0;
+                return group;
+            }
+
+            function calculateHandQuality(handStats) {
+                let score = 0;
+
+                // 1. Inkable Cards (Max 4 points)
+                // Ideal is 3-5 inkable.
+                const inkable = handStats.inkable;
+                if (inkable === 3 || inkable === 4) score += 4;
+                else if (inkable === 2 || inkable === 5) score += 3;
+                else if (inkable === 1 || inkable === 6) score += 1;
+                // 0 or 7 inkable gives 0 points for this.
+
+                // 2. Early Curve (Max 6 points)
+                // Ideal is having plays on T1, T2, T3.
+                const earlyPlays = handStats.costs["1-3"];
+                if (earlyPlays >= 3) score += 6;
+                else if (earlyPlays === 2) score += 4;
+                else if (earlyPlays === 1) score += 2;
+
+                let rating = "Bad";
+                if (score >= 9) rating = "Excellent";
+                else if (score >= 7) rating = "Good";
+                else if (score >= 5) rating = "Average";
+                else if (score >= 3) rating = "Poor";
+
+                return { score, rating };
+            }
+
+            function analyzeDeckRandomness(deck) {
+                const quality = {};
+
+                // 1. Consecutive Cards
+                quality.consecutive = { 2: 0, 3: 0, 4: 0 };
+                let consecutiveCount = 1;
+                for (let i = 1; i < deck.length; i++) {
+                    if (deck[i].id === deck[i - 1].id) {
+                        consecutiveCount++;
+                    } else {
+                        if (consecutiveCount === 2) quality.consecutive[2]++;
+                        else if (consecutiveCount === 3) quality.consecutive[3]++;
+                        else if (consecutiveCount >= 4) quality.consecutive[4]++;
+                        consecutiveCount = 1;
+                    }
+                }
+                // Check last run
+                if (consecutiveCount === 2) quality.consecutive[2]++;
+                else if (consecutiveCount === 3) quality.consecutive[3]++;
+                else if (consecutiveCount >= 4) quality.consecutive[4]++;
+
+                // 2. Clustering
+                quality.clusters = {
+                    color: findClusters(deck, c => c.color),
+                    cost: findClusters(deck, c => c.cost),
+                    type: findClusters(deck, c => c.type),
+                    inkless: findClusters(deck, c => !c.inkwell),
+                };
+
+                // 3. Overall Rating & Issues
+                quality.issues = [];
+                if (quality.consecutive[3] > 0) quality.issues.push(`• ${quality.consecutive[3]} instance(s) of 3 same cards in a row.`);
+                if (quality.consecutive[4] > 0) quality.issues.push(`• ${quality.consecutive[4]} instance(s) of 4+ same cards in a row.`);
+                if (quality.clusters.color.max > 5) quality.issues.push(`• ${quality.clusters.color.max} cards of same color in a row.`);
+                if (quality.clusters.inkless.max > 3) quality.issues.push(`• ${quality.clusters.inkless.max} inkless cards in a row.`);
+
+                if (quality.issues.length === 0) {
+                    quality.rating = "Excellent";
+                    quality.issues.push("✓ No critical issues detected. Cards are well-distributed.");
+                } else if (quality.issues.length <= 2) {
+                    quality.rating = "Good";
                 } else {
-                    if (consecutiveCount === 2) quality.consecutive[2]++;
-                    else if (consecutiveCount === 3) quality.consecutive[3]++;
-                    else if (consecutiveCount >= 4) quality.consecutive[4]++;
-                    consecutiveCount = 1;
+                    quality.rating = "Poor";
                 }
-            }
-            // Check last run
-            if (consecutiveCount === 2) quality.consecutive[2]++;
-            else if (consecutiveCount === 3) quality.consecutive[3]++;
-            else if (consecutiveCount >= 4) quality.consecutive[4]++;
 
-            // 2. Clustering
-            quality.clusters = {
-                color: findClusters(deck, c => c.color),
-                cost: findClusters(deck, c => c.cost),
-                type: findClusters(deck, c => c.type),
-                inkless: findClusters(deck, c => !c.inkwell),
-            };
-
-            // 3. Overall Rating & Issues
-            quality.issues = [];
-            if (quality.consecutive[3] > 0) quality.issues.push(`• ${quality.consecutive[3]} instance(s) of 3 same cards in a row.`);
-            if (quality.consecutive[4] > 0) quality.issues.push(`• ${quality.consecutive[4]} instance(s) of 4+ same cards in a row.`);
-            if (quality.clusters.color.max > 5) quality.issues.push(`• ${quality.clusters.color.max} cards of same color in a row.`);
-            if (quality.clusters.inkless.max > 3) quality.issues.push(`• ${quality.clusters.inkless.max} inkless cards in a row.`);
-
-            if (quality.issues.length === 0) {
-                quality.rating = "Excellent";
-                quality.issues.push("✓ No critical issues detected. Cards are well-distributed.");
-            } else if (quality.issues.length <= 2) {
-                quality.rating = "Good";
-            } else {
-                quality.rating = "Poor";
+                return quality;
             }
 
-            return quality;
-        }
+            function findClusters(deck, getProperty) {
+                let maxCluster = 0;
+                let currentCluster = 1;
+                let clusterCount = 0;
 
-        function findClusters(deck, getProperty) {
-            let maxCluster = 0;
-            let currentCluster = 1;
-            let clusterCount = 0;
+                if (deck.length === 0) return { max: 0, count: 0 };
 
-            if (deck.length === 0) return { max: 0, count: 0 };
+                let lastProp = getProperty(deck[0]);
 
-            let lastProp = getProperty(deck[0]);
-
-            for (let i = 1; i < deck.length; i++) {
-                const currentProp = getProperty(deck[i]);
-                if (currentProp === lastProp) {
-                    currentCluster++;
-                } else {
-                    if (currentCluster > 1) clusterCount++;
-                    maxCluster = Math.max(maxCluster, currentCluster);
-                    currentCluster = 1;
-                    lastProp = currentProp;
+                for (let i = 1; i < deck.length; i++) {
+                    const currentProp = getProperty(deck[i]);
+                    if (currentProp === lastProp) {
+                        currentCluster++;
+                    } else {
+                        if (currentCluster > 1) clusterCount++;
+                        maxCluster = Math.max(maxCluster, currentCluster);
+                        currentCluster = 1;
+                        lastProp = currentProp;
+                    }
                 }
+                // Check last run
+                if (currentCluster > 1) clusterCount++;
+                maxCluster = Math.max(maxCluster, currentCluster);
+
+                return { max: maxCluster, count: clusterCount };
             }
-            // Check last run
-            if (currentCluster > 1) clusterCount++;
-            maxCluster = Math.max(maxCluster, currentCluster);
 
-            return { max: maxCluster, count: clusterCount };
-        }
+            // --- UI RENDERING ---
+            function renderAll(shuffleEntry) {
+                DOMElements.handAnalysisContainer.classList.remove('hidden');
+                DOMElements.shuffleQualityContainer.classList.remove('hidden');
+                DOMElements.handQualityContainer.classList.remove('hidden');
 
-        // --- UI RENDERING ---
-        function renderAll(shuffleEntry) {
-            DOMElements.handAnalysisContainer.classList.remove('hidden');
-            DOMElements.shuffleQualityContainer.classList.remove('hidden');
-            DOMElements.handQualityContainer.classList.remove('hidden');
+                const { finalAnalysis, finalHand, finalShuffledDeck } = shuffleEntry;
 
-            const { finalAnalysis, finalHand, finalShuffledDeck } = shuffleEntry;
+                // 1. Render Shuffle Sim (Hand Quality)
+                renderShuffleSimulator(shuffleEntry);
+                renderRecentShuffles();
 
-            // 1. Render Shuffle Sim (Hand Quality)
-            renderShuffleSimulator(shuffleEntry);
-            renderRecentShuffles();
+                // 2. Render Hand Analysis
+                renderHandAnalysis(shuffleEntry);
 
-            // 2. Render Hand Analysis
-            renderHandAnalysis(shuffleEntry);
+                // Render Opening Hand
+                const dimIndices = [];
+                shuffleEntry.initialHand.forEach((card, index) => {
+                    // If this card is in the mulligan list, dim it
+                    // Note: This simple check assumes unique card objects or consistent ordering.
+                    // Since we use the exact objects from the shuffle, reference equality works if we are careful.
+                    // However, determineMulligan returns a list of cards.
+                    if (shuffleEntry.mulliganDecision.cardsToMulligan.includes(card)) {
+                        dimIndices.push(index);
+                    }
+                });
+                renderCardImages(DOMElements.openingHandContainer, shuffleEntry.initialHand, { dimIndices });
+                DOMElements.openingHandScoreDisplay.textContent = `Score: ${shuffleEntry.initialHandQuality.score.toFixed(1)} (${shuffleEntry.initialHandQuality.rating})`;
 
-            // Render Opening Hand
-            const dimIndices = [];
-            shuffleEntry.initialHand.forEach((card, index) => {
-                // If this card is in the mulligan list, dim it
-                // Note: This simple check assumes unique card objects or consistent ordering.
-                // Since we use the exact objects from the shuffle, reference equality works if we are careful.
-                // However, determineMulligan returns a list of cards.
-                if (shuffleEntry.mulliganDecision.cardsToMulligan.includes(card)) {
-                    dimIndices.push(index);
+                // Render Final Hand
+                const keptCount = shuffleEntry.mulliganDecision.cardsToKeep.length;
+                const highlightIndices = [];
+                // The new cards are appended after the kept cards
+                for (let i = keptCount; i < shuffleEntry.finalHand.length; i++) {
+                    highlightIndices.push(i);
                 }
-            });
-            renderCardImages(DOMElements.openingHandContainer, shuffleEntry.initialHand, { dimIndices });
-            DOMElements.openingHandScoreDisplay.textContent = `Score: ${shuffleEntry.initialHandQuality.score.toFixed(1)} (${shuffleEntry.initialHandQuality.rating})`;
+                renderCardImages(DOMElements.finalHandContainer, shuffleEntry.finalHand, { highlightIndices });
+                DOMElements.finalHandScoreDisplay.textContent = `Score: ${shuffleEntry.finalHandQuality.score.toFixed(1)} (${shuffleEntry.finalHandQuality.rating})`;
 
-            // Render Final Hand
-            const keptCount = shuffleEntry.mulliganDecision.cardsToKeep.length;
-            const highlightIndices = [];
-            // The new cards are appended after the kept cards
-            for (let i = keptCount; i < shuffleEntry.finalHand.length; i++) {
-                highlightIndices.push(i);
+                // 3. Render Early Game
+                renderEarlyGame(finalAnalysis.earlyGame);
+
+                // 4. Render Timeline
+                renderDeckTimeline(finalShuffledDeck.slice(7));
+
+                // 5. Render Shuffle Quality
+                renderShuffleQuality(finalAnalysis.quality);
             }
-            renderCardImages(DOMElements.finalHandContainer, shuffleEntry.finalHand, { highlightIndices });
-            DOMElements.finalHandScoreDisplay.textContent = `Score: ${shuffleEntry.finalHandQuality.score.toFixed(1)} (${shuffleEntry.finalHandQuality.rating})`;
 
-            // 3. Render Early Game
-            renderEarlyGame(finalAnalysis.earlyGame);
+            function renderShuffleSimulator(entry) {
+                // Opening Hand
+                const initial = entry.initialHandQuality;
+                DOMElements.openingQualityScore.textContent = initial.score.toFixed(1);
+                DOMElements.openingQualityRating.textContent = initial.rating;
+                DOMElements.openingQualityRating.className = `inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold ${RATING_CLASSES[initial.rating]}`;
+                DOMElements.openingQualityBar.style.width = `${initial.score * 10}%`;
 
-            // 4. Render Timeline
-            renderDeckTimeline(finalShuffledDeck.slice(7));
+                // Final Hand
+                const final = entry.finalHandQuality;
+                DOMElements.finalQualityScore.innerHTML = `${final.score.toFixed(1)}<span class="text-lg text-gray-500">/10</span>`;
+                DOMElements.finalQualityRating.textContent = final.rating;
+                DOMElements.finalQualityRating.className = `inline-flex items-center rounded-full border px-2.5 py-0.5 text-sm font-semibold ${RATING_CLASSES[final.rating]}`;
+                DOMElements.finalQualityBar.style.width = `${final.score * 10}%`;
+            }
 
-            // 5. Render Shuffle Quality
-            renderShuffleQuality(finalAnalysis.quality);
-        }
-
-        function renderShuffleSimulator(entry) {
-            // Opening Hand
-            const initial = entry.initialHandQuality;
-            DOMElements.openingQualityScore.textContent = initial.score.toFixed(1);
-            DOMElements.openingQualityRating.textContent = initial.rating;
-            DOMElements.openingQualityRating.className = `inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold ${RATING_CLASSES[initial.rating]}`;
-            DOMElements.openingQualityBar.style.width = `${initial.score * 10}%`;
-
-            // Final Hand
-            const final = entry.finalHandQuality;
-            DOMElements.finalQualityScore.innerHTML = `${final.score.toFixed(1)}<span class="text-lg text-gray-500">/10</span>`;
-            DOMElements.finalQualityRating.textContent = final.rating;
-            DOMElements.finalQualityRating.className = `inline-flex items-center rounded-full border px-2.5 py-0.5 text-sm font-semibold ${RATING_CLASSES[final.rating]}`;
-            DOMElements.finalQualityBar.style.width = `${final.score * 10}%`;
-        }
-
-        function renderRecentShuffles() {
-            DOMElements.recentShufflesList.innerHTML = '';
-            recentShuffles.forEach((entry, index) => {
-                const button = document.createElement('button');
-                button.type = 'button';
-                button.className = `w-full text-left px-3 py-2 rounded-lg border transition-colors ${index === 0 ? 'border-blue-500 bg-blue-900 bg-opacity-30' : 'border-gray-700 hover:bg-gray-700'}`;
-                button.onclick = () => renderAll(entry);
-                button.innerHTML = `
+            function renderRecentShuffles() {
+                DOMElements.recentShufflesList.innerHTML = '';
+                recentShuffles.forEach((entry, index) => {
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.className = `w-full text-left px-3 py-2 rounded-lg border transition-colors ${index === 0 ? 'border-blue-500 bg-blue-900 bg-opacity-30' : 'border-gray-700 hover:bg-gray-700'}`;
+                    button.onclick = () => renderAll(entry);
+                    button.innerHTML = `
                     <div class="flex items-center justify-between">
                         <div class="flex items-center gap-2">
                             <div class="inline-flex items-center rounded-md border border-gray-600 bg-gray-800 px-2.5 py-0.5 text-xs text-white">#${entry.id}</div>
@@ -1498,90 +1638,90 @@
                         <span class="text-xs ${index === 0 ? 'text-blue-400' : 'text-gray-500'}">${entry.finalHandQuality.rating} (${entry.finalHandQuality.score.toFixed(1)})</span>
                     </div>
                 `;
-                DOMElements.recentShufflesList.appendChild(button);
-            });
-        }
-
-        function renderHandAnalysis(entry) {
-            const hand = entry.finalAnalysis.hand;
-            const { rating } = entry.finalHandQuality;
-
-            // Update Header to show Mulligan info
-            const keptCount = entry.mulliganDecision.cardsToKeep.length;
-            const mulliganedCount = entry.mulliganDecision.cardsToMulligan.length;
-
-            DOMElements.openingHandRating.textContent = rating;
-            DOMElements.openingHandRating.className = `inline-flex items-center rounded-full border px-2.5 py-0.5 text-sm font-semibold ${RATING_CLASSES[rating]}`;
-
-            // Analysis Points
-            const points = [
-                { ok: true, text: `Mulligan: Kept ${keptCount}, Replaced ${mulliganedCount}` }, // New Mulligan Stat
-                { ok: hand.inkable >= 2 && hand.inkable <= 5, text: `Inkable: ${hand.inkable} (Ideal 2-5)` },
-                { ok: hand.costs["1-3"] > 0, text: `Early Plays (1-3): ${hand.costs["1-3"]}` },
-                { ok: hand.costs["6+"] <= 2, text: `High Cost (6+): ${hand.costs["6+"]} (Ideal <= 2)` },
-                { ok: hand.avgCost < 4.0, text: `Avg Cost: ${hand.avgCost.toFixed(1)}` }
-            ];
-
-            // Add Opening Hand Score comparison if different
-            if (entry.initialHandQuality.score !== entry.finalHandQuality.score) {
-                points.push({ ok: true, text: `Opening Hand: ${entry.initialHandQuality.score.toFixed(1)} -> Final: ${entry.finalHandQuality.score.toFixed(1)}` });
+                    DOMElements.recentShufflesList.appendChild(button);
+                });
             }
 
-            DOMElements.openingHandAnalysisPoints.innerHTML = points.map(p =>
-                `<p class="text-sm ${p.ok ? 'text-green-400' : 'text-yellow-400'}">${p.ok ? '✓' : '⚠'} ${p.text}</p>`
-            ).join('');
+            function renderHandAnalysis(entry) {
+                const hand = entry.finalAnalysis.hand;
+                const { rating } = entry.finalHandQuality;
 
-            // Stats
-            DOMElements.handInkableStat.textContent = `${hand.inkable} out of 7`;
-            DOMElements.handCurveStat.innerHTML = Object.entries(hand.costs).map(([key, val]) => createTag(`T${key}: ${val}`)).join('');
-            DOMElements.handTypesStat.innerHTML = Object.entries(hand.types).map(([key, val]) => createTag(`${key}: ${val}`)).join('');
-            DOMElements.handColorsStat.innerHTML = Object.entries(hand.colors).map(([key, val]) => createTag(`${key}: ${val}`, COLOR_HEX[key])).join('');
+                // Update Header to show Mulligan info
+                const keptCount = entry.mulliganDecision.cardsToKeep.length;
+                const mulliganedCount = entry.mulliganDecision.cardsToMulligan.length;
 
-            // Comparison
-            let comparisonHTML = '';
-            if (hand.inkable / 7 > deckInfo.inkableCount / deckInfo.totalCards) {
-                comparisonHTML += `<span class="inline-flex items-center gap-1 text-green-400">↑ More inkable than average</span>`;
-            } else {
-                comparisonHTML += `<span class="inline-flex items-center gap-1 text-red-400">↓ Less inkable than average</span>`;
+                DOMElements.openingHandRating.textContent = rating;
+                DOMElements.openingHandRating.className = `inline-flex items-center rounded-full border px-2.5 py-0.5 text-sm font-semibold ${RATING_CLASSES[rating]}`;
+
+                // Analysis Points
+                const points = [
+                    { ok: true, text: `Mulligan: Kept ${keptCount}, Replaced ${mulliganedCount}` }, // New Mulligan Stat
+                    { ok: hand.inkable >= 2 && hand.inkable <= 5, text: `Inkable: ${hand.inkable} (Ideal 2-5)` },
+                    { ok: hand.costs["1-3"] > 0, text: `Early Plays (1-3): ${hand.costs["1-3"]}` },
+                    { ok: hand.costs["6+"] <= 2, text: `High Cost (6+): ${hand.costs["6+"]} (Ideal <= 2)` },
+                    { ok: hand.avgCost < 4.0, text: `Avg Cost: ${hand.avgCost.toFixed(1)}` }
+                ];
+
+                // Add Opening Hand Score comparison if different
+                if (entry.initialHandQuality.score !== entry.finalHandQuality.score) {
+                    points.push({ ok: true, text: `Opening Hand: ${entry.initialHandQuality.score.toFixed(1)} -> Final: ${entry.finalHandQuality.score.toFixed(1)}` });
+                }
+
+                DOMElements.openingHandAnalysisPoints.innerHTML = points.map(p =>
+                    `<p class="text-sm ${p.ok ? 'text-green-400' : 'text-yellow-400'}">${p.ok ? '✓' : '⚠'} ${p.text}</p>`
+                ).join('');
+
+                // Stats
+                DOMElements.handInkableStat.textContent = `${hand.inkable} out of 7`;
+                DOMElements.handCurveStat.innerHTML = Object.entries(hand.costs).map(([key, val]) => createTag(`T${key}: ${val}`)).join('');
+                DOMElements.handTypesStat.innerHTML = Object.entries(hand.types).map(([key, val]) => createTag(`${key}: ${val}`)).join('');
+                DOMElements.handColorsStat.innerHTML = Object.entries(hand.colors).map(([key, val]) => createTag(`${key}: ${val}`, COLOR_HEX[key])).join('');
+
+                // Comparison
+                let comparisonHTML = '';
+                if (hand.inkable / 7 > deckInfo.inkableCount / deckInfo.totalCards) {
+                    comparisonHTML += `<span class="inline-flex items-center gap-1 text-green-400">↑ More inkable than average</span>`;
+                } else {
+                    comparisonHTML += `<span class="inline-flex items-center gap-1 text-red-400">↓ Less inkable than average</span>`;
+                }
+                DOMElements.handComparison.innerHTML = comparisonHTML;
             }
-            DOMElements.handComparison.innerHTML = comparisonHTML;
-        }
 
-        function renderEarlyGame(early) {
-            DOMElements.earlyInkableStat.textContent = `${early.inkable} out of 15`;
-            DOMElements.earlyCurveStat.innerHTML = Object.entries(early.costs).map(([key, val]) => createTag(`T${key}: ${val}`)).join('');
-            DOMElements.earlyTypesStat.innerHTML = Object.entries(early.types).map(([key, val]) => createTag(`${key}: ${val}`)).join('');
-            DOMElements.earlyColorsStat.innerHTML = Object.entries(early.colors).map(([key, val]) => createTag(`${key}: ${val}`, COLOR_HEX[key])).join('');
+            function renderEarlyGame(early) {
+                DOMElements.earlyInkableStat.textContent = `${early.inkable} out of 15`;
+                DOMElements.earlyCurveStat.innerHTML = Object.entries(early.costs).map(([key, val]) => createTag(`T${key}: ${val}`)).join('');
+                DOMElements.earlyTypesStat.innerHTML = Object.entries(early.types).map(([key, val]) => createTag(`${key}: ${val}`)).join('');
+                DOMElements.earlyColorsStat.innerHTML = Object.entries(early.colors).map(([key, val]) => createTag(`${key}: ${val}`, COLOR_HEX[key])).join('');
 
-            let tags = [];
-            if (early.hasLowCost) tags.push(createTag('✓ Has Low Costs (1-2)', null, 'bg-gray-700 text-gray-300'));
-            if (early.hasHighCost) tags.push(createTag('⚠ Has High Costs (5+)', null, 'bg-gray-700 text-gray-300'));
-            DOMElements.earlyTagsStat.innerHTML = tags.join('');
-        }
+                let tags = [];
+                if (early.hasLowCost) tags.push(createTag('✓ Has Low Costs (1-2)', null, 'bg-gray-700 text-gray-300'));
+                if (early.hasHighCost) tags.push(createTag('⚠ Has High Costs (5+)', null, 'bg-gray-700 text-gray-300'));
+                DOMElements.earlyTagsStat.innerHTML = tags.join('');
+            }
 
-        function renderCardImages(container, cards, options = {}) {
-            container.innerHTML = '';
-            const { dimIndices = [], highlightIndices = [] } = options;
+            function renderCardImages(container, cards, options = {}) {
+                container.innerHTML = '';
+                const { dimIndices = [], highlightIndices = [] } = options;
 
-            cards.forEach((card, index) => {
-                const div = document.createElement('div');
+                cards.forEach((card, index) => {
+                    const div = document.createElement('div');
 
-                let extraClasses = '';
-                if (dimIndices.includes(index)) {
-                    extraClasses = 'opacity-40 grayscale';
-                } else if (highlightIndices.includes(index)) {
-                    extraClasses = 'ring-2 ring-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]';
-                }
+                    let extraClasses = '';
+                    if (dimIndices.includes(index)) {
+                        extraClasses = 'opacity-40 grayscale';
+                    } else if (highlightIndices.includes(index)) {
+                        extraClasses = 'ring-2 ring-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]';
+                    }
 
-                div.className = `relative aspect-[2.5/3.5] bg-gray-700 rounded-lg overflow-hidden border border-gray-600 hover:scale-150 hover:z-10 transition-transform origin-center cursor-pointer group ${extraClasses}`;
+                    div.className = `relative aspect-[2.5/3.5] bg-gray-700 rounded-lg overflow-hidden border border-gray-600 hover:scale-150 hover:z-10 transition-transform origin-center cursor-pointer group ${extraClasses}`;
 
-                // Add "NEW" badge for highlighted cards
-                let badgeHTML = '';
-                if (highlightIndices.includes(index)) {
-                    badgeHTML = `<div class="absolute top-0 right-0 bg-green-600 text-white text-[8px] font-bold px-1 rounded-bl shadow-sm z-20">NEW</div>`;
-                }
+                    // Add "NEW" badge for highlighted cards
+                    let badgeHTML = '';
+                    if (highlightIndices.includes(index)) {
+                        badgeHTML = `<div class="absolute top-0 right-0 bg-green-600 text-white text-[8px] font-bold px-1 rounded-bl shadow-sm z-20">NEW</div>`;
+                    }
 
-                div.innerHTML = `
+                    div.innerHTML = `
                     <img src="${card.images.thumbnail}" alt="${card.name}" class="w-full h-full object-cover" loading="lazy">
                     <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-75 text-[8px] text-white p-0.5 truncate text-center">
                         ${card.name}
@@ -1592,38 +1732,38 @@
                     <div class="absolute top-0 right-0 ${card.inkwell ? 'bg-yellow-500' : 'bg-gray-500'} w-2 h-2 rounded-bl"></div>
                     ${badgeHTML}
                 `;
-                container.appendChild(div);
-            });
-
-            // Add click handlers for card inspection
-            let cardIndex = 0;
-            container.querySelectorAll('img').forEach((img) => {
-                if (img.closest('.card-tooltip')) return; // skip tooltip imgs
-                const card = cards[cardIndex];
-                img.style.cursor = 'pointer';
-                img.addEventListener('click', () => {
-                    if (cardInspector && card) {
-                        try {
-                            cardInspector.showCard(card);
-                        } catch (error) {
-                            console.error('Error opening card inspector:', error, card);
-                        }
-                    }
+                    container.appendChild(div);
                 });
-                cardIndex++;
-            });
-        }
 
-        function renderDeckTimeline(deck) {
-            DOMElements.deckTimelineHeader.textContent = `Deck Timeline (${deck.length} cards)`;
-            DOMElements.deckTimelineCards.innerHTML = '';
-            deck.forEach((card, index) => {
-                const turn = index + 1; // Turn 1 is first draw
-                let borderColor = 'border-blue-500'; // Early
-                if (turn >= 8 && turn <= 14) borderColor = 'border-yellow-500'; // Mid
-                else if (turn >= 15) borderColor = 'border-purple-500'; // Late
+                // Add click handlers for card inspection
+                let cardIndex = 0;
+                container.querySelectorAll('img').forEach((img) => {
+                    if (img.closest('.card-tooltip')) return; // skip tooltip imgs
+                    const card = cards[cardIndex];
+                    img.style.cursor = 'pointer';
+                    img.addEventListener('click', () => {
+                        if (cardInspector && card) {
+                            try {
+                                cardInspector.showCard(card);
+                            } catch (error) {
+                                console.error('Error opening card inspector:', error, card);
+                            }
+                        }
+                    });
+                    cardIndex++;
+                });
+            }
 
-                const cardHTML = `
+            function renderDeckTimeline(deck) {
+                DOMElements.deckTimelineHeader.textContent = `Deck Timeline (${deck.length} cards)`;
+                DOMElements.deckTimelineCards.innerHTML = '';
+                deck.forEach((card, index) => {
+                    const turn = index + 1; // Turn 1 is first draw
+                    let borderColor = 'border-blue-500'; // Early
+                    if (turn >= 8 && turn <= 14) borderColor = 'border-yellow-500'; // Mid
+                    else if (turn >= 15) borderColor = 'border-purple-500'; // Late
+
+                    const cardHTML = `
                     <div class="flex-shrink-0 space-y-2 ${turn === 8 || turn === 15 ? `border-l-4 pl-3 ${borderColor}` : ''}">
                         <div class="text-center"><p class="text-xs font-semibold text-gray-500">Turn ${turn}</p></div>
                         <div class="relative card-tooltip-trigger">
@@ -1640,185 +1780,185 @@
                         </div>
                     </div>
                 `;
-                DOMElements.deckTimelineCards.innerHTML += cardHTML;
-            });
-
-            // Add click handlers for timeline cards
-            let cardIndex = 0;
-            DOMElements.deckTimelineCards.querySelectorAll('img').forEach((img) => {
-                if (img.closest('.card-tooltip')) return; // skip tooltip imgs
-                const card = deck[cardIndex];
-                img.style.cursor = 'pointer';
-                img.addEventListener('click', () => {
-                    if (cardInspector && card) {
-                        try {
-                            cardInspector.showCard(card);
-                        } catch (error) {
-                            console.error('Error opening card inspector:', error, card);
-                        }
-                    }
+                    DOMElements.deckTimelineCards.innerHTML += cardHTML;
                 });
-                cardIndex++;
-            });
-        }
 
-        function renderShuffleQuality(quality) {
-            DOMElements.shuffleQualityRating.textContent = quality.rating;
-            DOMElements.shuffleQualityRating.className = `inline-flex items-center rounded-full border px-2.5 py-0.5 text-sm font-semibold ${RATING_CLASSES[quality.rating]}`;
+                // Add click handlers for timeline cards
+                let cardIndex = 0;
+                DOMElements.deckTimelineCards.querySelectorAll('img').forEach((img) => {
+                    if (img.closest('.card-tooltip')) return; // skip tooltip imgs
+                    const card = deck[cardIndex];
+                    img.style.cursor = 'pointer';
+                    img.addEventListener('click', () => {
+                        if (cardInspector && card) {
+                            try {
+                                cardInspector.showCard(card);
+                            } catch (error) {
+                                console.error('Error opening card inspector:', error, card);
+                            }
+                        }
+                    });
+                    cardIndex++;
+                });
+            }
 
-            DOMElements.shuffleQualityIssues.innerHTML = quality.issues.map(issue => {
-                const isGood = issue.startsWith('✓');
-                return `<p class="${isGood ? 'text-green-400' : 'text-yellow-400'} flex items-center gap-2"><span>${isGood ? '✓' : '⚠'}</span><span>${issue.substring(2)}</span></p>`;
-            }).join('');
+            function renderShuffleQuality(quality) {
+                DOMElements.shuffleQualityRating.textContent = quality.rating;
+                DOMElements.shuffleQualityRating.className = `inline-flex items-center rounded-full border px-2.5 py-0.5 text-sm font-semibold ${RATING_CLASSES[quality.rating]}`;
 
-            // Stats
-            DOMElements.consecutiveCardsStat.innerHTML = `
+                DOMElements.shuffleQualityIssues.innerHTML = quality.issues.map(issue => {
+                    const isGood = issue.startsWith('✓');
+                    return `<p class="${isGood ? 'text-green-400' : 'text-yellow-400'} flex items-center gap-2"><span>${isGood ? '✓' : '⚠'}</span><span>${issue.substring(2)}</span></p>`;
+                }).join('');
+
+                // Stats
+                DOMElements.consecutiveCardsStat.innerHTML = `
                 <div class="flex justify-between"><span>2 in a row:</span>${createTag(quality.consecutive[2], null, quality.consecutive[2] > 2 ? RATING_CLASSES['Poor'] : 'bg-gray-700 text-gray-300')}</div>
                 <div class="flex justify-between"><span>3 in a row:</span>${createTag(quality.consecutive[3], null, quality.consecutive[3] > 0 ? RATING_CLASSES['Poor'] : 'bg-gray-700 text-gray-300')}</div>
                 <div class="flex justify-between"><span>4+ in a row:</span>${createTag(quality.consecutive[4], null, quality.consecutive[4] > 0 ? RATING_CLASSES['Bad'] : 'bg-gray-700 text-gray-300')}</div>
             `;
 
-            DOMElements.clusteringStat.innerHTML = `
+                DOMElements.clusteringStat.innerHTML = `
                 <div class="space-y-1"><span class="text-gray-500">Color Clusters:</span><div class="flex items-center gap-2">${createTag(`Max: ${quality.clusters.color.max}`, null, quality.clusters.color.max > 5 ? RATING_CLASSES['Poor'] : 'bg-gray-700 text-gray-300')}<span class="text-gray-500">(${quality.clusters.color.count} clusters)</span></div></div>
                 <div class="space-y-1"><span class="text-gray-500">Cost Clusters:</span><div class="flex items-center gap-2">${createTag(`Max: ${quality.clusters.cost.max}`, null, 'bg-gray-700 text-gray-300')}<span class="text-gray-500">(${quality.clusters.cost.count} clusters)</span></div></div>
                 <div class="space-y-1"><span class="text-gray-500">Type Clusters:</span><div class="flex items-center gap-2">${createTag(`Max: ${quality.clusters.type.max}`, null, quality.clusters.type.max > 7 ? RATING_CLASSES['Poor'] : 'bg-gray-700 text-gray-300')}<span class="text-gray-500">(${quality.clusters.type.count} clusters)</span></div></div>
                 <div class="space-y-1"><span class="text-gray-500">Inkless Clusters:</span><div class="flex items-center gap-2">${createTag(`Max: ${quality.clusters.inkless.max}`, null, quality.clusters.inkless.max > 3 ? RATING_CLASSES['Poor'] : 'bg-gray-700 text-gray-300')}<span class="text-gray-500">(${quality.clusters.inkless.count} clusters)</span></div></div>
             `;
 
-            // Alert Box
-            const alerts = quality.issues.filter(i => !i.startsWith('✓'));
-            if (alerts.length > 0) {
-                DOMElements.clusteringAlertBox.classList.remove('hidden');
-                DOMElements.clusteringAlertText.innerHTML = `<div>Large clusters detected:</div><ul class="list-disc pl-4">${alerts.map(a => `<li>${a.substring(2)}</li>`).join('')}</ul>`;
-            } else {
-                DOMElements.clusteringAlertBox.classList.add('hidden');
-            }
-        }
-
-        function populateDeckDistributionStats() {
-            DOMElements.distColorsStat.innerHTML = Object.entries(deckInfo.colors).map(([key, val]) => createTag(`${key}: ${val}`, COLOR_HEX[key])).join('');
-            DOMElements.distCostsStat.innerHTML = Object.entries(deckInfo.costs).sort((a, b) => a[0] - b[0]).map(([key, val]) => createTag(`${key}: ${val}`)).join('');
-            DOMElements.distInkwellStat.innerHTML = `${createTag(`Inkable: ${deckInfo.inkableCount}`)} ${createTag(`Inkless: ${deckInfo.totalCards - deckInfo.inkableCount}`)}`;
-        }
-
-        function toggleDetailedStats() {
-            const isHidden = DOMElements.detailedStatsContainer.classList.toggle('hidden');
-            if (isHidden) {
-                DOMElements.toggleStatsText.textContent = "Show Detailed Statistics";
-                DOMElements.toggleStatsIcon.style.transform = "rotate(0deg)";
-            } else {
-                DOMElements.toggleStatsText.textContent = "Hide Detailed Statistics";
-                DOMElements.toggleStatsIcon.style.transform = "rotate(180deg)";
-            }
-        }
-
-        // --- PROBABILITY CALCULATORS ---
-        function combinations(n, k) {
-            if (k < 0 || k > n) return 0;
-            if (k === 0 || k === n) return 1;
-            if (k > n / 2) k = n - k;
-
-            const cacheKey = `${n},${k}`;
-            if (combinationsCache[cacheKey]) return combinationsCache[cacheKey];
-
-            let res = 1;
-            for (let i = 1; i <= k; i++) {
-                res = res * (n - i + 1) / i;
+                // Alert Box
+                const alerts = quality.issues.filter(i => !i.startsWith('✓'));
+                if (alerts.length > 0) {
+                    DOMElements.clusteringAlertBox.classList.remove('hidden');
+                    DOMElements.clusteringAlertText.innerHTML = `<div>Large clusters detected:</div><ul class="list-disc pl-4">${alerts.map(a => `<li>${a.substring(2)}</li>`).join('')}</ul>`;
+                } else {
+                    DOMElements.clusteringAlertBox.classList.add('hidden');
+                }
             }
 
-            combinationsCache[cacheKey] = res;
-            return res;
-        }
-
-        function hypergeometricProbability(N, k, n, x) {
-            const C_kx = combinations(k, x);
-            const C_Nknx = combinations(N - k, n - x);
-            const C_Nn = combinations(N, n);
-            if (C_Nn === 0) return 0;
-            return (C_kx * C_Nknx) / C_Nn;
-        }
-
-        function updateHypergeometricCalculator() {
-            const N = parseInt(DOMElements.hyperDeckSize.value, 10);
-            const k = parseInt(DOMElements.hyperCopies.value, 10);
-            const n = parseInt(DOMElements.hyperHandSize.value, 10);
-            const x = parseInt(DOMElements.hyperDesired.value, 10);
-
-            if ([N, k, n, x].some(isNaN)) {
-                DOMElements.hyperGte.textContent = '...';
-                DOMElements.hyperEq.textContent = '...';
-                DOMElements.hyperLt.textContent = '...';
-                return;
+            function populateDeckDistributionStats() {
+                DOMElements.distColorsStat.innerHTML = Object.entries(deckInfo.colors).map(([key, val]) => createTag(`${key}: ${val}`, COLOR_HEX[key])).join('');
+                DOMElements.distCostsStat.innerHTML = Object.entries(deckInfo.costs).sort((a, b) => a[0] - b[0]).map(([key, val]) => createTag(`${key}: ${val}`)).join('');
+                DOMElements.distInkwellStat.innerHTML = `${createTag(`Inkable: ${deckInfo.inkableCount}`)} ${createTag(`Inkless: ${deckInfo.totalCards - deckInfo.inkableCount}`)}`;
             }
 
-            let p_gte = 0;
-            for (let i = x; i <= Math.min(n, k); i++) {
-                p_gte += hypergeometricProbability(N, k, n, i);
+            function toggleDetailedStats() {
+                const isHidden = DOMElements.detailedStatsContainer.classList.toggle('hidden');
+                if (isHidden) {
+                    DOMElements.toggleStatsText.textContent = "Show Detailed Statistics";
+                    DOMElements.toggleStatsIcon.style.transform = "rotate(0deg)";
+                } else {
+                    DOMElements.toggleStatsText.textContent = "Hide Detailed Statistics";
+                    DOMElements.toggleStatsIcon.style.transform = "rotate(180deg)";
+                }
             }
 
-            let p_eq = (x > Math.min(n, k)) ? 0 : hypergeometricProbability(N, k, n, x);
-            let p_lt = 1 - p_gte;
+            // --- PROBABILITY CALCULATORS ---
+            function combinations(n, k) {
+                if (k < 0 || k > n) return 0;
+                if (k === 0 || k === n) return 1;
+                if (k > n / 2) k = n - k;
 
-            DOMElements.hyperGte.textContent = (p_gte * 100).toFixed(1) + '%';
-            DOMElements.hyperEq.textContent = (p_eq * 100).toFixed(1) + '%';
-            DOMElements.hyperLt.textContent = (p_lt * 100).toFixed(1) + '%';
-        }
+                const cacheKey = `${n},${k}`;
+                if (combinationsCache[cacheKey]) return combinationsCache[cacheKey];
 
-        function populateProbabilityTable() {
-            const N = deckInfo.totalCards;
-            const n = 7; // Opening hand size
-            DOMElements.probabilityTableBody.innerHTML = '';
+                let res = 1;
+                for (let i = 1; i <= k; i++) {
+                    res = res * (n - i + 1) / i;
+                }
 
-            const categories = [];
+                combinationsCache[cacheKey] = res;
+                return res;
+            }
 
-            // Colors
-            Object.entries(deckInfo.colors).forEach(([name, count]) => {
-                categories.push({ name: name, count: count, color: COLOR_HEX[name] });
-            });
-            categories.push({ separator: true });
+            function hypergeometricProbability(N, k, n, x) {
+                const C_kx = combinations(k, x);
+                const C_Nknx = combinations(N - k, n - x);
+                const C_Nn = combinations(N, n);
+                if (C_Nn === 0) return 0;
+                return (C_kx * C_Nknx) / C_Nn;
+            }
 
-            // Inkable/Inkless
-            categories.push({ name: 'Inkable', count: deckInfo.inkableCount });
-            categories.push({ name: 'Inkless', count: N - deckInfo.inkableCount });
-            categories.push({ separator: true });
+            function updateHypergeometricCalculator() {
+                const N = parseInt(DOMElements.hyperDeckSize.value, 10);
+                const k = parseInt(DOMElements.hyperCopies.value, 10);
+                const n = parseInt(DOMElements.hyperHandSize.value, 10);
+                const x = parseInt(DOMElements.hyperDesired.value, 10);
 
-            // Types
-            Object.entries(deckInfo.types).forEach(([name, count]) => {
-                categories.push({ name: `${name}s`, count: count });
-            });
-            categories.push({ separator: true });
-
-            // By Copy Count
-            Object.entries(deckInfo.byCopyCount).forEach(([name, count]) => {
-                if (count > 0) categories.push({ name: `Cards with ${name} ${name > 1 ? 'copies' : 'copy'}`, count: count * parseInt(name) });
-            });
-
-            // Calculate probs for each category
-            categories.forEach(cat => {
-                if (cat.separator) {
-                    DOMElements.probabilityTableBody.innerHTML += `<tr class="border-b border-gray-700 bg-gray-700 bg-opacity-30"><td class="p-4 h-2" colspan="6"></td></tr>`;
+                if ([N, k, n, x].some(isNaN)) {
+                    DOMElements.hyperGte.textContent = '...';
+                    DOMElements.hyperEq.textContent = '...';
+                    DOMElements.hyperLt.textContent = '...';
                     return;
                 }
 
-                const k = cat.count;
-                const p = [0, 0, 0, 0, 0]; // 0, 1, 2, 3, 4+
-                let p_total = 0;
-
-                for (let x = 0; x <= Math.min(n, k); x++) {
-                    const prob = hypergeometricProbability(N, k, n, x);
-                    if (x <= 2) {
-                        p[x] = prob;
-                    } else if (x === 3) {
-                        p[3] = prob;
-                    } else {
-                        p[4] += prob;
-                    }
-                    p_total += prob;
+                let p_gte = 0;
+                for (let i = x; i <= Math.min(n, k); i++) {
+                    p_gte += hypergeometricProbability(N, k, n, i);
                 }
 
-                const row = document.createElement('tr');
-                row.className = 'border-b border-gray-700 transition-colors';
-                row.innerHTML = `
+                let p_eq = (x > Math.min(n, k)) ? 0 : hypergeometricProbability(N, k, n, x);
+                let p_lt = 1 - p_gte;
+
+                DOMElements.hyperGte.textContent = (p_gte * 100).toFixed(1) + '%';
+                DOMElements.hyperEq.textContent = (p_eq * 100).toFixed(1) + '%';
+                DOMElements.hyperLt.textContent = (p_lt * 100).toFixed(1) + '%';
+            }
+
+            function populateProbabilityTable() {
+                const N = deckInfo.totalCards;
+                const n = 7; // Opening hand size
+                DOMElements.probabilityTableBody.innerHTML = '';
+
+                const categories = [];
+
+                // Colors
+                Object.entries(deckInfo.colors).forEach(([name, count]) => {
+                    categories.push({ name: name, count: count, color: COLOR_HEX[name] });
+                });
+                categories.push({ separator: true });
+
+                // Inkable/Inkless
+                categories.push({ name: 'Inkable', count: deckInfo.inkableCount });
+                categories.push({ name: 'Inkless', count: N - deckInfo.inkableCount });
+                categories.push({ separator: true });
+
+                // Types
+                Object.entries(deckInfo.types).forEach(([name, count]) => {
+                    categories.push({ name: `${name}s`, count: count });
+                });
+                categories.push({ separator: true });
+
+                // By Copy Count
+                Object.entries(deckInfo.byCopyCount).forEach(([name, count]) => {
+                    if (count > 0) categories.push({ name: `Cards with ${name} ${name > 1 ? 'copies' : 'copy'}`, count: count * parseInt(name) });
+                });
+
+                // Calculate probs for each category
+                categories.forEach(cat => {
+                    if (cat.separator) {
+                        DOMElements.probabilityTableBody.innerHTML += `<tr class="border-b border-gray-700 bg-gray-700 bg-opacity-30"><td class="p-4 h-2" colspan="6"></td></tr>`;
+                        return;
+                    }
+
+                    const k = cat.count;
+                    const p = [0, 0, 0, 0, 0]; // 0, 1, 2, 3, 4+
+                    let p_total = 0;
+
+                    for (let x = 0; x <= Math.min(n, k); x++) {
+                        const prob = hypergeometricProbability(N, k, n, x);
+                        if (x <= 2) {
+                            p[x] = prob;
+                        } else if (x === 3) {
+                            p[3] = prob;
+                        } else {
+                            p[4] += prob;
+                        }
+                        p_total += prob;
+                    }
+
+                    const row = document.createElement('tr');
+                    row.className = 'border-b border-gray-700 transition-colors';
+                    row.innerHTML = `
                     <td class="p-4 align-middle font-medium">
                         <div class="flex items-center gap-2">
                             ${cat.color ? `<div class="w-3 h-3 rounded-full" style="background-color: ${cat.color};"></div>` : ''}
@@ -1828,25 +1968,25 @@
                     </td>
                     ${p.map(val => `<td class="p-4 align-middle text-center">${(val * 100).toFixed(0)}%</td>`).join('')}
                 `;
-                DOMElements.probabilityTableBody.appendChild(row);
-            });
+                    DOMElements.probabilityTableBody.appendChild(row);
+                });
 
-            // Init hypercalc
-            updateHypergeometricCalculator();
-        }
-
-        // --- UI HELPERS ---
-        function createTag(text, color = null, baseClass = 'bg-gray-800 border-gray-700 text-gray-300') {
-            let style = '';
-            if (color) {
-                // A bit of opacity for colored tags
-                style = `background-color: ${color}33; border-color: ${color}99; color: ${color};`;
-                baseClass = ''; // Override base class
+                // Init hypercalc
+                updateHypergeometricCalculator();
             }
-            return `<div class="inline-flex items-center rounded-md border-2 ${baseClass} px-2 py-0.5 text-xs font-semibold" style="${style}">${text}</div>`;
-        }
 
-    </script>
+            // --- UI HELPERS ---
+            function createTag(text, color = null, baseClass = 'bg-gray-800 border-gray-700 text-gray-300') {
+                let style = '';
+                if (color) {
+                    // A bit of opacity for colored tags
+                    style = `background-color: ${color}33; border-color: ${color}99; color: ${color};`;
+                    baseClass = ''; // Override base class
+                }
+                return `<div class="inline-flex items-center rounded-md border-2 ${baseClass} px-2 py-0.5 text-xs font-semibold" style="${style}">${text}</div>`;
+            }
+
+        </script>
 </body>
 
 </html>
