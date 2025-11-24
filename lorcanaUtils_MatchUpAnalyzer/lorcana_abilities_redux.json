@@ -1684,24 +1684,32 @@
       "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
-      "name": "Card Effect: Filter to Bottom",
+      "name": "Card Effect: Filter to Top/Bottom",
       "category": "Resource",
       "sub_type": "Filter",
-      "regex": "/bottom of (your|the) deck/gi",
+      "regex": "/(bottom|top) of (your|their players'|the) deck/gi",
       "value_type": "raw",
       "explanation": "After looking at cards from the top of the deck, the player puts the unwanted cards on the bottom. (You lose a card, but with the slim theoretical possibility of getting it back after a shuffle, making it the least severe of the three major costs).",
       "justification": "Improves the quality of future draws.",
       "calculation": {
-        "variables": [],
+        "variables": [
+          {
+            "name": "deckLocation",
+            "source": "regex",
+            "group": 1,
+            "type": "string"
+          }
+        ],
         "contextModifiers": [],
         "scores": {
           "resource_dominance": {
-            "value": "-1.0"
+            "value": "@deckLocation === 'top' ? @cardDrawValue : -1.0",
+            "explanation": "filtering to the bottom is bad but filtering to the top is good"
           }
         }
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
-      "lastModified": "2025-09-02T18:00:59.705Z"
+      "lastModified": "2025-11-24T16:56:43.214Z"
     },
     {
       "name": "Card Effect: Discard to Hand",
@@ -1747,22 +1755,41 @@
       "name": "Card Effect: Discard to Deck",
       "category": "Resource",
       "sub_type": "Recursion",
-      "regex": "shuffle (\\d+|a|one|two|three|all|chosen)(.*?)? card(s?) from your discard into your deck",
+      "regex": "(shuffle|put) (\\d+|all|one|two|three|a|chosen)(?:.*?)? cards? from your discard (?:into|on the (top|bottom) of) your deck",
       "value_type": "raw",
       "explanation": "Shuffles cards from the discard pile back into the deck.",
       "justification": "Prevents decking out and allows for reuse of key cards. Potentially doesn't do much",
       "calculation": {
-        "variables": [],
+        "variables": [
+          {
+            "name": "shuffle",
+            "source": "regex",
+            "group": 1,
+            "type": "string"
+          },
+          {
+            "name": "cardAmount",
+            "source": "regex",
+            "group": "2",
+            "type": "textOrNumber"
+          },
+          {
+            "name": "deckLocation",
+            "source": "regex",
+            "group": "3",
+            "type": "string"
+          }
+        ],
         "contextModifiers": [],
         "scores": {
           "resource_dominance": {
-            "value": "0.25",
-            "explanation": "Some value but potentially does not much"
+            "value": "(@shuffle === 'shuffle'? 0.25 : 1) *  @cardAmount * (@deckLocation === 'top' ? 2.0 : @deckLocation === 'bottom' ? -1:1.0) * @cardDrawValue",
+            "explanation": "Putting it at the top of deck is best, Shuffle does almost nothing, bottom is like banishing"
           }
         }
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
-      "lastModified": "2025-09-02T18:00:59.705Z"
+      "lastModified": "2025-11-24T16:48:24.151Z"
     },
     {
       "name": "Card Effect: Look at Opponent's Hand",
@@ -1789,7 +1816,7 @@
       "name": "Card Effect: Hand to Inkwell",
       "category": "Resource",
       "sub_type": "Ramp",
-      "regex": "/put (a|an additional|the top|any|chosen)(?: character| item | location| action| song| item or location)?(?: card)? (?:from your discard|from your hand|of your deck)?(?: )?into (your|its player's) inkwell( facedown)?( and exerted)?/gi",
+      "regex": "/put (a|an additional|the top|any|chosen|one)(?: character| item | location| action| song| item or location)?(?: card)? (?:from your discard|from your hand|of your deck)?(?: )?into (your|its player's) inkwell( facedown)?( and exerted)?/gi",
       "value_type": "raw",
       "explanation": "Allows a player to place a card into their inkwell, accelerating their ink resources.",
       "justification": "Directly accelerates resources (ramp), which is a powerful effect.\n25% better than just drawing a random card",
@@ -1804,7 +1831,7 @@
         }
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
-      "lastModified": "2025-09-02T18:00:59.705Z"
+      "lastModified": "2025-11-24T16:34:12.294Z"
     },
     {
       "name": "Bounce: Opposing Character",
@@ -2114,7 +2141,7 @@
       "name": "Damage: Heal",
       "category": "Lore",
       "sub_type": "Survivability",
-      "regex": "/Remove(?: up to)? (\\d+) damage from (?:chosen |each of your |one of your )?(?:character(?:s)?|location)/gi",
+      "regex": "/Remove(?: up to)? ?(\\d+) damage from (?:chosen|each of your|one of your|any number of chosen)? ?(\\w+)? ?(?:characters?|locations?)/gi",
       "value_type": "raw",
       "explanation": "Removes damage from one of your cards, increasing its survivability.",
       "justification": "Increases the longevity of your characters.",
@@ -2136,7 +2163,7 @@
         }
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
-      "lastModified": "2025-09-02T18:00:59.705Z"
+      "lastModified": "2025-11-24T17:11:33.203Z"
     },
     {
       "name": "Damage: Deal to Self",
@@ -2170,7 +2197,7 @@
       "name": "State: Ready Character",
       "category": "State",
       "sub_type": "Action",
-      "regex": "/Ready (chosen|this|it|them)? (?:your|another|your other)? ?(characters?|items?) (?:with cost (\\d+) or (?:less|more))?/gi",
+      "regex": "/Ready (chosen|this|it|them)? ?(?:your|another|your other)? ?(chosen)? ?(characters?|items?) ?(?:with cost (\\d+) or (?:less|more))?/gi",
       "value_type": "raw",
       "explanation": "Readies one of your exerted characters.",
       "justification": "Enables action advantage.",
@@ -2185,7 +2212,7 @@
         }
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
-      "lastModified": "2025-11-04T00:42:32.136Z"
+      "lastModified": "2025-11-24T16:33:27.274Z"
     },
     {
       "name": "State: Exert Character",
@@ -2291,7 +2318,7 @@
       "name": "Stat: Strength Debuff",
       "category": "Stat",
       "sub_type": "Debuff",
-      "regex": "/(?:all characters )?(?:get|gets|has|chosen character(?:s)?) -(\\d+) (¤|strength)/gi",
+      "regex": "/(?:all (opposing)? ?characters)? ?(?:get|gets|has|chosen character(?:s)?) -(\\d+) (¤|strength)/gi",
       "value_type": "raw",
       "explanation": "Decreases the Strength of one or more characters.",
       "justification": "Makes opposing characters weaker in challenges.",
@@ -2313,7 +2340,7 @@
         }
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
-      "lastModified": "2025-09-02T18:00:59.705Z"
+      "lastModified": "2025-11-24T16:23:38.617Z"
     },
     {
       "name": "Stat: Willpower Buff",
