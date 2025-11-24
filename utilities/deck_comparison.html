@@ -1,0 +1,1176 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lorcana Deck Comparer</title>
+    <!-- 1. Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 2. Chart.js for graphs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- 3. NEW: Supabase Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- 4. NEW: Fuse.js for fuzzy search -->
+    <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0"></script>
+
+    <!-- 5. The proprietary Unified Win Probability Utilities -->
+    <!-- We use jsDelivr CDN to correctly serve the file from GitHub -->
+    <script
+        src="https://cdn.jsdelivr.net/gh/heavenideas/heavenideas.github.io@main/utilities/unified_win_probability_utilities.js"></script>
+
+    <style>
+        /* Custom dark theme scrollbar */
+        ::-webkit-scrollbar {
+            width: 12px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1f2937;
+            /* gray-800 */
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background-color: #4b5563;
+            /* gray-600 */
+            border-radius: 6px;
+            border: 3px solid #1f2937;
+            /* gray-800 */
+        }
+
+        body {
+            background-color: #111827;
+            /* gray-900 */
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px;
+            width: 100%;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-900 text-gray-200 font-sans p-4 md:p-8">
+
+    <!-- Main Container -->
+    <div class="max-w-7xl mx-auto">
+
+        <!-- Header -->
+        <header class="text-center mb-6">
+            <h1 class="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-500">
+                Lorcana Deck Comparison Tool
+            </h1>
+            <p class="text-lg text-gray-400 mt-2">Compare two decklists side-by-side.</p>
+        </header>
+
+        <!-- Loading Overlay -->
+        <div id="loadingOverlay"
+            class="fixed inset-0 bg-gray-900 bg-opacity-90 flex flex-col justify-center items-center z-50">
+            <div
+                class="loader ease-linear rounded-full border-8 border-t-8 border-gray-600 h-24 w-24 mb-4 animate-spin border-t-blue-500">
+            </div>
+            <h2 class="text-2xl text-white" id="loadingTitle">Loading Card Database...</h2>
+            <p class="text-gray-400" id="loadingStatus">Initializing utilities...</p>
+        </div>
+
+        <!-- Main Content (Hidden until loaded) -->
+        <main id="mainContent" class="hidden">
+
+            <!-- Deck Input Section -->
+            <section class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <label for="decklist1" class="block text-sm font-medium text-gray-300">Deck 1</label>
+                        <button id="browseDeck1Btn" onclick="openDeckBrowser(1)"
+                            class="px-3 py-1 text-sm bg-gray-700 hover:bg-gray-600 rounded-md transition-colors">
+                            Browse Decks...
+                        </button>
+                    </div>
+                    <textarea id="decklist1" rows="15"
+                        class="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-200 resize-none"
+                        placeholder="Paste Deck 1 list...&#10;4x Mickey Mouse, True Friend&#10;2x Stitch, Rock Star"></textarea>
+                </div>
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <label for="decklist2" class="block text-sm font-medium text-gray-300">Deck 2</label>
+                        <button id="browseDeck2Btn" onclick="openDeckBrowser(2)"
+                            class="px-3 py-1 text-sm bg-gray-700 hover:bg-gray-600 rounded-md transition-colors">
+                            Browse Decks...
+                        </button>
+                    </div>
+                    <textarea id="decklist2" rows="15"
+                        class="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-200 resize-none"
+                        placeholder="Paste Deck 2 list...&#10;4x Mickey Mouse, Brave Little Tailor&#10;3x Stitch, Rock Star"></textarea>
+                </div>
+            </section>
+
+            <!-- Compare Button -->
+            <section class="text-center mb-8">
+                <button id="compareButton"
+                    class="px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold rounded-lg shadow-lg hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-4 focus:ring-purple-500 focus:ring-opacity-50 transition-all duration-200 transform hover:scale-105"
+                    disabled>
+                    Compare Decks
+                </button>
+            </section>
+
+            <!-- Results Section -->
+            <section id="resultsContainer" class="space-y-8"></section>
+
+        </main>
+
+        <!-- Radar Chart Modal -->
+        <div id="radarModal"
+            class="hidden fixed inset-0 bg-gray-900 bg-opacity-80 backdrop-blur-sm z-50 flex justify-center items-center p-4"
+            onclick="closeRadarModal()">
+            <div class="relative w-full max-w-4xl h-full max-h-[80vh] bg-gray-800 rounded-lg shadow-xl p-6"
+                onclick="event.stopPropagation()">
+                <button onclick="closeRadarModal()"
+                    class="absolute top-3 right-3 text-gray-400 hover:text-white transition rounded-full p-1 hover:bg-gray-700"
+                    title="Close">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                        xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
+                    </svg>
+                </button>
+                <div class="chart-container h-full">
+                    <canvas id="modalRadarChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- NEW: Deck Browser Modal -->
+        <div id="deckBrowserModal"
+            class="hidden fixed inset-0 bg-gray-900 bg-opacity-80 backdrop-blur-sm z-40 flex justify-center items-center p-4"
+            onclick="closeDeckBrowser()">
+            <div class="relative w-full max-w-2xl h-full max-h-[90vh] bg-gray-800 rounded-lg shadow-xl flex flex-col"
+                onclick="event.stopPropagation()">
+                <!-- Modal Header -->
+                <div class="flex justify-between items-center p-4 border-b border-gray-700">
+                    <h2 class="text-2xl font-semibold text-gray-100">Browse Decks</h2>
+                    <button onclick="closeDeckBrowser()"
+                        class="text-gray-400 hover:text-white transition rounded-full p-1 hover:bg-gray-700"
+                        title="Close">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                            xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Filters -->
+                <div class="p-4 border-b border-gray-700 grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <input type="text" id="deckSearch" placeholder="Search decks..."
+                        class="w-full p-2 bg-gray-700 border border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <select id="deckSort"
+                        class="w-full p-2 bg-gray-700 border border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="newest">Sort: Newest</option>
+                        <option value="oldest">Sort: Oldest</option>
+                        <option value="name-asc">Sort: Name (A-Z)</option>
+                        <option value="name-desc">Sort: Name (Z-A)</option>
+                    </select>
+                    <select id="inkFilter"
+                        class="w-full p-2 bg-gray-700 border border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Filter: All Inks</option>
+                        <option value="Amber">Amber</option>
+                        <option value="Amethyst">Amethyst</option>
+                        <option value="Emerald">Emerald</option>
+                        <option value="Ruby">Ruby</option>
+                        <option value="Sapphire">Sapphire</option>
+                        <option value="Steel">Steel</option>
+                    </select>
+                </div>
+
+                <!-- Deck List -->
+                <div id="deckBrowserListContainer" class="flex-grow overflow-y-auto p-4 space-y-2">
+                    <!-- Decks will be rendered here by JS -->
+                    <div class="text-center text-gray-400" id="deckBrowserLoading">Loading decks...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Application Logic -->
+    <script>
+        // --- CDN URLs ---
+        const ALL_CARDS_URL = 'https://cdn.jsdelivr.net/gh/heavenideas/similcana@main/database/allCards.json';
+
+        // --- NEW: Supabase Config ---
+        const SUPABASE_URL = 'https://cjlhrfhximjldqrfblkj.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNqbGhyZmh4aW1qbGRxcmZibGtqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA0MTcxNzQsImV4cCI6MjA2NTk5MzE3NH0.zLiQcPnKt2SnNfQIkUnOG7bOo6F7MPMh8MsasdFF6lw';
+        // From your example snippet
+        const INK_COLORS = {
+            Amber: { hex: '#FCD34D', name: 'Amber' }, Amethyst: { hex: '#C084FC', name: 'Amethyst' },
+            Emerald: { hex: '#34D399', name: 'Emerald' }, Ruby: { hex: '#F87171', name: 'Ruby' },
+            Sapphire: { hex: '#60A5FA', name: 'Sapphire' }, Steel: { hex: '#9CA3AF', name: 'Steel' }
+        };
+
+        // --- Global State ---
+        let allCardsData = [];
+        let cardNameMap = new Map();
+        let costCurveChartInstance = null;
+        let metricRadarChartInstance = null;
+        let modalRadarChartInstance = null;
+        let lastAnalyzedStats1 = null;
+        let lastAnalyzedStats2 = null;
+        let isAppReady = false;
+
+        // --- NEW: Deck Browser State ---
+        let supabaseClient = null;
+        let allDecks = [];
+        let deckFuse = null;
+        let currentTargetDeck = 1; // 1 or 2, for the textareas
+
+        // --- DOM Elements ---
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const loadingTitle = document.getElementById('loadingTitle');
+        const loadingStatus = document.getElementById('loadingStatus');
+        const mainContent = document.getElementById('mainContent');
+        const compareButton = document.getElementById('compareButton');
+        const decklist1El = document.getElementById('decklist1');
+        const decklist2El = document.getElementById('decklist2');
+        const resultsContainer = document.getElementById('resultsContainer');
+
+        // --- NEW: Deck Browser DOM Elements ---
+        const deckBrowserModal = document.getElementById('deckBrowserModal');
+        const deckBrowserListContainer = document.getElementById('deckBrowserListContainer');
+        const deckBrowserLoading = document.getElementById('deckBrowserLoading');
+        const deckSearchInput = document.getElementById('deckSearch');
+        const deckSortInput = document.getElementById('deckSort');
+        const inkFilterInput = document.getElementById('inkFilter');
+
+        /**
+         * Main initialization function. Runs on window load.
+         */
+        window.onload = async () => {
+            try {
+                // 1. Initialize Supabase Client
+                const { createClient } = supabase;
+                supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+                // 2. Load the abilities configuration first
+                loadingStatus.textContent = 'Loading calculation library...';
+                await UnifiedWinProbabiliyCalculation.loadAbilitiesConfig();
+
+                // 3. Load the main card database
+                loadingStatus.textContent = 'Fetching allCards.json...';
+                const response = await fetch(ALL_CARDS_URL);
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch allCards.json: ${response.statusText}`);
+                }
+                const data = await response.json();
+                allCardsData = data.cards;
+
+                // 4. Build the fast lookup map
+                loadingStatus.textContent = 'Processing card data...';
+                buildCardNameMap();
+
+                // 5. Load decks in the background
+                loadingTitle.textContent = 'Loading Deck Database...';
+                loadingStatus.textContent = 'Fetching from Supabase...';
+                await loadAllDecks(); // This will fetch and build the Fuse search
+
+                // 6. App is ready
+                isAppReady = true;
+                loadingOverlay.style.display = 'none';
+                mainContent.classList.remove('hidden');
+                compareButton.disabled = false;
+
+            } catch (error) {
+                console.error('Initialization failed:', error);
+                loadingTitle.textContent = `Initialization Error`;
+                loadingStatus.textContent = `Error: ${error.message}. Please refresh.`;
+                loadingStatus.classList.add('text-red-500');
+            }
+        };
+
+        /**
+         * Creates a Map for fast card lookups by name.
+         * Stores entries for both fullName and simpleName.
+         */
+        function buildCardNameMap() {
+            for (const card of allCardsData) {
+                // Normalize names for consistent lookups
+                const simple = normalizeCardName(card.simpleName);
+                const full = normalizeCardName(card.fullName);
+
+                // Use the full card object as the value
+                cardNameMap.set(simple, card);
+                if (simple !== full) {
+                    cardNameMap.set(full, card);
+                }
+            }
+        }
+
+        /**
+         * Normalizes a card name string for lookup.
+         * @param {string} name - The card name.
+         * @returns {string} - The normalized name.
+         */
+        function normalizeCardName(name) {
+            if (!name) return '';
+            return name.toLowerCase()
+                .replace(/’/g, "'") // Normalize apostrophes
+                .replace(/[.,!?"“”-]/g, '') // Remove punctuation
+                .replace(/\s+/g, ' ') // Normalize whitespace
+                .trim();
+        }
+
+        /**
+         * Attaches click listener to the compare button.
+         */
+        compareButton.addEventListener('click', () => {
+            if (!isAppReady) return;
+
+            const text1 = decklist1El.value;
+            const text2 = decklist2El.value;
+
+            // 1. Parse decklists
+            const deck1 = parseDecklist(text1);
+            const deck2 = parseDecklist(text2);
+
+            // 2. Analyze decks
+            const stats1 = analyzeDeck(deck1.parsedCards);
+            const stats2 = analyzeDeck(deck2.parsedCards);
+
+            // Store stats for modal
+            lastAnalyzedStats1 = stats1;
+            lastAnalyzedStats2 = stats2;
+
+            // 3. Render the comparison
+            renderComparison(stats1, stats2, deck1, deck2);
+        });
+
+        // --- NEW: Deck Browser Functions ---
+
+        /**
+         * Fetches all decks from Supabase and builds the search index.
+         */
+        async function loadAllDecks() {
+            const { data, error } = await supabaseClient.from('decks').select('*').order('created_at', { ascending: false });
+            if (error) {
+                console.error('Error fetching decks:', error);
+                allDecks = [];
+                deckBrowserLoading.textContent = 'Error loading decks.';
+            } else {
+                allDecks = data;
+                // Init Fuse.js search
+                deckFuse = new Fuse(allDecks, { keys: ['name', 'comments'], includeScore: true, threshold: 0.4 });
+                deckBrowserLoading.style.display = 'none';
+                renderDeckList(); // Initial render
+            }
+
+            // Add event listeners for filters
+            deckSearchInput.addEventListener('input', renderDeckList);
+            deckSortInput.addEventListener('change', renderDeckList);
+            inkFilterInput.addEventListener('change', renderDeckList);
+        }
+
+        /**
+         * Renders the list of decks in the modal based on current filters.
+         */
+        function renderDeckList() {
+            const searchTerm = deckSearchInput.value.trim();
+            const sortBy = deckSortInput.value;
+            const inkFilter = inkFilterInput.value;
+
+            let decksToRender = [];
+
+            // 1. Filter
+            if (searchTerm.length > 0) {
+                decksToRender = deckFuse.search(searchTerm).map(result => result.item);
+            } else {
+                decksToRender = [...allDecks];
+            }
+
+            // 2. Ink Filter
+            if (inkFilter) {
+                decksToRender = decksToRender.filter(deck => (deck.inks || []).includes(inkFilter));
+            }
+
+            // 3. Sort
+            decksToRender.sort((a, b) => {
+                switch (sortBy) {
+                    case 'newest':
+                        return new Date(b.created_at) - new Date(a.created_at);
+                    case 'oldest':
+                        return new Date(a.created_at) - new Date(b.created_at);
+                    case 'name-asc':
+                        return a.name.localeCompare(b.name);
+                    case 'name-desc':
+                        return b.name.localeCompare(a.name);
+                    default:
+                        return new Date(b.created_at) - new Date(a.created_at);
+                }
+            });
+
+            // 4. Render
+            deckBrowserListContainer.innerHTML = '';
+            if (decksToRender.length === 0) {
+                deckBrowserListContainer.innerHTML = `<p class="text-gray-500 italic p-4 text-center">No decks found.</p>`;
+            }
+
+            decksToRender.forEach(deck => {
+                const button = document.createElement('button');
+                button.className = 'w-full text-left p-3 rounded-md hover:bg-gray-700 focus:bg-purple-900/50 focus:outline-none transition-colors block';
+                button.dataset.deckId = deck.id;
+                const inkBadges = (deck.inks || []).map(ink =>
+                    `<span class="inline-block w-3 h-3 rounded-full" style="background-color: ${INK_COLORS[ink]?.hex || '#fff'}" title="${INK_COLORS[ink]?.name || 'Unknown'}"></span>`
+                ).join('');
+
+                button.innerHTML = `
+                    <h3 class="font-semibold text-gray-100">${escapeHTML(deck.name)}</h3>
+                    <div class="flex items-center gap-2 mt-1">${inkBadges}</div>
+                `;
+                button.addEventListener('click', () => selectDeck(deck.id));
+                deckBrowserListContainer.appendChild(button);
+            });
+        }
+
+        /**
+         * Opens the deck browser modal.
+         * @param {number} target - 1 for Deck 1, 2 for Deck 2.
+         */
+        function openDeckBrowser(target) {
+            currentTargetDeck = target;
+            deckBrowserModal.classList.remove('hidden');
+        }
+
+        /**
+         * Closes the deck browser modal.
+         */
+        function closeDeckBrowser() {
+            deckBrowserModal.classList.add('hidden');
+        }
+
+        /**
+         * Handles selection of a deck from the browser.
+         * @param {string} deckId - The UUID of the selected deck.
+         */
+        function selectDeck(deckId) {
+            const deck = allDecks.find(d => d.id === deckId);
+            if (!deck) return;
+
+            if (currentTargetDeck === 1) {
+                decklist1El.value = deck.decklist || '';
+            } else if (currentTargetDeck === 2) {
+                decklist2El.value = deck.decklist || '';
+            }
+            closeDeckBrowser();
+        }
+
+        // --- End of Deck Browser Functions ---
+
+
+        /**
+         * Parses raw decklist text into a structured array.
+         * @param {string} decklistText - The raw text from the textarea.
+         * @returns {object} - { parsedCards: [], notFound: [] }
+         */
+        function parseDecklist(decklistText) {
+            const parsedCards = [];
+            const notFound = [];
+            const lines = decklistText.split('\n');
+
+            // Regex to capture "4x Card Name", "4 Card Name", "4Card Name"
+            const lineRegex = /^(?:(\d+)\s*x\s*|\s*(\d+)\s+|\s*(\d+)\s*)(.+)/;
+
+            for (const line of lines) {
+                const trimmedLine = line.trim();
+                if (!trimmedLine) continue;
+
+                const match = trimmedLine.match(lineRegex);
+
+                if (match) {
+                    // Find the first captured group that is a number
+                    const count = parseInt(match[1] || match[2] || match[3], 10);
+                    // The card name is always the last capture group
+                    const rawName = match[4].trim();
+                    const cardName = normalizeCardName(rawName);
+
+                    const card = cardNameMap.get(cardName);
+
+                    if (card) {
+                        parsedCards.push({ card, count });
+                    } else {
+                        notFound.push(rawName);
+                    }
+                } else if (trimmedLine) {
+                    // Handle lines without a count (assume 1x)
+                    const cardName = normalizeCardName(trimmedLine);
+                    const card = cardNameMap.get(cardName);
+                    if (card) {
+                        parsedCards.push({ card, count: 1 });
+                    } else {
+                        notFound.push(trimmedLine);
+                    }
+                }
+            }
+            return { parsedCards, notFound };
+        }
+
+        /**
+         * Analyzes a parsed deck and calculates all required stats.
+         * @param {Array} parsedDeck - Array of { card, count } objects.
+         * @returns {object} - An object containing all deck statistics.
+         */
+        function analyzeDeck(parsedDeck) {
+            const stats = {
+                totalCards: 0,
+                uninkableCount: 0,
+                typeCounts: { Character: 0, Action: 0, Item: 0, Location: 0, Song: 0 },
+                subtypeCounts: {},
+                costCurve: {},
+                totalCtl: 0,
+                totalBcr: 0,
+                totalRds: 0,
+                totalLvi: 0, // Added for radar chart
+                cardMap: new Map() // Stores { card, count } by fullName
+            };
+
+            for (const { card, count } of parsedDeck) {
+                stats.totalCards += count;
+                // Store the full card object and count
+                stats.cardMap.set(card.fullName, { card, count });
+
+                // Uninkable
+                if (card.inkwell === false) {
+                    stats.uninkableCount += count;
+                }
+
+                // Card Type
+                stats.typeCounts[card.type] = (stats.typeCounts[card.type] || 0) + count;
+
+                // Subtypes (including 'Song')
+                if (card.subtypes && card.subtypes.length > 0) {
+                    for (const subtype of card.subtypes) {
+                        stats.subtypeCounts[subtype] = (stats.subtypeCounts[subtype] || 0) + count;
+                        if (subtype === 'Song') {
+                            stats.typeCounts.Song += count;
+                        }
+                    }
+                }
+
+                // Cost Curve
+                const cost = card.cost || 0;
+                if (!stats.costCurve[cost]) {
+                    stats.costCurve[cost] = { inkable: 0, uninkable: 0 };
+                }
+                if (card.inkwell) {
+                    stats.costCurve[cost].inkable += count;
+                } else {
+                    stats.costCurve[cost].uninkable += count;
+                }
+
+                // CTL/BCR/RDS Metrics
+                const metrics = UnifiedWinProbabiliyCalculation.calculateCardMetrics(card);
+
+                stats.totalBcr += (metrics.bcr * count);
+                stats.totalRds += (metrics.rds * count);
+                stats.totalLvi += (metrics.lvi * count);
+
+                // CTL is the sum of all three metrics
+                const cardCtl = (metrics.bcr + metrics.rds + metrics.lvi);
+                stats.totalCtl += (cardCtl * count);
+            }
+
+            return stats;
+        }
+
+        /**
+         * Renders the complete comparison UI in the results container.
+         * @param {object} stats1 - Analysis object for deck 1.
+         * @param {object} stats2 - Analysis object for deck 2.
+         * @param {object} deck1 - Parsed deck object for deck 1.
+         * @param {object} deck2 - Parsed deck object for deck 2.
+         */
+        function renderComparison(stats1, stats2, deck1, deck2) {
+            let html = '';
+
+            // 1. Render Not Found Cards (Errors)
+            html += renderNotFound(deck1.notFound, deck2.notFound);
+
+            // 2. Render Summary Statistics & Radar Chart in a grid
+            html += '<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">'; // CHANGED
+            html += renderSummaryTable(stats1, stats2);
+            html += renderMetricRadarChartCanvas();
+            html += '</div>';
+
+            // 3. Render Cost Curve Chart
+            html += renderCostCurveCanvas();
+
+            // 4. Render Subtype Comparison
+            html += renderSubtypeTable(stats1.subtypeCounts, stats2.subtypeCounts);
+
+            // 5. Render Card-by-Card Differences
+            html += renderCardDiffs(stats1.cardMap, stats2.cardMap);
+
+            // Set the HTML
+            resultsContainer.innerHTML = html;
+
+            // NOW, create the charts since the canvases exist
+            createMetricRadarChart(stats1, stats2);
+            createCostCurveChart(stats1.costCurve, stats2.costCurve);
+        }
+
+        /**
+         * Renders a section for cards that were not found.
+         * @returns {string} HTML string.
+         */
+        function renderNotFound(notFound1, notFound2) {
+            if (notFound1.length === 0 && notFound2.length === 0) return '';
+
+            let html = `<div class="bg-gray-800 p-4 rounded-lg shadow-lg border border-red-500/30">
+                <h2 class="text-2xl font-semibold mb-4 text-red-400">Cards Not Found</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            `;
+
+            if (notFound1.length > 0) {
+                html += '<div><h3 class="font-bold text-gray-300 mb-2">Deck 1:</h3><ul class="list-disc list-inside text-red-400">';
+                notFound1.forEach(name => {
+                    html += `<li>${escapeHTML(name)}</li>`;
+                });
+                html += '</ul></div>';
+            }
+
+            if (notFound2.length > 0) {
+                html += '<div><h3 class="font-bold text-gray-300 mb-2">Deck 2:</h3><ul class="list-disc list-inside text-red-400">';
+                notFound2.forEach(name => {
+                    html += `<li>${escapeHTML(name)}</li>`;
+                });
+                html += '</ul></div>';
+            }
+
+            html += '</div></div>';
+            return html;
+        }
+
+        /**
+         * Renders the main summary table (Counts, CTL, BCR, RDS).
+         * @returns {string} HTML string.
+         */
+        function renderSummaryTable(stats1, stats2) {
+            const metrics = [
+                { label: 'Total Cards', val1: stats1.totalCards, val2: stats2.totalCards },
+                { label: 'Uninkable Cards', val1: stats1.uninkableCount, val2: stats2.uninkableCount },
+                { label: 'Characters', val1: stats1.typeCounts.Character, val2: stats2.typeCounts.Character },
+                { label: 'Actions', val1: stats1.typeCounts.Action, val2: stats2.typeCounts.Action },
+                { label: 'Items', val1: stats1.typeCounts.Item, val2: stats2.typeCounts.Item },
+                { label: 'Locations', val1: stats1.typeCounts.Location, val2: stats2.typeCounts.Location },
+                { label: 'Songs', val1: stats1.typeCounts.Song, val2: stats2.typeCounts.Song },
+                { label: 'Total CTL', val1: stats1.totalCtl.toFixed(2), val2: stats2.totalCtl.toFixed(2) },
+                { label: 'Total BCR', val1: stats1.totalBcr.toFixed(2), val2: stats2.totalBcr.toFixed(2) },
+                { label: 'Total RDS', val1: stats1.totalRds.toFixed(2), val2: stats2.totalRds.toFixed(2) },
+                { label: 'Total LVI', val1: stats1.totalLvi.toFixed(2), val2: stats2.totalLvi.toFixed(2) },
+            ];
+
+            let tableHTML = `
+                <div class="bg-gray-800 p-6 rounded-lg shadow-lg h-full lg:col-span-1">
+                    <h2 class="text-2xl font-semibold mb-4 text-gray-100">Deck Statistics</h2>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-700">
+                            <thead class="bg-gray-700/50">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Metric</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Deck 1</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Deck 2</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Difference</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-gray-800 divide-y divide-gray-700">
+            `;
+
+            metrics.forEach(metric => {
+                const v1 = parseFloat(metric.val1);
+                const v2 = parseFloat(metric.val2);
+                const diff = v2 - v1; // Deck 2 vs Deck 1
+                let diffClass = 'text-gray-400';
+                let diffSign = '';
+                if (diff > 0) {
+                    diffClass = 'text-green-400';
+                    diffSign = '+';
+                } else if (diff < 0) {
+                    diffClass = 'text-red-400';
+                }
+
+                // For whole numbers, don't show .00
+                const diffStr = Number.isInteger(diff) ? diff : diff.toFixed(2);
+
+                tableHTML += `
+                    <tr>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-200">${metric.label}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-300">${metric.val1}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-300">${metric.val2}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm font-bold ${diffClass}">${diffSign}${diffStr}</td>
+                    </tr>
+                `;
+            });
+
+            tableHTML += '</tbody></table></div></div>';
+            return tableHTML;
+        }
+
+        /**
+         * Renders the canvas container for the Metric Radar Chart.
+         * @returns {string} HTML string.
+         */
+        function renderMetricRadarChartCanvas() {
+            return `
+                <div class="bg-gray-800 p-6 rounded-lg shadow-lg lg:col-span-2">
+                    <h2 class="text-2xl font-semibold mb-4 text-gray-100 flex items-center">
+                        Deck Power Profile
+                        <button onclick="openRadarModal()" class="ml-3 text-blue-400 hover:text-blue-300 transition" title="Enlarge Chart">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path></svg>
+                        </button>
+                    </h2>
+                    <div class="chart-container">
+                        <canvas id="metricRadarChart"></canvas>
+                    </div>
+                </div>
+            `;
+        }
+
+        /**
+         * Creates the Metric Radar Chart instance.
+         */
+        function createMetricRadarChart(stats1, stats2) {
+            const ctx = document.getElementById('metricRadarChart').getContext('2d');
+
+            if (metricRadarChartInstance) {
+                metricRadarChartInstance.destroy();
+            }
+
+            const config = getRadarChartConfig(stats1, stats2);
+            metricRadarChartInstance = new Chart(ctx, config);
+        }
+
+        /**
+         * Generates the config for the radar chart to avoid code duplication.
+         * @param {object} stats1 - Analysis object for deck 1.
+         * @param {object} stats2 - Analysis object for deck 2.
+         * @returns {object} - A Chart.js config object.
+         */
+        function getRadarChartConfig(stats1, stats2) {
+            const labels = [
+                'BCR',
+                'RDS',
+                'LVI',
+                'Characters',
+                'Actions',
+                'Items',
+                'Locations',
+                'Uninkable'
+            ];
+
+            const data1 = [
+                stats1.totalBcr,
+                stats1.totalRds,
+                stats1.totalLvi,
+                stats1.typeCounts.Character,
+                stats1.typeCounts.Action,
+                stats1.typeCounts.Item,
+                stats1.typeCounts.Location,
+                stats1.uninkableCount
+            ];
+            const data2 = [
+                stats2.totalBcr,
+                stats2.totalRds,
+                stats2.totalLvi,
+                stats2.typeCounts.Character,
+                stats2.typeCounts.Action,
+                stats2.typeCounts.Item,
+                stats2.typeCounts.Location,
+                stats2.uninkableCount
+            ];
+
+            return {
+                type: 'radar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Deck 1',
+                            data: data1,
+                            backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                            borderColor: 'rgba(59, 130, 246, 1)', // blue-500
+                            pointBackgroundColor: 'rgba(59, 130, 246, 1)',
+                            pointBorderColor: '#fff',
+                            pointHoverBackgroundColor: '#fff',
+                            pointHoverBorderColor: 'rgba(59, 130, 246, 1)'
+                        },
+                        {
+                            label: 'Deck 2',
+                            data: data2,
+                            backgroundColor: 'rgba(168, 85, 247, 0.2)',
+                            borderColor: 'rgba(168, 85, 247, 1)', // purple-500
+                            pointBackgroundColor: 'rgba(168, 85, 247, 1)',
+                            pointBorderColor: '#fff',
+                            pointHoverBackgroundColor: '#fff',
+                            pointHoverBorderColor: 'rgba(168, 85, 247, 1)'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            angleLines: { color: '#4b5563' }, // gray-600
+                            grid: { color: '#374151' }, // gray-700
+                            pointLabels: {
+                                color: '#d1d5db', // gray-300
+                                font: { size: 11 }
+                            },
+                            ticks: {
+                                color: '#9ca3af', // gray-400
+                                backdropColor: '#1f2937' // gray-800
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: { color: '#d1d5db' } // gray-300
+                        }
+                    }
+                }
+            };
+        }
+
+        /**
+         * Opens the radar chart in a modal.
+         */
+        function openRadarModal() {
+            if (!lastAnalyzedStats1 || !lastAnalyzedStats2) return;
+
+            const config = getRadarChartConfig(lastAnalyzedStats1, lastAnalyzedStats2);
+            // Enlarge font for modal view
+            config.options.scales.r.pointLabels.font.size = 14;
+            config.options.plugins.legend.labels.font = { size: 14 };
+
+            const ctx = document.getElementById('modalRadarChart').getContext('2d');
+
+            if (modalRadarChartInstance) {
+                modalRadarChartInstance.destroy();
+            }
+            modalRadarChartInstance = new Chart(ctx, config);
+
+            document.getElementById('radarModal').classList.remove('hidden');
+        }
+
+        /**
+         * Closes the radar chart modal and destroys the chart instance.
+         */
+        function closeRadarModal() {
+            if (modalRadarChartInstance) {
+                modalRadarChartInstance.destroy();
+                modalRadarChartInstance = null;
+            }
+            document.getElementById('radarModal').classList.add('hidden');
+        }
+
+
+        /**
+         * Renders the canvas container for the Cost Curve chart.
+         * @returns {string} HTML string.
+         */
+        function renderCostCurveCanvas() {
+            return `
+                <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                    <h2 class="text-2xl font-semibold mb-4 text-gray-100">Ink Cost Curve</h2>
+                    <div class="chart-container">
+                        <canvas id="costCurveChart"></canvas>
+                    </div>
+                </div>
+            `;
+        }
+
+        /**
+         * Creates the Cost Curve comparison chart.
+         */
+        function createCostCurveChart(costCurve1, costCurve2) {
+            const ctx = document.getElementById('costCurveChart').getContext('2d');
+
+            const allCosts = new Set([...Object.keys(costCurve1), ...Object.keys(costCurve2)]);
+            // Fix: Handle empty decks/costs
+            let maxCost = Math.max(...Array.from(allCosts).map(c => parseInt(c || '0')));
+            if (!isFinite(maxCost) || maxCost < 0) {
+                maxCost = 0;
+            }
+            // Always show at least up to cost 8 for a decent looking chart
+            const displayMaxCost = Math.max(8, maxCost);
+            const labels = Array.from({ length: displayMaxCost + 1 }, (_, i) => i);
+
+            // NEW: Create data arrays for stacked bars
+            const data1_inkable = labels.map(cost => costCurve1[cost]?.inkable || 0);
+            const data1_uninkable = labels.map(cost => costCurve1[cost]?.uninkable || 0);
+            const data2_inkable = labels.map(cost => costCurve2[cost]?.inkable || 0);
+            const data2_uninkable = labels.map(cost => costCurve2[cost]?.uninkable || 0);
+
+
+            if (costCurveChartInstance) {
+                costCurveChartInstance.destroy();
+            }
+
+            costCurveChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    // NEW: Four datasets for grouped stacking
+                    datasets: [
+                        {
+                            label: 'Deck 1 - Inkable',
+                            data: data1_inkable,
+                            backgroundColor: 'rgba(59, 130, 246, 0.7)', // blue-500
+                            stack: 'deck1'
+                        },
+                        {
+                            label: 'Deck 1 - Uninkable',
+                            data: data1_uninkable,
+                            backgroundColor: 'rgba(30, 64, 175, 0.8)', // blue-800 (Darker Blue)
+                            stack: 'deck1'
+                        },
+                        {
+                            label: 'Deck 2 - Inkable',
+                            data: data2_inkable,
+                            backgroundColor: 'rgba(168, 85, 247, 0.7)', // purple-500
+                            stack: 'deck2'
+                        },
+                        {
+                            label: 'Deck 2 - Uninkable',
+                            data: data2_uninkable,
+                            backgroundColor: 'rgba(107, 33, 168, 0.8)', // purple-800 (Darker Purple)
+                            stack: 'deck2'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    // NEW: Enable stacking
+                    scales: {
+                        y: {
+                            stacked: true, // NEW
+                            beginAtZero: true,
+                            ticks: {
+                                color: '#d1d5db', // gray-300
+                                stepSize: 1
+                            },
+                            grid: { color: '#374151' } // gray-700
+                        },
+                        x: {
+                            stacked: true, // NEW
+                            ticks: { color: '#d1d5db' }, // gray-300
+                            grid: { color: '#374151' } // gray-700
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: { color: '#d1d5db' } // gray-300
+                        },
+                        // NEW: Tooltip customization to show stack totals
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            callbacks: {
+                                footer: (tooltipItems) => {
+                                    let totals = {};
+                                    tooltipItems.forEach(item => {
+                                        const stack = item.dataset.stack;
+                                        if (stack) {
+                                            if (!totals[stack]) totals[stack] = 0;
+                                            totals[stack] += item.raw;
+                                        }
+                                    });
+                                    let footer = '';
+                                    if (totals['deck1']) footer += `Deck 1 Total: ${totals['deck1']}\n`;
+                                    if (totals['deck2']) footer += `Deck 2 Total: ${totals['deck2']}`;
+                                    return footer;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        /**
+         * Renders the Subtype comparison table.
+         * @returns {string} HTML string.
+         */
+        function renderSubtypeTable(subtypes1, subtypes2) {
+            const allSubtypes = new Set([...Object.keys(subtypes1), ...Object.keys(subtypes2)]);
+            if (allSubtypes.size === 0) return '';
+
+            const sortedSubtypes = Array.from(allSubtypes).sort();
+
+            let tableHTML = `
+                <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                    <h2 class="text-2xl font-semibold mb-4 text-gray-100">Subtype Counts</h2>
+                    <div class="overflow-x-auto max-h-96">
+                        <table class="min-w-full divide-y divide-gray-700">
+                            <thead class="bg-gray-700/50 sticky top-0">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Subtype</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Deck 1</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Deck 2</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Difference</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-gray-800 divide-y divide-gray-700">
+            `;
+
+            let hasDifferences = false;
+            sortedSubtypes.forEach(subtype => {
+                const v1 = subtypes1[subtype] || 0;
+                const v2 = subtypes2[subtype] || 0;
+                const diff = v2 - v1;
+                if (diff === 0) return; // Only show differences
+
+                hasDifferences = true;
+                let diffClass = 'text-gray-400';
+                let diffSign = '';
+                if (diff > 0) {
+                    diffClass = 'text-green-400';
+                    diffSign = '+';
+                } else if (diff < 0) {
+                    diffClass = 'text-red-400';
+                }
+
+                tableHTML += `
+                    <tr>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-200">${escapeHTML(subtype)}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-300">${v1}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-300">${v2}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm font-bold ${diffClass}">${diffSign}${diff}</td>
+                    </tr>
+                `;
+            });
+
+            if (!hasDifferences) {
+                tableHTML += '<tr><td colspan="4" class="px-4 py-4 text-center text-gray-500 italic">No differences in subtypes.</td></tr>';
+            }
+
+            tableHTML += '</tbody></table></div></div>';
+            return tableHTML;
+        }
+
+        /**
+         * Renders the card-by-card differences with images.
+         * @returns {string} HTML string.
+         */
+        function renderCardDiffs(cardMap1, cardMap2) {
+            const diffs = {
+                only1: [],
+                only2: [],
+                changed: []
+            };
+
+            const allCardNames = new Set([...cardMap1.keys(), ...cardMap2.keys()]);
+
+            for (const name of allCardNames) {
+                const data1 = cardMap1.get(name); // { card, count }
+                const data2 = cardMap2.get(name); // { card, count }
+
+                const count1 = data1 ? data1.count : 0;
+                const count2 = data2 ? data2.count : 0;
+                const card = data1 ? data1.card : (data2 ? data2.card : null);
+
+                if (!card) continue; // Should not happen
+
+                if (count1 > 0 && count2 === 0) {
+                    diffs.only1.push({ card, count: count1 });
+                } else if (count2 > 0 && count1 === 0) {
+                    diffs.only2.push({ card, count: count2 });
+                } else if (count1 !== count2) {
+                    diffs.changed.push({ card, count1, count2, diff: count2 - count1 });
+                }
+            }
+
+            let html = `
+                <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                    <h2 class="text-2xl font-semibold mb-4 text-gray-100">Card Differences</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            `;
+
+            // Cards only in Deck 1
+            html += '<div><h3 class="font-bold text-gray-300 mb-2 border-b border-gray-700 pb-1">Deck 1 Only (-)</h3><ul class="space-y-2">';
+            if (diffs.only1.length > 0) {
+                diffs.only1.sort((a, b) => a.card.name.localeCompare(b.card.name)).forEach(c => {
+                    html += `<li class="flex items-center text-red-400">
+                        <img src="${c.card.images.thumbnail}" alt="${escapeHTML(c.card.name)}" class="w-12 h-auto mr-3 rounded-md shadow-lg" loading="lazy">
+                        <div>
+                            <span class="font-mono font-bold">${c.count}x</span> ${escapeHTML(c.card.fullName)}
+                        </div>
+                    </li>`;
+                });
+            } else {
+                html += '<li class="text-gray-500 italic">None</li>';
+            }
+            html += '</ul></div>';
+
+            // Cards only in Deck 2
+            html += '<div><h3 class="font-bold text-gray-300 mb-2 border-b border-gray-700 pb-1">Deck 2 Only (+)</h3><ul class="space-y-2">';
+            if (diffs.only2.length > 0) {
+                diffs.only2.sort((a, b) => a.card.name.localeCompare(b.card.name)).forEach(c => {
+                    html += `<li class="flex items-center text-green-400">
+                        <img src="${c.card.images.thumbnail}" alt="${escapeHTML(c.card.name)}" class="w-12 h-auto mr-3 rounded-md shadow-lg" loading="lazy">
+                        <div>
+                            <span class="font-mono font-bold">${c.count}x</span> ${escapeHTML(c.card.fullName)}
+                        </div>
+                    </li>`;
+                });
+            } else {
+                html += '<li class="text-gray-500 italic">None</li>';
+            }
+            html += '</ul></div>';
+
+            // Changed Counts
+            html += '<div><h3 class="font-bold text-gray-300 mb-2 border-b border-gray-700 pb-1">Changed Counts</h3><ul class="space-y-2">';
+            if (diffs.changed.length > 0) {
+                diffs.changed.sort((a, b) => a.card.name.localeCompare(b.card.name)).forEach(c => {
+                    const diffClass = c.diff > 0 ? 'text-green-400' : 'text-red-400';
+                    const diffSign = c.diff > 0 ? '+' : '';
+                    html += `<li class="flex items-center text-gray-300">
+                        <img src="${c.card.images.thumbnail}" alt="${escapeHTML(c.card.name)}" class="w-12 h-auto mr-3 rounded-md shadow-lg" loading="lazy">
+                        <div>
+                            <div>${escapeHTML(c.card.fullName)}</div>
+                            <div>
+                                <span class="font-mono">${c.count1}x ➔ ${c.count2}x</span> 
+                                <span class="font-bold ${diffClass}">(${diffSign}${c.diff})</span>
+                            </div>
+                        </div>
+                    </li>`;
+                });
+            } else {
+                html += '<li class="text-gray-500 italic">None</li>';
+            }
+            html += '</ul></div>';
+
+            html += '</div></div>';
+            return html;
+        }
+
+        /**
+         * Utility to escape HTML for safe rendering.
+         * @param {string} str - The string to escape.
+         * @returns {string} - The escaped string.
+         */
+        function escapeHTML(str) {
+            if (typeof str !== 'string') return '';
+            return str.replace(/[&<>"']/g, function (m) {
+                return {
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#39;'
+                }[m];
+            });
+        }
+    </script>
+</body>
+
+</html>
