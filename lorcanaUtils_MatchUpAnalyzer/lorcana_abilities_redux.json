@@ -89,6 +89,31 @@
   },
   "abilities": [
     {
+      "name": "Add to Inkwell: Own Character",
+      "category": "Board Control",
+      "sub_type": "Removal",
+      "regex": "/put chosen character of yours into your inkwell facedown and exerted/gi",
+      "explanation": "Moves your card from the board into their inkwell.",
+      "justification": "Opposite of adding an opponent's card to their inkwell",
+      "lastModified": "2025-11-24T15:12:37.546Z",
+      "createdAt": "2025-11-24T15:11:26.894Z",
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [],
+        "scores": {
+          "resource_dominance": {
+            "value": "1.25 * @context.bcr.trigger",
+            "condition": "",
+            "explanation": "Putting a card into the inkwell"
+          },
+          "board_control": {
+            "value": "-1.0 * @bcr.banishCharacterValue * 0.5 * @context.bcr.trigger",
+            "explanation": "Getting rid of your Character penalty"
+          }
+        }
+      }
+    },
+    {
       "name": "State: Can't Be Dealt Damage",
       "category": "State",
       "sub_type": "Damage",
@@ -931,7 +956,7 @@
       "name": "Card Effect: Bottom of Opponents deck",
       "category": "Board Control",
       "sub_type": "Bottom Deck",
-      "regex": "/bottom of (their|their opponent's|their players') deck/gi",
+      "regex": "/bottom of (their|their opponent's|their players') decks?/gi",
       "explanation": "Putting a card at the bottom of opponents deck",
       "justification": "Putting a card at the bottom of opponents deck is almost like discarding",
       "calculation": {
@@ -945,7 +970,7 @@
         }
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
-      "lastModified": "2025-09-02T18:00:59.705Z"
+      "lastModified": "2025-11-24T15:22:19.784Z"
     },
     {
       "name": "Bounce: Own Characters",
@@ -1564,7 +1589,7 @@
       "name": "Card Effect: Opponent Discards",
       "category": "Resource",
       "sub_type": "Hand Disruption",
-      "regex": "/(chosen opponent|each opponent|player)? ?(chooses and |reveals their hand and ) ?discards? (\\d+|a|one|two|three) ?(song|item|character|action|location)? ?cards? ?(at random)?/gi",
+      "regex": "/(chosen opponent|each opponent|player)? ?(chooses and|reveals their hand and)? ?discards? (\\d+|a|one|two|three) ?(song|item|character|action|location)? ?cards? ?(at random)?/gi",
       "value_type": "raw",
       "explanation": "Forces an opponent to discard one or more cards from their hand.",
       "justification": "Directly attacks the opponent's resources.",
@@ -1579,7 +1604,7 @@
         }
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
-      "lastModified": "2025-11-07T15:07:32.765Z"
+      "lastModified": "2025-11-24T15:19:55.588Z"
     },
     {
       "name": "Card Effect: Self Discard",
@@ -1682,7 +1707,7 @@
       "name": "Card Effect: Discard to Hand",
       "category": "Resource",
       "sub_type": "Recursion",
-      "regex": "/return (a|another|an|up to \\d+) (?:character|item|action|song|card)(?: card(?:s)?)?(?: with \\d+ (?:¤|⬡|⛉) or (?:less|more))? from your discard (?:pile )?to your hand/gi",
+      "regex": "/return (a|another|an|up to \\d+) (character|item|action|song|card) ?cards?(?: with (?:cost)? ?(\\d+) (?:¤|⬡|⛉)? ?or (?:less|more))? ?from your discard ?(?:pile)? ?to your hand/gi",
       "value_type": "raw",
       "explanation": "Allows a player to return a card from their discard pile to their hand.",
       "justification": "This is a form of card advantage, as it recovers a spent resource.",
@@ -1693,18 +1718,30 @@
             "source": "regex",
             "group": 1,
             "type": "textOrNumber"
+          },
+          {
+            "name": "costValue",
+            "source": "regex",
+            "group": "3",
+            "type": "textOrNumber"
+          },
+          {
+            "name": "cardType",
+            "source": "regex",
+            "group": "2",
+            "type": "string"
           }
         ],
         "contextModifiers": [],
         "scores": {
           "resource_dominance": {
-            "value": "3.0 * drawCount * @context.rds.trigger",
-            "explanation": "Discard to Hand 3 * drawCount "
+            "value": "5.0 * drawCount * @cardTypesMult[cardType] * @costValue * @context.rds.trigger",
+            "explanation": "Discard to Hand"
           }
         }
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
-      "lastModified": "2025-09-02T18:00:59.705Z"
+      "lastModified": "2025-11-24T14:59:19.871Z"
     },
     {
       "name": "Card Effect: Discard to Deck",
@@ -1853,7 +1890,7 @@
       "name": "Banish: All Characters",
       "category": "Board Control",
       "sub_type": "Board Wipe",
-      "regex": "/Banish all (opposing )?(ready |damaged )?characters(?: with (\\d+) (?:¤|⬡|⛉) or (?:less|more))?/gi",
+      "regex": "/(Banish|put) all (opposing )?(ready |damaged )?characters(?: with (?:cost)? ?(\\d+) (?:¤|⬡|⛉)? ?or (?:less|more))? ?(?:on (bottom) of (?:their|their opponent's|their players') decks?)?/gi",
       "value_type": "raw",
       "explanation": "Permanently removes all characters from the board. Can have other variations.",
       "justification": "The most powerful board control effect, resetting the board state.",
@@ -1887,7 +1924,7 @@
         }
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
-      "lastModified": "2025-09-09T10:00:25.445Z"
+      "lastModified": "2025-11-24T15:30:12.041Z"
     },
     {
       "name": "Banish: Opponent's Choice",
@@ -2338,22 +2375,35 @@
       "name": "Play: From Discard",
       "category": "Play",
       "sub_type": "Recursion",
-      "regex": "/You may play a (character|item) card(?: with \\d+ (?:¤|⬡|⛉) or (?:less|more))? from your discard/gi",
+      "regex": "/You may play a (character|item|action|song) card(?: with (?:cost)? ?(\\d+) (?:¤|⬡|⛉)? ?or (?:less|more))? from your discard/gi",
       "value_type": "raw",
       "explanation": "Allows the player to play a card directly from their discard pile.",
       "justification": "A powerful form of card advantage.",
       "calculation": {
-        "variables": [],
+        "variables": [
+          {
+            "name": "cardType",
+            "source": "regex",
+            "group": 1,
+            "type": "string"
+          },
+          {
+            "name": "costValue",
+            "source": "regex",
+            "group": "2",
+            "type": "textOrNumber"
+          }
+        ],
         "contextModifiers": [],
         "scores": {
           "resource_dominance": {
-            "value": "1.5 * @context.rds.trigger",
+            "value": "5.0 * @cardTypesMult[cardType] * @costValue * @context.rds.trigger",
             "explanation": "Play from Discard"
           }
         }
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
-      "lastModified": "2025-09-02T18:00:59.705Z"
+      "lastModified": "2025-11-24T14:45:54.815Z"
     },
     {
       "name": "Play: For Free",
