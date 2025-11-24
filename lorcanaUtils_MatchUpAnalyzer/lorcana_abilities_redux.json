@@ -89,6 +89,49 @@
   },
   "abilities": [
     {
+      "name": "State: Can't Be Dealt Damage",
+      "category": "State",
+      "sub_type": "Damage",
+      "regex": "/(this|your|your other)? ?(\\w+)? ?(characters?)? ?can't be dealt damage ?(unless)? ?(he|she|it|they)? ?('s|are|is|'re)? ?(being challenged)?/gi",
+      "explanation": "Being able to not be dealt damage is very good. Only way to get around that is \"moving\" damage counters",
+      "justification": "Only way to get around that is \"moving\" damage counters",
+      "lastModified": "2025-11-24T11:44:57.254Z",
+      "createdAt": "2025-11-24T10:28:00.193Z",
+      "calculation": {
+        "variables": [
+          {
+            "name": "conditional",
+            "source": "regex",
+            "group": "4",
+            "type": "string"
+          },
+          {
+            "name": "charSubType",
+            "source": "regex",
+            "group": "2",
+            "type": "string"
+          },
+          {
+            "name": "character",
+            "source": "regex",
+            "group": "3",
+            "type": "string"
+          }
+        ],
+        "contextModifiers": [],
+        "scores": {
+          "lore_velocity": {
+            "value": "1.25 * @context.lvi.trigger",
+            "explanation": "Not being damaged is a survivability factor"
+          },
+          "board_control": {
+            "explanation": "Really helps in challenges and keeping board control",
+            "value": "3.5 * (@conditional === 'unless' ? 0.5 : 1.0) * @context.lvi.trigger * @subtype[charSubType]"
+          }
+        }
+      }
+    },
+    {
       "name": "State: Can't quest",
       "category": "State",
       "sub_type": "Can't Quest",
