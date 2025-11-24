@@ -138,7 +138,8 @@
             background-color: #9333ea;
             color: white;
         }
-.card-stats-overlay {
+
+        .card-stats-overlay {
             position: absolute;
             bottom: -20px;
             left: 0;
@@ -151,25 +152,34 @@
             border-bottom-left-radius: 8px;
             border-bottom-right-radius: 8px;
         }
+
         .card-stats-overlay .ctl {
             font-weight: bold;
-            color: #a855f7; /* purple-400 */
+            color: #a855f7;
+            /* purple-400 */
         }
+
         .card-stats-overlay .rds {
-            color: #38bdf8; /* sky-400 */
+            color: #38bdf8;
+            /* sky-400 */
         }
+
         .card-stats-overlay .lvi {
-            color: #facc15; /* amber-400 */
+            color: #facc15;
+            /* amber-400 */
         }
+
         .card-stats-overlay .bcr {
-            color: #f472b6; /* rose-400 */
+            color: #f472b6;
+            /* rose-400 */
         }
 
         .highlight {
             padding: 2px 4px;
             border-radius: 4px;
             font-weight: 600;
-            color: #1e293b; /* slate-800 */
+            color: #1e293b;
+            /* slate-800 */
         }
 
         /* Tabbed Interface Styles */
@@ -253,7 +263,7 @@
 
         .stat-item:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
             border-color: #a855f7;
         }
 
@@ -299,7 +309,7 @@
             text-shadow: 1px 1px 2px #000;
             cursor: pointer;
             transition: transform 0.2s;
-            border: 1px solid rgba(255,255,255,0.2);
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
         .color-chip:hover {
@@ -314,8 +324,32 @@
         }
 
         @keyframes highlight-pulse {
-            0%, 100% { box-shadow: 0 0 20px currentColor, 0 0 40px currentColor; }
-            50% { box-shadow: 0 0 30px currentColor, 0 0 60px currentColor; }
+
+            0%,
+            100% {
+                box-shadow: 0 0 20px currentColor, 0 0 40px currentColor;
+            }
+
+            50% {
+                box-shadow: 0 0 30px currentColor, 0 0 60px currentColor;
+            }
+        }
+
+        /* Tooltip Styles from deck_shuffler */
+        .card-tooltip {
+            display: none;
+            position: absolute;
+            bottom: 110%;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 50;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+
+        .card-tooltip-trigger:hover+.card-tooltip,
+        .card-tooltip-trigger:focus+.card-tooltip {
+            display: block;
         }
     </style>
 </head>
@@ -368,7 +402,8 @@
                     <div class="flex flex-col sm:flex-row gap-3">
                         <!-- Sort Dropdown -->
                         <div class="flex-1">
-                            <select id="deckSort" class="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:outline-none">
+                            <select id="deckSort"
+                                class="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:outline-none">
                                 <option value="newest">Newest First</option>
                                 <option value="oldest">Oldest First</option>
                                 <option value="name-asc">Name A-Z</option>
@@ -378,7 +413,8 @@
 
                         <!-- Ink Color Filter -->
                         <div class="flex-1">
-                            <select id="inkFilter" class="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:outline-none">
+                            <select id="inkFilter"
+                                class="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:outline-none">
                                 <option value="">All Ink Colors</option>
                                 <option value="Amber">Amber</option>
                                 <option value="Amethyst">Amethyst</option>
@@ -390,7 +426,8 @@
                         </div>
 
                         <!-- Clear Filters Button -->
-                        <button id="clearFiltersBtn" class="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-md font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-gray-400">
+                        <button id="clearFiltersBtn"
+                            class="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-md font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-gray-400">
                             Clear
                         </button>
                     </div>
@@ -411,31 +448,35 @@
                             class="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:outline-none"
                             placeholder="e.g., Amber/Steel Steelsong">
                     </div>
-                    
+
                     <!-- Card Search Section -->
                     <div>
-                        <label for="cardSearchInput" class="block text-sm font-medium text-gray-300 mb-1">Add Cards to Deck</label>
+                        <label for="cardSearchInput" class="block text-sm font-medium text-gray-300 mb-1">Add Cards to
+                            Deck</label>
                         <div class="relative">
                             <input type="text" id="cardSearchInput"
                                 class="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:outline-none"
                                 placeholder="Search for a card name to add it..." autocomplete="off">
-                            <div id="cardSearchResults" class="absolute z-20 w-full bg-gray-600 border border-gray-500 rounded-md mt-1 max-h-72 overflow-y-auto hidden">
+                            <div id="cardSearchResults"
+                                class="absolute z-20 w-full bg-gray-600 border border-gray-500 rounded-md mt-1 max-h-72 overflow-y-auto hidden">
                                 <!-- Search results will appear here -->
                             </div>
                         </div>
                     </div>
-                    
+
                     <div>
                         <div class="flex justify-between items-center mb-1">
                             <label for="decklist" class="block text-sm font-medium text-gray-300">Decklist</label>
-                           <div class="flex gap-2">
-                               <button type="button" id="generateLlmPromptBtn" class="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-xs rounded-md font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-purple-500">
-                                   Generate Deck Guide Prompt
-                               </button>
-                               <button type="button" id="copyDecklistBtn" class="px-3 py-1 bg-gray-600 hover:bg-gray-500 text-xs rounded-md font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-purple-500">
-                                   Copy Decklist
-                               </button>
-                           </div>
+                            <div class="flex gap-2">
+                                <button type="button" id="generateLlmPromptBtn"
+                                    class="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-xs rounded-md font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-purple-500">
+                                    Generate Deck Guide Prompt
+                                </button>
+                                <button type="button" id="copyDecklistBtn"
+                                    class="px-3 py-1 bg-gray-600 hover:bg-gray-500 text-xs rounded-md font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-purple-500">
+                                    Copy Decklist
+                                </button>
+                            </div>
                         </div>
                         <textarea id="decklist" rows="10" required
                             class="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:outline-none font-mono text-sm"
@@ -476,61 +517,525 @@
         </div>
 
         <!-- Bottom Section: Visualizer and Charts -->
-        <div class="visuals-grid">
-            <!-- Center: Visual Deck Display -->
-            <main id="visualDeckContainer" class="bg-gray-800 p-4 rounded-lg shadow-lg">
-                <div class="text-center text-gray-500 italic mt-8">Enter a decklist to see the cards here.</div>
-            </main>
-            <!-- Right: Charts -->
-            <aside id="chartsContainer"
-                class="bg-gray-800 p-4 rounded-lg shadow-lg grid grid-cols-1 md:grid-cols-2 gap-4" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));">
-                <div class="text-center text-gray-400 w-full">Total Cards: <span id="total-cards"
-                        class="font-bold">0</span>
-                </div>
-                <!-- Mulligan Probability -->
-                <div id="mulliganCalculator" class="bg-gray-700 p-4 rounded-lg shadow-inner w-full">
-                    <h3 class="text-lg font-semibold text-center mb-2">Mulligan Helper</h3>
-                    <div class="flex justify-center items-center mb-3">
-                        <label for="hoverPopupToggle" class="text-sm text-gray-300 mr-2">Enable Card Threat Level inspector</label>
-                        <input type="checkbox" id="hoverPopupToggle" class="h-4 w-4 rounded border-gray-500 bg-gray-600 focus:ring-purple-500" checked>
+        <div class="tab-container">
+            <div class="tab-buttons mb-4 border-b border-gray-700">
+                <button class="tab-button active px-4 py-2 text-gray-300 hover:text-white border-b-2 border-purple-500"
+                    data-tab="visualizer">Visualizer</button>
+                <button class="tab-button px-4 py-2 text-gray-500 hover:text-gray-300 border-b-2 border-transparent"
+                    data-tab="draw">Draw Simulator</button>
+                <button class="tab-button px-4 py-2 text-gray-500 hover:text-gray-300 border-b-2 border-transparent"
+                    data-tab="simulation">Batch Simulation</button>
+            </div>
+
+            <div class="tab-content">
+                <!-- Tab 1: Visualizer -->
+                <div id="tab-visualizer" class="tab-pane active">
+                    <div class="visuals-grid">
+                        <!-- Center: Visual Deck Display -->
+                        <main id="visualDeckContainer" class="bg-gray-800 p-4 rounded-lg shadow-lg">
+                            <div class="text-center text-gray-500 italic mt-8">Enter a decklist to see the cards here.
+                            </div>
+                        </main>
+                        <!-- Right: Charts -->
+                        <aside id="chartsContainer"
+                            class="bg-gray-800 p-4 rounded-lg shadow-lg grid grid-cols-1 md:grid-cols-2 gap-4"
+                            style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));">
+                            <div class="text-center text-gray-400 w-full">Total Cards: <span id="total-cards"
+                                    class="font-bold">0</span>
+                            </div>
+                            <!-- Mulligan Probability -->
+                            <div id="mulliganCalculator" class="bg-gray-700 p-4 rounded-lg shadow-inner w-full">
+                                <h3 class="text-lg font-semibold text-center mb-2">Mulligan Helper</h3>
+                                <div class="flex justify-center items-center mb-3">
+                                    <label for="hoverPopupToggle" class="text-sm text-gray-300 mr-2">Enable Card Threat
+                                        Level
+                                        inspector</label>
+                                    <input type="checkbox" id="hoverPopupToggle"
+                                        class="h-4 w-4 rounded border-gray-500 bg-gray-600 focus:ring-purple-500"
+                                        checked>
+                                </div>
+                                <div class="grid grid-cols-2 gap-2 mb-3">
+                                    <button id="onThePlayBtn"
+                                        class="scenario-btn w-full px-3 py-1.5 bg-gray-600 hover:bg-gray-500 rounded-md font-semibold text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-700 focus:ring-purple-500 active">On
+                                        the Play</button>
+                                    <button id="onTheDrawBtn"
+                                        class="scenario-btn w-full px-3 py-1.5 bg-gray-600 hover:bg-gray-500 rounded-md font-semibold text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-700 focus:ring-purple-500">On
+                                        the Draw</button>
+                                </div>
+                                <p id="mulliganInstructions" class="text-center text-sm text-gray-400 mb-3">Click cards
+                                    in the deck
+                                    to calculate combined draw probability.</p>
+                                <div id="mulliganResultContainer" class="mt-2 text-center hidden">
+                                    <p class="text-gray-300">Prob. to find all selected cards:</p>
+                                    <p id="mulliganResult" class="text-3xl font-bold text-purple-400 mt-1">0%</p>
+                                    <p id="mulliganDetails" class="text-xs text-gray-400"></p>
+                                </div>
+                            </div>
+                            <div class="chart-container">
+                                <h3 class="text-lg font-semibold text-center mb-2">Ink Curve</h3>
+                                <canvas id="inkCurveChart"></canvas>
+                            </div>
+                            <div class="chart-container">
+                                <h3 class="text-lg font-semibold text-center mb-2">Color Split</h3>
+                                <canvas id="colorSplitChart"></canvas>
+                            </div>
+                            <div class="chart-container">
+                                <h3 class="text-lg font-semibold text-center mb-2">Inkable vs. Uninkable</h3>
+                                <canvas id="inkableChart"></canvas>
+                            </div>
+                            <div class="chart-container">
+                                <h3 class="text-lg font-semibold text-center mb-2">Card Types</h3>
+                                <canvas id="cardTypeChart"></canvas>
+                            </div>
+                            <div class="chart-container">
+                                <h3 class="text-lg font-semibold text-center mb-2">Subtypes</h3>
+                                <canvas id="subtypesChart"></canvas>
+                            </div>
+                        </aside>
                     </div>
-                    <div class="grid grid-cols-2 gap-2 mb-3">
-                        <button id="onThePlayBtn"
-                            class="scenario-btn w-full px-3 py-1.5 bg-gray-600 hover:bg-gray-500 rounded-md font-semibold text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-700 focus:ring-purple-500 active">On
-                            the Play</button>
-                        <button id="onTheDrawBtn"
-                            class="scenario-btn w-full px-3 py-1.5 bg-gray-600 hover:bg-gray-500 rounded-md font-semibold text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-700 focus:ring-purple-500">On
-                            the Draw</button>
+                </div>
+
+                <!-- Tab 2: Draw Simulator -->
+                <div id="tab-draw" class="tab-pane hidden">
+                    <div id="draw-content" class="space-y-6">
+                        <!-- Deck Shuffle Simulator -->
+                        <div class="bg-gray-800 rounded-lg shadow-lg border border-gray-700">
+                            <div class="p-6">
+                                <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                        stroke-linejoin="round" class="h-5 w-5 text-blue-400">
+                                        <path
+                                            d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z">
+                                        </path>
+                                        <path d="M20 3v4"></path>
+                                        <path d="M22 5h-4"></path>
+                                        <path d="M4 17v2"></path>
+                                        <path d="M5 18H3"></path>
+                                    </svg>
+                                    Deck Shuffle Simulator
+                                </h3>
+                                <p class="text-sm text-gray-400 mt-2">Simulate shuffles using the Fisher-Yates
+                                    algorithm.</p>
+                            </div>
+                            <div class="p-6 pt-0">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <!-- Shuffle Controls -->
+                                    <div class="space-y-4">
+                                        <div class="flex gap-2">
+                                            <button id="shuffle-button"
+                                                class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-blue-600 text-white hover:bg-blue-700 h-11 px-8 flex-1">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                                                    viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                                    class="mr-2 h-4 w-4">
+                                                    <path
+                                                        d="M2 18h1.4c1.3 0 2.5-.6 3.3-1.7l6.1-8.6c.7-1.1 2-1.7 3.3-1.7H22">
+                                                    </path>
+                                                    <path d="m18 2 4 4-4 4"></path>
+                                                    <path d="M2 6h1.9c1.5 0 2.9.9 3.6 2.2"></path>
+                                                    <path d="M22 18h-5.9c-1.3 0-2.6-.7-3.3-1.8l-.5-.8"></path>
+                                                    <path d="m18 14 4 4-4 4"></path>
+                                                </svg>
+                                                Shuffle Deck
+                                            </button>
+                                            <button id="reset-button"
+                                                class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-gray-700 text-white hover:bg-gray-600 h-11 px-8">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                                                    viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                                    class="mr-2 h-4 w-4">
+                                                    <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
+                                                    <path d="M21 3v5h-5"></path>
+                                                    <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16">
+                                                    </path>
+                                                    <path d="M8 16H3v5"></path>
+                                                </svg>
+                                                Reset
+                                            </button>
+                                        </div>
+                                        <!-- Hand Quality -->
+                                        <div id="hand-quality-container" class="space-y-4 pt-2 hidden">
+                                            <div>
+                                                <p class="text-xs text-gray-500 mb-1">Opening Hand Quality</p>
+                                                <div class="flex items-center gap-2">
+                                                    <span id="opening-quality-score"
+                                                        class="text-xl font-bold text-gray-300">0.0</span>
+                                                    <div id="opening-quality-rating"
+                                                        class="text-xs px-2 py-0.5 rounded border"></div>
+                                                </div>
+                                                <div class="w-full bg-gray-700 rounded-full h-1.5 mt-1">
+                                                    <div id="opening-quality-bar" class="bg-gray-500 h-1.5 rounded-full"
+                                                        style="width: 0%"></div>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <p class="text-xs text-indigo-300 mb-1">Final Hand Quality</p>
+                                                <div class="flex items-center gap-2">
+                                                    <span id="final-quality-score"
+                                                        class="text-3xl font-bold text-indigo-400">0.0</span>
+                                                    <div id="final-quality-rating"
+                                                        class="text-sm px-2.5 py-0.5 rounded border font-semibold">
+                                                    </div>
+                                                </div>
+                                                <div class="w-full bg-gray-700 rounded-full h-2.5 mt-1">
+                                                    <div id="final-quality-bar" class="bg-indigo-500 h-2.5 rounded-full"
+                                                        style="width: 0%"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- Recent Shuffles -->
+                                    <div class="space-y-2">
+                                        <div class="flex items-center gap-2">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                                                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                                stroke-linecap="round" stroke-linejoin="round"
+                                                class="h-4 w-4 text-gray-500">
+                                                <circle cx="12" cy="12" r="10"></circle>
+                                                <polyline points="12 6 12 12 16 14"></polyline>
+                                            </svg>
+                                            <h3 class="text-sm font-medium text-white">Recent Shuffles</h3>
+                                        </div>
+                                        <div id="recent-shuffles-list" class="space-y-2 max-h-36 overflow-y-auto pr-2">
+                                            <p class="text-xs text-gray-500 text-center py-4">Shuffle the deck to see
+                                                results.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Hand Analysis -->
+                        <div id="hand-analysis-container"
+                            class="bg-gray-800 rounded-lg shadow-lg border border-gray-700 overflow-hidden hidden">
+                            <div class="p-6">
+                                <h3 class="text-xl font-bold text-white">Hand Analysis</h3>
+                                <p class="text-sm text-gray-400 mt-2">Compare your opening hand with early game
+                                    potential.</p>
+                            </div>
+                            <div class="p-6 pt-0">
+                                <div class="grid grid-cols-1 gap-6">
+                                    <!-- Opening Hand -->
+                                    <div class="space-y-4 min-w-0">
+                                        <div class="flex items-center justify-between">
+                                            <h3 class="text-sm font-semibold text-white">Opening Hand (7 Cards)</h3>
+                                            <div id="opening-hand-rating"
+                                                class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-sm font-semibold">
+                                            </div>
+                                        </div>
+                                        <div id="opening-hand-analysis-points" class="space-y-1 text-sm"></div>
+                                        <!-- Stats Grid -->
+                                        <div class="grid grid-cols-2 gap-3 text-sm">
+                                            <div class="space-y-1">
+                                                <p class="text-gray-500">Inkable</p>
+                                                <p id="hand-inkable-stat" class="font-bold text-lg text-white"></p>
+                                            </div>
+                                            <div class="space-y-1">
+                                                <p class="text-gray-500">Curve</p>
+                                                <div id="hand-curve-stat" class="flex flex-wrap gap-1"></div>
+                                            </div>
+                                            <div class="space-y-1">
+                                                <p class="text-gray-500">Types</p>
+                                                <div id="hand-types-stat" class="flex flex-wrap gap-1"></div>
+                                            </div>
+                                            <div class="space-y-1">
+                                                <p class="text-gray-500">Colors</p>
+                                                <div id="hand-colors-stat" class="flex flex-wrap gap-1"></div>
+                                            </div>
+                                        </div>
+                                        <!-- Card Images -->
+                                        <div class="space-y-4">
+                                            <!-- Opening Hand -->
+                                            <div>
+                                                <div class="flex items-center justify-between mb-1">
+                                                    <span
+                                                        class="text-xs text-gray-400 uppercase tracking-wider font-bold">Opening
+                                                        Hand</span>
+                                                    <span id="opening-hand-score-display"
+                                                        class="text-xs font-mono text-gray-500"></span>
+                                                </div>
+                                                <div class="w-full overflow-x-auto">
+                                                    <div id="opening-hand-container"
+                                                        class="grid grid-cols-7 gap-1 w-max sm:w-full"></div>
+                                                </div>
+                                            </div>
+                                            <!-- Final Hand -->
+                                            <div>
+                                                <div class="flex items-center justify-between mb-1">
+                                                    <span
+                                                        class="text-xs text-gray-400 uppercase tracking-wider font-bold">Final
+                                                        Hand</span>
+                                                    <span id="final-hand-score-display"
+                                                        class="text-xs font-mono text-gray-500"></span>
+                                                </div>
+                                                <div class="w-full overflow-x-auto">
+                                                    <div id="final-hand-container"
+                                                        class="grid grid-cols-7 gap-1 w-max sm:w-full"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div id="hand-comparison" class="pt-2 space-y-1 text-sm"></div>
+                                    </div>
+
+                                    <!-- Early Game -->
+                                    <div class="space-y-4 min-w-0">
+                                        <div class="flex items-center gap-2">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                                                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                                stroke-linecap="round" stroke-linejoin="round"
+                                                class="h-4 w-4 text-white">
+                                                <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
+                                                <polyline points="16 7 22 7 22 13"></polyline>
+                                            </svg>
+                                            <h3 class="text-sm font-semibold text-white">Early Game (First 15 Cards)
+                                            </h3>
+                                        </div>
+                                        <div class="grid grid-cols-2 gap-3 text-sm">
+                                            <div class="space-y-1">
+                                                <p class="text-gray-500">Inkable</p>
+                                                <p id="early-inkable-stat" class="font-bold text-lg text-white"></p>
+                                            </div>
+                                            <div class="space-y-1">
+                                                <p class="text-gray-500">Curve</p>
+                                                <div id="early-curve-stat" class="flex flex-wrap gap-1"></div>
+                                            </div>
+                                            <div class="space-y-1">
+                                                <p class="text-gray-500">Types</p>
+                                                <div id="early-types-stat" class="flex flex-wrap gap-1"></div>
+                                            </div>
+                                            <div class="space-y-1">
+                                                <p class="text-gray-500">Colors</p>
+                                                <div id="early-colors-stat" class="flex flex-wrap gap-1"></div>
+                                            </div>
+                                        </div>
+                                        <div id="early-tags-stat" class="flex flex-wrap gap-2 text-sm"></div>
+                                        <p class="pt-2 text-sm text-gray-500">Showing analysis of cards 1-15 from this
+                                            shuffle.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Deck Timeline -->
+                            <div id="deck-timeline-container" class="w-full min-w-0 border-t border-gray-700 p-6">
+                                <div class="space-y-3">
+                                    <div class="flex items-center justify-between">
+                                        <h3 id="deck-timeline-header" class="text-sm font-semibold text-white">Deck
+                                            Timeline</h3>
+                                        <div class="flex items-center gap-2 text-sm text-gray-500">
+                                            <span>Scroll to see turn progression</span>
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                                                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                                stroke-linecap="round" stroke-linejoin="round" class="h-3 w-3">
+                                                <path d="M5 12h14"></path>
+                                                <path d="m12 5 7 7-7 7"></path>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                    <div class="w-full overflow-x-auto overflow-y-hidden pb-4">
+                                        <div id="deck-timeline-cards" class="flex gap-4 w-max"></div>
+                                    </div>
+                                    <div class="flex items-center justify-center gap-4 text-xs text-gray-500 pt-2">
+                                        <div class="flex items-center gap-1.5">
+                                            <div class="w-3 h-3 bg-blue-500 rounded-full"></div><span>Early
+                                                (T1-7)</span>
+                                        </div>
+                                        <div class="flex items-center gap-1.5">
+                                            <div class="w-3 h-3 bg-yellow-500 rounded-full"></div><span>Mid
+                                                (T8-14)</span>
+                                        </div>
+                                        <div class="flex items-center gap-1.5">
+                                            <div class="w-3 h-3 bg-purple-500 rounded-full"></div><span>Late
+                                                (T15+)</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Shuffle Quality Analysis -->
+                        <div id="shuffle-quality-container"
+                            class="bg-gray-800 rounded-lg shadow-lg border border-gray-700 hidden">
+                            <div class="p-6">
+                                <h3 class="text-xl leading-none font-bold text-white flex items-center justify-between">
+                                    <span>Shuffle Quality Analysis</span>
+                                    <div id="shuffle-quality-rating"
+                                        class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-sm font-semibold">
+                                    </div>
+                                </h3>
+                                <p class="text-sm text-gray-400 mt-2">Statistical analysis of shuffle randomization.</p>
+                            </div>
+                            <div class="p-6 pt-0 space-y-4">
+                                <div class="space-y-2">
+                                    <div id="shuffle-quality-issues" class="space-y-1 text-sm"></div>
+                                </div>
+                                <button id="toggle-stats-button" type="button"
+                                    class="w-full flex items-center justify-center gap-2 py-2 text-sm text-gray-500 hover:text-white transition-colors border-t border-gray-700 pt-4">
+                                    <svg id="toggle-stats-icon" xmlns="http://www.w3.org/2000/svg" width="24"
+                                        height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                        class="h-4 w-4 transition-transform">
+                                        <path d="m6 9 6 6 6-6"></path>
+                                    </svg>
+                                    <span id="toggle-stats-text">Show Detailed Statistics</span>
+                                </button>
+                                <div id="detailed-stats-container" class="pt-4 border-t border-gray-700 hidden">
+                                    <div class="space-y-4">
+                                        <div class="space-y-2">
+                                            <h4 class="text-sm font-semibold text-white">Consecutive Same Cards</h4>
+                                            <div id="consecutive-cards-stat" class="grid grid-cols-3 gap-2 text-sm">
+                                            </div>
+                                        </div>
+                                        <div class="space-y-2">
+                                            <h4 class="text-sm font-semibold text-white">Clustering Analysis</h4>
+                                            <div id="clustering-stat" class="grid grid-cols-2 gap-3 text-sm"></div>
+                                        </div>
+                                        <div id="clustering-alert-box"
+                                            class="hidden relative w-full rounded-lg border border-yellow-700 bg-yellow-900 text-yellow-300 p-4">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                                                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                                stroke-linecap="round" stroke-linejoin="round"
+                                                class="lucide lucide-circle-alert h-4 w-4 absolute left-4 top-4">
+                                                <circle cx="12" cy="12" r="10"></circle>
+                                                <line x1="12" x2="12" y1="8" y2="12"></line>
+                                                <line x1="12" x2="12.01" y1="16" y2="16"></line>
+                                            </svg>
+                                            <div id="clustering-alert-text" class="ml-7 text-sm"></div>
+                                        </div>
+                                        <div class="space-y-2">
+                                            <h4 class="text-sm font-semibold text-white flex items-center gap-1"><svg
+                                                    xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                                                    viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                                    class="h-3 w-3">
+                                                    <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
+                                                    <polyline points="16 7 22 7 22 13"></polyline>
+                                                </svg>Distribution (Full Deck)</h4>
+                                            <div class="space-y-2 text-sm">
+                                                <div><span class="text-gray-500">Colors:</span>
+                                                    <div id="dist-colors-stat" class="flex flex-wrap gap-1 mt-1"></div>
+                                                </div>
+                                                <div><span class="text-gray-500">Costs:</span>
+                                                    <div id="dist-costs-stat" class="flex flex-wrap gap-1 mt-1"></div>
+                                                </div>
+                                                <div><span class="text-gray-500">Inkwell:</span>
+                                                    <div id="dist-inkwell-stat" class="flex flex-wrap gap-1 mt-1"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <p id="mulliganInstructions" class="text-center text-sm text-gray-400 mb-3">Click cards in the deck
-                        to calculate combined draw probability.</p>
-                    <div id="mulliganResultContainer" class="mt-2 text-center hidden">
-                        <p class="text-gray-300">Prob. to find all selected cards:</p>
-                        <p id="mulliganResult" class="text-3xl font-bold text-purple-400 mt-1">0%</p>
-                        <p id="mulliganDetails" class="text-xs text-gray-400"></p>
+                </div>
+
+                <!-- Tab 3: Batch Simulation -->
+                <div id="tab-simulation" class="tab-pane hidden">
+                    <div id="simulation-content" class="space-y-6">
+                        <!-- Simulation Controls -->
+                        <div class="bg-gray-800 rounded-lg shadow-lg border border-gray-700 p-6">
+                            <h3 class="text-xl font-bold text-white flex items-center gap-2 mb-4">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round" class="h-5 w-5 text-purple-400">
+                                    <path d="M12 2v20"></path>
+                                    <path d="M2 12h20"></path>
+                                    <path d="m4.93 4.93 14.14 14.14"></path>
+                                    <path d="m19.07 4.93-14.14 14.14"></path>
+                                </svg>
+                                Batch Simulation
+                            </h3>
+                            <div class="flex items-end gap-4">
+                                <div class="space-y-1">
+                                    <label class="text-sm text-gray-400">Iterations</label>
+                                    <input id="sim-iterations" type="number" value="1000"
+                                        class="w-32 bg-gray-800 border border-gray-700 rounded-md px-3 py-2 text-white focus:ring-2 focus:ring-purple-500 focus:outline-none">
+                                </div>
+                                <button id="run-sim-button"
+                                    class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-6 rounded-lg transition duration-200 disabled:opacity-50">
+                                    Run Simulation
+                                </button>
+                            </div>
+                            <p id="sim-status" class="text-sm text-gray-500 mt-2 h-5"></p>
+                        </div>
+
+                        <!-- Simulation Results -->
+                        <div id="sim-results" class="hidden space-y-6">
+                            <!-- Key Metrics Grid -->
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <!-- Avg Hand Quality -->
+                                <div class="bg-gray-800 rounded-lg shadow-lg border border-gray-700 p-6">
+                                    <h4 class="text-sm font-semibold text-gray-400 mb-2">Avg. Hand Quality</h4>
+                                    <div class="flex items-baseline gap-2">
+                                        <span id="sim-avg-quality" class="text-3xl font-bold text-white">0.0</span>
+                                        <span class="text-sm text-gray-500">/ 10</span>
+                                    </div>
+                                    <div class="mt-2 text-sm">
+                                        <span class="text-gray-500">Opening: </span>
+                                        <span id="sim-avg-opening-quality" class="text-gray-300">0.0</span>
+                                    </div>
+                                </div>
+                                <!-- Mulligan Stats -->
+                                <div class="bg-gray-800 rounded-lg shadow-lg border border-gray-700 p-6">
+                                    <h4 class="text-sm font-semibold text-gray-400 mb-2">Mulligan Stats</h4>
+                                    <div class="space-y-2">
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-500">Mulligan Rate</span>
+                                            <span id="sim-mulligan-rate" class="font-bold text-white">0%</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-500">Avg. Replaced</span>
+                                            <span id="sim-avg-replaced" class="font-bold text-white">0.0</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Consistency -->
+                                <div class="bg-gray-800 rounded-lg shadow-lg border border-gray-700 p-6">
+                                    <h4 class="text-sm font-semibold text-gray-400 mb-2">Consistency</h4>
+                                    <div class="space-y-2">
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-500">Brick Rate (&lt;2 Ink)</span>
+                                            <span id="sim-brick-rate" class="font-bold text-white">0%</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-500">Perfect Curve (T1-3)</span>
+                                            <span id="sim-curve-rate" class="font-bold text-white">0%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Detailed Stats & Graphs -->
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                <!-- Hand Quality Chart -->
+                                <div class="bg-gray-800 rounded-lg shadow-lg border border-gray-700 p-6">
+                                    <h4 class="text-lg font-bold text-white mb-4">Hand Quality Distribution</h4>
+                                    <div class="relative h-64 w-full">
+                                        <canvas id="sim-quality-chart"></canvas>
+                                    </div>
+                                </div>
+
+                                <!-- Issues Chart -->
+                                <div class="bg-gray-800 rounded-lg shadow-lg border border-gray-700 p-6">
+                                    <h4 class="text-lg font-bold text-white mb-4">Hand Issues Frequency</h4>
+                                    <div class="relative h-64 w-full">
+                                        <canvas id="sim-issues-chart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Additional Stats -->
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                <!-- Most Frequent Cards -->
+                                <div class="bg-gray-800 rounded-lg shadow-lg border border-gray-700 p-6">
+                                    <h4 class="text-lg font-bold text-white mb-4">Most Frequent Opening Cards</h4>
+                                    <div id="sim-freq-cards" class="space-y-2 max-h-60 overflow-y-auto pr-2"></div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="chart-container">
-                    <h3 class="text-lg font-semibold text-center mb-2">Ink Curve</h3>
-                    <canvas id="inkCurveChart"></canvas>
-                </div>
-                <div class="chart-container">
-                    <h3 class="text-lg font-semibold text-center mb-2">Color Split</h3>
-                    <canvas id="colorSplitChart"></canvas>
-                </div>
-                <div class="chart-container">
-                    <h3 class="text-lg font-semibold text-center mb-2">Inkable vs. Uninkable</h3>
-                    <canvas id="inkableChart"></canvas>
-                </div>
-                <div class="chart-container">
-                    <h3 class="text-lg font-semibold text-center mb-2">Card Types</h3>
-                    <canvas id="cardTypeChart"></canvas>
-                </div>
-                <div class="chart-container">
-                    <h3 class="text-lg font-semibold text-center mb-2">Subtypes</h3>
-                    <canvas id="subtypesChart"></canvas>
-                </div>
-            </aside>
+            </div>
         </div>
     </div>
 
@@ -549,23 +1054,27 @@
         </div>
     </div>
 
-   <!-- LLM Prompt Modal -->
-   <div id="llmPromptModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 p-4 opacity-0 pointer-events-none">
-       <div class="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-4xl h-[90vh] flex flex-col">
-           <div class="flex justify-between items-center mb-4">
-               <h3 class="text-lg font-bold text-white">Generated LLM Prompt</h3>
-               <button id="closeLlmModalBtn" class="text-gray-400 hover:text-white">&times;</button>
-           </div>
-           <textarea id="llmPromptOutput" readonly class="w-full h-full bg-gray-900 border border-gray-700 rounded-md p-4 focus:ring-2 focus:ring-purple-500 focus:outline-none font-mono text-sm whitespace-pre-wrap"></textarea>
-           <div class="flex justify-end gap-4 mt-4">
-               <button id="copyLlmPromptBtn" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-md font-semibold transition-colors">Copy Prompt</button>
-           </div>
-       </div>
-   </div>
+    <!-- LLM Prompt Modal -->
+    <div id="llmPromptModal"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 p-4 opacity-0 pointer-events-none">
+        <div class="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-4xl h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-white">Generated LLM Prompt</h3>
+                <button id="closeLlmModalBtn" class="text-gray-400 hover:text-white">&times;</button>
+            </div>
+            <textarea id="llmPromptOutput" readonly
+                class="w-full h-full bg-gray-900 border border-gray-700 rounded-md p-4 focus:ring-2 focus:ring-purple-500 focus:outline-none font-mono text-sm whitespace-pre-wrap"></textarea>
+            <div class="flex justify-end gap-4 mt-4">
+                <button id="copyLlmPromptBtn"
+                    class="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-md font-semibold transition-colors">Copy
+                    Prompt</button>
+            </div>
+        </div>
+    </div>
 
-<script src="unified_win_probability_utilities.js"></script>
-<script src="card_stat_analysis_module.js"></script>
-<script src="CardThreatLevelInspector.js"></script>
+    <script src="unified_win_probability_utilities.js"></script>
+    <script src="card_stat_analysis_module.js"></script>
+    <script src="CardThreatLevelInspector.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             // --- GLOBAL STATE & CONFIG ---
@@ -594,6 +1103,762 @@
                 Beast: '#64748b', Belle: '#dc2626', Gaston: '#ea580c', Lumiere: '#06b6d4',
                 Cogsworth: '#fbbf24', MrsPott: '#3b82f6', Chip: '#10b981', Wardrobe: '#f59e0b'
             };
+
+            const RATING_CLASSES = {
+                "S": "bg-yellow-500/20 text-yellow-400 border-yellow-500/50",
+                "A": "bg-green-500/20 text-green-400 border-green-500/50",
+                "B": "bg-blue-500/20 text-blue-400 border-blue-500/50",
+                "C": "bg-gray-500/20 text-gray-400 border-gray-500/50",
+                "D": "bg-orange-500/20 text-orange-400 border-orange-500/50",
+                "F": "bg-red-500/20 text-red-400 border-red-500/50"
+            };
+
+            // --- SIMULATION GLOBALS ---
+            let simDecklist = [];
+            let shuffledDeck = [];
+            let openingHand = [];
+            let recentShuffles = [];
+            let currentShuffleAnalysis = {};
+            let combinationsCache = {};
+
+            const DOMElements = {
+                // Tabs
+                tabButtons: document.querySelectorAll('.tab-button'),
+                tabPanes: document.querySelectorAll('.tab-pane'),
+
+                // Shuffle Sim
+                shuffleButton: document.getElementById('shuffle-button'),
+                resetButton: document.getElementById('reset-button'),
+                handQualityContainer: document.getElementById('hand-quality-container'),
+                openingQualityScore: document.getElementById('opening-quality-score'),
+                openingQualityRating: document.getElementById('opening-quality-rating'),
+                openingQualityBar: document.getElementById('opening-quality-bar'),
+                finalQualityScore: document.getElementById('final-quality-score'),
+                finalQualityRating: document.getElementById('final-quality-rating'),
+                finalQualityBar: document.getElementById('final-quality-bar'),
+                recentShufflesList: document.getElementById('recent-shuffles-list'),
+
+                // Hand Analysis
+                handAnalysisContainer: document.getElementById('hand-analysis-container'),
+                openingHandRating: document.getElementById('opening-hand-rating'),
+                openingHandAnalysisPoints: document.getElementById('opening-hand-analysis-points'),
+                handInkableStat: document.getElementById('hand-inkable-stat'),
+                handCurveStat: document.getElementById('hand-curve-stat'),
+                handTypesStat: document.getElementById('hand-types-stat'),
+                handColorsStat: document.getElementById('hand-colors-stat'),
+                openingHandContainer: document.getElementById('opening-hand-container'),
+                finalHandContainer: document.getElementById('final-hand-container'),
+                openingHandScoreDisplay: document.getElementById('opening-hand-score-display'),
+                finalHandScoreDisplay: document.getElementById('final-hand-score-display'),
+                handComparison: document.getElementById('hand-comparison'),
+
+                // Early Game
+                earlyInkableStat: document.getElementById('early-inkable-stat'),
+                earlyCurveStat: document.getElementById('early-curve-stat'),
+                earlyTypesStat: document.getElementById('early-types-stat'),
+                earlyColorsStat: document.getElementById('early-colors-stat'),
+                earlyTagsStat: document.getElementById('early-tags-stat'),
+
+                // Timeline
+                deckTimelineContainer: document.getElementById('deck-timeline-container'),
+                deckTimelineHeader: document.getElementById('deck-timeline-header'),
+                deckTimelineCards: document.getElementById('deck-timeline-cards'),
+
+                // Shuffle Quality
+                shuffleQualityContainer: document.getElementById('shuffle-quality-container'),
+                shuffleQualityRating: document.getElementById('shuffle-quality-rating'),
+                shuffleQualityIssues: document.getElementById('shuffle-quality-issues'),
+                toggleStatsButton: document.getElementById('toggle-stats-button'),
+                toggleStatsIcon: document.getElementById('toggle-stats-icon'),
+                toggleStatsText: document.getElementById('toggle-stats-text'),
+                detailedStatsContainer: document.getElementById('detailed-stats-container'),
+                consecutiveCardsStat: document.getElementById('consecutive-cards-stat'),
+                clusteringStat: document.getElementById('clustering-stat'),
+                clusteringAlertBox: document.getElementById('clustering-alert-box'),
+                clusteringAlertText: document.getElementById('clustering-alert-text'),
+                distColorsStat: document.getElementById('dist-colors-stat'),
+                distCostsStat: document.getElementById('dist-costs-stat'),
+                distInkwellStat: document.getElementById('dist-inkwell-stat'),
+
+                // Simulation
+                simIterations: document.getElementById('sim-iterations'),
+                runSimButton: document.getElementById('run-sim-button'),
+                simStatus: document.getElementById('sim-status'),
+                simResults: document.getElementById('sim-results'),
+                simAvgQuality: document.getElementById('sim-avg-quality'),
+                simAvgOpeningQuality: document.getElementById('sim-avg-opening-quality'),
+                simMulliganRate: document.getElementById('sim-mulligan-rate'),
+                simAvgReplaced: document.getElementById('sim-avg-replaced'),
+                simBrickRate: document.getElementById('sim-brick-rate'),
+                simCurveRate: document.getElementById('sim-curve-rate'),
+                simFreqCards: document.getElementById('sim-freq-cards'),
+                simQualityChart: document.getElementById('sim-quality-chart'),
+                simIssuesChart: document.getElementById('sim-issues-chart'),
+            };
+
+            // --- LOGIC: TABS & PREP ---
+            function switchTab(tabId) {
+                DOMElements.tabButtons.forEach(btn => {
+                    if (btn.dataset.tab === tabId) {
+                        btn.classList.add('active', 'text-white', 'border-purple-500');
+                        btn.classList.remove('text-gray-500', 'border-transparent');
+                    } else {
+                        btn.classList.remove('active', 'text-white', 'border-purple-500');
+                        btn.classList.add('text-gray-500', 'border-transparent');
+                    }
+                });
+
+                DOMElements.tabPanes.forEach(pane => {
+                    if (pane.id === `tab-${tabId}`) {
+                        pane.classList.remove('hidden');
+                        pane.classList.add('active');
+                    } else {
+                        pane.classList.add('hidden');
+                        pane.classList.remove('active');
+                    }
+                });
+            }
+
+            function prepareSimulationDeck() {
+                simDecklist = [];
+                currentDeck.forEach(item => {
+                    for (let i = 0; i < item.count; i++) {
+                        simDecklist.push({ ...item.card }); // Clone to avoid mutation issues
+                    }
+                });
+                return simDecklist;
+            }
+
+            // --- LOGIC: SHUFFLE CORE ---
+            function handleShuffleDeck() {
+                if (prepareSimulationDeck().length === 0) {
+                    alert("Please build a deck first!");
+                    return;
+                }
+
+                // Animate
+                const btn = DOMElements.shuffleButton;
+                const originalText = btn.innerHTML;
+                btn.innerHTML = `<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Shuffling...`;
+                btn.disabled = true;
+
+                setTimeout(() => {
+                    runSingleShuffleSimulation();
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                }, 300);
+            }
+
+            function handleReset() {
+                shuffledDeck = [];
+                openingHand = [];
+                recentShuffles = [];
+                currentShuffleAnalysis = {};
+
+                DOMElements.handQualityContainer.classList.add('hidden');
+                DOMElements.handAnalysisContainer.classList.add('hidden');
+                DOMElements.shuffleQualityContainer.classList.add('hidden');
+                DOMElements.recentShufflesList.innerHTML = '<p class="text-xs text-gray-500 text-center py-4">Shuffle the deck to see results.</p>';
+
+                // Clear stats
+                ['hand-inkable-stat', 'hand-curve-stat', 'hand-types-stat', 'hand-colors-stat',
+                    'early-inkable-stat', 'early-curve-stat', 'early-types-stat', 'early-colors-stat', 'early-tags-stat',
+                    'opening-hand-container', 'final-hand-container', 'deck-timeline-cards',
+                    'shuffle-quality-issues', 'consecutive-cards-stat', 'clustering-stat',
+                    'dist-colors-stat', 'dist-costs-stat', 'dist-inkwell-stat'].forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el) el.innerHTML = '';
+                    });
+
+                document.getElementById('opening-hand-rating').className = '';
+                document.getElementById('opening-hand-rating').textContent = '';
+                document.getElementById('shuffle-quality-rating').className = '';
+                document.getElementById('shuffle-quality-rating').textContent = '';
+            }
+
+            function fisherYatesShuffle(deck) {
+                const newDeck = [...deck];
+                for (let i = newDeck.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [newDeck[i], newDeck[j]] = [newDeck[j], newDeck[i]];
+                }
+                return newDeck;
+            }
+
+            function determineMulligan(hand) {
+                const toKeep = [];
+                const toMulligan = [];
+
+                // 1. Check for uninkables
+                const uninkables = hand.filter(c => !c.inkwell);
+                const inkables = hand.filter(c => c.inkwell);
+
+                // If too many uninkables (>2), mulligan the most expensive ones
+                if (uninkables.length > 2) {
+                    uninkables.sort((a, b) => b.cost - a.cost);
+                    // Keep at most 2 uninkables
+                    toKeep.push(...uninkables.slice(uninkables.length - 2)); // Keep last 2 (cheapest)
+                    toMulligan.push(...uninkables.slice(0, uninkables.length - 2));
+                } else {
+                    toKeep.push(...uninkables);
+                }
+
+                // 2. Check for curve (1-2-3 drops)
+                const sortedInkables = inkables.sort((a, b) => a.cost - b.cost);
+
+                // Try to fill curve 1, 2, 3
+                [1, 2, 3].forEach(cost => {
+                    const foundIndex = sortedInkables.findIndex(c => c.cost === cost);
+                    if (foundIndex !== -1) {
+                        toKeep.push(sortedInkables[foundIndex]);
+                        sortedInkables.splice(foundIndex, 1);
+                    }
+                });
+
+                toMulligan.push(...sortedInkables);
+
+                // Re-assemble indices
+                const indicesToMulligan = [];
+                hand.forEach((card, index) => {
+                    if (toMulligan.includes(card)) {
+                        indicesToMulligan.push(index);
+                        const idx = toMulligan.indexOf(card);
+                        if (idx > -1) toMulligan.splice(idx, 1);
+                    }
+                });
+
+                return indicesToMulligan;
+            }
+
+            function performSingleSimulation(deck) {
+                // 1. Initial Shuffle
+                const shuffledDeck = fisherYatesShuffle([...deck]);
+                const initialHand = shuffledDeck.slice(0, 7);
+                const deckAfterDraw = shuffledDeck.slice(7);
+
+                // 2. Mulligan
+                const mulliganIndices = determineMulligan(initialHand);
+                const cardsToBottom = mulliganIndices.map(i => initialHand[i]);
+                const keptHand = initialHand.filter((_, i) => !mulliganIndices.includes(i));
+
+                // 3. Draw replacements
+                const replacements = deckAfterDraw.slice(0, mulliganIndices.length);
+                const finalHand = [...keptHand, ...replacements];
+
+                // 4. Shuffle bottom
+                const deckRest = deckAfterDraw.slice(mulliganIndices.length);
+                const newDeck = fisherYatesShuffle([...deckRest, ...cardsToBottom]);
+
+                // 5. Analysis
+                const openingAnalysis = analyzeHand(initialHand);
+                const finalAnalysis = analyzeHand(finalHand);
+
+                return {
+                    id: Date.now(),
+                    timestamp: new Date(),
+                    initialHand,
+                    finalHand,
+                    mulliganIndices,
+                    deck: newDeck,
+                    openingAnalysis,
+                    finalAnalysis
+                };
+            }
+
+            function handleShuffleDeck() {
+                const deck = prepareSimulationDeck();
+                if (deck.length === 0) return;
+
+                const result = performSingleSimulation(deck);
+
+                recentShuffles.unshift(result);
+                if (recentShuffles.length > 10) recentShuffles.pop();
+
+                currentShuffleAnalysis = result;
+                renderShuffleSimulator();
+            }
+
+            function analyzeCardGroup(cards) {
+                const group = {
+                    cards: cards,
+                    count: cards.length,
+                    inkable: 0,
+                    avgCost: 0,
+                    costs: { "1-3": 0, "4-5": 0, "6+": 0 },
+                    types: {},
+                    colors: {},
+                    hasLowCost: false,
+                    hasHighCost: false,
+                };
+
+                let totalCost = 0;
+                for (const card of cards) {
+                    if (card.inkwell) group.inkable++;
+                    totalCost += card.cost;
+
+                    if (card.cost <= 3) group.costs["1-3"]++;
+                    else if (card.cost <= 5) group.costs["4-5"]++;
+                    else group.costs["6+"]++;
+
+                    if (card.cost <= 2) group.hasLowCost = true;
+                    if (card.cost >= 5) group.hasHighCost = true;
+
+                    group.types[card.type] = (group.types[card.type] || 0) + 1;
+
+                    const cardColor = card.color.split('-')[0];
+                    group.colors[cardColor] = (group.colors[cardColor] || 0) + 1;
+                    if (card.colors) {
+                        group.colors[card.colors[1]] = (group.colors[card.colors[1]] || 0) + 1;
+                    }
+                }
+
+                group.avgCost = group.count > 0 ? (totalCost / group.count) : 0;
+                return group;
+            }
+
+            function calculateHandQuality(handStats) {
+                let score = 0;
+
+                // 1. Inkable Cards (Max 4 points)
+                // Ideal is 3-5 inkable.
+                const inkable = handStats.inkable;
+                if (inkable === 3 || inkable === 4) score += 4;
+                else if (inkable === 2 || inkable === 5) score += 3;
+                else if (inkable === 1 || inkable === 6) score += 1;
+                // 0 or 7 inkable gives 0 points for this.
+
+                // 2. Early Curve (Max 6 points)
+                // Ideal is having plays on T1, T2, T3.
+                const earlyPlays = handStats.costs["1-3"];
+                if (earlyPlays >= 3) score += 6;
+                else if (earlyPlays === 2) score += 4;
+                else if (earlyPlays === 1) score += 2;
+
+                let rating = "Bad";
+                if (score >= 9) rating = "Excellent";
+                else if (score >= 7) rating = "Good";
+                else if (score >= 5) rating = "Average";
+                else if (score >= 3) rating = "Poor";
+
+                return { score, rating };
+            }
+
+            function analyzeHand(hand) {
+                const stats = analyzeCardGroup(hand);
+                const quality = calculateHandQuality(stats);
+                return {
+                    ...stats,
+                    handQualityScore: quality.score,
+                    handQualityRating: quality.rating
+                };
+            }
+
+
+
+            // --- LOGIC: RENDERING ---
+            function renderShuffleSimulator() {
+                if (!currentShuffleAnalysis.id) return;
+
+                DOMElements.handQualityContainer.classList.remove('hidden');
+                DOMElements.handAnalysisContainer.classList.remove('hidden');
+                DOMElements.shuffleQualityContainer.classList.remove('hidden');
+
+                // Quality Scores
+                const openingScore = currentShuffleAnalysis.openingAnalysis.handQualityScore;
+                const finalScore = currentShuffleAnalysis.finalAnalysis.handQualityScore;
+
+                DOMElements.openingQualityScore.textContent = openingScore.toFixed(1);
+                DOMElements.openingQualityBar.style.width = `${(openingScore / 10) * 100}%`;
+                DOMElements.openingQualityRating.textContent = currentShuffleAnalysis.openingAnalysis.handQualityRating;
+                DOMElements.openingQualityRating.className = `text-xs px-2 py-0.5 rounded border ${RATING_CLASSES[currentShuffleAnalysis.openingAnalysis.handQualityRating] || 'border-gray-500 text-gray-500'}`;
+
+                DOMElements.finalQualityScore.textContent = finalScore.toFixed(1);
+                DOMElements.finalQualityBar.style.width = `${(finalScore / 10) * 100}%`;
+                DOMElements.finalQualityRating.textContent = currentShuffleAnalysis.finalAnalysis.handQualityRating;
+                DOMElements.finalQualityRating.className = `text-sm px-2.5 py-0.5 rounded border font-semibold ${RATING_CLASSES[currentShuffleAnalysis.finalAnalysis.handQualityRating] || 'border-gray-500 text-gray-500'}`;
+
+                renderRecentShuffles();
+                renderHandAnalysis();
+
+                // Timeline & Quality
+                renderDeckTimeline(currentShuffleAnalysis.deck.slice(7));
+
+                // We need to calculate quality stats if they aren't in the analysis
+                const qualityStats = analyzeDeckRandomness(currentShuffleAnalysis.deck);
+                renderShuffleQuality(qualityStats);
+            }
+
+            function renderDeckTimeline(deck) {
+                DOMElements.deckTimelineHeader.textContent = `Deck Timeline (${deck.length} cards)`;
+                DOMElements.deckTimelineCards.innerHTML = '';
+                deck.forEach((card, index) => {
+                    const turn = index + 1; // Turn 1 is first draw
+                    let borderColor = 'border-blue-500'; // Early
+                    if (turn >= 8 && turn <= 14) borderColor = 'border-yellow-500'; // Mid
+                    else if (turn >= 15) borderColor = 'border-purple-500'; // Late
+
+                    const cardHTML = `
+                    <div class="flex-shrink-0 space-y-2 ${turn === 8 || turn === 15 ? `border-l-4 pl-3 ${borderColor}` : ''}">
+                        <div class="text-center"><p class="text-xs font-semibold text-gray-500">Turn ${turn}</p></div>
+                        <div class="relative card-tooltip-trigger">
+                            <div class="w-24 space-y-1">
+                                <div class="aspect-[2/3] relative rounded border border-gray-700 overflow-hidden cursor-help transition-all hover:border-blue-500">
+                                    <img alt="${card.fullName}" class="w-full h-full object-cover" loading="lazy" src="${card.images.thumbnail}">
+                                </div>
+                                <p class="text-[0.65rem] text-center font-medium line-clamp-2 text-white">${card.name}</p>
+                                <p class="text-[0.55rem] text-center text-gray-500">#${index + 8}</p>
+                            </div>
+                            <div class="card-tooltip w-64">
+                                <img alt="${card.fullName}" class="w-full h-full rounded-lg" src="${card.images.full}">
+                            </div>
+                        </div>
+                    </div>
+                `;
+                    DOMElements.deckTimelineCards.innerHTML += cardHTML;
+                });
+            }
+
+            function analyzeDeckRandomness(deck) {
+                const quality = {};
+
+                // 1. Consecutive Cards
+                quality.consecutive = { 2: 0, 3: 0, 4: 0 };
+                let consecutiveCount = 1;
+                for (let i = 1; i < deck.length; i++) {
+                    if (deck[i].fullName === deck[i - 1].fullName) {
+                        consecutiveCount++;
+                    } else {
+                        if (consecutiveCount === 2) quality.consecutive[2]++;
+                        else if (consecutiveCount === 3) quality.consecutive[3]++;
+                        else if (consecutiveCount >= 4) quality.consecutive[4]++;
+                        consecutiveCount = 1;
+                    }
+                }
+                if (consecutiveCount === 2) quality.consecutive[2]++;
+                else if (consecutiveCount === 3) quality.consecutive[3]++;
+                else if (consecutiveCount >= 4) quality.consecutive[4]++;
+
+                // 2. Clustering
+                quality.clusters = {
+                    color: findClusters(deck, c => c.color),
+                    cost: findClusters(deck, c => c.cost),
+                    type: findClusters(deck, c => c.type),
+                    inkless: findClusters(deck, c => !c.inkwell),
+                };
+
+                // 3. Overall Rating & Issues
+                quality.issues = [];
+                if (quality.consecutive[3] > 0) quality.issues.push(`• ${quality.consecutive[3]} instance(s) of 3 same cards in a row.`);
+                if (quality.consecutive[4] > 0) quality.issues.push(`• ${quality.consecutive[4]} instance(s) of 4+ same cards in a row.`);
+                if (quality.clusters.color.max > 5) quality.issues.push(`• ${quality.clusters.color.max} cards of same color in a row.`);
+                if (quality.clusters.inkless.max > 3) quality.issues.push(`• ${quality.clusters.inkless.max} inkless cards in a row.`);
+
+                if (quality.issues.length === 0) {
+                    quality.rating = "Excellent";
+                    quality.issues.push("✓ No critical issues detected. Cards are well-distributed.");
+                } else if (quality.issues.length <= 2) {
+                    quality.rating = "Good";
+                } else {
+                    quality.rating = "Poor";
+                }
+
+                return quality;
+            }
+
+            function findClusters(deck, getProperty) {
+                let maxCluster = 0;
+                let currentCluster = 1;
+                let clusterCount = 0;
+
+                if (deck.length === 0) return { max: 0, count: 0 };
+
+                let lastProp = getProperty(deck[0]);
+
+                for (let i = 1; i < deck.length; i++) {
+                    const currentProp = getProperty(deck[i]);
+                    if (currentProp === lastProp) {
+                        currentCluster++;
+                    } else {
+                        if (currentCluster > 1) clusterCount++;
+                        maxCluster = Math.max(maxCluster, currentCluster);
+                        currentCluster = 1;
+                        lastProp = currentProp;
+                    }
+                }
+                if (currentCluster > 1) clusterCount++;
+                maxCluster = Math.max(maxCluster, currentCluster);
+
+                return { max: maxCluster, count: clusterCount };
+            }
+
+            function renderShuffleQuality(quality) {
+                DOMElements.shuffleQualityRating.textContent = quality.rating;
+                DOMElements.shuffleQualityRating.className = `inline-flex items-center rounded-full border px-2.5 py-0.5 text-sm font-semibold ${RATING_CLASSES[quality.rating] || 'bg-gray-500 text-white'}`;
+
+                DOMElements.shuffleQualityIssues.innerHTML = quality.issues.map(issue =>
+                    `<p class="text-sm ${issue.startsWith('✓') ? 'text-green-400' : 'text-yellow-400'}">${issue}</p>`
+                ).join('');
+
+                // Detailed Stats
+                DOMElements.consecutiveCardsStat.innerHTML = `
+                    <span class="text-gray-400">Pairs:</span> <span class="text-white">${quality.consecutive[2]}</span>
+                    <span class="text-gray-400 ml-2">Triples:</span> <span class="text-yellow-400">${quality.consecutive[3]}</span>
+                    <span class="text-gray-400 ml-2">Quads:</span> <span class="text-red-400">${quality.consecutive[4]}</span>
+                `;
+
+                DOMElements.clusteringStat.innerHTML = `
+                    <div class="grid grid-cols-2 gap-2 text-xs">
+                        <div><span class="text-gray-400">Max Color Run:</span> <span class="text-white">${quality.clusters.color.max}</span></div>
+                        <div><span class="text-gray-400">Max Cost Run:</span> <span class="text-white">${quality.clusters.cost.max}</span></div>
+                        <div><span class="text-gray-400">Max Type Run:</span> <span class="text-white">${quality.clusters.type.max}</span></div>
+                        <div><span class="text-gray-400">Max Inkless Run:</span> <span class="text-white">${quality.clusters.inkless.max}</span></div>
+                    </div>
+                `;
+            }
+
+            function renderRecentShuffles() {
+                DOMElements.recentShufflesList.innerHTML = '';
+                recentShuffles.forEach(shuffle => {
+                    const div = document.createElement('div');
+                    div.className = 'flex items-center justify-between bg-gray-700 p-2 rounded text-xs';
+                    div.innerHTML = `
+                        <span class="text-gray-300">#${shuffle.id.toString().slice(-4)}</span>
+                        <span class="${RATING_CLASSES[shuffle.finalAnalysis.handQualityRating] || 'text-gray-400'} font-bold">${shuffle.finalAnalysis.handQualityScore.toFixed(1)}</span>
+                    `;
+                    DOMElements.recentShufflesList.appendChild(div);
+                });
+            }
+
+            function renderHandAnalysis() {
+                const opening = currentShuffleAnalysis.openingAnalysis;
+                const final = currentShuffleAnalysis.finalAnalysis;
+
+                // Opening Hand Stats
+                DOMElements.openingHandRating.textContent = opening.handQualityRating;
+                DOMElements.openingHandRating.className = `inline-flex items-center rounded-full border px-2.5 py-0.5 text-sm font-semibold ${RATING_CLASSES[opening.handQualityRating] || 'border-gray-500 text-gray-500'}`;
+
+                DOMElements.handInkableStat.textContent = `${opening.inkable} / 7`;
+
+                // Helper for badges
+                const createBadge = (text, colorClass) => `<span class="inline-flex items-center rounded-md bg-gray-700 px-2 py-1 text-xs font-medium ${colorClass} ring-1 ring-inset ring-gray-600/20">${text}</span>`;
+
+                DOMElements.handCurveStat.innerHTML = Object.entries(opening.costs).map(([cost, count]) => createBadge(`${cost}: ${count}`, 'text-gray-300')).join('');
+                DOMElements.handTypesStat.innerHTML = Object.entries(opening.types).map(([type, count]) => createBadge(`${type}: ${count}`, 'text-blue-300')).join('');
+                DOMElements.handColorsStat.innerHTML = Object.entries(opening.colors).map(([color, count]) => createBadge(`${color}: ${count}`, 'text-purple-300')).join('');
+
+                // Final Hand Stats
+                DOMElements.finalHandScoreDisplay.textContent = `Score: ${final.handQualityScore.toFixed(1)}`;
+
+                // Images
+                renderCardImages(DOMElements.openingHandContainer, currentShuffleAnalysis.initialHand);
+                renderCardImages(DOMElements.finalHandContainer, currentShuffleAnalysis.finalHand);
+
+                DOMElements.openingHandScoreDisplay.textContent = `Score: ${opening.handQualityScore.toFixed(1)}`;
+
+                // Comparison Text
+                const diff = (final.handQualityScore - opening.handQualityScore).toFixed(1);
+                const diffColor = diff > 0 ? 'text-green-400' : (diff < 0 ? 'text-red-400' : 'text-gray-400');
+                const sign = diff > 0 ? '+' : '';
+                DOMElements.handComparison.innerHTML = `Mulligan Impact: <span class="${diffColor} font-bold">${sign}${diff}</span> points. Replaced ${currentShuffleAnalysis.mulliganIndices.length} cards.`;
+
+                renderEarlyGame(currentShuffleAnalysis.deck);
+            }
+
+            function renderCardImages(container, cards) {
+                container.innerHTML = '';
+                cards.forEach(card => {
+                    const img = document.createElement('img');
+                    img.src = card.images?.thumbnail || card.image || 'https://placehold.co/200x280?text=No+Image';
+                    img.alt = card.fullName;
+                    img.className = 'w-full h-auto rounded shadow-sm hover:scale-110 transition-transform duration-200 cursor-pointer';
+                    img.title = `${card.fullName} (${card.cost} ${card.color})`;
+                    container.appendChild(img);
+                });
+            }
+
+            function renderEarlyGame(deck) {
+                const earlyCards = deck.slice(0, 15);
+                const analysis = analyzeCardGroup(earlyCards);
+
+                DOMElements.earlyInkableStat.textContent = `${analysis.inkable} / 15`;
+
+                const createBadge = (text, colorClass) => `<span class="inline-flex items-center rounded-md bg-gray-700 px-2 py-1 text-xs font-medium ${colorClass} ring-1 ring-inset ring-gray-600/20">${text}</span>`;
+                DOMElements.earlyCurveStat.innerHTML = Object.entries(analysis.costs).map(([cost, count]) => createBadge(`${cost}: ${count}`, 'text-gray-300')).join('');
+                DOMElements.earlyTypesStat.innerHTML = Object.entries(analysis.types).map(([type, count]) => createBadge(`${type}: ${count}`, 'text-blue-300')).join('');
+                DOMElements.earlyColorsStat.innerHTML = Object.entries(analysis.colors).map(([color, count]) => createBadge(`${color}: ${count}`, 'text-purple-300')).join('');
+
+                DOMElements.earlyTagsStat.innerHTML = '';
+            }
+
+            // --- LOGIC: BATCH SIMULATION ---
+            async function runSimulation() {
+                const iterations = parseInt(DOMElements.simIterations.value) || 1000;
+                const deck = prepareSimulationDeck();
+
+                if (deck.length === 0) {
+                    alert("Please build a deck first!");
+                    return;
+                }
+
+                DOMElements.runSimButton.disabled = true;
+                DOMElements.simStatus.textContent = `Running ${iterations} simulations...`;
+                DOMElements.simResults.classList.add('hidden');
+
+                // Use setTimeout to allow UI to update
+                setTimeout(() => {
+                    const results = {
+                        totalOpeningQuality: 0,
+                        totalFinalQuality: 0,
+                        mulliganCount: 0,
+                        totalReplaced: 0,
+                        brickCount: 0, // < 2 ink
+                        curveCount: 0, // 1, 2, 3 drops
+                        handQualities: Array(11).fill(0), // 0-10
+                        issues: {},
+                        openingCards: {}
+                    };
+
+                    for (let i = 0; i < iterations; i++) {
+                        // Shuffle
+                        const shuffled = fisherYatesShuffle(deck);
+                        const initialHand = shuffled.slice(0, 7);
+
+                        // Analyze Opening
+                        const openingAnalysis = analyzeHand(initialHand);
+                        results.totalOpeningQuality += openingAnalysis.handQualityScore;
+
+                        // Track opening cards
+                        initialHand.forEach(card => {
+                            results.openingCards[card.fullName] = (results.openingCards[card.fullName] || 0) + 1;
+                        });
+
+                        // Mulligan
+                        const mulliganIndices = determineMulligan(initialHand);
+                        if (mulliganIndices.length > 0) results.mulliganCount++;
+                        results.totalReplaced += mulliganIndices.length;
+
+                        // Draw replacements
+                        const deckAfterDraw = shuffled.slice(7);
+                        const keptHand = initialHand.filter((_, idx) => !mulliganIndices.includes(idx));
+                        const replacements = deckAfterDraw.slice(0, mulliganIndices.length);
+                        const finalHand = [...keptHand, ...replacements];
+
+                        // Analyze Final
+                        const finalAnalysis = analyzeHand(finalHand);
+                        results.totalFinalQuality += finalAnalysis.handQualityScore;
+
+                        // Histogram
+                        const scoreBucket = Math.round(finalAnalysis.handQualityScore);
+                        if (scoreBucket >= 0 && scoreBucket <= 10) results.handQualities[scoreBucket]++;
+
+                        // Issues
+                        // Calculate issues locally since analyzeHand doesn't return them
+                        if (finalAnalysis.inkable < 2) results.issues["Brick (<2 Ink)"] = (results.issues["Brick (<2 Ink)"] || 0) + 1;
+                        if (finalAnalysis.costs["1-3"] === 0) results.issues["No Turn 1"] = (results.issues["No Turn 1"] || 0) + 1;
+                        if (finalAnalysis.costs["6+"] > 2) results.issues["High Cost (>2 6+)"] = (results.issues["High Cost (>2 6+)"] || 0) + 1;
+
+                        // Consistency Checks
+                        if (finalAnalysis.inkable < 2) results.brickCount++;
+
+                        // Perfect Curve (1, 2, 3)
+                        const costs = finalHand.map(c => c.cost);
+                        if (costs.includes(1) && costs.includes(2) && costs.includes(3)) results.curveCount++;
+                    }
+
+                    renderSimulationResults(results, iterations);
+
+                    DOMElements.runSimButton.disabled = false;
+                    DOMElements.simStatus.textContent = "Simulation complete.";
+                }, 100);
+            }
+
+            function renderSimulationResults(results, iterations) {
+                DOMElements.simResults.classList.remove('hidden');
+
+                // Averages
+                DOMElements.simAvgQuality.textContent = (results.totalFinalQuality / iterations).toFixed(2);
+                DOMElements.simAvgOpeningQuality.textContent = (results.totalOpeningQuality / iterations).toFixed(2);
+
+                // Rates
+                DOMElements.simMulliganRate.textContent = `${((results.mulliganCount / iterations) * 100).toFixed(1)}%`;
+                DOMElements.simAvgReplaced.textContent = (results.totalReplaced / iterations).toFixed(1);
+                DOMElements.simBrickRate.textContent = `${((results.brickCount / iterations) * 100).toFixed(1)}%`;
+                DOMElements.simCurveRate.textContent = `${((results.curveCount / iterations) * 100).toFixed(1)}%`;
+
+                // Frequent Cards
+                const sortedCards = Object.entries(results.openingCards)
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 10);
+
+                DOMElements.simFreqCards.innerHTML = sortedCards.map(([name, count]) => `
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-300">${name}</span>
+                        <span class="font-mono text-gray-500">${((count / iterations) * 100).toFixed(1)}%</span>
+                    </div>
+                `).join('');
+
+                renderSimulationCharts(results, iterations);
+            }
+
+            function renderSimulationCharts(results, iterations) {
+                // Quality Chart
+                const qualityCtx = DOMElements.simQualityChart.getContext('2d');
+                if (window.simQualityChartInstance) window.simQualityChartInstance.destroy();
+
+                window.simQualityChartInstance = new Chart(qualityCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'],
+                        datasets: [{
+                            label: 'Hand Quality Score',
+                            data: results.handQualities,
+                            backgroundColor: 'rgba(139, 92, 246, 0.6)',
+                            borderColor: 'rgba(139, 92, 246, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: { beginAtZero: true, grid: { color: 'rgba(255, 255, 255, 0.1)' } },
+                            x: { grid: { display: false } }
+                        }
+                    }
+                });
+
+                // Issues Chart
+                const issuesCtx = DOMElements.simIssuesChart.getContext('2d');
+                if (window.simIssuesChartInstance) window.simIssuesChartInstance.destroy();
+
+                const issueLabels = Object.keys(results.issues);
+                const issueData = Object.values(results.issues).map(v => (v / iterations) * 100);
+
+                window.simIssuesChartInstance = new Chart(issuesCtx, {
+                    type: 'bar',
+                    indexAxis: 'y',
+                    data: {
+                        labels: issueLabels,
+                        datasets: [{
+                            label: 'Frequency (%)',
+                            data: issueData,
+                            backgroundColor: 'rgba(239, 68, 68, 0.6)',
+                            borderColor: 'rgba(239, 68, 68, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            x: { beginAtZero: true, grid: { color: 'rgba(255, 255, 255, 0.1)' } },
+                            y: { grid: { display: false } }
+                        }
+                    }
+                });
+            }
 
             // Function to generate consistent colors for unknown subtypes
             function getSubtypeColor(subtype) {
@@ -660,12 +1925,12 @@
             const cardSearchInput = document.getElementById('cardSearchInput');
             const cardSearchResults = document.getElementById('cardSearchResults');
             const copyDecklistBtn = document.getElementById('copyDecklistBtn');
-           const llmPromptModal = document.getElementById('llmPromptModal');
-           const closeLlmModalBtn = document.getElementById('closeLlmModalBtn');
-           const llmPromptOutput = document.getElementById('llmPromptOutput');
-           const copyLlmPromptBtn = document.getElementById('copyLlmPromptBtn');
-           const generateLlmPromptBtn = document.getElementById('generateLlmPromptBtn');
-           const hoverPopupToggle = document.getElementById('hoverPopupToggle');
+            const llmPromptModal = document.getElementById('llmPromptModal');
+            const closeLlmModalBtn = document.getElementById('closeLlmModalBtn');
+            const llmPromptOutput = document.getElementById('llmPromptOutput');
+            const copyLlmPromptBtn = document.getElementById('copyLlmPromptBtn');
+            const generateLlmPromptBtn = document.getElementById('generateLlmPromptBtn');
+            const hoverPopupToggle = document.getElementById('hoverPopupToggle');
 
 
             // --- PROBABILITY FUNCTIONS ---
@@ -1056,18 +2321,18 @@
                     const card = result.item;
                     const resultDiv = document.createElement('div');
                     resultDiv.className = 'p-2 hover:bg-purple-800 border-b border-gray-500 flex items-center gap-3 cursor-pointer';
-                    
+
                     // Card thumbnail image
                     const thumbnailImg = document.createElement('img');
                     thumbnailImg.src = card.images.full;
                     thumbnailImg.alt = card.fullName;
                     thumbnailImg.className = 'w-10 h-14 object-contain rounded-sm flex-shrink-0';
                     thumbnailImg.loading = 'lazy';
-                    
+
                     // Text container for name
                     const textContainer = document.createElement('div');
                     textContainer.className = 'flex-grow min-w-0'; // flex-grow to take space, min-w-0 to allow shrinking
-                    
+
                     const nameSpan = document.createElement('span');
                     nameSpan.className = 'font-semibold block truncate'; // truncate long names
                     const cardColor = card.colors && card.colors.length > 0 ? card.colors[0] : 'Steel';
@@ -1091,11 +2356,11 @@
                         });
                         addControlsDiv.appendChild(btn);
                     });
-                    
+
                     resultDiv.addEventListener('click', () => {
                         addCardToDecklist(card, 1);
                     });
-                    
+
                     resultDiv.appendChild(thumbnailImg);
                     resultDiv.appendChild(textContainer);
                     resultDiv.appendChild(addControlsDiv);
@@ -1118,18 +2383,18 @@
                         const nameFromLine = match[2].trim();
                         // Use a more direct comparison first, then fallback to Fuse for robustness
                         if (nameFromLine.toLowerCase() === cardFullName.toLowerCase()) {
-                             const newCount = count; // Set to the specific count clicked
-                             lines[i] = `${newCount} ${cardFullName}`;
-                             cardFound = true;
-                             break;
+                            const newCount = count; // Set to the specific count clicked
+                            lines[i] = `${newCount} ${cardFullName}`;
+                            cardFound = true;
+                            break;
                         }
                     }
                 }
 
                 if (!cardFound) {
-                     for (let i = 0; i < lines.length; i++) {
+                    for (let i = 0; i < lines.length; i++) {
                         const match = lines[i].trim().match(lineRegex);
-                        if(match) {
+                        if (match) {
                             const nameFromLine = match[2].trim();
                             const searchResult = cardFuse.search(nameFromLine);
                             if (searchResult.length > 0 && searchResult[0].item.fullName === cardFullName) {
@@ -1316,7 +2581,7 @@
                 document.getElementById('inkFilter').value = '';
                 updateDeckList();
             });
-            
+
             // Card Search Listeners
             cardSearchInput.addEventListener('input', () => {
                 const searchTerm = cardSearchInput.value.trim();
@@ -1374,32 +2639,32 @@
                 }
             });
 
-           // LLM Prompt Modal Listeners
-           generateLlmPromptBtn.addEventListener('click', generateLlmPrompt);
-           closeLlmModalBtn.addEventListener('click', () => {
-               llmPromptModal.classList.add('opacity-0', 'pointer-events-none');
-           });
-           llmPromptModal.addEventListener('click', (e) => {
-               if (e.target === llmPromptModal) {
-                   llmPromptModal.classList.add('opacity-0', 'pointer-events-none');
-               }
-           });
-           copyLlmPromptBtn.addEventListener('click', () => {
-               navigator.clipboard.writeText(llmPromptOutput.value).then(() => {
-                   const originalText = copyLlmPromptBtn.textContent;
-                   copyLlmPromptBtn.textContent = 'Copied!';
-                   copyLlmPromptBtn.classList.add('bg-green-500');
-                   copyLlmPromptBtn.classList.remove('bg-purple-600');
-                   setTimeout(() => {
-                       copyLlmPromptBtn.textContent = originalText;
-                       copyLlmPromptBtn.classList.remove('bg-green-500');
-                       copyLlmPromptBtn.classList.add('bg-purple-600');
-                   }, 2000);
-               }).catch(err => {
-                   console.error('Failed to copy LLM prompt: ', err);
-                   alert('Failed to copy prompt.');
-               });
-           });
+            // LLM Prompt Modal Listeners
+            generateLlmPromptBtn.addEventListener('click', generateLlmPrompt);
+            closeLlmModalBtn.addEventListener('click', () => {
+                llmPromptModal.classList.add('opacity-0', 'pointer-events-none');
+            });
+            llmPromptModal.addEventListener('click', (e) => {
+                if (e.target === llmPromptModal) {
+                    llmPromptModal.classList.add('opacity-0', 'pointer-events-none');
+                }
+            });
+            copyLlmPromptBtn.addEventListener('click', () => {
+                navigator.clipboard.writeText(llmPromptOutput.value).then(() => {
+                    const originalText = copyLlmPromptBtn.textContent;
+                    copyLlmPromptBtn.textContent = 'Copied!';
+                    copyLlmPromptBtn.classList.add('bg-green-500');
+                    copyLlmPromptBtn.classList.remove('bg-purple-600');
+                    setTimeout(() => {
+                        copyLlmPromptBtn.textContent = originalText;
+                        copyLlmPromptBtn.classList.remove('bg-green-500');
+                        copyLlmPromptBtn.classList.add('bg-purple-600');
+                    }, 2000);
+                }).catch(err => {
+                    console.error('Failed to copy LLM prompt: ', err);
+                    alert('Failed to copy prompt.');
+                });
+            });
 
             // Copy Decklist Button Functionality
             if (copyDecklistBtn && decklistTextarea) {
@@ -1447,53 +2712,53 @@
             }
 
 
-           // --- LLM PROMPT GENERATION ---
-           function generateLlmPrompt() {
-               if (currentDeck.length === 0) {
-                   alert("Please build a deck first.");
-                   return;
-               }
+            // --- LLM PROMPT GENERATION ---
+            function generateLlmPrompt() {
+                if (currentDeck.length === 0) {
+                    alert("Please build a deck first.");
+                    return;
+                }
 
-               const totalCards = currentDeck.reduce((sum, item) => sum + item.count, 0);
-               const colorDistribution = {};
-               const cardTypes = {};
-               const costCurve = {};
+                const totalCards = currentDeck.reduce((sum, item) => sum + item.count, 0);
+                const colorDistribution = {};
+                const cardTypes = {};
+                const costCurve = {};
 
-               currentDeck.forEach(({ count, card }) => {
-                   // Color Distribution
-                   (card.colors || [card.color]).forEach(color => {
-                       if (color) colorDistribution[color] = (colorDistribution[color] || 0) + count;
-                   });
+                currentDeck.forEach(({ count, card }) => {
+                    // Color Distribution
+                    (card.colors || [card.color]).forEach(color => {
+                        if (color) colorDistribution[color] = (colorDistribution[color] || 0) + count;
+                    });
 
-                   // Card Types
-                   const type = card.type || 'Unknown';
-                   cardTypes[type] = (cardTypes[type] || 0) + count;
+                    // Card Types
+                    const type = card.type || 'Unknown';
+                    cardTypes[type] = (cardTypes[type] || 0) + count;
 
-                   // Cost Curve
-                   const cost = card.cost || 0;
-                   costCurve[cost] = (costCurve[cost] || 0) + count;
-               });
+                    // Cost Curve
+                    const cost = card.cost || 0;
+                    costCurve[cost] = (costCurve[cost] || 0) + count;
+                });
 
-               const inkColors = Object.keys(colorDistribution).join(', ');
-               const colorDistText = Object.entries(colorDistribution).map(([k, v]) => `${k.toLowerCase()}: ${v}`).join(', ');
-               const cardTypesText = Object.entries(cardTypes).map(([k, v]) => `${k.toLowerCase()}: ${v}`).join(', ');
-               const costCurveText = Object.entries(costCurve).sort((a, b) => a[0] - b[0]).map(([k, v]) => `${k}: ${v}`).join(', ');
+                const inkColors = Object.keys(colorDistribution).join(', ');
+                const colorDistText = Object.entries(colorDistribution).map(([k, v]) => `${k.toLowerCase()}: ${v}`).join(', ');
+                const cardTypesText = Object.entries(cardTypes).map(([k, v]) => `${k.toLowerCase()}: ${v}`).join(', ');
+                const costCurveText = Object.entries(costCurve).sort((a, b) => a[0] - b[0]).map(([k, v]) => `${k}: ${v}`).join(', ');
 
-               let decklistText = '';
-               currentDeck.sort((a, b) => a.card.cost - b.card.cost || a.card.fullName.localeCompare(b.card.fullName)).forEach(({ count, card }) => {
-                   const inkable = card.inkwell ? '(Inkable)' : '';
-                   const stats = card.strength !== undefined ? `${card.strength}/${card.willpower} - ${card.lore}L` : '';
-                   const cardText = (card.text || '').replace(/\n/g, '\n    ');
-                   decklistText += `${count}x ${card.fullName} (${card.cost} ink, ${card.colors ? card.colors.join('/') : card.color}) - ${stats} ${inkable}\n`;
-                   if (cardText) {
-                       decklistText += `    Text: "${cardText}"\n\n`;
-                   } else {
-                       decklistText += `\n`;
-                   }
-               });
+                let decklistText = '';
+                currentDeck.sort((a, b) => a.card.cost - b.card.cost || a.card.fullName.localeCompare(b.card.fullName)).forEach(({ count, card }) => {
+                    const inkable = card.inkwell ? '(Inkable)' : '';
+                    const stats = card.strength !== undefined ? `${card.strength}/${card.willpower} - ${card.lore}L` : '';
+                    const cardText = (card.text || '').replace(/\n/g, '\n    ');
+                    decklistText += `${count}x ${card.fullName} (${card.cost} ink, ${card.colors ? card.colors.join('/') : card.color}) - ${stats} ${inkable}\n`;
+                    if (cardText) {
+                        decklistText += `    Text: "${cardText}"\n\n`;
+                    } else {
+                        decklistText += `\n`;
+                    }
+                });
 
 
-               const prompt = `You are an expert Disney Lorcana TCG coach focusing on optimizing gameplay and teaching strategic decision-making. I need a comprehensive strategy guide for playing my deck effectively.
+                const prompt = `You are an expert Disney Lorcana TCG coach focusing on optimizing gameplay and teaching strategic decision-making. I need a comprehensive strategy guide for playing my deck effectively.
 
 DECK COMPOSITION:
 
@@ -1536,9 +2801,9 @@ FOCUS YOUR ANALYSIS ON:
 
 FORMAT YOUR RESPONSE as a structured, professional guide with clear headings. Include specific card references when explaining strategies.`;
 
-               llmPromptOutput.value = prompt;
-               llmPromptModal.classList.remove('opacity-0', 'pointer-events-none');
-           }
+                llmPromptOutput.value = prompt;
+                llmPromptModal.classList.remove('opacity-0', 'pointer-events-none');
+            }
 
 
             // --- INITIALIZATION ---
@@ -1558,6 +2823,32 @@ FORMAT YOUR RESPONSE as a structured, professional guide with clear headings. In
 
                     // Initialize the CardThreatLevelInspector
                     inspector = new CardThreatLevelInspector();
+
+                    // --- SIMULATION EVENT LISTENERS ---
+                    if (DOMElements.tabButtons) {
+                        DOMElements.tabButtons.forEach(btn => {
+                            btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+                        });
+                    }
+                    if (DOMElements.shuffleButton) DOMElements.shuffleButton.addEventListener('click', handleShuffleDeck);
+                    if (DOMElements.resetButton) DOMElements.resetButton.addEventListener('click', handleReset);
+                    if (DOMElements.runSimButton) DOMElements.runSimButton.addEventListener('click', runSimulation);
+
+                    // Toggle Stats Button (Shuffle Quality)
+                    if (DOMElements.toggleStatsButton) {
+                        DOMElements.toggleStatsButton.addEventListener('click', () => {
+                            const isHidden = DOMElements.detailedStatsContainer.classList.contains('hidden');
+                            if (isHidden) {
+                                DOMElements.detailedStatsContainer.classList.remove('hidden');
+                                DOMElements.toggleStatsIcon.style.transform = 'rotate(180deg)';
+                                DOMElements.toggleStatsText.textContent = 'Hide Detailed Stats';
+                            } else {
+                                DOMElements.detailedStatsContainer.classList.add('hidden');
+                                DOMElements.toggleStatsIcon.style.transform = 'rotate(0deg)';
+                                DOMElements.toggleStatsText.textContent = 'Show Detailed Stats';
+                            }
+                        });
+                    }
 
                     await loadAndRenderDecks();
                     resetForm();
