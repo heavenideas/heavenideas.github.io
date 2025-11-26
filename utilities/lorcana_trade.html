@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lorcana Trader</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+
+    <!-- Compression Library -->
+    <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
+
+    <!-- Win Probability Library -->
+    <script
+        src="https://cdn.jsdelivr.net/gh/heavenideas/heavenideas.github.io@main/utilities/unified_win_probability_utilities.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #0f0c1d;
+            --card-bg: rgba(30, 30, 45, 0.7);
+            --accent-gold: #d4af37;
+            --accent-purple: #9b59b6;
+            --accent-blue: #3498db;
+            --text-main: #ffffff;
+            --text-muted: #a0a0a0;
+            --glass-border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-color);
+            background-image:
+                radial-gradient(circle at 10% 20%, rgba(155, 89, 182, 0.1) 0%, transparent 20%),
+                radial-gradient(circle at 90% 80%, rgba(52, 152, 219, 0.1) 0%, transparent 20%);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding-bottom: 80px;
+            /* Space for fixed footer */
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            padding: 2rem 1rem;
+            background: rgba(15, 12, 29, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: var(--glass-border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        h1 {
+            font-weight: 800;
+            font-size: 2rem;
+            background: linear-gradient(135deg, var(--accent-gold), #f1c40f);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+            letter-spacing: 1px;
+        }
+
+        p.subtitle {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        /* Main Container */
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+
+        /* Loading State */
+        #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg-color);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            transition: opacity 0.5s ease;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            border-top-color: var(--accent-gold);
+            animation: spin 1s ease-in-out infinite;
+            margin-bottom: 1rem;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Input Section */
+        .input-section {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 1.5rem;
+            border: var(--glass-border);
+            margin-bottom: 2rem;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        textarea {
+            width: 100%;
+            height: 200px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: var(--text-main);
+            padding: 1rem;
+            font-family: monospace;
+            font-size: 1rem;
+            resize: vertical;
+            margin-bottom: 1rem;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--accent-purple);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, var(--accent-purple), #8e44ad);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            font-size: 1rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            margin-top: 1rem;
+        }
+
+        /* Card List */
+        .card-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1rem;
+        }
+
+        .card-item {
+            background: var(--card-bg);
+            border-radius: 12px;
+            overflow: hidden;
+            border: var(--glass-border);
+            display: flex;
+            flex-direction: row;
+            height: 160px;
+            position: relative;
+        }
+
+        .card-img-wrapper {
+            width: 110px;
+            height: 100%;
+            flex-shrink: 0;
+            background: #000;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .card-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .card-details {
+            padding: 1rem;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .card-name {
+            font-weight: 600;
+            font-size: 1rem;
+            margin-bottom: 0.25rem;
+            line-height: 1.2;
+        }
+
+        .card-meta {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .rarity-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .rarity-Common {
+            background: #a0a0a0;
+        }
+
+        .rarity-Uncommon {
+            background: #fff;
+        }
+
+        .rarity-Rare {
+            background: #cd7f32;
+        }
+
+        .rarity-Super {
+            background: #b33dc6;
+        }
+
+        /* Super Rare */
+        .rarity-Legendary {
+            background: #ffa500;
+        }
+
+        .rarity-Enchanted {
+            background: linear-gradient(45deg, #ff00cc, #3333ff);
+        }
+
+        .price-tag {
+            background: rgba(46, 204, 113, 0.2);
+            color: #2ecc71;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .power-rating {
+            font-size: 0.7rem;
+            color: var(--accent-blue);
+            margin-top: 2px;
+        }
+
+        .trade-controls {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 0.5rem;
+            border-radius: 8px;
+            margin-top: auto;
+        }
+
+        .wanted-badge {
+            font-size: 0.8rem;
+            color: var(--accent-gold);
+            font-weight: 600;
+        }
+
+        .counter {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .counter-btn {
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            border: none;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+        }
+
+        .counter-val {
+            font-weight: 600;
+            min-width: 20px;
+            text-align: center;
+        }
+
+        .active-have {
+            border: 1px solid var(--accent-gold);
+            box-shadow: 0 0 10px rgba(212, 175, 55, 0.2);
+        }
+
+        /* Floating Action Bar */
+        .fab-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(15, 12, 29, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem;
+            border-top: var(--glass-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 90;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+        }
+
+        .fab-bar.visible {
+            transform: translateY(0);
+        }
+
+        .fab-info {
+            font-size: 0.9rem;
+        }
+
+        .fab-total {
+            font-weight: 800;
+            color: var(--accent-gold);
+            font-size: 1.1rem;
+        }
+
+        .fab-btn {
+            background: var(--accent-gold);
+            color: #000;
+            border: none;
+            padding: 0.5rem 1.5rem;
+            border-radius: 20px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--accent-purple);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 25px;
+            font-weight: 600;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+            z-index: 3000;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        }
+
+        .toast.show {
+            opacity: 1;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--text-muted);
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .card-list {
+                grid-template-columns: 1fr;
+            }
+
+            .card-item {
+                height: 140px;
+            }
+
+            .card-img-wrapper {
+                width: 100px;
+            }
+        }
+
+        /* Variant Modal Styles */
+        .variant-item {
+            display: flex;
+            gap: 1rem;
+            padding: 0.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .variant-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="loading-overlay">
+        <div class="spinner"></div>
+        <p>Summoning Card Data...</p>
+        <p id="loading-status" style="font-size: 0.8rem; color: #888; margin-top: 0.5rem;">Connecting to Lore...</p>
+    </div>
+
+    <div class="toast" id="toast">Copied to Clipboard!</div>
+
+    <header>
+        <h1>Lorcana Trader</h1>
+        <p class="subtitle">Trade Coordinator</p>
+    </header>
+
+    <div class="container">
+
+        <!-- Creator View -->
+        <div id="creator-view" class="input-section" style="display: none;">
+            <h2 style="margin-bottom: 1rem;">Create Wanted List</h2>
+            <p style="margin-bottom: 1rem; font-size: 0.9rem; color: #ccc;">Paste your decklist below (e.g., "4 Mickey
+                Mouse - Brave Little Tailor").</p>
+            <textarea id="decklist-input"
+                placeholder="4 Mickey Mouse - Brave Little Tailor&#10;3 Elsa - Snow Queen&#10;..."></textarea>
+            <button class="btn" onclick="processDecklist()">Generate Trade Link</button>
+        </div>
+
+        <!-- Trade View -->
+        <div id="trade-view" style="display: none;">
+            <div id="cards-container" class="card-list">
+                <!-- Cards will be injected here -->
+            </div>
+            <div class="empty-state" id="empty-msg" style="display: none;">
+                No cards found. Check the link or create a new list.
+            </div>
+            <button class="btn btn-secondary" onclick="resetApp()" style="margin-top: 2rem;">Create New List</button>
+        </div>
+
+    </div>
+
+    <!-- Floating Action Bar for Responder -->
+    <div class="fab-bar" id="fab-bar">
+        <div class="fab-info">
+            <div>Your Offer:</div>
+            <div class="fab-total" id="offer-total">£0.00</div>
+        </div>
+        <button class="fab-btn" onclick="generateResponse()">Copy Offer</button>
+    </div>
+
+    <!-- Variant Selection Modal -->
+    <div id="variant-modal"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; justify-content: center; align-items: center; padding: 1rem;">
+        <div
+            style="background: var(--bg-color); border: var(--glass-border); border-radius: 16px; width: 100%; max-width: 500px; max-height: 80vh; display: flex; flex-direction: column;">
+            <div
+                style="padding: 1rem; border-bottom: var(--glass-border); display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0;">Select Version</h3>
+                <button onclick="closeModal()"
+                    style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer;">&times;</button>
+            </div>
+            <div id="variant-list"
+                style="overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem;">
+                <!-- Variants injected here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- State ---
+        let allCards = [];
+        let cardIndex = {}; // simpleName -> cardObject
+        let wantedList = []; // Array of { card, quantity }
+        let offerState = {}; // cardId -> quantityHave
+        let customPrices = {}; // cardId -> userDefinedPrice
+        let activeVariantId = null; // For the modal
+        let isResponderMode = false;
+
+        // --- Constants ---
+        const ALL_CARDS_URL = 'https://cdn.jsdelivr.net/gh/heavenideas/similcana@main/database/allCards.json';
+
+        // --- Initialization ---
+        window.addEventListener('DOMContentLoaded', async () => {
+            await loadData();
+            checkUrlState();
+        });
+
+        async function loadData() {
+            const statusEl = document.getElementById('loading-status');
+            try {
+                // Load Cards
+                statusEl.textContent = "Fetching All Cards Database...";
+                const response = await fetch(ALL_CARDS_URL);
+                const data = await response.json();
+                allCards = data.cards;
+
+                // Build Index
+                statusEl.textContent = "Indexing Cards...";
+                allCards.forEach(card => {
+                    if (card.simpleName) {
+                        cardIndex[card.simpleName] = card;
+                    }
+                    // Also index by fullName just in case, normalized
+                    const normFull = normalizeName(card.fullName);
+                    if (!cardIndex[normFull]) {
+                        cardIndex[normFull] = card;
+                    }
+                });
+
+                // Load Win Probability Config
+                statusEl.textContent = "Loading Win Probability Matrix...";
+                try {
+                    if (window.UnifiedWinProbabiliyCalculation) {
+                        await window.UnifiedWinProbabiliyCalculation.loadAbilitiesConfig();
+                    }
+                } catch (e) {
+                    console.warn("Win Prob load failed", e);
+                }
+
+                document.getElementById('loading-overlay').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('loading-overlay').style.display = 'none';
+                }, 500);
+
+            } catch (err) {
+                statusEl.textContent = "Error loading data. Please refresh.";
+                console.error(err);
+                alert("Failed to load card data.");
+            }
+        }
+
+        function checkUrlState() {
+            const params = new URLSearchParams(window.location.search);
+            const listParam = params.get('list');
+
+            if (listParam) {
+                try {
+                    const jsonStr = LZString.decompressFromEncodedURIComponent(listParam);
+                    const parsedList = JSON.parse(jsonStr);
+                    renderTradeView(parsedList);
+                    isResponderMode = true;
+                } catch (e) {
+                    console.error("Failed to parse list", e);
+                    showCreatorView();
+                }
+            } else {
+                showCreatorView();
+            }
+        }
+
+        function showCreatorView() {
+            document.getElementById('creator-view').style.display = 'block';
+            document.getElementById('trade-view').style.display = 'none';
+            document.getElementById('fab-bar').classList.remove('visible');
+        }
+
+        // --- Core Logic ---
+
+        function normalizeName(name) {
+            // Replace special chars with space, then collapse multiple spaces
+            return name.toLowerCase()
+                .replace(/[^a-z0-9]/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+        }
+
+        function getPseudoPrice(card) {
+            // Generate a consistent "fake" price based on card ID
+            // In a real app, this would query an API
+            let hash = 0;
+            const str = card.fullName + card.rarity;
+            for (let i = 0; i < str.length; i++) {
+                hash = ((hash << 5) - hash) + str.charCodeAt(i);
+                hash |= 0;
+            }
+            const seed = Math.abs(hash) % 1000;
+
+            // Base price logic
+            let base = 0.5;
+            if (card.rarity === 'Rare') base = 2;
+            if (card.rarity === 'Super Rare') base = 5;
+            if (card.rarity === 'Legendary') base = 15;
+            if (card.rarity === 'Enchanted') base = 150;
+
+            // Add variance
+            const variance = (seed / 1000) * base;
+            return (base + variance).toFixed(2);
+        }
+
+        function getPowerRating(card) {
+            if (!window.UnifiedWinProbabiliyCalculation) return null;
+            try {
+                // Construct the card object expected by the library
+                // The library expects 'fullTextSections', 'cost', etc.
+                // allCards.json has 'fullTextSections' usually.
+                if (!card.fullTextSections) return null;
+
+                const metrics = window.UnifiedWinProbabiliyCalculation.calculateCardMetrics(card);
+                // Combine metrics into a single "Power Score" for display
+                // RDS + BCR + LVI
+                const total = (metrics.rds || 0) + (metrics.bcr || 0) + (metrics.lvi || 0);
+                return total.toFixed(1);
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function processDecklist() {
+            const input = document.getElementById('decklist-input').value;
+            const lines = input.split('\n');
+            const list = [];
+
+            lines.forEach(line => {
+                line = line.trim();
+                if (!line) return;
+
+                // Regex to match "Quantity Name"
+                // Supports "4 Mickey Mouse" or "4x Mickey Mouse"
+                const match = line.match(/^(\d+)[xX]?\s+(.+)$/);
+
+                if (match) {
+                    const qty = parseInt(match[1]);
+                    const name = match[2].trim();
+
+                    // Find card
+                    const simple = normalizeName(name);
+                    const card = cardIndex[simple];
+
+                    if (card) {
+                        list.push({
+                            id: card.id,
+                            qty: qty,
+                            name: card.fullName // Store name for fallback
+                        });
+                    } else {
+                        console.warn("Card not found:", name);
+                        // Optional: Handle unknown cards
+                    }
+                }
+            });
+
+            if (list.length === 0) {
+                alert("No valid cards found. Please check the format.");
+                return;
+            }
+
+            // Generate URL
+            const jsonStr = JSON.stringify(list);
+            const compressed = LZString.compressToEncodedURIComponent(jsonStr);
+            const url = `${window.location.origin}${window.location.pathname}?list=${compressed}`;
+
+            // Copy to clipboard and notify
+            let copyText = `I'm looking for a trade! \nDo you have any of these?: \n${input}\n \n Trade Link: ${url}`;
+            navigator.clipboard.writeText(copyText).then(() => {
+                showToast("Link copied! Share it on WhatsApp.");
+                // Also render it for the user to see
+                renderTradeView(list);
+                // Update URL without reload
+                window.history.pushState({}, '', `?list=${compressed}`);
+            });
+        }
+
+        function renderTradeView(list) {
+            wantedList = list;
+            document.getElementById('creator-view').style.display = 'none';
+            document.getElementById('trade-view').style.display = 'block';
+            document.getElementById('fab-bar').classList.add('visible');
+
+            const container = document.getElementById('cards-container');
+            container.innerHTML = '';
+
+            if (list.length === 0) {
+                document.getElementById('empty-msg').style.display = 'block';
+                return;
+            }
+
+            list.forEach((item, index) => {
+                // Find card data
+                // We stored ID, but let's look up by ID now
+                const card = allCards.find(c => c.id === item.id);
+                if (!card) return;
+
+                const defaultPrice = getPseudoPrice(card);
+                const currentPrice = customPrices[card.id] !== undefined ? customPrices[card.id] : defaultPrice;
+                const power = getPowerRating(card);
+
+                const el = document.createElement('div');
+                el.className = 'card-item';
+                el.dataset.id = card.id;
+                el.dataset.price = currentPrice;
+                el.dataset.name = card.fullName;
+                el.dataset.wanted = item.qty;
+
+                // Image
+                const imgUrl = card.images?.thumbnail || card.images?.full || '';
+
+                // Rarity Class
+                const rarityClass = `rarity-${card.rarity.split(' ')[0]}`; // Simple mapping
+
+                el.innerHTML = `
+                    <div class="card-img-wrapper" onclick="openVariantSelector(${index})">
+                        <img src="${imgUrl}" class="card-img" alt="${card.fullName}">
+                        <div style="position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.7); color: white; font-size: 0.7rem; text-align: center; padding: 2px;">
+                            Change Version
+                        </div>
+                    </div>
+                    <div class="card-details">
+                        <div>
+                            <div class="card-name">${card.fullName}</div>
+                            <div class="card-meta">
+                                <span class="rarity-dot ${rarityClass}"></span>
+                                <span>${card.rarity}</span>
+                                <span>Set: ${card.setCode}</span>
+                            </div>
+                            ${power ? `<div class="power-rating">⚡ Power: ${power}</div>` : ''}
+
+                            <div class="price-edit-container" style="margin-top: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                                <label style="font-size: 0.8rem; color: var(--text-muted);">Price £</label>
+                                <input type="number" step="0.01" class="price-input" 
+                                    value="${currentPrice}" 
+                                    onchange="updatePrice(${card.id}, this.value)"
+                                    style="width: 80px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 2px 5px; border-radius: 4px;">
+                            </div>
+                        </div>
+                        
+                        <div class="trade-controls">
+                            <div class="wanted-badge">Wanted: ${item.qty}</div>
+                            <div class="counter">
+                                <button class="counter-btn" onclick="updateOffer(${card.id}, -1)">-</button>
+                                <span class="counter-val" id="count-${card.id}">0</span>
+                                <button class="counter-btn" onclick="updateOffer(${card.id}, 1)">+</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(el);
+            });
+        }
+
+        function updatePrice(cardId, newPrice) {
+            customPrices[cardId] = parseFloat(newPrice);
+            const cardEl = document.querySelector(`.card-item[data-id="${cardId}"]`);
+            if (cardEl) {
+                cardEl.dataset.price = newPrice;
+            }
+            calculateTotal();
+        }
+
+        function updateOffer(cardId, change) {
+            const current = offerState[cardId] || 0;
+            const cardEl = document.querySelector(`.card-item[data-id="${cardId}"]`);
+            const max = parseInt(cardEl.dataset.wanted);
+
+            let newVal = current + change;
+            if (newVal < 0) newVal = 0;
+            // Allow offering more than wanted? Maybe not for now.
+            // if (newVal > max) newVal = max; 
+
+            offerState[cardId] = newVal;
+            document.getElementById(`count-${cardId}`).textContent = newVal;
+
+            // Highlight
+            if (newVal > 0) {
+                cardEl.classList.add('active-have');
+            } else {
+                cardEl.classList.remove('active-have');
+            }
+
+            calculateTotal();
+        }
+
+        function calculateTotal() {
+            let total = 0;
+            for (const [id, qty] of Object.entries(offerState)) {
+                if (qty > 0) {
+                    const cardEl = document.querySelector(`.card-item[data-id="${id}"]`);
+                    const price = parseFloat(cardEl.dataset.price);
+                    total += price * qty;
+                }
+            }
+            document.getElementById('offer-total').textContent = '£' + total.toFixed(2);
+        }
+
+        function generateResponse() {
+            let lines = ["🤝 Trade Offer:"];
+            let total = 0;
+            let hasItems = false;
+
+            for (const [id, qty] of Object.entries(offerState)) {
+                if (qty > 0) {
+                    hasItems = true;
+                    const cardEl = document.querySelector(`.card-item[data-id="${id}"]`);
+                    const name = cardEl.querySelector('.card-name').textContent;
+                    const price = parseFloat(cardEl.dataset.price);
+                    const lineTotal = price * qty;
+                    total += lineTotal;
+
+                    lines.push(`- ${qty} ${name} @ £${price.toFixed(2)} (£${lineTotal.toFixed(2)})`);
+                }
+            }
+
+            if (!hasItems) {
+                showToast("Select cards first!");
+                return;
+            }
+
+            lines.push(`\n💰 Total Value: £${total.toFixed(2)}`);
+
+            const text = lines.join('\n');
+            navigator.clipboard.writeText(text).then(() => {
+                showToast("Offer copied to clipboard!");
+            });
+        }
+
+        // --- Variant Modal Logic ---
+
+        function openVariantSelector(listIndex) {
+            const item = wantedList[listIndex];
+            const currentCard = allCards.find(c => c.id === item.id);
+            if (!currentCard) return;
+
+            // Find all cards with same simpleName, fallback to normalized fullName
+            const targetName = currentCard.simpleName || normalizeName(currentCard.fullName);
+
+            const variants = allCards.filter(c => {
+                const cName = c.simpleName || normalizeName(c.fullName);
+                return cName === targetName;
+            });
+
+            const modal = document.getElementById('variant-modal');
+            const container = document.getElementById('variant-list');
+            container.innerHTML = '';
+
+            variants.forEach(v => {
+                const el = document.createElement('div');
+                el.className = 'variant-item';
+                el.onclick = () => selectVariant(listIndex, v.id);
+
+                const imgUrl = v.images?.thumbnail || v.images?.full || '';
+                el.innerHTML = `
+                    <img src="${imgUrl}" style="width: 60px; height: 84px; object-fit: cover; border-radius: 4px;">
+                    <div style="flex: 1;">
+                        <div style="font-weight: bold; font-size: 0.9rem;">${v.version || 'Base'}</div>
+                        <div style="font-size: 0.8rem; color: #aaa;">${v.rarity} • Set ${v.setCode}</div>
+                        <div style="font-size: 0.8rem; color: var(--accent-gold);">$${getPseudoPrice(v)}</div>
+                    </div>
+                `;
+                container.appendChild(el);
+            });
+
+            modal.style.display = 'flex';
+        }
+
+        function selectVariant(listIndex, newCardId) {
+            // Update the wanted list item to point to the new card ID
+            // We keep the quantity the same
+            const oldId = wantedList[listIndex].id;
+
+            // If we had an offer on the old ID, move it to the new ID?
+            // Or just reset it? Resetting is safer to avoid confusion.
+            if (offerState[oldId]) {
+                delete offerState[oldId];
+            }
+
+            wantedList[listIndex].id = newCardId;
+
+            // Reset custom price for this slot since it's a different card
+            if (customPrices[oldId]) {
+                delete customPrices[oldId];
+            }
+
+            closeModal();
+            renderTradeView(wantedList);
+            calculateTotal(); // Recalculate as offer might have been removed
+        }
+
+        function closeModal() {
+            document.getElementById('variant-modal').style.display = 'none';
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 3000);
+        }
+
+        function resetApp() {
+            window.location.href = window.location.pathname;
+        }
+
+    </script>
+</body>
+
+</html>
