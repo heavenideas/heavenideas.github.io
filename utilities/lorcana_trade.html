@@ -858,11 +858,9 @@
                 const cachedPrice = priceCache.get(c.id);
                 if (cachedPrice !== undefined) {
                     priceMap.set(c.id, cachedPrice);
-                } else if (skipPrices) {
-                    priceMap.set(c.id, '0.00');
                 } else {
-                    // Fallback to pseudo if somehow not fetched
-                    priceMap.set(c.id, getPseudoPrice(c));
+                    // No price available, set to 0.00
+                    priceMap.set(c.id, '0.00');
                 }
             });
 
@@ -912,6 +910,7 @@
                                     value="${currentPrice}"
                                     onchange="updatePrice(${card.id}, this.value)"
                                     style="width: 80px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 2px 5px; border-radius: 4px;">
+                                <button onclick="openCardTrader(${card.id})" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 2px 5px; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">CT</button>
                             </div>
                         </div>
 
@@ -1187,6 +1186,13 @@
             });
             // Re-render with prices
             await renderTradeView(wantedList, false);
+        }
+
+        function openCardTrader(cardId) {
+            const card = allCards.find(c => c.id === cardId);
+            if (card && card.externalLinks?.cardTraderId) {
+                window.open(`https://www.cardtrader.com/lorcana/cards/${card.externalLinks.cardTraderId}`, '_blank');
+            }
         }
 
         function resetApp() {
