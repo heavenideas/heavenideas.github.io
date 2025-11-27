@@ -467,7 +467,8 @@
             <div class="empty-state" id="empty-msg" style="display: none;">
                 No cards found. Check the link or create a new list.
             </div>
-            <button class="btn btn-secondary" onclick="resetApp()" style="margin-top: 2rem;">Create New List</button>
+            <button class="btn btn-secondary" onclick="fetchPricesNow()" style="margin-top: 1rem;">Fetch CardTrader Prices</button>
+            <button class="btn btn-secondary" onclick="resetApp()" style="margin-top: 1rem;">Create New List</button>
         </div>
 
     </div>
@@ -1175,6 +1176,17 @@
             t.textContent = msg;
             t.classList.add('show');
             setTimeout(() => t.classList.remove('show'), 3000);
+        }
+
+        async function fetchPricesNow() {
+            skipPricesGlobal = false;
+            // Clear cache for current cards to force refetch
+            wantedList.forEach(item => {
+                const card = allCards.find(c => c.id === item.id);
+                if (card) priceCache.delete(card.id);
+            });
+            // Re-render with prices
+            await renderTradeView(wantedList, false);
         }
 
         function resetApp() {
