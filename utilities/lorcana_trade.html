@@ -1061,22 +1061,74 @@
             // We keep the quantity the same
             const oldId = wantedList[listIndex].id;
 
-            // If we had an offer on the old ID, move it to the new ID?
-            // Or just reset it? Resetting is safer to avoid confusion.
+            wantedList[listIndex].id = newCardId;
+
+            // Update the DOM for this card item without re-rendering the whole list
+            const cardEl = document.querySelector(`.card-item[data-id="${oldId}"]`);
+            if (cardEl) {
+                const newCard = allCards.find(c => c.id === newCardId);
+                if (newCard) {
+                    // Update dataset
+                    cardEl.dataset.id = newCardId;
+                    const newPrice = priceCache.get(newCardId) || (skipPricesGlobal ? '0.00' : getPseudoPrice(newCard));
+                    cardEl.dataset.price = newPrice;
+
+                    // Update image
+                    const imgEl = cardEl.querySelector('.card-img');
+                    if (imgEl) imgEl.src = newCard.images?.thumbnail || newCard.images?.full || '';
+
+                    // Update name
+                    const nameEl = cardEl.querySelector('.card-name');
+                    if (nameEl) nameEl.textContent = newCard.fullName;
+
+                    // Update meta
+                    const metaEl = cardEl.querySelector('.card-meta');
+                    if (metaEl) {
+                        const rarityClass = `rarity-${newCard.rarity.split(' ')[0]}`;
+                        metaEl.innerHTML = `
+                            <span class="rarity-dot ${rarityClass}"></span>
+                            <span>${newCard.rarity}</span>
+                            <span>Set: ${newCard.setCode}</span>
+                        `;
+                    }
+
+                    // Update price input
+                    const priceInput = cardEl.querySelector('.price-input');
+                    if (priceInput) priceInput.value = newPrice;
+
+                    // Update power rating
+                    const powerEl = cardEl.querySelector('.power-rating');
+                    const power = getPowerRating(newCard);
+                    if (powerEl) {
+                        if (power) {
+                            powerEl.textContent = `⚡ Power: ${power}`;
+                            powerEl.style.display = '';
+                        } else {
+                            powerEl.style.display = 'none';
+                        }
+                    }
+                }
+            }
+
+            // Reset offer for this slot
             if (offerState[oldId]) {
                 delete offerState[oldId];
             }
 
-            wantedList[listIndex].id = newCardId;
+            // Update counter id and reset count
+            const counterEl = document.getElementById(`count-${oldId}`);
+            if (counterEl) {
+                counterEl.id = `count-${newCardId}`;
+                counterEl.textContent = '0';
+            }
 
-            // Reset custom price for this slot since it's a different card
+            // Reset custom price
             if (customPrices[oldId]) {
                 delete customPrices[oldId];
             }
 
             closeModal();
-            await renderTradeView(wantedList);
-            calculateTotal(); // Recalculate as offer might have been removed
+            calculateTotal();
         }
 
         function closeModal() {
