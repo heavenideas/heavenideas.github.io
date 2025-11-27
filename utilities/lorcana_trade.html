@@ -428,6 +428,12 @@
         <p id="loading-status" style="font-size: 0.8rem; color: #888; margin-top: 0.5rem;">Connecting to Lore...</p>
     </div>
 
+    <div id="price-loading-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); z-index: 1500; justify-content: center; align-items: center; flex-direction: column;">
+        <div class="spinner"></div>
+        <p>Fetching Market Prices...</p>
+        <p id="price-loading-status" style="font-size: 0.8rem; color: #888; margin-top: 0.5rem;">Contacting CardTrader API...</p>
+    </div>
+
     <div class="toast" id="toast">Copied to Clipboard!</div>
 
     <header>
@@ -499,11 +505,78 @@
 
         // --- Constants ---
         const ALL_CARDS_URL = 'https://cdn.jsdelivr.net/gh/heavenideas/similcana@main/database/allCards.json';
+        const API_TOKEN = 'eyJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJjYXJkdHJhZGVyLXByb2R1Y3Rpb24iLCJzdWIiOiJhcHA6MTgzNzMiLCJhdWQiOiJhcHA6MTgzNzMiLCJleHAiOjQ5MTk5MTQwNjMsImp0aSI6IjNmYmViMDE5LTcyYmUtNDVjNC05OGM4LTQxYjliN2MwNGRlNCIsImlhdCI6MTc2NDI0MDQ2MywibmFtZSI6IlRyaWJvY3JhZnRzIEFwcCAyMDI1MTEyNzEwNDc0MyJ9.FhELwnCvgsTGx-RrT24ITgJvZhEXQMWD-OrtXppaeQhH1PlFxz8hg8zqyqCf1aow3DONHMdmXgUHJrU94eA1dyVrUSwXCyjJcD-AsmzCV5t2UZ1Ai_bbeTOHeEPSI6v6lcsJ9i-zA1XCA3rmAkz5bR5d3HSkO5i-PBT40YyjE3EQXtd1wu_pFYfT-reJa0sNLh3HaUtDzOQ0HTHVFzYtFKWO-6jvKeL-N3pslfvD6pDHHKHk1vSoIw4IJeb4zoHVWBJxhhujP8Z185_TS-UjSy1SJi_CzhOnybj9cX7m2Ar78ch73xyxhuirA_Ujyks3qNFZq7LgcE5ek1kGPu7w0g'; // CardTrader API token
+        const BASE_URL = 'https://api.cardtrader.com/api/v2/marketplace/products';
+
+        // Helper function to delay execution (prevents 429 Rate Limit errors)
+        const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+        async function fetchPrices(cardList) {
+            const results = [];
+
+            // Use a 'for...of' loop to process sequentially
+            for (const card of cardList) {
+                const ctId = card.externalLinks?.cardTraderId;
+
+                if (!ctId) {
+                    console.log(`Skipping card ${card.fullName || card.id}: No cardTraderId`);
+                    continue;
+                }
+
+                try {
+                    // Construct URL with blueprint_id
+                    const url = `${BASE_URL}?blueprint_id=${ctId}`;
+
+                    const response = await fetch(url, {
+                        headers: {
+                            'Authorization': `Bearer ${API_TOKEN}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    if (!response.ok) {
+                        console.error(`Error fetching ${ctId}: ${response.statusText}`);
+                        continue;
+                    }
+
+                    const data = await response.json();
+
+                    // Parse response: API keys results by the string version of the ID
+                    const lookupId = String(ctId);
+
+                    if (data[lookupId] && data[lookupId].length > 0) {
+                        // Grab the first listing (usually sorted by price low-to-high)
+                        const cheapestListing = data[lookupId][0];
+                        const priceCents = cheapestListing.price.cents;
+                        const formattedPrice = (priceCents / 100).toFixed(2);
+
+                        console.log(`Card ${ctId} (${card.fullName || card.id}): ${formattedPrice} ${cheapestListing.price.currency}`);
+
+                        // Add price back to card object or results array
+                        results.push({
+                            ...card,
+                            marketPrice: formattedPrice,
+                            currency: cheapestListing.price.currency
+                        });
+                    } else {
+                        console.log(`No listings found for ${ctId}`);
+                    }
+
+                } catch (error) {
+                    console.error(`Failed to fetch ${ctId}`, error);
+                }
+
+                // CRITICAL: Wait 200ms before next request
+                await sleep(200);
+            }
+
+            return results;
+        }
 
         // --- Initialization ---
         window.addEventListener('DOMContentLoaded', async () => {
             await loadData();
-            checkUrlState();
+            await checkUrlState();
         });
 
         async function loadData() {
@@ -550,7 +623,7 @@
             }
         }
 
-        function checkUrlState() {
+        async function checkUrlState() {
             const params = new URLSearchParams(window.location.search);
             const listParam = params.get('list');
 
@@ -558,7 +631,7 @@
                 try {
                     const jsonStr = LZString.decompressFromEncodedURIComponent(listParam);
                     const parsedList = JSON.parse(jsonStr);
-                    renderTradeView(parsedList);
+                    await renderTradeView(parsedList);
                     isResponderMode = true;
                 } catch (e) {
                     console.error("Failed to parse list", e);
@@ -672,16 +745,17 @@
 
             // Copy to clipboard and notify
             let copyText = `I'm looking for a trade! \nDo you have any of these?: \n${input}\n \n Trade Link: ${url}`;
-            navigator.clipboard.writeText(copyText).then(() => {
+            console.log(copyText)
+            navigator.clipboard.writeText(copyText).then(async () => {
                 showToast("Link copied! Share it on WhatsApp.");
                 // Also render it for the user to see
-                renderTradeView(list);
+                await renderTradeView(list);
                 // Update URL without reload
                 window.history.pushState({}, '', `?list=${compressed}`);
             });
         }
 
-        function renderTradeView(list) {
+        async function renderTradeView(list) {
             wantedList = list;
             document.getElementById('creator-view').style.display = 'none';
             document.getElementById('trade-view').style.display = 'block';
@@ -695,13 +769,34 @@
                 return;
             }
 
+            // Collect cards to price
+            const cardsToPrice = list.map(item => allCards.find(c => c.id === item.id)).filter(Boolean);
+
+            // Show loading overlay
+            const priceOverlay = document.getElementById('price-loading-overlay');
+            const priceStatus = document.getElementById('price-loading-status');
+            priceStatus.textContent = `Fetching prices for ${cardsToPrice.length} cards...`;
+            priceOverlay.style.display = 'flex';
+
+            // Fetch real prices
+            const pricedCards = await fetchPrices(cardsToPrice);
+
+            // Hide loading overlay
+            priceOverlay.style.display = 'none';
+
+            // Create price map
+            const priceMap = new Map();
+            pricedCards.forEach(c => {
+                if (c.marketPrice) priceMap.set(c.id, c.marketPrice);
+            });
+
             list.forEach((item, index) => {
                 // Find card data
                 // We stored ID, but let's look up by ID now
                 const card = allCards.find(c => c.id === item.id);
                 if (!card) return;
 
-                const defaultPrice = getPseudoPrice(card);
+                const defaultPrice = priceMap.get(card.id) || getPseudoPrice(card);
                 const currentPrice = customPrices[card.id] !== undefined ? customPrices[card.id] : defaultPrice;
                 const power = getPowerRating(card);
 
@@ -737,13 +832,13 @@
 
                             <div class="price-edit-container" style="margin-top: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
                                 <label style="font-size: 0.8rem; color: var(--text-muted);">Price £</label>
-                                <input type="number" step="0.01" class="price-input" 
-                                    value="${currentPrice}" 
+                                <input type="number" step="0.01" class="price-input"
+                                    value="${currentPrice}"
                                     onchange="updatePrice(${card.id}, this.value)"
                                     style="width: 80px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 2px 5px; border-radius: 4px;">
                             </div>
                         </div>
-                        
+
                         <div class="trade-controls">
                             <div class="wanted-badge">Wanted: ${item.qty}</div>
                             <div class="counter">
@@ -835,7 +930,7 @@
 
         // --- Variant Modal Logic ---
 
-        function openVariantSelector(listIndex) {
+        async function openVariantSelector(listIndex) {
             const item = wantedList[listIndex];
             const currentCard = allCards.find(c => c.id === item.id);
             if (!currentCard) return;
@@ -848,6 +943,24 @@
                 return cName === targetName;
             });
 
+            // Show loading overlay
+            const priceOverlay = document.getElementById('price-loading-overlay');
+            const priceStatus = document.getElementById('price-loading-status');
+            priceStatus.textContent = `Fetching prices for ${variants.length} variants...`;
+            priceOverlay.style.display = 'flex';
+
+            // Fetch prices for variants
+            const pricedVariants = await fetchPrices(variants);
+
+            // Hide loading overlay
+            priceOverlay.style.display = 'none';
+
+            // Create price map for variants
+            const variantPriceMap = new Map();
+            pricedVariants.forEach(v => {
+                if (v.marketPrice) variantPriceMap.set(v.id, v.marketPrice);
+            });
+
             const modal = document.getElementById('variant-modal');
             const container = document.getElementById('variant-list');
             container.innerHTML = '';
@@ -858,12 +971,13 @@
                 el.onclick = () => selectVariant(listIndex, v.id);
 
                 const imgUrl = v.images?.thumbnail || v.images?.full || '';
+                const price = variantPriceMap.get(v.id) || getPseudoPrice(v);
                 el.innerHTML = `
                     <img src="${imgUrl}" style="width: 60px; height: 84px; object-fit: cover; border-radius: 4px;">
                     <div style="flex: 1;">
                         <div style="font-weight: bold; font-size: 0.9rem;">${v.version || 'Base'}</div>
                         <div style="font-size: 0.8rem; color: #aaa;">${v.rarity} • Set ${v.setCode}</div>
-                        <div style="font-size: 0.8rem; color: var(--accent-gold);">$${getPseudoPrice(v)}</div>
+                        <div style="font-size: 0.8rem; color: var(--accent-gold);">£${price}</div>
                     </div>
                 `;
                 container.appendChild(el);
@@ -872,7 +986,7 @@
             modal.style.display = 'flex';
         }
 
-        function selectVariant(listIndex, newCardId) {
+        async function selectVariant(listIndex, newCardId) {
             // Update the wanted list item to point to the new card ID
             // We keep the quantity the same
             const oldId = wantedList[listIndex].id;
@@ -891,7 +1005,7 @@
             }
 
             closeModal();
-            renderTradeView(wantedList);
+            await renderTradeView(wantedList);
             calculateTotal(); // Recalculate as offer might have been removed
         }
 
