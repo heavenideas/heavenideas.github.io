@@ -478,7 +478,7 @@
             <div>Your Offer:</div>
             <div class="fab-total" id="offer-total">£0.00</div>
         </div>
-        <button class="fab-btn" onclick="generateResponse()">Copy Offer</button>
+        <button class="fab-btn" onclick="generateResponse()">Review Offer</button>
     </div>
 
     <!-- Variant Selection Modal -->
@@ -495,6 +495,24 @@
             <div id="variant-list"
                 style="overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem;">
                 <!-- Variants injected here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Review Offer Modal -->
+    <div id="review-modal"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; justify-content: center; align-items: center; padding: 1rem;">
+        <div
+            style="background: var(--bg-color); border: var(--glass-border); border-radius: 16px; width: 100%; max-width: 500px; max-height: 80vh; display: flex; flex-direction: column;">
+            <div
+                style="padding: 1rem; border-bottom: var(--glass-border); display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0;">Review Offer</h3>
+                <button onclick="closeReviewModal()"
+                    style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer;">&times;</button>
+            </div>
+            <div style="padding: 1rem; flex: 1; display: flex; flex-direction: column;">
+                <pre id="offer-text" style="background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 8px; color: white; white-space: pre-wrap; flex: 1; overflow-y: auto; margin-bottom: 1rem;"></pre>
+                <button class="btn" onclick="copyOffer()">Copy Offer</button>
             </div>
         </div>
     </div>
@@ -965,10 +983,14 @@
                     const cardEl = document.querySelector(`.card-item[data-id="${id}"]`);
                     const name = cardEl.querySelector('.card-name').textContent;
                     const price = parseFloat(cardEl.dataset.price);
-                    const lineTotal = price * qty;
-                    total += lineTotal;
+                    total += price * qty;
 
-                    lines.push(`- ${qty} ${name} @ £${price.toFixed(2)} (£${lineTotal.toFixed(2)})`);
+                    if (price === 0) {
+                        lines.push(`- ${qty} ${name}`);
+                    } else {
+                        const lineTotal = price * qty;
+                        lines.push(`- ${qty} ${name} @ £${price.toFixed(2)} (£${lineTotal.toFixed(2)})`);
+                    }
                 }
             }
 
@@ -977,11 +999,24 @@
                 return;
             }
 
-            lines.push(`\n💰 Total Value: £${total.toFixed(2)}`);
+            if (total > 0) {
+                lines.push(`\n💰 Total Value: £${total.toFixed(2)}`);
+            }
 
             const text = lines.join('\n');
+            document.getElementById('offer-text').textContent = text;
+            document.getElementById('review-modal').style.display = 'flex';
+        }
+
+        function closeReviewModal() {
+            document.getElementById('review-modal').style.display = 'none';
+        }
+
+        function copyOffer() {
+            const text = document.getElementById('offer-text').textContent;
             navigator.clipboard.writeText(text).then(() => {
                 showToast("Offer copied to clipboard!");
+                closeReviewModal();
             });
         }
 
