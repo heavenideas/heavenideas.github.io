@@ -1190,8 +1190,8 @@
 
         function openCardTrader(cardId) {
             const card = allCards.find(c => c.id === cardId);
-            if (card && card.externalLinks?.cardTraderId) {
-                window.open(`https://www.cardtrader.com/lorcana/cards/${card.externalLinks.cardTraderId}`, '_blank');
+            if (card && card.externalLinks?.cardTraderUrl) {
+                window.open(`${card.externalLinks.cardTraderUrl}`, '_blank');
             }
         }
 
