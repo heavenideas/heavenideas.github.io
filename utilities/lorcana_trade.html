@@ -450,6 +450,12 @@
                 Mouse - Brave Little Tailor").</p>
             <textarea id="decklist-input"
                 placeholder="4 Mickey Mouse - Brave Little Tailor&#10;3 Elsa - Snow Queen&#10;..."></textarea>
+            <div style="margin-bottom: 1rem;">
+                <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; color: #ccc;">
+                    <input type="checkbox" id="skip-prices" unchecked>
+                    Skip CardTrader Prices Lookup (Faster)
+                </label>
+            </div>
             <button class="btn" onclick="processDecklist()">Generate Trade Link</button>
         </div>
 
@@ -502,6 +508,7 @@
         let customPrices = {}; // cardId -> userDefinedPrice
         let activeVariantId = null; // For the modal
         let isResponderMode = false;
+        let skipPricesGlobal = false; // Whether to skip CardTrader prices for this trade
 
         // --- Constants ---
         const ALL_CARDS_URL = 'https://cdn.jsdelivr.net/gh/heavenideas/similcana@main/database/allCards.json';
@@ -630,8 +637,17 @@
             if (listParam) {
                 try {
                     const jsonStr = LZString.decompressFromEncodedURIComponent(listParam);
-                    const parsedList = JSON.parse(jsonStr);
-                    await renderTradeView(parsedList);
+                    const parsed = JSON.parse(jsonStr);
+                    let list, skipPrices = false;
+                    if (Array.isArray(parsed)) {
+                        // Old format: just the list array
+                        list = parsed;
+                    } else {
+                        // New format: {list, skipPrices}
+                        list = parsed.list;
+                        skipPrices = parsed.skipPrices || false;
+                    }
+                    await renderTradeView(list, skipPrices);
                     isResponderMode = true;
                 } catch (e) {
                     console.error("Failed to parse list", e);
@@ -738,8 +754,12 @@
                 return;
             }
 
+            // Check skip prices option
+            const skipPrices = document.getElementById('skip-prices').checked;
+
             // Generate URL
-            const jsonStr = JSON.stringify(list);
+            const data = { list, skipPrices };
+            const jsonStr = JSON.stringify(data);
             const compressed = LZString.compressToEncodedURIComponent(jsonStr);
             const url = `${window.location.origin}${window.location.pathname}?list=${compressed}`;
 
@@ -749,14 +769,15 @@
             navigator.clipboard.writeText(copyText).then(async () => {
                 showToast("Link copied! Share it on WhatsApp.");
                 // Also render it for the user to see
-                await renderTradeView(list);
+                await renderTradeView(list, skipPrices);
                 // Update URL without reload
                 window.history.pushState({}, '', `?list=${compressed}`);
             });
         }
 
-        async function renderTradeView(list) {
+        async function renderTradeView(list, skipPrices = false) {
             wantedList = list;
+            skipPricesGlobal = skipPrices;
             document.getElementById('creator-view').style.display = 'none';
             document.getElementById('trade-view').style.display = 'block';
             document.getElementById('fab-bar').classList.add('visible');
@@ -769,26 +790,35 @@
                 return;
             }
 
-            // Collect cards to price
-            const cardsToPrice = list.map(item => allCards.find(c => c.id === item.id)).filter(Boolean);
-
-            // Show loading overlay
-            const priceOverlay = document.getElementById('price-loading-overlay');
-            const priceStatus = document.getElementById('price-loading-status');
-            priceStatus.textContent = `Fetching prices for ${cardsToPrice.length} cards...`;
-            priceOverlay.style.display = 'flex';
-
-            // Fetch real prices
-            const pricedCards = await fetchPrices(cardsToPrice);
-
-            // Hide loading overlay
-            priceOverlay.style.display = 'none';
-
             // Create price map
             const priceMap = new Map();
-            pricedCards.forEach(c => {
-                if (c.marketPrice) priceMap.set(c.id, c.marketPrice);
-            });
+
+            if (!skipPrices) {
+                // Collect cards to price
+                const cardsToPrice = list.map(item => allCards.find(c => c.id === item.id)).filter(Boolean);
+
+                // Show loading overlay
+                const priceOverlay = document.getElementById('price-loading-overlay');
+                const priceStatus = document.getElementById('price-loading-status');
+                priceStatus.textContent = `Fetching prices for ${cardsToPrice.length} cards...`;
+                priceOverlay.style.display = 'flex';
+
+                // Fetch real prices
+                const pricedCards = await fetchPrices(cardsToPrice);
+
+                // Hide loading overlay
+                priceOverlay.style.display = 'none';
+
+                // Create price map
+                pricedCards.forEach(c => {
+                    if (c.marketPrice) priceMap.set(c.id, c.marketPrice);
+                });
+            } else {
+                // Skip prices: set all to 0.0
+                list.forEach(item => {
+                    priceMap.set(item.id, '0.00');
+                });
+            }
 
             list.forEach((item, index) => {
                 // Find card data
@@ -943,23 +973,32 @@
                 return cName === targetName;
             });
 
-            // Show loading overlay
-            const priceOverlay = document.getElementById('price-loading-overlay');
-            const priceStatus = document.getElementById('price-loading-status');
-            priceStatus.textContent = `Fetching prices for ${variants.length} variants...`;
-            priceOverlay.style.display = 'flex';
-
-            // Fetch prices for variants
-            const pricedVariants = await fetchPrices(variants);
-
-            // Hide loading overlay
-            priceOverlay.style.display = 'none';
-
             // Create price map for variants
             const variantPriceMap = new Map();
-            pricedVariants.forEach(v => {
-                if (v.marketPrice) variantPriceMap.set(v.id, v.marketPrice);
-            });
+
+            if (!skipPricesGlobal) {
+                // Show loading overlay
+                const priceOverlay = document.getElementById('price-loading-overlay');
+                const priceStatus = document.getElementById('price-loading-status');
+                priceStatus.textContent = `Fetching prices for ${variants.length} variants...`;
+                priceOverlay.style.display = 'flex';
+
+                // Fetch prices for variants
+                const pricedVariants = await fetchPrices(variants);
+
+                // Hide loading overlay
+                priceOverlay.style.display = 'none';
+
+                // Create price map for variants
+                pricedVariants.forEach(v => {
+                    if (v.marketPrice) variantPriceMap.set(v.id, v.marketPrice);
+                });
+            } else {
+                // Skip prices: set all to 0.0
+                variants.forEach(v => {
+                    variantPriceMap.set(v.id, '0.00');
+                });
+            }
 
             const modal = document.getElementById('variant-modal');
             const container = document.getElementById('variant-list');
