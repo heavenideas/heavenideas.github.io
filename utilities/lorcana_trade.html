@@ -17,6 +17,9 @@
     <script
         src="https://cdn.jsdelivr.net/gh/heavenideas/heavenideas.github.io@main/utilities/unified_win_probability_utilities.js"></script>
 
+    <!-- Fuzzy Search Library -->
+    <script src="https://cdn.jsdelivr.net/npm/fuse.js@6.6.2/dist/fuse.min.js"></script>
+
     <style>
         :root {
             --bg-color: #0f0c1d;
@@ -417,6 +420,59 @@
         .variant-item:hover {
             background: rgba(255, 255, 255, 0.1);
         }
+
+        /* Fuzzy Search Dropdown */
+        .search-container {
+            position: relative;
+            margin-bottom: 1rem;
+        }
+
+        #card-search {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: var(--text-main);
+            padding: 1rem;
+            font-family: monospace;
+            font-size: 1rem;
+            resize: vertical;
+        }
+
+        #card-search:focus {
+            outline: none;
+            border-color: var(--accent-purple);
+        }
+
+        #search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--card-bg);
+            border: var(--glass-border);
+            border-radius: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .search-result-item {
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            transition: background 0.2s;
+        }
+
+        .search-result-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
     </style>
 </head>
 
@@ -446,10 +502,13 @@
         <!-- Creator View -->
         <div id="creator-view" class="input-section" style="display: none;">
             <h2 style="margin-bottom: 1rem;">Create Wanted List</h2>
-            <p style="margin-bottom: 1rem; font-size: 0.9rem; color: #ccc;">Paste your decklist below (e.g., "4 Mickey
-                Mouse - Brave Little Tailor").</p>
+            <p style="margin-bottom: 1rem; font-size: 0.9rem; color: #ccc;">Quick add a card or paste your full decklist below (e.g., "4 Mickey Mouse - Brave Little Tailor").</p>
+            <div class="search-container">
+                <input type="text" id="card-search" placeholder="Search card name to add to list...">
+                <div id="search-results"></div>
+            </div>
             <textarea id="decklist-input"
-                placeholder="4 Mickey Mouse - Brave Little Tailor&#10;3 Elsa - Snow Queen&#10;..."></textarea>
+                placeholder="Paste card list&#10;4 Mickey Mouse - Brave Little Tailor&#10;3 Elsa - Snow Queen&#10;..."></textarea>
             <div style="margin-bottom: 1rem;">
                 <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; color: #ccc;">
                     <input type="checkbox" id="skip-prices" unchecked>
@@ -529,6 +588,7 @@
         let isResponderMode = false;
         let skipPricesGlobal = false; // Whether to skip CardTrader prices for this trade
         let priceCache = new Map(); // cardId -> price string, to avoid refetching
+        let fuse; // Fuzzy search instance
 
         // --- Constants ---
         const ALL_CARDS_URL = 'https://cdn.jsdelivr.net/gh/heavenideas/similcana@main/database/allCards.json';
@@ -628,6 +688,13 @@
                     }
                 });
 
+                // Initialize fuzzy search
+                fuse = new Fuse(allCards, {
+                    keys: ['fullName', 'simpleName'],
+                    threshold: 0.4,
+                    includeScore: true
+                });
+
                 // Load Win Probability Config
                 statusEl.textContent = "Loading Win Probability Matrix...";
                 try {
@@ -641,6 +708,7 @@
                 document.getElementById('loading-overlay').style.opacity = '0';
                 setTimeout(() => {
                     document.getElementById('loading-overlay').style.display = 'none';
+                    initFuzzySearch();
                 }, 500);
 
             } catch (err) {
@@ -1197,6 +1265,57 @@
 
         function resetApp() {
             window.location.href = window.location.pathname;
+        }
+
+        // --- Fuzzy Search Functions ---
+
+        function initFuzzySearch() {
+            const searchInput = document.getElementById('card-search');
+            const resultsDiv = document.getElementById('search-results');
+
+            searchInput.addEventListener('input', (e) => {
+                const query = e.target.value.trim();
+                if (query.length < 2) {
+                    resultsDiv.style.display = 'none';
+                    return;
+                }
+
+                const results = fuse.search(query).slice(0, 10); // Top 10 results
+                resultsDiv.innerHTML = '';
+
+                if (results.length === 0) {
+                    resultsDiv.style.display = 'none';
+                    return;
+                }
+
+                results.forEach(result => {
+                    const card = result.item;
+                    const div = document.createElement('div');
+                    div.className = 'search-result-item';
+                    div.textContent = `${card.fullName} - Set ${card.setCode}`;
+                    div.onclick = () => addCardToList(card.fullName);
+                    resultsDiv.appendChild(div);
+                });
+
+                resultsDiv.style.display = 'block';
+            });
+
+            // Hide results when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) {
+                    resultsDiv.style.display = 'none';
+                }
+            });
+        }
+
+        function addCardToList(cardName) {
+            const textarea = document.getElementById('decklist-input');
+            const currentValue = textarea.value;
+            const newLine = currentValue ? '\n1 ' + cardName : '1 ' + cardName;
+            textarea.value += newLine;
+            document.getElementById('search-results').style.display = 'none';
+            document.getElementById('card-search').value = '';
+            showToast("Card added to list!");
         }
 
     </script>
