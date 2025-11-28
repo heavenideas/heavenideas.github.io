@@ -1323,6 +1323,12 @@
                     const priceInput = cardEl.querySelector('.price-input');
                     if (priceInput) priceInput.value = newPrice;
 
+                    // Update counter buttons onclick
+                    const minusBtn = cardEl.querySelector('.counter-btn:first-of-type');
+                    const plusBtn = cardEl.querySelector('.counter-btn:last-of-type');
+                    if (minusBtn) minusBtn.setAttribute('onclick', `updateOffer(${newCardId}, -1)`);
+                    if (plusBtn) plusBtn.setAttribute('onclick', `updateOffer(${newCardId}, 1)`);
+
                     // Update power rating
                     const powerEl = cardEl.querySelector('.power-rating');
                     const power = getPowerRating(newCard);
@@ -1337,16 +1343,17 @@
                 }
             }
 
-            // Reset offer for this slot
-            if (offerState[oldId]) {
+            // Transfer offer quantity to new card if different
+            if (newCardId !== oldId && offerState[oldId]) {
+                offerState[newCardId] = offerState[oldId];
                 delete offerState[oldId];
             }
 
-            // Update counter id and reset count
+            // Update counter id and preserve count
             const counterEl = document.getElementById(`count-${oldId}`);
             if (counterEl) {
                 counterEl.id = `count-${newCardId}`;
-                counterEl.textContent = '0';
+                counterEl.textContent = offerState[newCardId] || '0';
             }
 
             // Reset custom price
