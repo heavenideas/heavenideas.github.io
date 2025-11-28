@@ -1106,6 +1106,8 @@
             const cardEl = document.querySelector(`.card-item[data-id="${cardId}"]`);
             if (cardEl) {
                 cardEl.dataset.price = newPrice;
+                const priceInput = cardEl.querySelector('.price-input');
+                if (priceInput) priceInput.value = newPrice;
             }
             calculateTotal();
         }
