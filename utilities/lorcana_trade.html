@@ -746,16 +746,28 @@
 
             if (listParam) {
                 try {
-                    const jsonStr = LZString.decompressFromEncodedURIComponent(listParam);
-                    const parsed = JSON.parse(jsonStr);
+                    const dataStr = LZString.decompressFromEncodedURIComponent(listParam);
+                    const parts = dataStr.split('|');
                     let list, skipPrices = false;
-                    if (Array.isArray(parsed)) {
-                        // Old format: just the list array
-                        list = parsed;
+                    if (parts.length === 2) {
+                        // New compact format: listStr|skipPrices
+                        const listStr = parts[0];
+                        skipPrices = parts[1] === 'true';
+                        list = listStr.split(',').map(s => {
+                            const [id, qty] = s.split('-');
+                            return { id: parseInt(id), qty: parseInt(qty) };
+                        });
                     } else {
-                        // New format: {list, skipPrices}
-                        list = parsed.list;
-                        skipPrices = parsed.skipPrices || false;
+                        // Fallback: try old JSON format
+                        const parsed = JSON.parse(dataStr);
+                        if (Array.isArray(parsed)) {
+                            // Old format: just the list array
+                            list = parsed;
+                        } else {
+                            // Old new format: {list, skipPrices}
+                            list = parsed.list;
+                            skipPrices = parsed.skipPrices || false;
+                        }
                     }
                     await renderTradeView(list, skipPrices);
                     isResponderMode = true;
@@ -864,8 +876,7 @@
                         const card = variants[0];
                         list.push({
                             id: card.id,
-                            qty: qty,
-                            name: card.fullName // Store name for fallback
+                            qty: qty
                         });
                     } else {
                         console.warn("Card not found:", name);
@@ -882,10 +893,10 @@
             // Check skip prices option
             const skipPrices = document.getElementById('skip-prices').checked;
 
-            // Generate URL
-            const data = { list, skipPrices };
-            const jsonStr = JSON.stringify(data);
-            const compressed = LZString.compressToEncodedURIComponent(jsonStr);
+            // Generate compact data string: id-qty,id-qty,...|skipPrices
+            const listStr = list.map(item => `${item.id}-${item.qty}`).join(',');
+            const dataStr = `${listStr}|${skipPrices}`;
+            const compressed = LZString.compressToEncodedURIComponent(dataStr);
             const url = `${window.location.origin}${window.location.pathname}?list=${compressed}`;
 
             // Prepare share text
@@ -1115,7 +1126,9 @@
                 // Proceed with rendering
                 await renderTradeView(pendingList, pendingSkipPrices);
                 // Update URL without reload
-                const compressed = LZString.compressToEncodedURIComponent(JSON.stringify({ list: pendingList, skipPrices: pendingSkipPrices }));
+                const listStr = pendingList.map(item => `${item.id}-${item.qty}`).join(',');
+                const dataStr = `${listStr}|${pendingSkipPrices}`;
+                const compressed = LZString.compressToEncodedURIComponent(dataStr);
                 window.history.pushState({}, '', `?list=${compressed}`);
                 // Clear pending
                 pendingList = null;
