@@ -352,6 +352,14 @@
             font-size: 1.1rem;
         }
 
+        .fab-disclaimer {
+            font-size: 0.6rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+            line-height: 1.2;
+            max-width: 200px;
+        }
+
         .fab-btn {
             background: var(--accent-gold);
             color: #000;
@@ -582,6 +590,7 @@
         <div class="fab-info">
             <div>Your Offer:</div>
             <div class="fab-total" id="offer-total">£0.00</div>
+            <small class="fab-disclaimer">Any Prices used in this app are representative and can be incorrect or incomplete. Please check any prices or provide new prices for any card</small>
         </div>
         <button class="fab-btn" onclick="generateResponse()">Review Offer</button>
     </div>
@@ -732,6 +741,8 @@
                 legalDisclaimer: "Legal Disclaimer",
                 subtitle: "Paste - Share - Trade",
                 shareMessage: "I'm looking for a trade! \nDo you have any of these?:\n\n{input}\n \nUse this Trade Link to let me know which cards you have:\n\n{url}",
+                currency: "£",
+                priceDisclaimer: "Any Prices used in this app are representative and can be incorrect or incomplete. Please check any prices or provide new prices for any card",
                 languageEnglish: "English",
                 languageSpanish: "Español"
             },
@@ -768,10 +779,10 @@
                 cardAlreadyInList: "¡La carta ya está en la lista deseada!",
                 changeVersion: "Cambiar Versión",
                 wanted: "Cantidad Deseada:",
-                priceLabel: "Precio £",
+                priceLabel: "Precio €",
                 ctButton: "CT",
                 tradeOffer: "🤝 Oferta de Intercambio:",
-                totalValue: "💰 Valor Total: £",
+                totalValue: "💰 Valor Total: €",
                 confirmReset: "¿Estás seguro de que quieres crear una nueva lista? Borrará la lista actual. Si solo quieres agregar más cartas, cancela esto y puedes agregarlas a las existentes en la parte superior de esta página.",
                 fetchingMarketPrices: "Obteniendo Precios de Mercado...",
                 contactingAPI: "Contactando API de CardTrader...",
@@ -780,6 +791,8 @@
                 legalDisclaimer: "Descargo de Responsabilidad Legal",
                 subtitle: "Pega - Comparte - Cambia",
                 shareMessage: "¡Estoy buscando un intercambio! \n¿Tienes alguna de estas?:\n\n{input}\n \nUsa este Enlace de Intercambio para decirme qué cartas tienes:\n\n{url}",
+                currency: "€",
+                priceDisclaimer: "Cualquier precio utilizado en esta aplicación es representativo y puede ser incorrecto o incompleto. Por favor, verifica cualquier precio o proporciona nuevos precios para cualquier carta",
                 languageEnglish: "English",
                 languageSpanish: "Español"
             }
@@ -870,8 +883,10 @@
             // Update FAB
             const fabBar = document.getElementById('fab-bar');
             if (fabBar) {
-                const fabDiv = fabBar.querySelector('div');
-                if (fabDiv) fabDiv.textContent = t('yourOffer');
+                const fabOfferDiv = fabBar.querySelector('.fab-info div:first-child');
+                if (fabOfferDiv) fabOfferDiv.textContent = t('yourOffer');
+                const fabDisclaimer = fabBar.querySelector('.fab-disclaimer');
+                if (fabDisclaimer) fabDisclaimer.textContent = t('priceDisclaimer');
                 const fabBtn = fabBar.querySelector('button');
                 if (fabBtn) fabBtn.textContent = t('reviewOffer');
             }
@@ -1422,7 +1437,7 @@
             }
             const offerTotalEl = document.getElementById('offer-total');
             if (offerTotalEl) {
-                offerTotalEl.textContent = '£' + total.toFixed(2);
+                offerTotalEl.textContent = t('currency') + total.toFixed(2);
             }
         }
 
