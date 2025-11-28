@@ -1097,6 +1097,15 @@
                         </div>
                     </div>
                 `;
+
+                // Restore offer state to DOM
+                const countEl = el.querySelector('.counter-val');
+                const currentOffer = offerState[card.id] || 0;
+                countEl.textContent = currentOffer;
+                if (currentOffer > 0) {
+                    el.classList.add('active-have');
+                }
+
                 container.appendChild(el);
             });
         }
@@ -1391,6 +1400,8 @@
             });
             // Re-render with prices
             await renderTradeView(wantedList, false);
+            // Update total price display
+            calculateTotal();
         }
 
         function removePrices() {
