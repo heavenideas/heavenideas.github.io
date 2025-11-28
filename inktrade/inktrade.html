@@ -686,61 +686,69 @@
 
         async function fetchPrices(cardList) {
             const results = [];
+            const chunkSize = 5; // Process 2 cards concurrently to reduce rate limit errors
 
-            // Use a 'for...of' loop to process sequentially
-            for (const card of cardList) {
-                const ctId = card.externalLinks?.cardTraderId;
+            for (let i = 0; i < cardList.length; i += chunkSize) {
+                const chunk = cardList.slice(i, i + chunkSize);
 
-                if (!ctId) {
-                    console.log(`Skipping card ${card.fullName || card.id}: No cardTraderId`);
-                    continue;
-                }
+                const promises = chunk.map(async (card) => {
+                    const ctId = card.externalLinks?.cardTraderId;
 
-                try {
-                    // Construct URL with blueprint_id
-                    const url = `${BASE_URL}?blueprint_id=${ctId}`;
-
-                    const response = await fetch(url, {
-                        headers: {
-                            'Authorization': `Bearer ${API_TOKEN}`,
-                            'Content-Type': 'application/json'
-                        }
-                    });
-
-                    if (!response.ok) {
-                        console.error(`Error fetching ${ctId}: ${response.statusText}`);
-                        continue;
+                    if (!ctId) {
+                        console.log(`Skipping card ${card.fullName || card.id}: No cardTraderId`);
+                        return;
                     }
 
-                    const data = await response.json();
+                    try {
+                        // Construct URL with blueprint_id
+                        const url = `${BASE_URL}?blueprint_id=${ctId}`;
 
-                    // Parse response: API keys results by the string version of the ID
-                    const lookupId = String(ctId);
-
-                    if (data[lookupId] && data[lookupId].length > 0) {
-                        // Grab the first listing (usually sorted by price low-to-high)
-                        const cheapestListing = data[lookupId][0];
-                        const priceCents = cheapestListing.price.cents;
-                        const formattedPrice = (priceCents / 100).toFixed(2);
-
-                        console.log(`Card ${ctId} (${card.fullName || card.id}): ${formattedPrice} ${cheapestListing.price.currency}`);
-
-                        // Add price back to card object or results array
-                        results.push({
-                            ...card,
-                            marketPrice: formattedPrice,
-                            currency: cheapestListing.price.currency
+                        const response = await fetch(url, {
+                            headers: {
+                                'Authorization': `Bearer ${API_TOKEN}`,
+                                'Content-Type': 'application/json'
+                            }
                         });
-                    } else {
-                        console.log(`No listings found for ${ctId}`);
+
+                        if (!response.ok) {
+                            console.error(`Error fetching ${ctId}: ${response.statusText}`);
+                            return;
+                        }
+
+                        const data = await response.json();
+
+                        // Parse response: API keys results by the string version of the ID
+                        const lookupId = String(ctId);
+
+                        if (data[lookupId] && data[lookupId].length > 0) {
+                            // Grab the first listing (usually sorted by price low-to-high)
+                            const cheapestListing = data[lookupId][0];
+                            const priceCents = cheapestListing.price.cents;
+                            const formattedPrice = (priceCents / 100).toFixed(2);
+
+                            console.log(`Card ${ctId} (${card.fullName || card.id}): ${formattedPrice} ${cheapestListing.price.currency}`);
+
+                            // Add price back to card object or results array
+                            results.push({
+                                ...card,
+                                marketPrice: formattedPrice,
+                                currency: cheapestListing.price.currency
+                            });
+                        } else {
+                            console.log(`No listings found for ${ctId}`);
+                        }
+
+                    } catch (error) {
+                        console.error(`Failed to fetch ${ctId}`, error);
                     }
+                });
 
-                } catch (error) {
-                    console.error(`Failed to fetch ${ctId}`, error);
+                await Promise.all(promises);
+
+                // Wait between chunks to avoid rate limits
+                if (i + chunkSize < cardList.length) {
+                    await sleep(500);
                 }
-
-                // CRITICAL: Wait 200ms before next request
-                await sleep(200);
             }
 
             return results;
