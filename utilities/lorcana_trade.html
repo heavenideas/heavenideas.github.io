@@ -577,6 +577,24 @@
         </div>
     </div>
 
+    <!-- Share Trade Link Modal -->
+    <div id="share-modal"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; justify-content: center; align-items: center; padding: 1rem;">
+        <div
+            style="background: var(--bg-color); border: var(--glass-border); border-radius: 16px; width: 100%; max-width: 500px; max-height: 80vh; display: flex; flex-direction: column;">
+            <div
+                style="padding: 1rem; border-bottom: var(--glass-border); display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0;">Share Trade Link</h3>
+                <button onclick="closeShareModal()"
+                    style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer;">&times;</button>
+            </div>
+            <div style="padding: 1rem; flex: 1; display: flex; flex-direction: column;">
+                <pre id="share-text" style="background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 8px; color: white; white-space: pre-wrap; flex: 1; overflow-y: auto; margin-bottom: 1rem;"></pre>
+                <button class="btn" onclick="copyAndProceed()">Copy To Clipboard to Share</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // --- State ---
         let allCards = [];
@@ -589,6 +607,10 @@
         let skipPricesGlobal = false; // Whether to skip CardTrader prices for this trade
         let priceCache = new Map(); // cardId -> price string, to avoid refetching
         let fuse; // Fuzzy search instance
+        let pendingList = null; // For share modal
+        let pendingSkipPrices = false;
+        let pendingUrl = '';
+        let pendingShareText = '';
 
         // --- Constants ---
         const ALL_CARDS_URL = 'https://cdn.jsdelivr.net/gh/heavenideas/similcana@main/database/allCards.json';
@@ -866,16 +888,18 @@
             const compressed = LZString.compressToEncodedURIComponent(jsonStr);
             const url = `${window.location.origin}${window.location.pathname}?list=${compressed}`;
 
-            // Copy to clipboard and notify
-            let copyText = `I'm looking for a trade! \nDo you have any of these?: \n${input}\n \n Trade Link: ${url}`;
-            console.log(copyText)
-            navigator.clipboard.writeText(copyText).then(async () => {
-                showToast("Link copied! Share it on WhatsApp.");
-                // Also render it for the user to see
-                await renderTradeView(list, skipPrices);
-                // Update URL without reload
-                window.history.pushState({}, '', `?list=${compressed}`);
-            });
+            // Prepare share text
+            let shareText = `I'm looking for a trade! \nDo you have any of these?:\n\n${input}\n \nUse this Trade Link to let me know which cards you have:\n\n${url}`;
+
+            // Store for modal
+            pendingList = list;
+            pendingSkipPrices = skipPrices;
+            pendingUrl = url;
+            pendingShareText = shareText;
+
+            // Show share modal
+            document.getElementById('share-text').textContent = shareText;
+            document.getElementById('share-modal').style.display = 'flex';
         }
 
         async function renderTradeView(list, skipPrices = false) {
@@ -1078,6 +1102,27 @@
 
         function closeReviewModal() {
             document.getElementById('review-modal').style.display = 'none';
+        }
+
+        function closeShareModal() {
+            document.getElementById('share-modal').style.display = 'none';
+        }
+
+        async function copyAndProceed() {
+            navigator.clipboard.writeText(pendingShareText).then(async () => {
+                showToast("Copied to clipboard! Share it on WhatsApp.");
+                closeShareModal();
+                // Proceed with rendering
+                await renderTradeView(pendingList, pendingSkipPrices);
+                // Update URL without reload
+                const compressed = LZString.compressToEncodedURIComponent(JSON.stringify({ list: pendingList, skipPrices: pendingSkipPrices }));
+                window.history.pushState({}, '', `?list=${compressed}`);
+                // Clear pending
+                pendingList = null;
+                pendingSkipPrices = false;
+                pendingUrl = '';
+                pendingShareText = '';
+            });
         }
 
         function copyOffer() {
