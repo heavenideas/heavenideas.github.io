@@ -1105,7 +1105,7 @@
                 if (newCard) {
                     // Update dataset
                     cardEl.dataset.id = newCardId;
-                    const newPrice = priceCache.get(newCardId) || (skipPricesGlobal ? '0.00' : getPseudoPrice(newCard));
+                    const newPrice = priceCache.get(newCardId) || '0.00';
                     cardEl.dataset.price = newPrice;
 
                     // Update image
