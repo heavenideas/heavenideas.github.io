@@ -473,6 +473,39 @@
         .search-result-item:last-child {
             border-bottom: none;
         }
+
+        /* Trade view search styles - same as main search */
+        #trade-card-search {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: var(--text-main);
+            padding: 1rem;
+            font-family: monospace;
+            font-size: 1rem;
+            resize: vertical;
+        }
+
+        #trade-card-search:focus {
+            outline: none;
+            border-color: var(--accent-purple);
+        }
+
+        #trade-search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--card-bg);
+            border: var(--glass-border);
+            border-radius: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
     </style>
 </head>
 
@@ -520,6 +553,10 @@
 
         <!-- Trade View -->
         <div id="trade-view" style="display: none;">
+            <div class="search-container" id="trade-search-container" style="display: none;">
+                <input type="text" id="trade-card-search" placeholder="Add more cards to your wanted list...">
+                <div id="trade-search-results"></div>
+            </div>
             <div id="cards-container" class="card-list">
                 <!-- Cards will be injected here -->
             </div>
@@ -919,6 +956,12 @@
             document.getElementById('creator-view').style.display = 'none';
             document.getElementById('trade-view').style.display = 'block';
             document.getElementById('fab-bar').classList.add('visible');
+
+            // Show add card search only for creators (not responders)
+            if (!isResponderMode) {
+                document.getElementById('trade-search-container').style.display = 'block';
+                initTradeFuzzySearch();
+            }
 
             const container = document.getElementById('cards-container');
             container.innerHTML = '';
@@ -1374,6 +1417,70 @@
             document.getElementById('search-results').style.display = 'none';
             document.getElementById('card-search').value = '';
             showToast("Card added to list!");
+        }
+
+        function initTradeFuzzySearch() {
+            const searchInput = document.getElementById('trade-card-search');
+            const resultsDiv = document.getElementById('trade-search-results');
+
+            searchInput.addEventListener('input', (e) => {
+                const query = e.target.value.trim();
+                if (query.length < 2) {
+                    resultsDiv.style.display = 'none';
+                    return;
+                }
+
+                const results = fuse.search(query).slice(0, 10); // Top 10 results
+                resultsDiv.innerHTML = '';
+
+                if (results.length === 0) {
+                    resultsDiv.style.display = 'none';
+                    return;
+                }
+
+                results.forEach(result => {
+                    const card = result.item;
+                    const div = document.createElement('div');
+                    div.className = 'search-result-item';
+                    div.textContent = `${card.fullName} - Set ${card.setCode}`;
+                    div.onclick = () => addCardToWantedList(card.id);
+                    resultsDiv.appendChild(div);
+                });
+
+                resultsDiv.style.display = 'block';
+            });
+
+            // Hide results when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) {
+                    resultsDiv.style.display = 'none';
+                }
+            });
+        }
+
+        async function addCardToWantedList(cardId) {
+            // Check if already in list
+            const existing = wantedList.find(item => item.id === cardId);
+            if (existing) {
+                showToast("Card already in wanted list!");
+                return;
+            }
+
+            // Add with qty 1
+            wantedList.push({ id: cardId, qty: 1 });
+
+            // Update URL
+            const listStr = wantedList.map(item => `${item.id}-${item.qty}`).join(',');
+            const dataStr = `${listStr}|${skipPricesGlobal}`;
+            const compressed = LZString.compressToEncodedURIComponent(dataStr);
+            window.history.pushState({}, '', `?list=${compressed}`);
+
+            // Re-render
+            await renderTradeView(wantedList, skipPricesGlobal);
+
+            document.getElementById('trade-search-results').style.display = 'none';
+            document.getElementById('trade-card-search').value = '';
+            showToast("Card added to wanted list!");
         }
 
     </script>
