@@ -567,7 +567,8 @@
                 No cards found. Check the link or create a new list.
             </div>
             <button class="btn btn-secondary" onclick="fetchPricesNow()" style="margin-top: 1rem;">Fetch CardTrader Prices</button>
-            <button class="btn btn-secondary" onclick="resetApp()" style="margin-top: 1rem;">Create New List</button>
+            <button class="btn btn-secondary" onclick="removePrices()" style="margin-top: 1rem;">Remove Prices</button>
+            <button class="btn btn-secondary" onclick="confirmReset()" style="margin-top: 1rem;">Create New List</button>
         </div>
 
     </div>
@@ -905,7 +906,7 @@
             const lines = input.split('\n');
             const list = [];
 
-            const rarityOrder = ['Common', 'Uncommon', 'Rare', 'Super Rare', 'Legendary', 'Epic', 'Enchanted'];
+            const rarityOrder = ['Common', 'Uncommon', 'Rare', 'Super Rare', 'Legendary', 'Epic', 'Enchanted', 'Special'];
 
             lines.forEach(line => {
                 line = line.trim();
@@ -922,7 +923,7 @@
                     // Find all variants
                     const simple = normalizeName(name);
                     const variants = allCards.filter(c => {
-                        const cName = c.simpleName || normalizeName(c.fullName);
+                        const cName = normalizeName(c.simpleName || c.fullName);
                         return cName === simple;
                     });
 
@@ -1223,10 +1224,10 @@
             if (!currentCard) return;
 
             // Find all cards with same simpleName, fallback to normalized fullName
-            const targetName = currentCard.simpleName || normalizeName(currentCard.fullName);
+            const targetName = normalizeName(currentCard.simpleName || currentCard.fullName);
 
             const variants = allCards.filter(c => {
-                const cName = c.simpleName || normalizeName(c.fullName);
+                const cName = normalizeName(c.simpleName || c.fullName);
                 return cName === targetName;
             });
 
@@ -1390,10 +1391,28 @@
             await renderTradeView(wantedList, false);
         }
 
+        function removePrices() {
+            skipPricesGlobal = true;
+            wantedList.forEach(item => {
+                const card = allCards.find(c => c.id === item.id);
+                if (card) {
+                    updatePrice(card.id, '0.00');
+                    priceCache.set(card.id, '0.00');
+                }
+            });
+        }
+
         function openCardTrader(cardId) {
             const card = allCards.find(c => c.id === cardId);
             if (card && card.externalLinks?.cardTraderUrl) {
                 window.open(`${card.externalLinks.cardTraderUrl}`, '_blank');
+            }
+        }
+
+        function confirmReset() {
+            const confirmed = confirm("Are you sure you want to create a new list? It will erase the current list. If you just want to add more cards, cancel this and you can add them to the existing ones at the top of this page.");
+            if (confirmed) {
+                resetApp();
             }
         }
 
