@@ -538,7 +538,12 @@
             <img src="../img/inktrade.png" alt="InkTrade Logo" style="position: absolute; left: 50%; transform: translateX(-50%) translateY(-50%); margin-left: -120px; height: 80px; border-radius: 8px; top: 50%;">
             <h1>InkTrade</h1>
             <p class="subtitle"><strong>Paste - Share - Trade</strong></p>
-            <select id="language-select" style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 5px; border-radius: 4px;">
+            <select id="currency-select" style="position: absolute; top: 10px; right: 110px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 5px; border-radius: 4px;">
+                <option value="£">£</option>
+                <option value="€">€</option>
+                <option value="$">$</option>
+            </select>
+            <select id="language-select" style="position: absolute; top: 10px; right: 20px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 5px; border-radius: 4px;">
                 <option value="en">English</option>
                 <option value="es">Español</option>
             </select>
@@ -688,6 +693,7 @@
         let pendingSkipPrices = false;
         let pendingUrl = '';
         let pendingShareText = '';
+        let selectedCurrency = '£'; // Selected currency symbol
 
         // --- Constants ---
         const ALL_CARDS_URL = 'https://cdn.jsdelivr.net/gh/heavenideas/similcana@main/database/allCards.json';
@@ -729,10 +735,10 @@
                 cardAlreadyInList: "Card already in wanted list!",
                 changeVersion: "Change Version",
                 wanted: "Wanted:",
-                priceLabel: "Price £",
+                priceLabel: "Price",
                 ctButton: "CT",
                 tradeOffer: "🤝 Trade Offer:",
-                totalValue: "💰 Total Value: £",
+                totalValue: "💰 Total Value: ",
                 confirmReset: "Are you sure you want to create a new list? It will erase the current list. If you just want to add more cards, cancel this and you can add them to the existing ones at the top of this page.",
                 fetchingMarketPrices: "Fetching Market Prices...",
                 contactingAPI: "Contacting CardTrader API...",
@@ -779,10 +785,10 @@
                 cardAlreadyInList: "¡La carta ya está en la lista deseada!",
                 changeVersion: "Cambiar Versión",
                 wanted: "Cantidad Deseada:",
-                priceLabel: "Precio €",
+                priceLabel: "Precio",
                 ctButton: "CT",
                 tradeOffer: "🤝 Oferta de Intercambio:",
-                totalValue: "💰 Valor Total: €",
+                totalValue: "💰 Valor Total: ",
                 confirmReset: "¿Estás seguro de que quieres crear una nueva lista? Borrará la lista actual. Si solo quieres agregar más cartas, cancela esto y puedes agregarlas a las existentes en la parte superior de esta página.",
                 fetchingMarketPrices: "Obteniendo Precios de Mercado...",
                 contactingAPI: "Contactando API de CardTrader...",
@@ -816,6 +822,13 @@
             updateUIText();
         }
 
+        function setCurrency(currency) {
+            selectedCurrency = currency;
+            localStorage.setItem('currency', currency);
+            updateUIText();
+            calculateTotal(); // Update the total display
+        }
+
         function detectLanguage() {
             const stored = localStorage.getItem('language');
             if (stored && translations[stored]) {
@@ -823,6 +836,16 @@
             }
             const browserLang = navigator.language.toLowerCase();
             return browserLang.startsWith('es') ? 'es' : 'en';
+        }
+
+        function detectCurrency() {
+            const stored = localStorage.getItem('currency');
+            if (stored) {
+                return stored;
+            }
+            // Default based on language
+            const lang = detectLanguage();
+            return lang === 'es' ? '€' : '£';
         }
 
         function updateUIText() {
@@ -920,7 +943,7 @@
                 if (changeVersionDiv) changeVersionDiv.textContent = t('changeVersion');
 
                 const priceLabel = cardEl.querySelector('.price-edit-container label');
-                if (priceLabel) priceLabel.textContent = t('priceLabel');
+                if (priceLabel) priceLabel.textContent = t('priceLabel') + ' ' + selectedCurrency;
 
                 const ctButton = cardEl.querySelector('.price-edit-container button');
                 if (ctButton) ctButton.textContent = t('ctButton');
@@ -939,6 +962,12 @@
                 if (enOpt) enOpt.textContent = t('languageEnglish');
                 const esOpt = langSelect.querySelector('option[value="es"]');
                 if (esOpt) esOpt.textContent = t('languageSpanish');
+            }
+
+            // Update currency switcher
+            const currencySelect = document.getElementById('currency-select');
+            if (currencySelect) {
+                currencySelect.value = selectedCurrency;
             }
         }
 
@@ -1024,11 +1053,21 @@
             const detectedLang = detectLanguage();
             setLanguage(detectedLang);
 
+            // Initialize currency
+            selectedCurrency = detectCurrency();
+
             // Add language switcher event listener
             const langSelect = document.getElementById('language-select');
             langSelect.value = currentLanguage;
             langSelect.addEventListener('change', (e) => {
                 setLanguage(e.target.value);
+            });
+
+            // Add currency switcher event listener
+            const currencySelect = document.getElementById('currency-select');
+            currencySelect.value = selectedCurrency;
+            currencySelect.addEventListener('change', (e) => {
+                setCurrency(e.target.value);
             });
         });
 
@@ -1358,7 +1397,7 @@
                             ${power ? `<div class="power-rating">⚡ Power: ${power}</div>` : ''}
 
                             <div class="price-edit-container" style="margin-top: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
-                                <label style="font-size: 0.8rem; color: var(--text-muted);">${t('priceLabel')}</label>
+                                <label style="font-size: 0.8rem; color: var(--text-muted);">${t('priceLabel')} ${selectedCurrency}</label>
                                 <input type="number" step="0.01" class="price-input"
                                     value="${currentPrice}"
                                     onchange="updatePrice(${card.id}, this.value)"
@@ -1437,7 +1476,7 @@
             }
             const offerTotalEl = document.getElementById('offer-total');
             if (offerTotalEl) {
-                offerTotalEl.textContent = t('currency') + total.toFixed(2);
+                offerTotalEl.textContent = selectedCurrency + total.toFixed(2);
             }
         }
 
@@ -1458,7 +1497,7 @@
                         lines.push(`- ${qty} ${name}`);
                     } else {
                         const lineTotal = price * qty;
-                        lines.push(`- ${qty} ${name} @ £${price.toFixed(2)} (£${lineTotal.toFixed(2)})`);
+                        lines.push(`- ${qty} ${name} @ ${selectedCurrency}${price.toFixed(2)} (${selectedCurrency}${lineTotal.toFixed(2)})`);
                     }
                 }
             }
@@ -1469,7 +1508,7 @@
             }
 
             if (total > 0) {
-                lines.push(`\n${t('totalValue')}${total.toFixed(2)}`);
+                lines.push(`\n${t('totalValue')}${selectedCurrency}${total.toFixed(2)}`);
             }
 
             const text = lines.join('\n');
