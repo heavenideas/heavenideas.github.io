@@ -1,0 +1,1143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Inkwell: Lorcana Goldfish Simulator</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Unified Win Probability Library -->
+    <script src="https://cdn.jsdelivr.net/gh/heavenideas/heavenideas.github.io@main/utilities/unified_win_probability_utilities.js"></script>
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #1f2937; }
+        ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #6b7280; }
+
+        /* Card Styles */
+        .card-hover:hover { transform: scale(1.05) translateY(-10px); z-index: 50; }
+        .card-exerted { transform: rotate(90deg); transition: transform 0.2s ease-in-out; }
+        .card-ready { transform: rotate(0deg); transition: transform 0.2s ease-in-out; }
+        
+        /* Inkwell Styles */
+        /* Ink cards are portrait (w-32 h-48). When exerted, they rotate 90deg. */
+        .ink-card-container { transition: transform 0.3s ease, filter 0.3s ease; }
+        .ink-ready { transform: rotate(0deg); filter: brightness(1); }
+        .ink-exerted { transform: rotate(90deg) translateX(10px); filter: brightness(0.6) sepia(0.5); }
+        
+        /* Drag & Drop Visuals */
+        .drag-over { background-color: rgba(59, 130, 246, 0.2); border: 2px dashed #60a5fa; }
+        .discard-drag-over { background-color: rgba(239, 68, 68, 0.2); border: 2px dashed #ef4444; }
+        
+        /* Loading Overlay */
+        #loader { transition: opacity 0.5s; }
+        
+        /* Stats Tooltip */
+        .stats-popup {
+            display: none;
+            position: absolute;
+            bottom: 110%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            background: rgba(0, 0, 0, 0.95);
+            border: 1px solid #d4af37;
+            border-radius: 8px;
+            padding: 8px;
+            z-index: 100;
+            pointer-events: none;
+        }
+        .card-container:hover .stats-popup { display: block; }
+        
+        /* Context Menu */
+        #context-menu {
+            display: none;
+            position: absolute;
+            z-index: 1000;
+            background: #1e293b;
+            border: 1px solid #475569;
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            animation: fadeIn 0.1s ease-out;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        
+        /* Draw Animation */
+        @keyframes drawFlash {
+            0% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(251, 191, 36, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0); }
+        }
+        .draw-flash {
+            animation: drawFlash 0.5s ease-out;
+        }
+
+        /* Victory Modal Animation */
+        @keyframes victoryPop {
+            0% { transform: scale(0.5); opacity: 0; }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .victory-content { animation: victoryPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+
+        body {
+            background-color: #0f172a; /* Slate 900 */
+            color: #e2e8f0; /* Slate 200 */
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden; /* Prevent body scroll, handle in containers */
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col" onclick="ui.hideContextMenu()">
+
+    <!-- Loading Screen -->
+    <div id="loader" class="fixed inset-0 bg-slate-900 z-[9999] flex flex-col items-center justify-center">
+        <div class="animate-spin rounded-full h-32 w-32 border-b-4 border-amber-400 mb-4"></div>
+        <h2 class="text-2xl font-bold text-amber-400">Project Inkwell</h2>
+        <p id="loader-text" class="text-slate-400 mt-2">Loading Card Database...</p>
+    </div>
+
+    <!-- Header / HUD -->
+    <header class="h-16 bg-slate-800 border-b border-slate-700 flex items-center justify-between px-6 shadow-md z-10">
+        <div class="flex items-center gap-6">
+            <h1 class="text-xl font-bold text-amber-500 tracking-wider">INKWELL</h1>
+            <div class="bg-slate-700 px-4 py-1 rounded flex gap-4">
+                <span class="font-mono text-cyan-400">TURN <span id="turn-count" class="text-white font-bold">1</span></span>
+                <button onclick="ui.showLoreModal()" class="font-mono text-purple-400 hover:bg-slate-600 px-2 rounded transition cursor-pointer" title="Adjust Lore Manually">
+                    LORE <span id="lore-count" class="text-white font-bold underline decoration-dotted">0</span>
+                </button>
+                <span class="font-mono text-yellow-400">INK <span id="ink-current" class="text-white font-bold">0</span>/<span id="ink-total" class="text-white font-bold">0</span></span>
+            </div>
+        </div>
+        <div class="flex gap-3">
+             <button onclick="ui.showLogModal()" class="px-3 py-1 bg-slate-700 hover:bg-slate-600 rounded text-sm transition text-gray-300">
+                📋 Logs
+             </button>
+             <button onclick="game.undo()" class="px-3 py-1 bg-slate-600 hover:bg-slate-500 rounded text-sm transition flex items-center gap-1 group">
+                <span class="group-hover:-translate-x-1 transition-transform">↩</span> Undo
+            </button>
+            <button onclick="app.newGame()" class="px-3 py-1 bg-slate-600 hover:bg-slate-500 rounded text-sm transition">New Deck</button>
+            <button onclick="game.nextTurn()" class="px-4 py-1 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded shadow-lg transition">End Turn</button>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="flex-1 flex overflow-hidden relative">
+        
+        <!-- Left Sidebar: Import / Discard -->
+        <aside class="w-64 bg-slate-800 border-r border-slate-700 flex flex-col">
+            <!-- Deck View / Import -->
+            <div id="import-panel" class="p-4 flex-1 flex flex-col gap-2">
+                <h3 class="text-sm font-semibold text-slate-400 uppercase">Deck Import</h3>
+                <select id="saved-decks" class="w-full bg-slate-900 border border-slate-600 rounded p-2 text-xs font-mono text-slate-300 focus:border-amber-500 focus:outline-none">
+                    <option value="">Select a saved deck...</option>
+                </select>
+                <textarea id="deck-input" class="w-full h-32 bg-slate-900 border border-slate-600 rounded p-2 text-xs font-mono text-slate-300 resize-none focus:border-amber-500 focus:outline-none" placeholder="4 Lilo - Making a Wish&#10;4 Simba - Protective Cub..."></textarea>
+                <button onclick="app.processImport()" class="w-full py-2 bg-blue-600 hover:bg-blue-500 rounded text-sm font-bold transition">Load Deck</button>
+                <div id="import-error" class="text-xs text-red-400 hidden"></div>
+            </div>
+
+            <div class="border-t border-slate-700 p-4 h-1/2 flex flex-col">
+                <h3 class="text-sm font-semibold text-slate-400 uppercase mb-2">Discard Pile</h3>
+                <div id="discard-zone" class="flex-1 border-2 border-dashed border-slate-700 rounded-lg p-2 overflow-y-auto content-start flex flex-wrap gap-2 transition-colors"
+                     ondragover="dnd.allowDrop(event, 'discard')" ondrop="dnd.drop(event, 'discard')">
+                    <div class="w-full text-center text-slate-600 text-xs mt-4 pointer-events-none">Drag here to Discard</div>
+                    <!-- Discarded cards go here -->
+                </div>
+            </div>
+        </aside>
+
+        <!-- Center: Play Area -->
+        <section class="flex-1 flex flex-col relative bg-slate-900/50">
+            <!-- Opponent / Board Top (Placeholder for future) -->
+            <div class="h-12 border-b border-slate-800/50"></div>
+
+            <!-- The Field -->
+            <div id="play-area" class="flex-1 p-6 relative overflow-y-auto flex flex-wrap content-start gap-4 transition-colors duration-200"
+                 ondragover="dnd.allowDrop(event, 'play')" ondrop="dnd.drop(event, 'play')">
+                <div class="absolute inset-0 flex items-center justify-center opacity-10 pointer-events-none">
+                    <span class="text-6xl font-black text-slate-700">PLAY AREA</span>
+                </div>
+                <!-- Cards played go here -->
+            </div>
+
+            <!-- Player Hand & Inkwell Container -->
+            <div class="h-48 bg-slate-800 border-t border-slate-700 flex z-20 shadow-2xl">
+                
+                <!-- Inkwell Zone -->
+                <div id="inkwell-zone" class="w-48 bg-slate-900/80 border-r border-slate-700 p-2 relative flex flex-col justify-end items-center"
+                     ondragover="dnd.allowDrop(event, 'ink')" ondrop="dnd.drop(event, 'ink')">
+                    <span class="absolute top-2 left-2 text-xs font-bold text-slate-500 uppercase tracking-widest">Inkwell</span>
+                    <div id="ink-stack" class="w-full h-full relative">
+                        <!-- Inked cards stack here visually -->
+                    </div>
+                </div>
+
+                <!-- Hand Zone -->
+                <div id="hand-zone" class="flex-1 p-4 flex items-center justify-center gap-[-2rem] overflow-x-visible relative">
+                    <!-- Hand cards -->
+                </div>
+
+                <!-- Deck Zone -->
+                <div class="w-32 bg-slate-900/80 border-l border-slate-700 p-2 flex items-center justify-center relative group">
+                    <div class="relative cursor-pointer transition transform group-hover:-translate-y-1 group-hover:scale-105"
+                         onclick="game.draw(1); ui.flashDeck()">
+                        
+                        <!-- Visual Deck Stack -->
+                        <div class="w-20 h-28 bg-blue-900 border-2 border-blue-700 rounded-lg shadow-xl flex items-center justify-center z-10 relative" id="deck-visual">
+                            <span class="text-xs font-bold text-blue-300">DECK</span>
+                        </div>
+                        <!-- Stack effect cards underneath -->
+                        <div class="absolute top-1 left-1 w-20 h-28 bg-blue-800 rounded-lg border border-blue-900 z-0"></div>
+                        <div class="absolute top-2 left-2 w-20 h-28 bg-blue-950 rounded-lg border border-black -z-10"></div>
+
+                        <!-- Badge -->
+                        <div class="absolute -top-2 -right-2 bg-amber-500 text-slate-900 text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center border-2 border-slate-800 z-20" id="deck-count">0</div>
+                        
+                        <!-- Hover Tooltip -->
+                        <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max px-2 py-1 bg-black text-white text-xs rounded opacity-0 group-hover:opacity-100 transition pointer-events-none">
+                            Click to Draw
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Mulligan Modal -->
+    <div id="mulligan-modal" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center backdrop-blur-sm">
+        <div class="bg-slate-800 border border-slate-600 rounded-xl p-8 max-w-4xl w-full shadow-2xl">
+            <h2 class="text-2xl font-bold text-white mb-2">Mulligan Phase</h2>
+            <p class="text-slate-400 mb-6">Select cards to return to the bottom of the deck. You will redraw that many.</p>
+            
+            <div id="mulligan-container" class="flex flex-wrap justify-center gap-4 mb-8 min-h-[200px]">
+                <!-- Cards generated here -->
+            </div>
+
+            <div class="flex justify-end gap-4 border-t border-slate-700 pt-6">
+                <button onclick="game.confirmMulligan()" class="px-6 py-2 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded shadow-lg transition transform hover:scale-105">Confirm & Start</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Victory Modal -->
+    <div id="victory-modal" class="hidden fixed inset-0 bg-black/90 z-[9999] flex items-center justify-center backdrop-blur-md" onclick="ui.hideVictoryModal()">
+        <div class="victory-content text-center p-10 bg-gradient-to-br from-purple-900 to-slate-900 border-4 border-amber-500 rounded-2xl shadow-[0_0_50px_rgba(245,158,11,0.5)] relative overflow-hidden max-w-lg w-full">
+            <!-- Decorative background elements -->
+            <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20"></div>
+            
+            <h2 class="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-400 mb-4 drop-shadow-sm">VICTORY!</h2>
+            <div class="text-8xl mb-6">🏆</div>
+            <p class="text-2xl text-purple-200 font-bold mb-8">20 Lore Reached!</p>
+            
+            <div class="grid grid-cols-2 gap-4 text-left bg-black/30 p-4 rounded-lg border border-purple-500/30 mb-8">
+                <div class="text-slate-400">Total Turns:</div>
+                <div class="text-right font-mono font-bold text-white" id="win-turn">0</div>
+                <div class="text-slate-400">Total Cards Drawn:</div>
+                <div class="text-right font-mono font-bold text-white" id="win-cards">0</div>
+            </div>
+
+            <button onclick="ui.hideVictoryModal()" class="px-8 py-3 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-full shadow-lg transition transform hover:scale-105 uppercase tracking-widest">Continue Playing</button>
+        </div>
+    </div>
+
+    <!-- Lore Adjust Modal -->
+    <div id="lore-modal" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center backdrop-blur-sm" onclick="if(event.target === this) ui.hideLoreModal()">
+        <div class="bg-slate-800 border border-slate-600 rounded-xl p-6 w-64 shadow-2xl text-center">
+            <h3 class="text-lg font-bold text-purple-400 mb-4">Adjust Lore</h3>
+            <div class="flex justify-center items-center gap-4 mb-4">
+                <button onclick="game.modifyLore(-1)" class="w-10 h-10 bg-slate-700 hover:bg-slate-600 rounded-full text-xl font-bold text-white">-1</button>
+                <span id="lore-modal-value" class="text-2xl font-bold text-white">0</span>
+                <button onclick="game.modifyLore(1)" class="w-10 h-10 bg-purple-600 hover:bg-purple-500 rounded-full text-xl font-bold text-white">+1</button>
+            </div>
+            <p class="text-xs text-slate-400 mb-4">Use for card effects that gain lore directly.</p>
+            <button onclick="ui.hideLoreModal()" class="w-full py-2 bg-slate-600 hover:bg-slate-500 rounded text-sm text-white">Close</button>
+        </div>
+    </div>
+
+    <!-- Logs Modal -->
+    <div id="log-modal" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center backdrop-blur-sm" onclick="if(event.target === this) ui.hideLogModal()">
+        <div class="bg-slate-800 border border-slate-600 rounded-xl p-6 max-w-2xl w-full h-[80vh] shadow-2xl flex flex-col">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-white">Session Logs</h3>
+                <button onclick="game.logger.export()" class="text-xs bg-blue-600 hover:bg-blue-500 px-3 py-1 rounded text-white font-bold">Export to .txt</button>
+            </div>
+            <div id="log-container" class="flex-1 bg-slate-900 border border-slate-700 rounded p-4 overflow-y-auto font-mono text-xs text-slate-300 whitespace-pre-wrap"></div>
+            <div class="mt-4 flex justify-end">
+                <button onclick="ui.hideLogModal()" class="px-6 py-2 bg-slate-600 hover:bg-slate-500 rounded text-sm text-white font-bold">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Context Menu for Card Actions -->
+    <div id="context-menu" class="hidden flex-col min-w-[150px]">
+        <!-- Populated via JS -->
+    </div>
+
+<script>
+/**
+ * 1. CONFIGURATION & UTILITIES
+ */
+const DATA_URL = "https://raw.githubusercontent.com/heavenideas/similcana/refs/heads/main/database/allCards.json";
+const SUPABASE_URL = 'https://cjlhrfhximjldqrfblkj.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNqbGhyZmh4aW1qbGRxcmZibGtqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA0MTcxNzQsImV4cCI6MjA2NTk5MzE3NH0.zLiQcPnKt2SnNfQIkUnOG7bOo6F7MPMh8MsasdFF6lw';
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let CARD_DATABASE = {};
+let ALL_CARDS_RAW = [];
+
+// Levenshtein Distance for Fuzzy Search
+const levenshtein = (a, b) => {
+    const matrix = [];
+    for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+    for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+    for (let i = 1; i <= b.length; i++) {
+        for (let j = 1; j <= a.length; j++) {
+            if (b.charAt(i - 1) == a.charAt(j - 1)) {
+                matrix[i][j] = matrix[i - 1][j - 1];
+            } else {
+                matrix[i][j] = Math.min(
+                    matrix[i - 1][j - 1] + 1,
+                    matrix[i][j - 1] + 1,
+                    matrix[i - 1][j] + 1
+                );
+            }
+        }
+    }
+    return matrix[b.length][a.length];
+};
+
+const findBestMatch = (inputName) => {
+    const cleanInput = inputName.trim().toLowerCase();
+    const exact = ALL_CARDS_RAW.find(c => (c.fullName || c.name).toLowerCase() === cleanInput);
+    if (exact) return exact;
+
+    let bestMatch = null;
+    let lowestDistance = Infinity;
+    
+    for (const card of ALL_CARDS_RAW) {
+        const dist = levenshtein(cleanInput, (card.fullName || card.name).toLowerCase());
+        if (dist < lowestDistance) {
+            lowestDistance = dist;
+            bestMatch = card;
+        }
+    }
+    return lowestDistance < 5 ? bestMatch : null;
+};
+
+const shuffle = (array) => {
+    let currentIndex = array.length, randomIndex;
+    while (currentIndex != 0) {
+        randomIndex = Math.floor(Math.random() * currentIndex);
+        currentIndex--;
+        [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+    }
+    return array;
+};
+
+const uuidv4 = () => {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
+};
+
+const loadDecks = async () => {
+    const { data, error } = await supabaseClient.from('decks').select('*').order('created_at', { ascending: false });
+    if (error) {
+        console.error('Error loading decks:', error);
+        return [];
+    }
+    return data;
+};
+
+/**
+ * 2. CORE CLASSES
+ */
+
+class GameLogger {
+    constructor() {
+        this.logs = [];
+    }
+
+    add(message) {
+        // Use game.turn if available, otherwise 0
+        const turn = typeof game !== 'undefined' ? game.turn : 0;
+        const time = new Date().toLocaleTimeString('en-US', { hour12: false });
+        const entry = `[${time}][Turn ${turn}] ${message}`;
+        this.logs.push(entry);
+    }
+
+    getFormattedLogs() {
+        return this.logs.join('\n');
+    }
+
+    export() {
+        if(this.logs.length === 0) return;
+        const blob = new Blob([this.getFormattedLogs()], { type: 'text/plain' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `inkwell-session-${new Date().toISOString().slice(0,19).replace(/:/g,'-')}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+    }
+    
+    clear() {
+        this.logs = [];
+    }
+}
+
+class CardInstance {
+    constructor(template) {
+        this.uid = uuidv4();
+        this.id = template.id;
+        this.name = template.fullName || template.name;
+        this.cost = template.cost;
+        this.inkable = template.inkwell || false;
+        this.lore = template.lore || 0;
+        this.image = template.images?.thumbnail || template.images?.full;
+        this.strength = template.strength;
+        this.willpower = template.willpower;
+        this.fullTextSections = template.fullTextSections || [];
+        
+        this.state = 'ready'; 
+        this.zone = 'deck';
+        this.turnInked = null; // Track when inked
+        this.justPlayed = false;
+        this.metrics = null;
+    }
+
+    async getMetrics() {
+        if (!this.metrics && window.UnifiedWinProbabiliyCalculation) {
+            try {
+                const cardObj = {
+                    fullTextSections: this.fullTextSections,
+                    cost: this.cost,
+                    strength: this.strength,
+                    willpower: this.willpower,
+                    lore: this.lore,
+                    inkable: this.inkable
+                };
+                this.metrics = UnifiedWinProbabiliyCalculation.calculateCardMetrics(cardObj);
+            } catch (e) {
+                console.warn("Metrics calculation failed", e);
+            }
+        }
+        return this.metrics;
+    }
+}
+
+class GameState {
+    constructor() {
+        this.logger = new GameLogger();
+        this.deck = [];
+        this.hand = [];
+        this.inkwell = [];
+        this.field = [];
+        this.discard = [];
+        this.history = []; 
+        
+        this.turn = 1;
+        this.lore = 0;
+        this.currentInk = 0; 
+        this.totalInk = 0;
+        
+        // New Stats
+        this.cardsDrawnThisTurn = 0;
+        this.loreGainedThisTurn = 0;
+        this.totalCardsDrawn = 0;
+        this.won = false;
+        
+        this.mulliganSelection = new Set();
+    }
+
+    startGame(deckList) {
+        this.logger.clear();
+        this.logger.add(`Game Started. Deck loaded with ${deckList.length} cards.`);
+        this.deck = shuffle(deckList.map(template => new CardInstance(template)));
+        this.hand = [];
+        this.inkwell = [];
+        this.field = [];
+        this.discard = [];
+        this.history = [];
+        this.turn = 1;
+        this.lore = 0;
+        this.currentInk = 0;
+        this.totalInk = 0;
+        
+        // Stats Reset
+        this.cardsDrawnThisTurn = 0;
+        this.loreGainedThisTurn = 0;
+        this.totalCardsDrawn = 0;
+        this.won = false;
+        
+        this.draw(7, false, true); // Initial draw
+        ui.showMulligan();
+    }
+
+    saveState() {
+        const stateSnapshot = {
+            deck: JSON.parse(JSON.stringify(this.deck)),
+            hand: JSON.parse(JSON.stringify(this.hand)),
+            inkwell: JSON.parse(JSON.stringify(this.inkwell)),
+            field: JSON.parse(JSON.stringify(this.field)),
+            discard: JSON.parse(JSON.stringify(this.discard)),
+            turn: this.turn,
+            lore: this.lore,
+            currentInk: this.currentInk,
+            totalInk: this.totalInk,
+            cardsDrawnThisTurn: this.cardsDrawnThisTurn,
+            loreGainedThisTurn: this.loreGainedThisTurn,
+            totalCardsDrawn: this.totalCardsDrawn,
+            won: this.won
+        };
+        this.history.push(stateSnapshot);
+    }
+
+    undo() {
+        if (this.history.length === 0) return;
+        this.logger.add("UNDO PERFORMED");
+        const prevState = this.history.pop();
+        
+        this.turn = prevState.turn;
+        this.lore = prevState.lore;
+        this.currentInk = prevState.currentInk;
+        this.totalInk = prevState.totalInk;
+        this.cardsDrawnThisTurn = prevState.cardsDrawnThisTurn;
+        this.loreGainedThisTurn = prevState.loreGainedThisTurn;
+        this.totalCardsDrawn = prevState.totalCardsDrawn;
+        this.won = prevState.won;
+
+        this.deck = this.restoreCards(prevState.deck);
+        this.hand = this.restoreCards(prevState.hand);
+        this.inkwell = this.restoreCards(prevState.inkwell);
+        this.field = this.restoreCards(prevState.field);
+        this.discard = this.restoreCards(prevState.discard);
+
+        ui.render();
+    }
+
+    restoreCards(cardDataArray) {
+        return cardDataArray.map(data => {
+            const card = Object.create(CardInstance.prototype);
+            Object.assign(card, data);
+            return card;
+        });
+    }
+
+    draw(amount = 1, suppressSave = false, isInitial = false) {
+        if (!suppressSave && amount > 0) this.saveState();
+        
+        let drewCount = 0;
+        for(let i=0; i<amount; i++) {
+            if(this.deck.length === 0) break;
+            const card = this.deck.shift();
+            card.zone = 'hand';
+            this.hand.push(card);
+            drewCount++;
+        }
+        
+        this.totalCardsDrawn += drewCount;
+        
+        if (!isInitial) {
+            this.cardsDrawnThisTurn += drewCount;
+            if (!suppressSave && drewCount > 0) {
+                this.logger.add(`Drew ${drewCount} card(s).`);
+            }
+        }
+        
+        ui.render();
+    }
+
+    toggleMulligan(cardIndex) {
+        if (this.mulliganSelection.has(cardIndex)) {
+            this.mulliganSelection.delete(cardIndex);
+        } else {
+            this.mulliganSelection.add(cardIndex);
+        }
+        ui.renderMulliganCards();
+    }
+
+    confirmMulligan() {
+        const indices = Array.from(this.mulliganSelection).sort((a,b) => b-a);
+        const bottomed = [];
+        
+        indices.forEach(idx => {
+            bottomed.push(this.hand[idx]);
+            this.hand.splice(idx, 1);
+        });
+
+        this.logger.add(`Mulligan: Kept ${7 - bottomed.length}, Bottomed ${bottomed.length}.`);
+
+        // Draw replacements
+        for(let i=0; i<bottomed.length; i++) {
+             if(this.deck.length === 0) break;
+             const card = this.deck.shift();
+             card.zone = 'hand';
+             this.hand.push(card);
+        }
+
+        this.deck.push(...bottomed);
+        this.deck = shuffle(this.deck);
+        this.history = []; 
+
+        ui.hideMulligan();
+        ui.render();
+    }
+    
+    checkWinCondition() {
+        if (this.lore >= 20 && !this.won) {
+            this.won = true;
+            this.logger.add(`*** VICTORY! Reached ${this.lore} Lore on Turn ${this.turn} ***`);
+            ui.showVictoryModal();
+        }
+    }
+
+    // Generic Move Function handling all zones
+    moveCard(cardUid, targetZone) {
+        // Find Card Source
+        let sourceList = null;
+        let cardIndex = -1;
+        let card = null;
+
+        if ((cardIndex = this.hand.findIndex(c => c.uid === cardUid)) !== -1) {
+            sourceList = this.hand;
+        } else if ((cardIndex = this.field.findIndex(c => c.uid === cardUid)) !== -1) {
+            sourceList = this.field;
+        }
+
+        if (!sourceList) return;
+        card = sourceList[cardIndex];
+
+        // LOGIC FOR TARGET ZONES
+        if (targetZone === 'discard') {
+            this.saveState();
+            sourceList.splice(cardIndex, 1);
+            card.zone = 'discard';
+            card.state = 'ready';
+            this.discard.push(card);
+            this.logger.add(`Discarded "${card.name}" from ${sourceList === this.hand ? 'Hand' : 'Play'}.`);
+        } 
+        else if (targetZone === 'ink') {
+            if (sourceList !== this.hand) return;
+
+            if (!card.inkable) {
+                const proceed = confirm(`Warning: "${card.name}" is Uninkable.\n\nDo you want to force ink it?`);
+                if (!proceed) return;
+            }
+            this.saveState();
+            sourceList.splice(cardIndex, 1);
+            card.zone = 'ink';
+            card.state = 'ready'; 
+            card.turnInked = this.turn; // MARK TURN INKED
+            this.inkwell.push(card);
+            this.totalInk++;
+            this.currentInk++;
+            this.logger.add(`Inked "${card.name}".`);
+        } 
+        else if (targetZone === 'play') {
+            if (sourceList !== this.hand) return;
+
+            if (this.currentInk < card.cost) {
+                if(!confirm(`Not enough ink! Cost: ${card.cost}, Available: ${this.currentInk}. Play anyway?`)) return;
+            }
+            this.saveState();
+            this.currentInk = Math.max(0, this.currentInk - card.cost);
+            sourceList.splice(cardIndex, 1);
+            card.zone = 'play';
+            card.state = 'dried';
+            card.justPlayed = true;
+            this.field.push(card);
+            this.logger.add(`Played "${card.name}" for ${card.cost} ink.`);
+        }
+
+        ui.render();
+    }
+
+    // Interactive Actions
+    quest(cardUid) {
+        const card = this.field.find(c => c.uid === cardUid);
+        if (card && card.state === 'ready') {
+            this.saveState();
+            card.state = 'exerted';
+            this.lore += card.lore;
+            this.loreGainedThisTurn += card.lore;
+            ui.showFloatingText(card.uid, `+${card.lore} Lore`, 'text-purple-400');
+            this.logger.add(`"${card.name}" quested for ${card.lore} Lore.`);
+            this.checkWinCondition();
+            ui.render();
+        }
+    }
+
+    singOrExert(cardUid) {
+        const card = this.field.find(c => c.uid === cardUid);
+        if (card && card.state === 'ready') {
+            this.saveState();
+            card.state = 'exerted';
+            this.logger.add(`"${card.name}" exerted/sang.`);
+            ui.render();
+        }
+    }
+
+    readyCard(cardUid) {
+        const card = this.field.find(c => c.uid === cardUid);
+        if (card && card.state === 'exerted') {
+            this.saveState();
+            card.state = 'ready';
+            this.logger.add(`"${card.name}" was readied manually.`);
+            ui.render();
+        }
+    }
+
+    modifyLore(amount) {
+        this.saveState();
+        this.lore += amount;
+        if(amount > 0) this.loreGainedThisTurn += amount;
+        if(this.lore < 0) this.lore = 0;
+        this.logger.add(`Manual Lore adjustment: ${amount > 0 ? '+' : ''}${amount}. New Total: ${this.lore}.`);
+        ui.renderHUD();
+        const modalVal = document.getElementById('lore-modal-value');
+        if(modalVal) modalVal.innerText = this.lore;
+        this.checkWinCondition();
+    }
+
+    nextTurn() {
+        this.saveState();
+        this.logger.add(`[Turn ${this.turn} Summary] Cards Drawn: ${this.cardsDrawnThisTurn}, Lore Velocity: +${this.loreGainedThisTurn}`);
+        this.logger.add(`--- Ending Turn ${this.turn} ---`);
+        this.turn++;
+        
+        // Reset turn stats
+        this.cardsDrawnThisTurn = 0;
+        this.loreGainedThisTurn = 0;
+        
+        this.field.forEach(c => {
+            c.state = 'ready';
+            c.justPlayed = false;
+        });
+        
+        this.currentInk = this.totalInk;
+        this.logger.add(`--- Starting Turn ${this.turn} ---`);
+        
+        // Draw 1
+        this.draw(1, true); 
+        this.logger.add("Drew 1 card for turn.");
+        
+        ui.render();
+    }
+}
+
+/**
+ * 3. UI CONTROLLER
+ */
+const game = new GameState();
+
+const ui = {
+    init: async () => {
+        try {
+            const response = await fetch(DATA_URL);
+            const data = await response.json();
+            ALL_CARDS_RAW = data.cards;
+
+            if (window.UnifiedWinProbabiliyCalculation) {
+                await UnifiedWinProbabiliyCalculation.loadAbilitiesConfig();
+            }
+
+            // Load saved decks
+            const decks = await loadDecks();
+            const select = document.getElementById('saved-decks');
+            decks.forEach(deck => {
+                const option = document.createElement('option');
+                option.value = deck.id;
+                option.textContent = deck.name;
+                select.appendChild(option);
+            });
+
+            // Add event listener for deck selection
+            select.addEventListener('change', async () => {
+                const deckId = select.value;
+                if (!deckId) return;
+                const { data, error } = await supabaseClient.from('decks').select('*').eq('id', deckId).single();
+                if (error) {
+                    console.error(error);
+                    return;
+                }
+                document.getElementById('deck-input').value = data.decklist;
+            });
+
+            document.getElementById('loader').classList.add('opacity-0');
+            setTimeout(() => document.getElementById('loader').remove(), 500);
+        } catch (e) {
+            document.getElementById('loader-text').innerText = "Error loading data. See console.";
+            document.getElementById('loader-text').classList.add('text-red-500');
+            console.error(e);
+        }
+    },
+
+    newGame: () => {
+        document.getElementById('import-panel').querySelector('textarea').value = '';
+        game.hand = [];
+        game.field = [];
+        game.inkwell = [];
+        game.deck = [];
+        game.discard = [];
+        game.history = [];
+        game.logger.clear();
+        ui.render();
+    },
+
+    processImport: () => {
+        const text = document.getElementById('deck-input').value;
+        const lines = text.split('\n');
+        const deckList = [];
+        const errorDiv = document.getElementById('import-error');
+        errorDiv.classList.add('hidden');
+        errorDiv.innerHTML = '';
+
+        const regex = /^(\d+)\s+(.*)$/;
+        let errors = [];
+
+        lines.forEach(line => {
+            if (!line.trim()) return;
+            const match = line.match(regex);
+            if (match) {
+                const qty = parseInt(match[1]);
+                const name = match[2].trim();
+                const cardTemplate = findBestMatch(name);
+                
+                if (cardTemplate) {
+                    for(let i=0; i<qty; i++) deckList.push(cardTemplate);
+                } else {
+                    errors.push(`Card not found: "${name}"`);
+                }
+            }
+        });
+
+        if (errors.length > 0) {
+            errorDiv.classList.remove('hidden');
+            errorDiv.innerHTML = errors.join('<br>');
+        }
+
+        if (deckList.length > 0) {
+            game.startGame(deckList);
+        }
+    },
+
+    showMulligan: () => {
+        document.getElementById('mulligan-modal').classList.remove('hidden');
+        ui.renderMulliganCards();
+    },
+
+    hideMulligan: () => {
+        document.getElementById('mulligan-modal').classList.add('hidden');
+    },
+
+    showLoreModal: () => {
+        document.getElementById('lore-modal').classList.remove('hidden');
+        document.getElementById('lore-modal-value').innerText = game.lore;
+    },
+
+    hideLoreModal: () => {
+        document.getElementById('lore-modal').classList.add('hidden');
+    },
+    
+    showVictoryModal: () => {
+        document.getElementById('win-turn').innerText = game.turn;
+        document.getElementById('win-cards').innerText = game.totalCardsDrawn;
+        document.getElementById('victory-modal').classList.remove('hidden');
+    },
+
+    hideVictoryModal: () => {
+        document.getElementById('victory-modal').classList.add('hidden');
+    },
+
+    showLogModal: () => {
+        document.getElementById('log-modal').classList.remove('hidden');
+        document.getElementById('log-container').innerText = game.logger.getFormattedLogs() || "No logs yet.";
+        // Scroll to bottom
+        const container = document.getElementById('log-container');
+        container.scrollTop = container.scrollHeight;
+    },
+
+    hideLogModal: () => {
+        document.getElementById('log-modal').classList.add('hidden');
+    },
+
+    renderMulliganCards: () => {
+        const container = document.getElementById('mulligan-container');
+        container.innerHTML = '';
+        game.hand.forEach((card, index) => {
+            const isSelected = game.mulliganSelection.has(index);
+            const el = document.createElement('div');
+            el.className = `relative cursor-pointer transition transform hover:scale-105 ${isSelected ? 'ring-4 ring-red-500 rounded-lg opacity-75' : ''}`;
+            el.onclick = () => game.toggleMulligan(index);
+            
+            el.innerHTML = `
+                <img src="${card.image}" class="w-32 rounded-lg shadow-lg">
+                ${isSelected ? '<div class="absolute inset-0 flex items-center justify-center"><span class="text-4xl font-bold text-red-500">✕</span></div>' : ''}
+            `;
+            container.appendChild(el);
+        });
+    },
+
+    createCardElement: (card, zone) => {
+        const div = document.createElement('div');
+        div.className = `card-container relative transition-all duration-200 ${zone === 'hand' ? 'w-24 -ml-8 hover:-ml-0 hover:mr-4 first:ml-0' : 'w-32'}`;
+        div.id = `card-${card.uid}`;
+        
+        div.draggable = true;
+        div.ondragstart = (e) => dnd.dragStart(e, card.uid);
+
+        const isExerted = card.state === 'exerted';
+        const isDried = card.state === 'dried';
+        
+        let transformClass = isExerted ? 'card-exerted' : 'card-ready';
+        let filterClass = isDried ? 'grayscale-[0.5]' : '';
+        
+        const getMetricsHtml = () => {
+           if (!window.UnifiedWinProbabiliyCalculation) return '';
+           if (!card.metrics) {
+               card.getMetrics();
+               return '<div class="text-xs text-gray-400">Analyzing...</div>';
+           }
+           const m = card.metrics;
+           return `
+            <div class="stats-popup">
+                <div class="font-bold text-amber-400 border-b border-gray-600 mb-1 pb-1 text-xs">${card.name}</div>
+                <div class="grid grid-cols-2 gap-x-2 text-xs">
+                    <span class="text-blue-300">RDS:</span> <span class="text-right text-white">${m.rds.toFixed(2)}</span>
+                    <span class="text-purple-300">LVI:</span> <span class="text-right text-white">${m.lvi.toFixed(2)}</span>
+                    <span class="text-red-300">BCR:</span> <span class="text-right text-white">${m.bcr.toFixed(2)}</span>
+                </div>
+            </div>
+           `;
+        };
+        
+        if (zone === 'play') {
+            div.onclick = (e) => {
+                e.stopPropagation();
+                if (card.state === 'ready') {
+                    ui.showContextMenu(e.clientX, e.clientY, card);
+                } else if (card.state === 'exerted') {
+                    game.readyCard(card.uid);
+                }
+            };
+        }
+
+        const imgUrl = card.image;
+        
+        div.innerHTML = `
+            ${getMetricsHtml()}
+            <img src="${imgUrl}" 
+                 class="w-full rounded-lg shadow-md ${transformClass} ${filterClass} card-hover cursor-pointer" 
+                 alt="${card.name}">
+            ${card.cost ? `<div class="absolute -top-2 -left-2 bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shadow border border-white pointer-events-none">${card.cost}</div>` : ''}
+            ${card.lore > 0 ? `<div class="absolute bottom-2 left-2 bg-purple-900/80 text-purple-200 px-1 rounded text-xs font-bold shadow border border-purple-500 pointer-events-none">◊ ${card.lore}</div>` : ''}
+            ${card.inkable ? `<div class="absolute top-0 right-0 w-3 h-3 bg-gray-400 rounded-full border border-black shadow pointer-events-none"></div>` : ''}
+        `;
+
+        return div;
+    },
+
+    createInkedElement: (card, index, isExerted) => {
+        const div = document.createElement('div');
+        // Update: Portrait orientation (w-32 h-48), stack logic
+        div.className = `absolute w-32 h-48 rounded-xl ink-card-container shadow-2xl ${isExerted ? 'ink-exerted' : 'ink-ready'}`;
+        
+        // Centering calculation: Container w-48 (12rem/192px). Card w-32 (8rem/128px).
+        // (192 - 128) / 2 = 32px offset.
+        const baseLeft = 32; 
+        
+        div.style.left = `${baseLeft + (index * 2)}px`; 
+        div.style.top = `${20 - (index * 5)}px`; // Stack upwards visually
+        
+        div.style.zIndex = index;
+        div.title = card.name; 
+        
+        // NEW LOGIC: Show image if inked this turn, else show card back
+        const isNewInk = card.turnInked === game.turn;
+        const cardBackUrl = "https://wiki.mushureport.com/images/thumb/d/d7/Card_Back_official.png/300px-Card_Back_official.png";
+        const displayImage = isNewInk ? card.image : cardBackUrl;
+        
+        div.innerHTML = `
+            <img src="${displayImage}" class="w-full h-full rounded-xl border border-slate-700 object-cover shadow-md pointer-events-none select-none" alt="Ink">
+        `;
+        return div;
+    },
+
+    createDiscardElement: (card) => {
+        const div = document.createElement('div');
+        div.className = "w-16 h-22 bg-slate-800 rounded border border-slate-600 overflow-hidden relative group";
+        div.title = card.name;
+        div.innerHTML = `
+            <img src="${card.image}" class="w-full h-full object-cover opacity-80 group-hover:opacity-100">
+        `;
+        return div;
+    },
+
+    showContextMenu: (x, y, card) => {
+        const menu = document.getElementById('context-menu');
+        menu.style.left = `${x}px`;
+        menu.style.top = `${y}px`;
+        menu.style.display = 'flex';
+        
+        let html = '';
+        if (card.lore > 0) {
+            html += `<button onclick="game.quest('${card.uid}'); ui.hideContextMenu()" class="px-4 py-2 text-left text-sm text-white hover:bg-slate-700 border-b border-slate-700 flex justify-between items-center group">
+                <span>Quest</span> <span class="text-purple-400 font-bold ml-2">◊ ${card.lore}</span>
+            </button>`;
+        }
+        
+        const singLabel = card.fullTextSections.some(t => t.toLowerCase().includes('singer')) ? "Sing Song" : "Exert";
+        html += `<button onclick="game.singOrExert('${card.uid}'); ui.hideContextMenu()" class="px-4 py-2 text-left text-sm text-white hover:bg-slate-700">
+            ${singLabel}
+        </button>`;
+
+        menu.innerHTML = html;
+    },
+
+    hideContextMenu: () => {
+        document.getElementById('context-menu').style.display = 'none';
+    },
+
+    showFloatingText: (cardUid, text, colorClass = 'text-white') => {
+        const cardEl = document.getElementById(`card-${cardUid}`);
+        if (!cardEl) return;
+        const rect = cardEl.getBoundingClientRect();
+        
+        const el = document.createElement('div');
+        el.className = `fixed font-bold text-xl ${colorClass} z-[100] pointer-events-none animate-bounce shadow-black drop-shadow-md`;
+        el.innerText = text;
+        el.style.left = `${rect.left + rect.width/2}px`;
+        el.style.top = `${rect.top}px`;
+        
+        document.body.appendChild(el);
+        
+        el.animate([
+            { transform: 'translate(-50%, 0)', opacity: 1 },
+            { transform: 'translate(-50%, -50px)', opacity: 0 }
+        ], {
+            duration: 1000,
+            easing: 'ease-out',
+            fill: 'forwards'
+        });
+
+        setTimeout(() => el.remove(), 1000);
+    },
+
+    flashDeck: () => {
+        const deck = document.getElementById('deck-visual');
+        if(deck) {
+            deck.classList.remove('draw-flash');
+            void deck.offsetWidth; // trigger reflow
+            deck.classList.add('draw-flash');
+        }
+    },
+
+    renderHUD: () => {
+        document.getElementById('turn-count').innerText = game.turn;
+        document.getElementById('lore-count').innerText = game.lore;
+        document.getElementById('ink-current').innerText = game.currentInk;
+        document.getElementById('ink-total').innerText = game.totalInk;
+        document.getElementById('deck-count').innerText = game.deck.length;
+
+        const inkText = document.getElementById('ink-current');
+        if (game.currentInk === 0) inkText.classList.add('text-red-500');
+        else inkText.classList.remove('text-red-500');
+    },
+
+    render: () => {
+        ui.renderHUD();
+        
+        const handContainer = document.getElementById('hand-zone');
+        handContainer.innerHTML = '';
+        game.hand.forEach(card => {
+            handContainer.appendChild(ui.createCardElement(card, 'hand'));
+        });
+
+        const playContainer = document.getElementById('play-area');
+        const bgText = playContainer.querySelector('span') ? playContainer.querySelector('span').parentNode : null;
+        playContainer.innerHTML = '';
+        if(bgText) playContainer.appendChild(bgText);
+
+        game.field.forEach(card => {
+            playContainer.appendChild(ui.createCardElement(card, 'play'));
+        });
+
+        const inkStack = document.getElementById('ink-stack');
+        inkStack.innerHTML = '';
+        const usedInk = game.totalInk - game.currentInk;
+        game.inkwell.forEach((card, i) => {
+            const isExerted = i < usedInk;
+            inkStack.appendChild(ui.createInkedElement(card, i, isExerted));
+        });
+
+        const discardZone = document.getElementById('discard-zone');
+        const placeholder = discardZone.querySelector('.text-slate-600');
+        discardZone.innerHTML = '';
+        if(game.discard.length === 0 && placeholder) discardZone.appendChild(placeholder);
+        
+        game.discard.forEach(card => {
+            discardZone.appendChild(ui.createDiscardElement(card));
+        });
+
+        [...game.hand, ...game.field].forEach(async card => {
+            if(!card.metrics) await card.getMetrics();
+        });
+    }
+};
+
+const dnd = {
+    draggedCardUid: null,
+
+    dragStart: (e, uid) => {
+        dnd.draggedCardUid = uid;
+        e.dataTransfer.effectAllowed = "move";
+    },
+
+    allowDrop: (e, zone) => {
+        e.preventDefault();
+        const el = e.currentTarget;
+        if (zone === 'discard') {
+            el.classList.add('discard-drag-over');
+        } else {
+            el.classList.add('drag-over');
+        }
+    },
+
+    drop: (e, zone) => {
+        e.preventDefault();
+        document.querySelectorAll('.drag-over, .discard-drag-over').forEach(el => {
+            el.classList.remove('drag-over', 'discard-drag-over');
+        });
+
+        const uid = dnd.draggedCardUid;
+        if (!uid) return;
+        
+        game.moveCard(uid, zone);
+        dnd.draggedCardUid = null;
+    }
+};
+
+document.addEventListener('dragleave', (e) => {
+    if (e.target.classList && (e.target.classList.contains('drag-over') || e.target.classList.contains('discard-drag-over'))) {
+        e.target.classList.remove('drag-over', 'discard-drag-over');
+    }
+});
+
+const app = {
+    newGame: ui.newGame,
+    processImport: ui.processImport
+};
+
+window.onload = ui.init;
+
+</script>
+</body>
+</html>
