@@ -1173,7 +1173,7 @@
       "name": "Condition: For Each",
       "category": "Condition",
       "sub_type": "For Each",
-      "regex": "/for each (?:other )?(?:\\w+ )?(item|character|location|action|song|(\\d+) damage|card)/gi",
+      "regex": "/for each (?:other )?(?:\\w+ )?(?:different ink type of )?(item|character|location|action|song|(\\d+) damage|cards?)(?: revealed this way|(?: that (?:is|was) under (?:him|her|it|them)))?/gi",
       "value_type": "raw",
       "explanation": "Condition that might stack up substantially",
       "justification": "This is the basis for cards that whole decks are built around, high risk high reward",
@@ -1340,7 +1340,7 @@
       "category": "Trigger",
       "sub_type": "On Banish",
       "quick_description": "other or your characters are banished",
-      "regex": "/when(?:ever)? (?:a (?:character|item|location) of yours|one of your (?:other )?(?:\\w+ )?(?:characters|items|locations)|a(?:n other?) (?:character|item|location)|an? (?:character|item|location)) is banished ?(in a challenge)?/gi",
+      "regex": "/when(?:ever)? (?:a (?:character|item|location) of yours|one of your (?:other )?(?:\\w+ )?(?:characters|items|locations)|a(?:n other?) (?:character|item|location)) is banished ?(in a challenge)?/gi",
       "value_type": "raw",
       "explanation": "Whenever other of your characters are banished",
       "justification": "Trigger: On Banish (Other) -> Banish 1.5 but if it's only in a challenge 1.15",
@@ -1389,11 +1389,10 @@
       "lastModified": "2025-11-04T00:28:50.495Z"
     },
     {
-      "name": "Condition: Character exerted",
+      "name": "Condition: Exerted",
       "category": "Condition",
       "sub_type": "Exerted",
-      "quick_description": "characters need to be exerted",
-      "regex": "/(while|if|and) (?:this character|one of your characters|all of your characters) (is|are) exerted|⟳.+—/gi",
+      "regex": "/(while|if|and) (?:this character|this card|one of your characters|all of your characters) (is|are) exerted|⟳.+—/gi",
       "value_type": "raw",
       "explanation": "Character has to be exerted",
       "justification": "Leaves your character unprotected to challenges - would be the same value as exerting an opposing character but in negative",
@@ -1567,6 +1566,26 @@
       "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
+      "name": "Card Effect: Reveal",
+      "category": "Resource",
+      "sub_type": "Selection",
+      "regex": "/(?:each player|chosen opponent|you) reveals? (?:the top|a|their) (?:card|hand|cards)(?: of (?:their|your) deck)?/gi",
+      "explanation": "Forces cards to be shown from deck or hand.",
+      "justification": "Provides information and often precedes another effect.",
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [],
+        "scores": {
+          "resource_dominance": {
+            "value": "0.5",
+            "explanation": "Information gathering is a minor resource advantage."
+          }
+        }
+      },
+      "createdAt": "2026-01-30T12:00:00.000Z",
+      "lastModified": "2026-01-30T12:00:00.000Z"
+    },
+    {
       "name": "Card Effect: Look at Deck",
       "category": "Resource",
       "sub_type": "Scry",
@@ -1598,7 +1617,7 @@
       "name": "Card Effect: Tutor",
       "category": "Resource",
       "sub_type": "Tutor",
-      "regex": "/Search your deck for .*? card/gi",
+      "regex": "/(?:Search your deck for .*? card|(?:reveal|look at) (?:the top|a number of|\\d+) cards?.*put .*? into your hand)/gi",
       "value_type": "raw",
       "explanation": "A powerful form of card selection where a player looks at cards from their deck, puts them into their hand",
       "justification": "This is a direct tutor effect, guaranteeing the player gets a useful card. It is the single most effective way of getting the card you want.",
@@ -1619,7 +1638,7 @@
       "name": "Card Effect: Filter to Bottom",
       "category": "Resource",
       "sub_type": "Filter",
-      "regex": "/bottom of (your|the) deck/gi",
+      "regex": "/(?:put the rest on the )?bottom of (?:your|the) deck(?: in any order)?/gi",
       "value_type": "raw",
       "explanation": "After looking at cards from the top of the deck, the player puts the unwanted cards on the bottom. (You lose a card, but with the slim theoretical possibility of getting it back after a shuffle, making it the least severe of the three major costs).",
       "justification": "Improves the quality of future draws.",
@@ -1664,10 +1683,10 @@
       "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
-      "name": "Card Effect: Discard to Deck",
+      "name": "Card Effect: Recursion",
       "category": "Resource",
       "sub_type": "Recursion",
-      "regex": "shuffle (\\d+|a|one|two|three|all|chosen)(.*?)? card(s?) from your discard into your deck",
+      "regex": "/(?:shuffle (?:\\d+|a|one|two|three|all|chosen)(?:.*?)? cards? from your discard into your deck|put (?:an?|\\d+|chosen) (?:.*?)?cards? from your discard on the bottom of your deck)/gi",
       "value_type": "raw",
       "explanation": "Shuffles cards from the discard pile back into the deck.",
       "justification": "Prevents decking out and allows for reuse of key cards. Potentially doesn't do much",
@@ -2031,6 +2050,26 @@
       "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
+      "name": "Board Control: Prevent Damage",
+      "category": "Board Control",
+      "sub_type": "Protection",
+      "regex": "/(?:he|she|it|they|this character) takes? no damage(?: from the challenge)?/gi",
+      "explanation": "Prevents damage to the character.",
+      "justification": "High value protection.",
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [],
+        "scores": {
+          "board_control": {
+            "value": "3.0",
+            "explanation": "Significant survivability increase."
+          }
+        }
+      },
+      "createdAt": "2026-01-30T12:00:00.000Z",
+      "lastModified": "2026-01-30T12:00:00.000Z"
+    },
+    {
       "name": "Damage: Heal",
       "category": "Lore",
       "sub_type": "Survivability",
@@ -2133,8 +2172,8 @@
     {
       "name": "Lore: Gain Variable",
       "category": "Lore",
-      "sub_type": "Direct Gain",
-      "regex": "/gain lore equal to the (?:◊|lore) of (?:a|the) (.*?) card/gi",
+      "sub_type": "Variable",
+      "regex": "/gain lore equal to (?:the (?:◊|lore) of (?:a|the) (.*?) card|(?:another)? ?chosen (?:exerted)? ?character's (?:◊|lore)|(?:their) (?:◊|lore)|(?:her|his|this character's) (?:¤|strength))(?:, to a maximum of \\d+ lore)?/gi",
       "value_type": "raw",
       "explanation": "Gain lore based on another card's stats.",
       "justification": "Potentially high ceiling for lore gain.",
@@ -2147,6 +2186,21 @@
             "explanation": "Estimated average gain of 2"
           }
         }
+      },
+      "createdAt": "2026-01-30T12:00:00.000Z",
+      "lastModified": "2026-01-30T12:00:00.000Z"
+    },
+    {
+      "name": "Condition: Sequential",
+      "category": "Condition",
+      "sub_type": "Requirement",
+      "regex": "/\\. If you do,/gi",
+      "explanation": "Links two effects where the second requires the first to be successful.",
+      "justification": "Indicates a multi-step ability.",
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [],
+        "scores": {}
       },
       "createdAt": "2026-01-30T12:00:00.000Z",
       "lastModified": "2026-01-30T12:00:00.000Z"
@@ -2201,7 +2255,7 @@
       "name": "Condition: At a Location",
       "category": "Condition",
       "sub_type": "Location",
-      "regex": "/(While|if) (this character|he|she|it) is at a location/gi",
+      "regex": "/(While|if) (this character|he|she|it|he's|she's|it's) (?:is )?at a location/gi",
       "value_type": "raw",
       "explanation": "Active only when moved to a location.",
       "justification": "Requires moving cost/location presence.",
@@ -2238,29 +2292,6 @@
           }
         ],
         "contextModifiers": [],
-        "scores": {}
-      },
-      "createdAt": "2026-01-30T12:00:00.000Z",
-      "lastModified": "2026-01-30T12:00:00.000Z"
-    },
-    {
-      "name": "Modifier: Duration",
-      "category": "Modifier",
-      "sub_type": "Time",
-      "regex": "/until the (?:start|end) of (?:your|their|the) (?:next )?turn/gi",
-      "value_type": "raw",
-      "explanation": "Defines how long an effect lasts.",
-      "justification": "Differentiates permanent buffs from temporary ones.",
-      "calculation": {
-        "variables": [],
-        "contextModifiers": [
-           {
-            "targetMetric": "all",
-            "name": "trigger",
-            "operation": "multiply",
-            "value": "0.6"
-          }
-        ],
         "scores": {}
       },
       "createdAt": "2026-01-30T12:00:00.000Z",
@@ -2503,7 +2534,7 @@
       "name": "Play: From Discard",
       "category": "Play",
       "sub_type": "Recursion",
-      "regex": "/You may play a (character|item) card(?: with \\d+ (?:¤|⬡|⛉) or (?:less|more))? from your discard/gi",
+      "regex": "/(?:you may )?play (?:a|an) (character|item|action|song|location)(?: card)?(?: with (?:cost )?\\d+(?: (?:¤|⬡|⛉))? (?:or (?:less|more)))? from your discard(?: for free)?/gi",
       "value_type": "raw",
       "explanation": "Allows the player to play a card directly from their discard pile.",
       "justification": "A powerful form of card advantage.",
@@ -2606,6 +2637,52 @@
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
       "lastModified": "2025-09-09T09:17:49.983Z"
+    },
+    {
+      "name": "Trigger: On Exert",
+      "category": "Trigger",
+      "sub_type": "On Exert",
+      "regex": "/(whenever|when) this (character|item|location) exerts/gi",
+      "value_type": "raw",
+      "explanation": "Triggers when the card exerts.",
+      "justification": "Similar to On Quest but can trigger on other exertions like singing.",
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [
+           {
+            "targetMetric": "all",
+            "name": "trigger",
+            "operation": "multiply",
+            "value": "1.25"
+          }
+        ],
+        "scores": {}
+      },
+      "createdAt": "2026-01-30T12:00:00.000Z",
+      "lastModified": "2026-01-30T12:00:00.000Z"
+    },
+    {
+      "name": "Condition: Cards Under",
+      "category": "Condition",
+      "sub_type": "Cards Under",
+      "regex": "/equal to the number of cards under (him|her|them|it|this character)/gi",
+      "value_type": "raw",
+      "explanation": "Scales based on cards underneath.",
+      "justification": "Requires setup (Boost/Shift).",
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [
+           {
+            "targetMetric": "all",
+            "name": "scale",
+            "operation": "multiply",
+            "value": "1.0"
+          }
+        ],
+        "scores": {}
+      },
+      "createdAt": "2026-01-30T12:00:00.000Z",
+      "lastModified": "2026-01-30T12:00:00.000Z"
     },
     {
       "name": "Trigger: On Banish (Self)",
