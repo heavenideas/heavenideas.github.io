@@ -110,7 +110,7 @@
                 <button onclick="ui.showLoreModal()" class="font-mono text-purple-400 hover:bg-slate-600 px-2 rounded transition cursor-pointer" title="Adjust Lore Manually">
                     LORE <span id="lore-count" class="text-white font-bold underline decoration-dotted">0</span>
                 </button>
-                <span class="font-mono text-yellow-400">INK <span id="ink-current" class="text-white font-bold">0</span>/<span id="ink-total" class="text-white font-bold">0</span></span>
+                <span class="font-mono text-yellow-400">INK <input id="ink-current-input" type="number" min="0" value="0" class="text-white font-bold bg-transparent border border-slate-600 rounded w-12 text-center text-xs" />/<span id="ink-total" class="text-white font-bold">0</span></span>
             </div>
         </div>
         <div class="flex gap-3">
@@ -441,20 +441,24 @@ class GameState {
         this.inkwell = [];
         this.field = [];
         this.discard = [];
-        this.history = []; 
-        
+        this.history = [];
+
         this.turn = 1;
         this.lore = 0;
-        this.currentInk = 0; 
+        this.currentInk = 0;
         this.totalInk = 0;
-        
+
         // New Stats
         this.cardsDrawnThisTurn = 0;
         this.loreGainedThisTurn = 0;
         this.totalCardsDrawn = 0;
         this.won = false;
-        
+
         this.mulliganSelection = new Set();
+    }
+
+    hasShift(card) {
+        return card.fullTextSections.some(t => t.toLowerCase().includes('shift'));
     }
 
     startGame(deckList) {
@@ -647,6 +651,17 @@ class GameState {
             if (this.currentInk < card.cost) {
                 if(!confirm(`Not enough ink! Cost: ${card.cost}, Available: ${this.currentInk}. Play anyway?`)) return;
             }
+
+            // Check for Shift keyword
+            if (this.hasShift(card)) {
+                // Check for valid shift targets (simplified: other characters in play or hand)
+                const validTargets = this.field.filter(c => c.type === 'Character').length > 0 || this.hand.filter(c => c.id !== card.id && c.type === 'Character').length > 0;
+                if (!validTargets) {
+                    const proceed = confirm('This Shift card may not have a valid target. You might be doing an illegal play. Continue anyway?');
+                    if (!proceed) return;
+                }
+            }
+
             this.saveState();
             this.currentInk = Math.max(0, this.currentInk - card.cost);
             sourceList.splice(cardIndex, 1);
@@ -771,6 +786,18 @@ const ui = {
                 document.getElementById('deck-input').value = data.decklist;
             });
 
+            // Add event listener for manual ink editing
+            document.getElementById('ink-current-input').addEventListener('change', (e) => {
+                const newValue = parseInt(e.target.value);
+                if (newValue >= 0 && newValue <= game.totalInk) {
+                    game.saveState();
+                    game.currentInk = newValue;
+                    ui.renderHUD();
+                } else {
+                    e.target.value = game.currentInk; // reset if invalid
+                }
+            });
+
             document.getElementById('loader').classList.add('opacity-0');
             setTimeout(() => document.getElementById('loader').remove(), 500);
         } catch (e) {
@@ -857,9 +884,25 @@ const ui = {
         document.getElementById('victory-modal').classList.add('hidden');
     },
 
-    showLogModal: () => {
+    showLogModal: async () => {
         document.getElementById('log-modal').classList.remove('hidden');
-        document.getElementById('log-container').innerText = game.logger.getFormattedLogs() || "No logs yet.";
+        let logText = game.logger.getFormattedLogs() || "No logs yet.";
+        // Append stats
+        const allCards = [...game.hand, ...game.field, ...game.inkwell, ...game.discard];
+        let statsText = '\n\n--- Card Statistics ---\n';
+        for (const card of allCards) {
+            if (!card.metrics) {
+                await card.getMetrics();
+            }
+            if (card.metrics) {
+                statsText += `${card.name}: RDS=${card.metrics.rds.toFixed(2)}, LVI=${card.metrics.lvi.toFixed(2)}, BCR=${card.metrics.bcr.toFixed(2)}\n`;
+            }
+        }
+        if (statsText === '\n\n--- Card Statistics ---\n') {
+            statsText += 'No stats calculated yet.\n';
+        }
+        logText += statsText;
+        document.getElementById('log-container').innerText = logText;
         // Scroll to bottom
         const container = document.getElementById('log-container');
         container.scrollTop = container.scrollHeight;
@@ -1043,13 +1086,14 @@ const ui = {
     renderHUD: () => {
         document.getElementById('turn-count').innerText = game.turn;
         document.getElementById('lore-count').innerText = game.lore;
-        document.getElementById('ink-current').innerText = game.currentInk;
+        const inkInput = document.getElementById('ink-current-input');
+        inkInput.value = game.currentInk;
+        inkInput.max = game.totalInk;
         document.getElementById('ink-total').innerText = game.totalInk;
         document.getElementById('deck-count').innerText = game.deck.length;
 
-        const inkText = document.getElementById('ink-current');
-        if (game.currentInk === 0) inkText.classList.add('text-red-500');
-        else inkText.classList.remove('text-red-500');
+        if (game.currentInk === 0) inkInput.classList.add('text-red-500');
+        else inkInput.classList.remove('text-red-500');
     },
 
     render: () => {

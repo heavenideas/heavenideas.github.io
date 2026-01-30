@@ -210,7 +210,7 @@
       "name": "Card Effect: Put card under",
       "category": "Card Effect",
       "sub_type": "",
-      "regex": "/put the top card of your deck facedown under (?:this|one of your) (?:characters?)? ?(?:or)? ?(?:locations?)? ?(with Boost)?/gi",
+      "regex": "/(?:you may )?put (?:a|the top) card (?:from your hand|from the top of your deck)? (?:facedown )?under (?:this|one of your|them|each of your other)(?: (?:characters?|locations?))? ?(?:facedown)? ?(with Boost)?/gi",
       "explanation": "Part of boost or boost related abilities",
       "justification": "You loose a card, but you could recover so it should be better than inking in terms of the penalty",
       "lastModified": "2025-11-03T23:41:59.343Z",
@@ -286,7 +286,7 @@
       "name": "State: Can't be challenged",
       "category": "State",
       "sub_type": "Control",
-      "regex": "/(this|your|a|he|she|it|they) (characters?) ?can't be challenged/gi",
+      "regex": "/(this|your|a|he|she|it|they|chosen) (characters?|locations?)? ?(?:of yours)? ?can't be challenged/gi",
       "explanation": "This can be a powerful ability as it makes your characters robust to challenges",
       "justification": "Like being ready",
       "lastModified": "2025-09-14T13:42:02.226Z",
@@ -335,10 +335,10 @@
       "name": "Trigger: Opponent's Turn",
       "category": "Trigger",
       "sub_type": "Turn",
-      "regex": "/During (an|your) opponent's turn/gi",
+      "regex": "/During (?:an |your )?(opponent's|opponents') turns?/gi",
       "explanation": "During the play turn of your opponent",
       "justification": "Trigger: Opponent's Turn -> This is more restrictive as you have less control",
-      "lastModified": "2025-09-09T18:58:49.444Z",
+      "lastModified": "2026-01-30T12:00:00.000Z",
       "createdAt": "2025-09-09T18:57:07.827Z",
       "calculation": {
         "variables": [],
@@ -551,7 +551,7 @@
       "name": "Keyword: Gain",
       "category": "Keyword",
       "sub_type": "Gain",
-      "regex": "/(?:you may give)? ?(?:your other characters|this character|(?:another)? ?chosen (opposing)? ?character|he|she|it) (?:gains?)? ?(Vanish|Ward|Evasive|Resist|Challenger|Bodyguard|Reckless|Rush|Singer|Support)/gi",
+      "regex": "/(?:you may give)? ?(?:your other characters|this character|this card|those characters|(?:another)? ?chosen (opposing)? ?character|he|she|it) (?:gains?)? ?(Vanish|Ward|Evasive|Resist|Challenger|Bodyguard|Reckless|Rush|Singer|Support|Shift)(?: \\+(\\d+))?/gi",
       "explanation": "Captures giving Keywords (Aura) to Other characters",
       "justification": "Giving keywords to own characters is mainly good, except for Reckless. However if it's the opposing characters that gain keywords that is bad, except for Reckless.",
       "calculation": {
@@ -957,7 +957,7 @@
       "name": "State: Can't Challange",
       "category": "State",
       "sub_type": "Control",
-      "regex": "/(chosen (opposing )?character(s)?) can't challenge/gi",
+      "regex": "/(all characters|characters|chosen (?:opposing )?characters?) can't challenge/gi",
       "value_type": "raw",
       "explanation": "Narrow form of control",
       "justification": "Affects tempo - but characters can still quest",
@@ -1340,7 +1340,7 @@
       "category": "Trigger",
       "sub_type": "On Banish",
       "quick_description": "other or your characters are banished",
-      "regex": "/when(?:ever)? (?:a character of yours|one of your (?:other )?(?:\\w+ )?characters|a(?:n other?) character) is banished ?(in a challenge)?/gi",
+      "regex": "/when(?:ever)? (?:a (?:character|item|location) of yours|one of your (?:other )?(?:\\w+ )?(?:characters|items|locations)|a(?:n other?) (?:character|item|location)|an? (?:character|item|location)) is banished ?(in a challenge)?/gi",
       "value_type": "raw",
       "explanation": "Whenever other of your characters are banished",
       "justification": "Trigger: On Banish (Other) -> Banish 1.5 but if it's only in a challenge 1.15",
@@ -2034,7 +2034,7 @@
       "name": "Damage: Heal",
       "category": "Lore",
       "sub_type": "Survivability",
-      "regex": "/Remove(?: up to)? (\\d+) damage from (?:chosen |each of your |one of your )?(?:character(?:s)?|location)/gi",
+      "regex": "/Remove(?: up to| all)? (\\d+|all)? damage from (?:chosen |each of your |one of your )?(?:character(?:s)?|location)/gi",
       "value_type": "raw",
       "explanation": "Removes damage from one of your cards, increasing its survivability.",
       "justification": "Increases the longevity of your characters.",
@@ -2090,7 +2090,7 @@
       "name": "State: Ready Character",
       "category": "State",
       "sub_type": "Action",
-      "regex": "/Ready (chosen|this|it|them)? (?:your|another|your other)? ?(characters?|items?) (?:with cost (\\d+) or (?:less|more))?/gi",
+      "regex": "/(?:you may )?ready (chosen|this|it|them|him|her|this character)? ?(?:your|another|your other)? ?(characters?|items?)? ?(?:with cost (\\d+) or (?:less|more))?/gi",
       "value_type": "raw",
       "explanation": "Readies one of your exerted characters.",
       "justification": "Enables action advantage.",
@@ -2105,7 +2105,215 @@
         }
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
-      "lastModified": "2025-11-04T00:42:32.136Z"
+      "lastModified": "2026-01-30T12:00:00.000Z"
+    },
+    {
+      "name": "Condition: Card Left Discard",
+      "category": "Condition",
+      "sub_type": "Discard",
+      "regex": "/if a card left (a|any) player's discard (pile )?this turn/gi",
+      "value_type": "raw",
+      "explanation": "Condition checking if a card left a discard pile.",
+      "justification": "Relies on recursion or specific discard interaction.",
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [
+           {
+            "targetMetric": "all",
+            "name": "trigger",
+            "operation": "multiply",
+            "value": "0.7"
+          }
+        ],
+        "scores": {}
+      },
+      "createdAt": "2026-01-30T12:00:00.000Z",
+      "lastModified": "2026-01-30T12:00:00.000Z"
+    },
+    {
+      "name": "Lore: Gain Variable",
+      "category": "Lore",
+      "sub_type": "Direct Gain",
+      "regex": "/gain lore equal to the (?:◊|lore) of (?:a|the) (.*?) card/gi",
+      "value_type": "raw",
+      "explanation": "Gain lore based on another card's stats.",
+      "justification": "Potentially high ceiling for lore gain.",
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [],
+        "scores": {
+          "lore_velocity": {
+            "value": "2 * @lvi.directLoreGainMultiplier",
+            "explanation": "Estimated average gain of 2"
+          }
+        }
+      },
+      "createdAt": "2026-01-30T12:00:00.000Z",
+      "lastModified": "2026-01-30T12:00:00.000Z"
+    },
+    {
+      "name": "Trigger: Chosen",
+      "category": "Trigger",
+      "sub_type": "Targeted",
+      "regex": "/Whenever (?:this character|he|she|it|one of your characters) is chosen for (an action|an item's ability|an ability)(?: or (an action|an item's ability|an ability))?/gi",
+      "value_type": "raw",
+      "explanation": "Triggers when targeted by specific effects.",
+      "justification": "Defensive or Combo-oriented trigger.",
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [
+           {
+            "targetMetric": "all",
+            "name": "trigger",
+            "operation": "multiply",
+            "value": "1.1"
+          }
+        ],
+        "scores": {}
+      },
+      "createdAt": "2026-01-30T12:00:00.000Z",
+      "lastModified": "2026-01-30T12:00:00.000Z"
+    },
+    {
+      "name": "Trigger: Use Keyword",
+      "category": "Trigger",
+      "sub_type": "Mechanic",
+      "regex": "/Whenever you use the (Boost|Shift|Sing) ability/gi",
+      "value_type": "raw",
+      "explanation": "Triggers on using specific keyword abilities.",
+      "justification": "Rewards playing into specific archetypes.",
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [
+           {
+            "targetMetric": "all",
+            "name": "trigger",
+            "operation": "multiply",
+            "value": "1.0"
+          }
+        ],
+        "scores": {}
+      },
+      "createdAt": "2026-01-30T12:00:00.000Z",
+      "lastModified": "2026-01-30T12:00:00.000Z"
+    },
+    {
+      "name": "Condition: At a Location",
+      "category": "Condition",
+      "sub_type": "Location",
+      "regex": "/(While|if) (this character|he|she|it) is at a location/gi",
+      "value_type": "raw",
+      "explanation": "Active only when moved to a location.",
+      "justification": "Requires moving cost/location presence.",
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [
+           {
+            "targetMetric": "all",
+            "name": "trigger",
+            "operation": "multiply",
+            "value": "0.8"
+          }
+        ],
+        "scores": {}
+      },
+      "createdAt": "2026-01-30T12:00:00.000Z",
+      "lastModified": "2026-01-30T12:00:00.000Z"
+    },
+    {
+      "name": "Modifier: Frequency",
+      "category": "Modifier",
+      "sub_type": "Limit",
+      "regex": "/(Once|Twice|Three times) (?:per|during each|during your) turn/gi",
+      "value_type": "raw",
+      "explanation": "Limits how many times an ability can trigger.",
+      "justification": "Directly impacts the total value of a recurring trigger.",
+      "calculation": {
+        "variables": [
+          {
+            "name": "frequency",
+            "source": "regex",
+            "group": 1,
+            "type": "string"
+          }
+        ],
+        "contextModifiers": [],
+        "scores": {}
+      },
+      "createdAt": "2026-01-30T12:00:00.000Z",
+      "lastModified": "2026-01-30T12:00:00.000Z"
+    },
+    {
+      "name": "Modifier: Duration",
+      "category": "Modifier",
+      "sub_type": "Time",
+      "regex": "/until the (?:start|end) of (?:your|their|the) (?:next )?turn/gi",
+      "value_type": "raw",
+      "explanation": "Defines how long an effect lasts.",
+      "justification": "Differentiates permanent buffs from temporary ones.",
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [
+           {
+            "targetMetric": "all",
+            "name": "trigger",
+            "operation": "multiply",
+            "value": "0.6"
+          }
+        ],
+        "scores": {}
+      },
+      "createdAt": "2026-01-30T12:00:00.000Z",
+      "lastModified": "2026-01-30T12:00:00.000Z"
+    },
+    {
+      "name": "Card Effect: Ink from Discard",
+      "category": "Resource",
+      "sub_type": "Ramp",
+      "regex": "/You can ink cards from your discard/gi",
+      "value_type": "raw",
+      "explanation": "Allows inking cards directly from the discard pile.",
+      "justification": "Extremely powerful recursion/ramp hybrid.",
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [],
+        "scores": {
+          "resource_dominance": {
+            "value": "4.0",
+            "explanation": "High value due to recursion and ramp"
+          }
+        }
+      },
+      "createdAt": "2026-01-30T12:00:00.000Z",
+      "lastModified": "2026-01-30T12:00:00.000Z"
+    },
+    {
+      "name": "State: Can Challenge Ready",
+      "category": "State",
+      "sub_type": "Offensive",
+      "regex": "/This character can challenge ready (?:(\\w+) )?characters/gi",
+      "value_type": "raw",
+      "explanation": "Allows challenging characters even if they are ready.",
+      "justification": "Bypasses the safety of being ready.",
+      "calculation": {
+        "variables": [
+          {
+            "name": "subtype",
+            "source": "regex",
+            "group": 1,
+            "type": "string"
+          }
+        ],
+        "contextModifiers": [],
+        "scores": {
+          "board_control": {
+            "value": "2.5",
+            "explanation": "Aggressive board control"
+          }
+        }
+      },
+      "createdAt": "2026-01-30T12:00:00.000Z",
+      "lastModified": "2026-01-30T12:00:00.000Z"
     },
     {
       "name": "State: Exert Character",
@@ -2574,6 +2782,52 @@
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
       "lastModified": "2025-09-02T18:00:59.705Z"
+    },
+    {
+      "name": "Condition: Used Shift",
+      "category": "Condition",
+      "sub_type": "Shift",
+      "regex": "/if you used Shift to play (her|him|it|this character)/gi",
+      "value_type": "raw",
+      "explanation": "Condition checking if the character was shifted.",
+      "justification": "Restricts the ability to only trigger when shifted.",
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [
+          {
+            "targetMetric": "all",
+            "name": "trigger",
+            "operation": "multiply",
+            "value": "0.8"
+          }
+        ],
+        "scores": {}
+      },
+      "createdAt": "2026-01-30T12:00:00.000Z",
+      "lastModified": "2026-01-30T12:00:00.000Z"
+    },
+    {
+      "name": "Condition: No Challenges",
+      "category": "Condition",
+      "sub_type": "Board State",
+      "regex": "/none of your characters challenged this turn/gi",
+      "value_type": "raw",
+      "explanation": "Condition checking if no challenges have occurred.",
+      "justification": "Restricts the ability based on combat inactivity.",
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [
+          {
+            "targetMetric": "all",
+            "name": "trigger",
+            "operation": "multiply",
+            "value": "0.9"
+          }
+        ],
+        "scores": {}
+      },
+      "createdAt": "2026-01-30T12:00:00.000Z",
+      "lastModified": "2026-01-30T12:00:00.000Z"
     }
   ]
 }
