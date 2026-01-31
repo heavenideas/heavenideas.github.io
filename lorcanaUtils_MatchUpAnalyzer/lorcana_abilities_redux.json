@@ -490,7 +490,7 @@
       "name": "Keyword: Support",
       "category": "Keyword",
       "sub_type": "Offensive",
-      "regex": "/(Support) \\(/gi",
+      "regex": "/(Support)(?: \\([^)]*\\))?/gi",
       "explanation": "Support is offensive but leaves you exposed",
       "justification": "Give Strength to character at the cost of questing",
       "lastModified": "2025-09-02T18:06:36.299Z",
@@ -832,10 +832,42 @@
       "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
+      "name": "State: Inkwell Modifier",
+      "category": "State",
+      "sub_type": "Inkwell",
+      "regex": "/cards enter (opponents(?:')|your|their) inkwells? exerted/gi",
+      "value_type": "raw",
+      "explanation": "Forces cards to enter inkwell exerted, preventing immediate use (if they could be used).",
+      "justification": "Slows down ramp strategies or immediate ink usage.",
+      "calculation": {
+        "variables": [
+          {
+            "name": "who",
+            "source": "regex",
+            "group": 1,
+            "type": "string"
+          }
+        ],
+        "contextModifiers": [],
+        "scores": {
+          "tempo": {
+            "value": "-1",
+            "explanation": "Minor tempo disruption"
+          },
+          "resource_dominance": {
+            "value": "4.0",
+            "explanation": "Huge tempo preventing the player from using the ink they play each turn."
+          }
+        }
+      },
+      "createdAt": "2026-01-31T12:00:00.000Z",
+      "lastModified": "2026-01-31T20:42:37.007Z"
+    },
+    {
       "name": "Card Effect: Card from Inkwell to Hand",
       "category": "Resource",
       "sub_type": "Card Draw",
-      "regex": "/return (one|a|\\d+) card(?:s)? (at random )?from your inkwell to your hand/gi",
+      "regex": "/(?:each player (?:with more than \\d+ cards in their inkwell )?)?(?:return|returns) (?:(\\d+|one|a) )?cards?(?: at random)? from (?:your|their) inkwell to (?:your|their) hand(?: until (?:you|they) have (\\d+) cards in (?:your|their) inkwell)?/gi",
       "explanation": "This is the reverse of our \"Ramp\" ability (Hand to Inkwell), which we valued at +2.5. The value is high because the effect is permanent and compounds over time.",
       "justification": "Losing a ramped resource is, therefore, a permanent penalty of equal magnitude. Losing two such resources is a massive drawback.\nDownside Value = -5.0 (2 * -2.5).",
       "calculation": {
@@ -856,6 +888,27 @@
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
       "lastModified": "2025-09-02T18:00:59.705Z"
+    },
+    {
+      "name": "Card Effect: Exert Inkwell",
+      "category": "Resource",
+      "sub_type": "Denial",
+      "regex": "/(?:each player |you |they )?exert(?:s)? (?:all (?:the )?cards in (?:your|their) inkwell)/gi",
+      "value_type": "raw",
+      "explanation": "Forces players to exert their ink, denying them resources for the turn.",
+      "justification": "Massive tempo hit, effectively skipping a turn's worth of ink usage.",
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [],
+        "scores": {
+          "tempo": {
+            "value": "-4",
+            "explanation": "Denies full turn of resources"
+          }
+        }
+      },
+      "createdAt": "2026-01-31T12:00:00.000Z",
+      "lastModified": "2026-01-31T12:00:00.000Z"
     },
     {
       "name": "Play: Sing Together Song",
@@ -957,16 +1010,29 @@
       "name": "State: Can't Challange",
       "category": "State",
       "sub_type": "Control",
-      "regex": "/(all characters|characters|chosen (?:opposing )?characters?) can't challenge/gi",
+      "regex": "/(?:all characters|characters|chosen (?:opposing )?characters?|opposing characters)(?: with cost (\\d+) or (less|more))? can't challenge/gi",
       "value_type": "raw",
       "explanation": "Narrow form of control",
       "justification": "Affects tempo - but characters can still quest",
       "calculation": {
-        "variables": [],
+        "variables": [
+          {
+            "name": "amount",
+            "source": "regex",
+            "group": 1,
+            "type": "textOrNumber"
+          },
+          {
+            "name": "less",
+            "source": "regex",
+            "group": "2",
+            "type": "string"
+          }
+        ],
         "contextModifiers": [],
         "scores": {
           "board_control": {
-            "value": "1.15",
+            "value": "1.15 + (@amount * (@less === \"less\" ? 1 : 0.5))",
             "explanation": "Affects tempo - but characters can still quest"
           }
         }
@@ -2157,7 +2223,7 @@
       "calculation": {
         "variables": [],
         "contextModifiers": [
-           {
+          {
             "targetMetric": "all",
             "name": "trigger",
             "operation": "multiply",
@@ -2216,7 +2282,7 @@
       "calculation": {
         "variables": [],
         "contextModifiers": [
-           {
+          {
             "targetMetric": "all",
             "name": "trigger",
             "operation": "multiply",
@@ -2239,7 +2305,7 @@
       "calculation": {
         "variables": [],
         "contextModifiers": [
-           {
+          {
             "targetMetric": "all",
             "name": "trigger",
             "operation": "multiply",
@@ -2262,7 +2328,7 @@
       "calculation": {
         "variables": [],
         "contextModifiers": [
-           {
+          {
             "targetMetric": "all",
             "name": "trigger",
             "operation": "multiply",
@@ -2422,7 +2488,7 @@
       "name": "Stat: Strength Buff",
       "category": "Stat",
       "sub_type": "Buff",
-      "regex": "/(?:(?:Your|Each|All|chosen) (?:(?:\\w+) )?characters? )?(?:get|gets|has) \\+(\\d+) (¤|strength)/gi",
+      "regex": "/(?:(?:Your|Each|All|chosen) (?:(?:\\w+) )?characters? )?(?:get|gets|has) \\+(\\d+) (¤|strength)(?![^(\\)]*\\))/gi",
       "value_type": "raw",
       "explanation": "Increases the Strength of one or more characters.",
       "justification": "Makes characters better in challenges.",
@@ -2478,7 +2544,7 @@
       "name": "Stat: Willpower Buff",
       "category": "Stat",
       "sub_type": "Buff",
-      "regex": "/(?:all characters )?(?:get|gets|has|chosen character(?:s)?) \\+(\\d+) (⛉|Willpower)/gi",
+      "regex": "/(?:all characters )?(?:get|gets|has|chosen character(?:s)?) \\+(\\d+) (⛉|Willpower)(?![^(\\)]*\\))/gi",
       "value_type": "raw",
       "explanation": "Increases the Willpower of one or more characters.",
       "justification": "Increases survivability against damage.",
@@ -2619,7 +2685,7 @@
       "name": "Trigger: On Quest",
       "category": "Trigger",
       "sub_type": "On Quest",
-      "regex": "/When(?:ever)? (this character|he|she|it) quests/gi",
+      "regex": "/When(?:ever)? (this character|he|she|it) quests(?![^(\\)]*\\))/gi",
       "value_type": "raw",
       "explanation": "This ability triggers whenever this character quests.",
       "justification": "Trigger: On Quest -> Provides value for performing the primary lore-gaining action. But it has to survive",
@@ -2649,7 +2715,7 @@
       "calculation": {
         "variables": [],
         "contextModifiers": [
-           {
+          {
             "targetMetric": "all",
             "name": "trigger",
             "operation": "multiply",
@@ -2672,7 +2738,7 @@
       "calculation": {
         "variables": [],
         "contextModifiers": [
-           {
+          {
             "targetMetric": "all",
             "name": "scale",
             "operation": "multiply",
@@ -2706,6 +2772,34 @@
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
       "lastModified": "2025-09-09T09:17:36.527Z"
+    },
+    {
+      "name": "Keyword: Challenger",
+      "category": "Keyword",
+      "sub_type": "Offensive",
+      "regex": "/Challenger \\+(\\d+) \\(/gi",
+      "value_type": "number",
+      "explanation": "This character gets extra Strength while challenging.",
+      "justification": "Makes the character better at taking out high-Willpower targets.",
+      "calculation": {
+        "variables": [
+          {
+            "name": "amount",
+            "source": "regex",
+            "group": 1,
+            "type": "textOrNumber"
+          }
+        ],
+        "contextModifiers": [],
+        "scores": {
+          "board_control": {
+            "value": "@amount",
+            "explanation": "Extra strength on turn"
+          }
+        }
+      },
+      "createdAt": "2026-01-31T12:00:00.000Z",
+      "lastModified": "2026-01-31T19:51:40.241Z"
     },
     {
       "name": "Keyword: Evasive",
