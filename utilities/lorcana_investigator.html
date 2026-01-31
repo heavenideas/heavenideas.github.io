@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lorcana Rules Coverage & Threat Inspector</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/gh/heavenideas/heavenideas.github.io@main/utilities/unified_win_probability_utilities.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background-color: #0f172a; color: #f8fafc; font-family: 'Inter', sans-serif; }
+        .card-item { transition: transform 0.2s, box-shadow 0.2s; }
+        .card-item:hover { transform: translateY(-4px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4); }
+        .matched-text { background-color: rgba(34, 197, 94, 0.2); border-bottom: 2px solid #22c55e; color: #4ade80; cursor: help; }
+        .unmatched-text { background-color: rgba(239, 68, 68, 0.2); border-bottom: 2px solid #ef4444; color: #f87171; }
+        .scroll-custom::-webkit-scrollbar { width: 6px; }
+        .scroll-custom::-webkit-scrollbar-track { background: #1e293b; }
+        .scroll-custom::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
+        .glass-panel { background: rgba(30, 41, 59, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); }
+        .loader { border-top-color: #3b82f6; animation: spinner 1.5s linear infinite; }
+        @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        /* Filter Styles */
+        .ink-toggle.active { ring: 2px solid white; transform: scale(1.1); }
+        .ink-amber { background-color: #fbbf24; }
+        .ink-amethyst { background-color: #a855f7; }
+        .ink-emerald { background-color: #10b981; }
+        .ink-ruby { background-color: #ef4444; }
+        .ink-sapphire { background-color: #3b82f6; }
+        .ink-steel { background-color: #94a3b8; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="p-6 glass-panel sticky top-0 z-50 flex flex-col xl:flex-row justify-between items-center gap-4 shadow-xl">
+        <div class="flex items-center gap-3">
+            <div class="bg-blue-600 p-2 rounded-lg shadow-lg"><i class="fas fa-microscope text-2xl"></i></div>
+            <div>
+                <h1 class="text-xl font-bold tracking-tight">Lorcana Investigator</h1>
+                <p class="text-xs text-slate-400">Rules Coverage & Threat Inspector</p>
+            </div>
+        </div>
+
+        <div class="flex flex-wrap justify-center items-center gap-3 w-full xl:w-auto">
+            <!-- Search -->
+            <div class="relative w-full md:w-64">
+                <i class="fas fa-search absolute left-3 top-3 text-slate-500 text-xs"></i>
+                <input type="text" id="cardSearch" placeholder="Search cards..." class="w-full bg-slate-800 border border-slate-700 rounded-lg pl-9 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+            </div>
+
+            <!-- Sort -->
+            <select id="sortFilter" class="bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="coverage-desc">Highest Coverage</option>
+                <option value="coverage-asc">Lowest Coverage</option>
+                <option value="name-asc">Name A-Z</option>
+                <option value="threat-desc">Highest Threat</option>
+            </select>
+
+            <!-- Action Buttons -->
+            <div class="flex gap-2">
+                <button onclick="toggleFilterModal()" class="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg text-sm transition-colors border border-slate-600 flex items-center gap-2 relative">
+                    <i class="fas fa-filter"></i> Filters
+                    <span id="activeFilterBadge" class="hidden absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full animate-pulse"></span>
+                </button>
+                <button onclick="toggleConfigModal()" class="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg text-sm transition-colors border border-slate-600">
+                    <i class="fas fa-cog"></i> Config
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 p-6 overflow-hidden relative">
+        <!-- Loading Overlay -->
+        <div id="loadingOverlay" class="absolute inset-0 z-40 bg-slate-900 flex flex-col items-center justify-center gap-4">
+            <div class="loader ease-linear rounded-full border-4 border-t-4 border-slate-700 h-16 w-16"></div>
+            <p id="loadingStatus" class="text-slate-400 font-medium">Downloading Card Database...</p>
+        </div>
+
+        <!-- Grid -->
+        <div id="cardGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 pb-20">
+            <!-- Cards injected here -->
+        </div>
+    </main>
+
+    <!-- Stats Footer -->
+    <footer class="p-4 glass-panel flex justify-around text-sm border-t border-slate-800 fixed bottom-0 w-full z-40 backdrop-blur-xl bg-slate-900/90">
+        <div class="text-center">
+            <p class="text-slate-500 uppercase text-[10px] font-bold">Cards Shown</p>
+            <p id="statTotal" class="text-lg font-bold">-</p>
+        </div>
+        <div class="text-center">
+            <p class="text-slate-500 uppercase text-[10px] font-bold">Avg Coverage</p>
+            <p id="statAvgCoverage" class="text-lg font-bold text-blue-400">-</p>
+        </div>
+        <div class="text-center">
+            <p class="text-slate-500 uppercase text-[10px] font-bold">Rules Loaded</p>
+            <p id="statRules" class="text-lg font-bold text-green-400">-</p>
+        </div>
+    </footer>
+
+    <!-- Filter Modal -->
+    <div id="filterModal" class="fixed inset-0 z-[80] bg-black/80 flex items-center justify-center p-4 hidden backdrop-blur-sm">
+        <div class="glass-panel w-full max-w-3xl rounded-2xl flex flex-col shadow-2xl border border-slate-600/50 max-h-[90vh]">
+            <div class="p-6 border-b border-slate-700 flex justify-between items-center">
+                <h2 class="text-xl font-bold flex items-center gap-2"><i class="fas fa-sliders-h text-blue-400"></i> Advanced Filters</h2>
+                <button onclick="toggleFilterModal()" class="text-slate-400 hover:text-white"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            
+            <div class="p-6 overflow-y-auto scroll-custom space-y-6">
+                
+                <!-- Logic Toggle -->
+                <div class="flex flex-col gap-2">
+                    <label class="text-xs font-bold text-slate-400 uppercase">Combination Logic</label>
+                    <div class="flex bg-slate-800 rounded-lg p-1 border border-slate-700 w-fit">
+                        <button onclick="setFilterLogic('AND')" id="logicBtnAND" class="px-4 py-1.5 rounded-md text-sm font-bold transition-all bg-blue-600 text-white shadow-lg">Match ALL (AND)</button>
+                        <button onclick="setFilterLogic('OR')" id="logicBtnOR" class="px-4 py-1.5 rounded-md text-sm font-bold transition-all text-slate-400 hover:text-white">Match ANY (OR)</button>
+                    </div>
+                    <p class="text-[10px] text-slate-500">
+                        "Match ALL" requires a card to meet <strong>every</strong> active criteria below.<br>
+                        "Match ANY" requires a card to meet <strong>at least one</strong> active criteria.
+                    </p>
+                </div>
+
+                <!-- Ink Color -->
+                <div class="space-y-3">
+                    <label class="text-xs font-bold text-slate-400 uppercase">Ink Color</label>
+                    <div class="flex gap-4">
+                        <button onclick="toggleInk('Amber')" class="ink-toggle w-10 h-10 rounded-full ink-amber border-2 border-transparent shadow-lg transition-all" title="Amber"></button>
+                        <button onclick="toggleInk('Amethyst')" class="ink-toggle w-10 h-10 rounded-full ink-amethyst border-2 border-transparent shadow-lg transition-all" title="Amethyst"></button>
+                        <button onclick="toggleInk('Emerald')" class="ink-toggle w-10 h-10 rounded-full ink-emerald border-2 border-transparent shadow-lg transition-all" title="Emerald"></button>
+                        <button onclick="toggleInk('Ruby')" class="ink-toggle w-10 h-10 rounded-full ink-ruby border-2 border-transparent shadow-lg transition-all" title="Ruby"></button>
+                        <button onclick="toggleInk('Sapphire')" class="ink-toggle w-10 h-10 rounded-full ink-sapphire border-2 border-transparent shadow-lg transition-all" title="Sapphire"></button>
+                        <button onclick="toggleInk('Steel')" class="ink-toggle w-10 h-10 rounded-full ink-steel border-2 border-transparent shadow-lg transition-all" title="Steel"></button>
+                    </div>
+                </div>
+
+                <!-- Stats Ranges -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <!-- Helper to gen input -->
+                    <div class="bg-slate-800/50 p-3 rounded-xl border border-slate-700/50">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase block mb-2"><i class="fas fa-hexagon text-slate-500 mr-1"></i> Cost</label>
+                        <div class="flex gap-2 items-center">
+                            <input type="number" id="f_cost_min" placeholder="Min" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs focus:ring-1 focus:ring-blue-500">
+                            <span class="text-slate-500">-</span>
+                            <input type="number" id="f_cost_max" placeholder="Max" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs focus:ring-1 focus:ring-blue-500">
+                        </div>
+                    </div>
+                    <div class="bg-slate-800/50 p-3 rounded-xl border border-slate-700/50">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase block mb-2"><i class="fas fa-fist-raised text-slate-500 mr-1"></i> Strength</label>
+                        <div class="flex gap-2 items-center">
+                            <input type="number" id="f_str_min" placeholder="Min" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs focus:ring-1 focus:ring-blue-500">
+                            <span class="text-slate-500">-</span>
+                            <input type="number" id="f_str_max" placeholder="Max" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs focus:ring-1 focus:ring-blue-500">
+                        </div>
+                    </div>
+                    <div class="bg-slate-800/50 p-3 rounded-xl border border-slate-700/50">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase block mb-2"><i class="fas fa-shield-alt text-slate-500 mr-1"></i> Willpower</label>
+                        <div class="flex gap-2 items-center">
+                            <input type="number" id="f_wil_min" placeholder="Min" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs focus:ring-1 focus:ring-blue-500">
+                            <span class="text-slate-500">-</span>
+                            <input type="number" id="f_wil_max" placeholder="Max" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs focus:ring-1 focus:ring-blue-500">
+                        </div>
+                    </div>
+                    <div class="bg-slate-800/50 p-3 rounded-xl border border-slate-700/50">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase block mb-2"><i class="fas fa-gem text-slate-500 mr-1"></i> Lore</label>
+                        <div class="flex gap-2 items-center">
+                            <input type="number" id="f_lore_min" placeholder="Min" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs focus:ring-1 focus:ring-blue-500">
+                            <span class="text-slate-500">-</span>
+                            <input type="number" id="f_lore_max" placeholder="Max" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs focus:ring-1 focus:ring-blue-500">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Attributes -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-xs font-bold text-slate-400 uppercase block mb-2">Set</label>
+                        <select id="f_sets" multiple class="w-full h-32 bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500 scroll-custom">
+                            <!-- Populated via JS -->
+                        </select>
+                        <p class="text-[10px] text-slate-500 mt-1">Hold Ctrl/Cmd to select multiple</p>
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-slate-400 uppercase block mb-2">Subtype</label>
+                        <input type="text" id="f_subtype" placeholder="e.g. Villain, Princess, Dreamborn" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500">
+                        <p class="text-[10px] text-slate-500 mt-1">Comma separated for multiple checks</p>
+                    </div>
+                </div>
+
+            </div>
+            
+            <div class="p-6 border-t border-slate-700 flex justify-end gap-3 bg-slate-800/30 rounded-b-2xl">
+                <button onclick="clearFilters()" class="px-6 py-2 text-slate-400 hover:text-white transition-colors text-sm font-bold">Clear All</button>
+                <button onclick="applyFilters()" class="px-6 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg font-bold transition-colors shadow-lg">Apply Filters</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detail Modal -->
+    <div id="detailModal" class="fixed inset-0 z-[60] bg-black/80 flex items-center justify-center p-4 hidden backdrop-blur-sm">
+        <div class="glass-panel w-full max-w-5xl max-h-[90vh] rounded-2xl overflow-hidden flex flex-col md:flex-row shadow-2xl border border-white/10">
+            <!-- Left: Card Image -->
+            <div class="w-full md:w-2/5 p-6 bg-slate-900/50 flex flex-col items-center justify-center gap-4">
+                <img id="modalImg" src="" alt="Card Image" class="rounded-xl shadow-2xl w-full max-w-[300px] border border-white/5">
+                <div id="modalThreatPanel" class="w-full grid grid-cols-3 gap-2">
+                    <!-- Threat Metrics injected here -->
+                </div>
+            </div>
+            
+            <!-- Right: Analysis -->
+            <div class="w-full md:w-3/5 p-8 flex flex-col overflow-hidden">
+                <div class="flex justify-between items-start mb-6">
+                    <div>
+                        <h2 id="modalTitle" class="text-3xl font-bold">Card Name</h2>
+                        <p id="modalSubtitle" class="text-slate-400 uppercase tracking-widest text-xs font-bold mt-1">Version Subtitle</p>
+                    </div>
+                    <button onclick="closeModal()" class="text-slate-500 hover:text-white transition-colors"><i class="fas fa-times text-2xl"></i></button>
+                </div>
+
+                <div class="flex-1 overflow-y-auto pr-4 scroll-custom space-y-8">
+                    <!-- Coverage Section -->
+                    <section>
+                        <div class="flex justify-between items-end mb-2">
+                            <h3 class="text-sm font-bold text-blue-400 uppercase tracking-wider">Rules Coverage Analysis</h3>
+                            <span id="modalCoveragePct" class="text-xl font-mono font-bold">0%</span>
+                        </div>
+                        <div class="w-full bg-slate-800 rounded-full h-2 mb-4">
+                            <div id="modalCoverageBar" class="bg-blue-500 h-2 rounded-full transition-all duration-700" style="width: 0%"></div>
+                        </div>
+                        <div id="modalHighlightedText" class="bg-slate-800/50 p-4 rounded-xl text-sm leading-relaxed whitespace-pre-line border border-slate-700/50 italic text-slate-300">
+                            <!-- Highlighting logic -->
+                        </div>
+                    </section>
+
+                    <!-- Threat Details -->
+                    <section>
+                        <h3 class="text-sm font-bold text-orange-400 uppercase tracking-wider mb-4">Threat Level Breakdown</h3>
+                        <div id="modalBreakdown" class="space-y-2">
+                            <!-- Breakdown list from library -->
+                        </div>
+                    </section>
+
+                    <!-- Unmatched Segments -->
+                    <section id="unmatchedSection">
+                        <h3 class="text-sm font-bold text-red-400 uppercase tracking-wider mb-2">Unmatched Segments (Gaps)</h3>
+                        <div id="modalUnmatched" class="space-y-2">
+                            <!-- List of text the regex missed -->
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Config Modal -->
+    <div id="configModal" class="fixed inset-0 z-[70] bg-black/80 flex items-center justify-center p-4 hidden">
+        <div class="glass-panel w-full max-w-2xl rounded-2xl p-8 flex flex-col gap-6 shadow-2xl border border-slate-600">
+            <div class="flex justify-between items-center">
+                <h2 class="text-2xl font-bold">Custom Rules Config</h2>
+                <button onclick="toggleConfigModal()" class="text-slate-500 hover:text-white"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            
+            <!-- File Upload Section -->
+            <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700 border-dashed text-center transition-colors hover:bg-slate-800/80">
+                <input type="file" id="jsonUpload" accept=".json" class="hidden" onchange="handleFileUpload(this)">
+                <label for="jsonUpload" class="cursor-pointer flex flex-col items-center gap-2 text-slate-400 hover:text-white transition-colors w-full h-full">
+                    <i class="fas fa-cloud-upload-alt text-4xl mb-2 text-blue-500"></i>
+                    <span class="text-sm font-bold">Click to Upload Rules File</span>
+                    <span class="text-[10px] text-slate-500">Supported format: .json</span>
+                </label>
+                <p id="fileNameDisplay" class="text-xs text-green-400 font-bold mt-3 hidden flex items-center justify-center gap-2">
+                    <i class="fas fa-check-circle"></i> <span id="fileNameText"></span>
+                </p>
+            </div>
+
+            <div class="relative">
+                 <p class="text-xs text-slate-400 mb-2 uppercase font-bold flex justify-between">
+                     <span>Current Rules Data</span>
+                     <span class="text-[10px] font-normal normal-case text-slate-500">Editable Preview</span>
+                 </p>
+                 <textarea id="rulesInput" class="w-full h-48 bg-slate-900 border border-slate-700 rounded-xl p-4 font-mono text-xs focus:ring-2 focus:ring-blue-500 outline-none scroll-custom" placeholder='{ "abilities": [...] }'></textarea>
+            </div>
+            
+            <div class="flex justify-end gap-3">
+                <button onclick="toggleConfigModal()" class="px-6 py-2 text-slate-400 hover:text-white transition-colors text-sm font-bold">Cancel</button>
+                <button onclick="applyCustomRules()" class="px-6 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg font-bold transition-colors shadow-lg flex items-center gap-2">
+                    <i class="fas fa-play text-xs"></i> Apply Rules
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const CARDS_URL = "https://cdn.jsdelivr.net/gh/heavenideas/similcana@main/database/allCards.json";
+        const ABILITIES_URL = "https://cdn.jsdelivr.net/gh/heavenideas/heavenideas.github.io@main/lorcanaUtils_MatchUpAnalyzer/lorcana_abilities_redux.json";
+        
+        let allCards = [];
+        let currentAbilities = [];
+        let analyzedCards = [];
+        
+        // Filter State
+        let activeFilters = {
+            logic: 'AND', // 'AND' or 'OR'
+            colors: [],
+            sets: [],
+            stats: {
+                cost: { min: '', max: '' },
+                strength: { min: '', max: '' },
+                willpower: { min: '', max: '' },
+                lore: { min: '', max: '' }
+            },
+            subtype: ''
+        };
+
+        // Initialization
+        async function init() {
+            try {
+                updateLoadingStatus("Fetching Card Database...");
+                const cardResp = await fetch(CARDS_URL);
+                const cardData = await cardResp.json();
+                allCards = cardData.cards.filter(c => c.fullText || (c.fullTextSections && c.fullTextSections.length > 0));
+
+                initFilters(allCards);
+
+                updateLoadingStatus("Fetching Rules Configuration...");
+                await UnifiedWinProbabiliyCalculation.loadAbilitiesConfig();
+                currentAbilities = UnifiedWinProbabiliyCalculation.getAbilitiesConfig().abilities;
+                
+                // Set default in textarea
+                document.getElementById('rulesInput').value = JSON.stringify({ abilities: currentAbilities }, null, 2);
+
+                processAnalysis();
+                document.getElementById('loadingOverlay').classList.add('hidden');
+            } catch (error) {
+                console.error(error);
+                updateLoadingStatus("Critical Error: Check Console.");
+            }
+        }
+
+        function initFilters(cards) {
+            // Populate Sets
+            const sets = new Set();
+            cards.forEach(c => {
+                if(c.setCode) sets.add(c.setCode);
+            });
+            
+            // Sort sets roughly by number/code
+            const sortedSets = Array.from(sets).sort();
+            const setSelect = document.getElementById('f_sets');
+            setSelect.innerHTML = sortedSets.map(s => `<option value="${s}">${s}</option>`).join('');
+        }
+
+        function updateLoadingStatus(msg) {
+            document.getElementById('loadingStatus').textContent = msg;
+        }
+
+        function normalizeText(text) {
+            if (!text) return "";
+            return text.replace(/\n/g, ' ').trim();
+        }
+
+        // Logic to calculate coverage manually for UI highlighting
+        function getCoverageReport(card) {
+            const fullText = card.fullText || (card.fullTextSections || []).join('\n');
+            const normalized = normalizeText(fullText);
+            
+            // Clean reminder text
+            let textToAnalyze = normalized.replace(/\([^)]*\)/g, ' '); 
+
+            let allMatches = [];
+            currentAbilities.forEach(ability => {
+                if (!ability.regex) return;
+                
+                let regexObj;
+                try {
+                    const match = ability.regex.match(/^\/(.*)\/([gimuy]*)$/);
+                    if (match) {
+                        regexObj = new RegExp(match[1], match[2]);
+                    } else {
+                        regexObj = new RegExp(ability.regex, 'gi');
+                    }
+                } catch(e) { return; }
+
+                regexObj.lastIndex = 0;
+                let match;
+                while ((match = regexObj.exec(textToAnalyze)) !== null) {
+                    if (match[0].length === 0) continue;
+                    allMatches.push({
+                        name: ability.name,
+                        text: match[0],
+                        start: match.index,
+                        end: match.index + match[0].length
+                    });
+                }
+            });
+
+            // Handle overlaps (Priority: Longest match first)
+            allMatches.sort((a, b) => (b.end - b.start) - (a.end - a.start));
+            
+            const matchedRanges = [];
+            let coveredChars = 0;
+            const tempCoverageSet = new Set();
+
+            allMatches.forEach(match => {
+                let isAlreadyCovered = true;
+                for (let i = match.start; i < match.end; i++) {
+                    if (!tempCoverageSet.has(i)) {
+                        tempCoverageSet.add(i);
+                        isAlreadyCovered = false;
+                    }
+                }
+                if (!isAlreadyCovered) {
+                    matchedRanges.push(match);
+                }
+            });
+
+            const coveragePct = Math.min(100, Math.round((tempCoverageSet.size / textToAnalyze.length) * 100));
+            
+            return {
+                original: textToAnalyze,
+                matches: matchedRanges.sort((a,b) => a.start - b.start),
+                coveragePct
+            };
+        }
+
+        function processAnalysis() {
+            analyzedCards = allCards.map(card => {
+                const report = getCoverageReport(card);
+                const threatMetrics = UnifiedWinProbabiliyCalculation.calculateCardMetrics(card);
+                return {
+                    ...card,
+                    report,
+                    threatMetrics
+                };
+            });
+            updateStats();
+            renderGrid();
+        }
+
+        function updateStats() {
+            // Stats based on currently rendered (filtered) cards
+            const grid = document.getElementById('cardGrid');
+            // We need to calculate based on the filtered set, which renderGrid handles.
+            // Since renderGrid filters on the fly, let's just update stats there.
+        }
+
+        // --- Filtering Logic ---
+
+        function toggleFilterModal() {
+            document.getElementById('filterModal').classList.toggle('hidden');
+        }
+
+        function setFilterLogic(logic) {
+            activeFilters.logic = logic;
+            
+            const btnAND = document.getElementById('logicBtnAND');
+            const btnOR = document.getElementById('logicBtnOR');
+
+            if (logic === 'AND') {
+                btnAND.classList.replace('text-slate-400', 'text-white');
+                btnAND.classList.add('bg-blue-600', 'shadow-lg');
+                btnAND.classList.remove('hover:text-white');
+                
+                btnOR.classList.replace('text-white', 'text-slate-400');
+                btnOR.classList.remove('bg-blue-600', 'shadow-lg');
+                btnOR.classList.add('hover:text-white');
+            } else {
+                btnOR.classList.replace('text-slate-400', 'text-white');
+                btnOR.classList.add('bg-blue-600', 'shadow-lg');
+                btnOR.classList.remove('hover:text-white');
+                
+                btnAND.classList.replace('text-white', 'text-slate-400');
+                btnAND.classList.remove('bg-blue-600', 'shadow-lg');
+                btnAND.classList.add('hover:text-white');
+            }
+        }
+
+        function toggleInk(color) {
+            const index = activeFilters.colors.indexOf(color);
+            const btn = document.querySelector(`.ink-toggle[title="${color}"]`);
+            
+            if (index > -1) {
+                activeFilters.colors.splice(index, 1);
+                btn.classList.remove('active', 'scale-110', 'ring-2', 'ring-white');
+            } else {
+                activeFilters.colors.push(color);
+                btn.classList.add('active', 'scale-110', 'ring-2', 'ring-white');
+            }
+        }
+
+        function clearFilters() {
+            activeFilters = {
+                logic: 'AND',
+                colors: [],
+                sets: [],
+                stats: {
+                    cost: { min: '', max: '' },
+                    strength: { min: '', max: '' },
+                    willpower: { min: '', max: '' },
+                    lore: { min: '', max: '' }
+                },
+                subtype: ''
+            };
+
+            // Reset UI
+            setFilterLogic('AND');
+            document.querySelectorAll('.ink-toggle').forEach(b => b.classList.remove('active', 'scale-110', 'ring-2', 'ring-white'));
+            document.querySelectorAll('#filterModal input').forEach(i => i.value = '');
+            document.getElementById('f_sets').selectedIndex = -1;
+            
+            applyFilters();
+        }
+
+        function applyFilters() {
+            // Read inputs
+            activeFilters.stats.cost.min = document.getElementById('f_cost_min').value;
+            activeFilters.stats.cost.max = document.getElementById('f_cost_max').value;
+            activeFilters.stats.strength.min = document.getElementById('f_str_min').value;
+            activeFilters.stats.strength.max = document.getElementById('f_str_max').value;
+            activeFilters.stats.willpower.min = document.getElementById('f_wil_min').value;
+            activeFilters.stats.willpower.max = document.getElementById('f_wil_max').value;
+            activeFilters.stats.lore.min = document.getElementById('f_lore_min').value;
+            activeFilters.stats.lore.max = document.getElementById('f_lore_max').value;
+
+            const selectedSets = Array.from(document.getElementById('f_sets').selectedOptions).map(o => o.value);
+            activeFilters.sets = selectedSets;
+            
+            activeFilters.subtype = document.getElementById('f_subtype').value.toLowerCase();
+
+            // Toggle badge
+            const isFiltering = activeFilters.colors.length > 0 || 
+                                activeFilters.sets.length > 0 || 
+                                activeFilters.subtype.length > 0 ||
+                                Object.values(activeFilters.stats).some(s => s.min !== '' || s.max !== '');
+            
+            const badge = document.getElementById('activeFilterBadge');
+            if(isFiltering) badge.classList.remove('hidden');
+            else badge.classList.add('hidden');
+
+            document.getElementById('filterModal').classList.add('hidden');
+            renderGrid();
+        }
+
+        function checkRange(val, min, max) {
+            // Helper for range checking. If val is null/undefined, treat as 0 or ignore? Treat as 0 for safe comparison.
+            const v = val || 0;
+            if (min !== '' && v < parseFloat(min)) return false;
+            if (max !== '' && v > parseFloat(max)) return false;
+            return true;
+        }
+
+        function filterCard(card) {
+            // Results of each filter category check
+            const results = [];
+            
+            // 1. Colors
+            // Card passes if it has at least ONE of the selected colors
+            // If no colors selected, this filter is ignored (always true)
+            if (activeFilters.colors.length > 0) {
+                // Normalize card color to array
+                const cColors = card.colors || (card.color ? card.color.split('-') : []);
+                const hasMatch = activeFilters.colors.some(fColor => cColors.includes(fColor));
+                results.push(hasMatch);
+            }
+
+            // 2. Stats (Cost, Str, Wil, Lore)
+            // Each stat is a check. If min/max are empty, ignored.
+            const s = activeFilters.stats;
+            if (s.cost.min !== '' || s.cost.max !== '') results.push(checkRange(card.cost, s.cost.min, s.cost.max));
+            if (s.strength.min !== '' || s.strength.max !== '') results.push(checkRange(card.strength, s.strength.min, s.strength.max));
+            if (s.willpower.min !== '' || s.willpower.max !== '') results.push(checkRange(card.willpower, s.willpower.min, s.willpower.max));
+            if (s.lore.min !== '' || s.lore.max !== '') results.push(checkRange(card.lore, s.lore.min, s.lore.max));
+
+            // 3. Sets
+            if (activeFilters.sets.length > 0) {
+                results.push(activeFilters.sets.includes(card.setCode));
+            }
+
+            // 4. Subtype
+            if (activeFilters.subtype) {
+                const subInput = activeFilters.subtype;
+                // Split input by comma to allow multiple subtype checks? 
+                // Let's stick to "Does card contain this text string in subtypes"
+                const cSubs = (card.subtypes || []).join(' ').toLowerCase();
+                const inputs = subInput.split(',').map(x => x.trim()).filter(x => x);
+                // For subtypes, usually we want it to match ALL entered subtypes (e.g. Villain, Princess)
+                // But if logic is OR, maybe ANY? 
+                // Let's keep it simple: Does it contain the input string(s)?
+                // We'll treat the subtype input field as a single unit for the "Result" array.
+                // Within the field, let's say ANY match of the commas is a pass.
+                const hasSub = inputs.some(i => cSubs.includes(i));
+                results.push(hasSub);
+            }
+
+            // If no filters active, return true
+            if (results.length === 0) return true;
+
+            // Apply Logic
+            if (activeFilters.logic === 'AND') {
+                return results.every(r => r === true);
+            } else {
+                return results.some(r => r === true);
+            }
+        }
+
+        function renderGrid() {
+            const query = document.getElementById('cardSearch').value.toLowerCase();
+            const sortVal = document.getElementById('sortFilter').value;
+            
+            // 1. Text Search filtering (Always AND)
+            let filtered = analyzedCards.filter(c => c.fullName.toLowerCase().includes(query));
+
+            // 2. Advanced Filters
+            filtered = filtered.filter(card => filterCard(card));
+
+            // Update Stats for the filtered view
+            document.getElementById('statTotal').innerText = filtered.length;
+            const totalCov = filtered.reduce((acc, curr) => acc + curr.report.coveragePct, 0);
+            document.getElementById('statAvgCoverage').innerText = (filtered.length ? Math.round(totalCov / filtered.length) : 0) + "%";
+            document.getElementById('statRules').innerText = currentAbilities.length;
+
+            // Sort
+            if (sortVal === 'coverage-desc') filtered.sort((a,b) => b.report.coveragePct - a.report.coveragePct);
+            if (sortVal === 'coverage-asc') filtered.sort((a,b) => a.report.coveragePct - b.report.coveragePct);
+            if (sortVal === 'name-asc') filtered.sort((a,b) => a.fullName.localeCompare(b.fullName));
+            if (sortVal === 'threat-desc') filtered.sort((a,b) => (b.threatMetrics.rds + b.threatMetrics.lvi + b.threatMetrics.bcr) - (a.threatMetrics.rds + a.threatMetrics.lvi + a.threatMetrics.bcr));
+
+            const grid = document.getElementById('cardGrid');
+            if (filtered.length === 0) {
+                grid.innerHTML = `<div class="col-span-full text-center text-slate-500 py-20 italic">No cards match the current filters.</div>`;
+                return;
+            }
+
+            grid.innerHTML = filtered.map(card => `
+                <div class="card-item bg-slate-800 rounded-xl overflow-hidden cursor-pointer border border-slate-700 relative group" onclick="openDetail('${card.id}')">
+                    <div class="relative aspect-[3/4] bg-slate-900">
+                        <img src="${card.images?.thumbnail || 'https://via.placeholder.com/200x280?text=No+Image'}" alt="${card.fullName}" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity">
+                        <div class="absolute top-2 right-2 flex flex-col gap-1 items-end">
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold shadow-md ${getCoverageColor(card.report.coveragePct)}">
+                                ${card.report.coveragePct}% Cov
+                            </span>
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-600/90 text-white shadow-md">
+                                T: ${calculateThreatLevel(card.threatMetrics)}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="p-3 bg-slate-800 border-t border-slate-700 h-full">
+                        <h4 class="text-xs font-bold truncate text-slate-200">${card.name}</h4>
+                        <div class="flex justify-between items-center mt-1">
+                            <p class="text-[10px] text-slate-500 truncate max-w-[70%]">${card.version || card.type}</p>
+                            ${card.cost ? `<span class="text-[10px] font-bold text-slate-400 bg-slate-700 px-1.5 rounded"><i class="fas fa-hexagon text-[8px] mr-1"></i>${card.cost}</span>` : ''}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function getCoverageColor(pct) {
+            if (pct >= 90) return "bg-green-600/90 text-white";
+            if (pct >= 50) return "bg-yellow-600/90 text-white";
+            return "bg-red-600/90 text-white";
+        }
+
+        function calculateThreatLevel(metrics) {
+            const sum = metrics.rds + metrics.lvi + metrics.bcr;
+            if (sum > 4) return "S";
+            if (sum > 2.5) return "A";
+            if (sum > 1.5) return "B";
+            return "C";
+        }
+
+        function openDetail(cardId) {
+            const card = analyzedCards.find(c => c.id == cardId);
+            if (!card) return;
+
+            const modal = document.getElementById('detailModal');
+            document.getElementById('modalImg').src = card.images?.full || card.images?.thumbnail;
+            document.getElementById('modalTitle').innerText = card.name;
+            document.getElementById('modalSubtitle').innerText = card.version || card.type;
+            
+            // Coverage Bar
+            const covPct = card.report.coveragePct;
+            document.getElementById('modalCoveragePct').innerText = covPct + "%";
+            document.getElementById('modalCoverageBar').style.width = covPct + "%";
+            
+            // Color bar based on percentage
+            const bar = document.getElementById('modalCoverageBar');
+            bar.className = "h-2 rounded-full transition-all duration-700 " + (covPct > 80 ? "bg-green-500" : covPct > 40 ? "bg-yellow-500" : "bg-red-500");
+
+            // Text Highlighting
+            const highlightedEl = document.getElementById('modalHighlightedText');
+            highlightedEl.innerHTML = highlightMatches(card.report);
+
+            // Unmatched Segments
+            const unmatchedEl = document.getElementById('modalUnmatched');
+            const unmatchedSegments = findUnmatchedSegments(card.report);
+            if (unmatchedSegments.length > 0) {
+                document.getElementById('unmatchedSection').classList.remove('hidden');
+                unmatchedEl.innerHTML = unmatchedSegments.map(s => `
+                    <div class="p-2 bg-red-900/20 border border-red-500/30 rounded text-xs text-red-200 flex items-start gap-2">
+                        <i class="fas fa-exclamation-triangle mt-0.5"></i>
+                        <span>${s}</span>
+                    </div>
+                `).join('');
+            } else {
+                document.getElementById('unmatchedSection').classList.add('hidden');
+            }
+
+            // Threat Metrics
+            const threatPanel = document.getElementById('modalThreatPanel');
+            threatPanel.innerHTML = `
+                <div class="bg-blue-900/30 p-3 rounded-lg text-center border border-blue-500/30">
+                    <p class="text-[10px] text-blue-300 font-bold uppercase">RDS</p>
+                    <p class="text-xl font-bold">${card.threatMetrics.rds.toFixed(2)}</p>
+                </div>
+                <div class="bg-amber-900/30 p-3 rounded-lg text-center border border-amber-500/30">
+                    <p class="text-[10px] text-amber-300 font-bold uppercase">LVI</p>
+                    <p class="text-xl font-bold">${card.threatMetrics.lvi.toFixed(2)}</p>
+                </div>
+                <div class="bg-purple-900/30 p-3 rounded-lg text-center border border-purple-500/30">
+                    <p class="text-[10px] text-purple-300 font-bold uppercase">BCR</p>
+                    <p class="text-xl font-bold">${card.threatMetrics.bcr.toFixed(2)}</p>
+                </div>
+            `;
+
+            // Breakdown
+            const breakdownEl = document.getElementById('modalBreakdown');
+            breakdownEl.innerHTML = card.threatMetrics.breakdown.length > 0 
+                ? card.threatMetrics.breakdown.map(item => `
+                    <div class="flex justify-between items-center p-3 bg-slate-800/80 rounded-lg border border-slate-700">
+                        <div>
+                            <p class="text-sm font-bold text-slate-200">${item.abilityName}</p>
+                            <p class="text-[10px] text-slate-500 italic">${item.explanation}</p>
+                        </div>
+                        <div class="text-right">
+                            <span class="px-2 py-1 rounded bg-slate-700 text-[10px] font-bold uppercase">${item.metric.replace('_',' ')}</span>
+                            <p class="text-sm font-mono font-bold text-white mt-1">+${item.value.toFixed(2)}</p>
+                        </div>
+                    </div>
+                `).join('')
+                : `<p class="text-slate-500 text-sm italic">No threat contributors found for this card.</p>`;
+
+            modal.classList.remove('hidden');
+        }
+
+        function highlightMatches(report) {
+            let result = "";
+            let lastIdx = 0;
+            
+            report.matches.forEach(m => {
+                // Add text before match
+                result += report.original.substring(lastIdx, m.start);
+                // Add highlighted match
+                result += `<span class="matched-text" title="${m.name}">${report.original.substring(m.start, m.end)}</span>`;
+                lastIdx = m.end;
+            });
+            
+            // Add remaining text
+            result += report.original.substring(lastIdx);
+            return result;
+        }
+
+        function findUnmatchedSegments(report) {
+            let segments = [];
+            let lastIdx = 0;
+            
+            report.matches.forEach(m => {
+                if (m.start > lastIdx) {
+                    const chunk = report.original.substring(lastIdx, m.start).trim();
+                    if (chunk.length > 2) segments.push(chunk);
+                }
+                lastIdx = m.end;
+            });
+            
+            if (lastIdx < report.original.length) {
+                const chunk = report.original.substring(lastIdx).trim();
+                if (chunk.length > 2) segments.push(chunk);
+            }
+            return segments;
+        }
+
+        function closeModal() {
+            document.getElementById('detailModal').classList.add('hidden');
+        }
+
+        function toggleConfigModal() {
+            const modal = document.getElementById('configModal');
+            modal.classList.toggle('hidden');
+        }
+
+        function handleFileUpload(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            // Update UI to show filename
+            const nameDisplay = document.getElementById('fileNameDisplay');
+            const nameText = document.getElementById('fileNameText');
+            nameText.textContent = `File Loaded: ${file.name}`;
+            nameDisplay.classList.remove('hidden');
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    // Validate JSON
+                    const json = JSON.parse(e.target.result);
+                    // Update textarea
+                    document.getElementById('rulesInput').value = JSON.stringify(json, null, 2);
+                } catch(err) {
+                    alert("Error parsing JSON file: " + err.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        async function applyCustomRules() {
+            const input = document.getElementById('rulesInput').value;
+            try {
+                const config = JSON.parse(input);
+                if (!config.abilities) throw new Error("JSON must contain 'abilities' array.");
+                
+                UnifiedWinProbabiliyCalculation.setAbilitiesConfig(config);
+                currentAbilities = config.abilities;
+                
+                toggleConfigModal();
+                document.getElementById('loadingOverlay').classList.remove('hidden');
+                updateLoadingStatus("Re-analyzing cards with new rules...");
+                
+                // Allow UI to update before heavy processing
+                setTimeout(() => {
+                    processAnalysis();
+                    document.getElementById('loadingOverlay').classList.add('hidden');
+                }, 100);
+
+            } catch (e) {
+                alert("Invalid Rules JSON: " + e.message);
+            }
+        }
+
+        // Listeners
+        document.getElementById('cardSearch').addEventListener('input', renderGrid);
+        document.getElementById('sortFilter').addEventListener('change', renderGrid);
+        
+        // Start
+        window.onload = init;
+    </script>
+</body>
+</html>
