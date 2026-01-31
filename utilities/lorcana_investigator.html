@@ -728,18 +728,23 @@
             // Breakdown
             const breakdownEl = document.getElementById('modalBreakdown');
             breakdownEl.innerHTML = card.threatMetrics.breakdown.length > 0 
-                ? card.threatMetrics.breakdown.map(item => `
-                    <div class="flex justify-between items-center p-3 bg-slate-800/80 rounded-lg border border-slate-700">
-                        <div>
-                            <p class="text-sm font-bold text-slate-200">${item.abilityName}</p>
-                            <p class="text-[10px] text-slate-500 italic">${item.explanation}</p>
+                ? card.threatMetrics.breakdown.map(item => {
+                    // Extract ability number from ability name if present
+                    let abilityNumber = null;
+                    const abilityMatch = item.abilityName.match(/\(Ability (\d+)\)/);
+                    if (abilityMatch) {
+                        abilityNumber = parseInt(abilityMatch[1]);
+                    }
+                    const colorClass = abilityNumber ? getAbilityColorClass(abilityNumber) : 'text-orange-400';
+                    return `
+                        <div class="p-3 bg-slate-800/80 rounded-lg border border-slate-700">
+                            <p class="font-bold ${colorClass}">${item.abilityName}</p>
+                            <p class="text-sm text-slate-300">Contributes <span class="font-mono">${item.value.toFixed(2)}</span> to <span class="font-semibold">${item.metric.replace(/_/g, ' ')}</span></p>
+                            ${item.textCaptured ? `<p class="text-xs text-gray-300 italic mt-1">"${item.textCaptured}"</p>` : ''}
+                            <p class="text-xs text-slate-400 mt-1">${item.explanation}</p>
                         </div>
-                        <div class="text-right">
-                            <span class="px-2 py-1 rounded bg-slate-700 text-[10px] font-bold uppercase">${item.metric.replace('_',' ')}</span>
-                            <p class="text-sm font-mono font-bold text-white mt-1">+${item.value.toFixed(2)}</p>
-                        </div>
-                    </div>
-                `).join('')
+                    `;
+                }).join('')
                 : `<p class="text-slate-500 text-sm italic">No threat contributors found for this card.</p>`;
 
             modal.classList.remove('hidden');
@@ -779,6 +784,20 @@
                 if (chunk.length > 2) segments.push(chunk);
             }
             return segments;
+        }
+
+        function getAbilityColorClass(abilityNumber) {
+            const colors = [
+                'text-purple-400', // Ability 1
+                'text-sky-400',    // Ability 2
+                'text-amber-400',  // Ability 3
+                'text-rose-400',   // Ability 4
+                'text-emerald-400', // Ability 5
+                'text-indigo-400',  // Ability 6
+                'text-orange-400',  // Ability 7
+                'text-pink-400'     // Ability 8
+            ];
+            return colors[(abilityNumber - 1) % colors.length];
         }
 
         function closeModal() {

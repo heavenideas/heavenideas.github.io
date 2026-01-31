@@ -1541,27 +1541,24 @@
                         </div>
                     </div>
                     <h4 class="font-semibold text-slate-300 mb-2">Calculation Breakdown:</h4>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-sm">
-                            <thead class="sticky top-0 bg-slate-900">
-                                <tr class="border-b border-slate-700">
-                                    <th class="text-left p-2">Ability</th>
-                                    <th class="text-left p-2">Metric</th>
-                                    <th class="text-right p-2">Score</th>
-                                    <th class="text-left p-2">Explanation</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${breakdown.length > 0 ? breakdown.map(item => `
-                                    <tr class="border-b border-slate-800 hover:bg-slate-800/50 cursor-pointer" data-ability-name="${item.abilityName}" title="Click to focus on this ability in the editor">
-                                        <td class="p-2 font-medium text-slate-200">${item.abilityName}</td>
-                                        <td class="p-2 capitalize">${item.metric.replace('_', ' ')}</td>
-                                        <td class="text-right p-2 font-mono">${item.value.toFixed(3)}</td>
-                                        <td class="p-2 text-slate-400">${item.explanation}</td>
-                                    </tr>
-                                `).join('') : '<tr><td colspan="4" class="text-center p-4 text-slate-500">No abilities from the loaded JSON matched this card.</td></tr>'}
-                            </tbody>
-                        </table>
+                    <div class="space-y-2">
+                        ${breakdown.length > 0 ? breakdown.map(item => {
+                            // Extract ability number from ability name if present
+                            let abilityNumber = null;
+                            const abilityMatch = item.abilityName.match(/\(Ability (\d+)\)/);
+                            if (abilityMatch) {
+                                abilityNumber = parseInt(abilityMatch[1]);
+                            }
+                            const colorClass = abilityNumber ? getAbilityColorClass(abilityNumber) : 'text-orange-400';
+                            return `
+                                <div class="bg-slate-800 p-3 rounded-lg hover:bg-slate-800/70 cursor-pointer" data-ability-name="${item.abilityName}" title="Click to focus on this ability in the editor">
+                                    <p class="font-bold ${colorClass}">${item.abilityName}</p>
+                                    <p class="text-sm text-slate-300">Contributes <span class="font-mono">${item.value.toFixed(3)}</span> to <span class="font-semibold">${item.metric.replace(/_/g, ' ')}</span></p>
+                                    ${item.textCaptured ? `<p class="text-xs text-gray-300 italic mt-1">"${item.textCaptured}"</p>` : ''}
+                                    <p class="text-xs text-slate-400 mt-1">${item.explanation}</p>
+                                </div>
+                            `;
+                        }).join('') : '<div class="text-center p-4 text-slate-500">No abilities from the loaded JSON matched this card.</div>'}
                     </div>
                 `;
                 cardDetailsContainer.innerHTML = resultsHtml;
@@ -1572,6 +1569,23 @@
                     const patternEl = document.querySelector(`#pattern-list [data-pattern-name="${pName}"]`);
                     if (patternEl) patternEl.classList.add('pattern-highlight');
                 });
+            }
+
+            /**
+             * Get color class for ability number
+             */
+            function getAbilityColorClass(abilityNumber) {
+                const colors = [
+                    'text-purple-400', // Ability 1
+                    'text-sky-400',    // Ability 2
+                    'text-amber-400',  // Ability 3
+                    'text-rose-400',   // Ability 4
+                    'text-emerald-400', // Ability 5
+                    'text-indigo-400',  // Ability 6
+                    'text-orange-400',  // Ability 7
+                    'text-pink-400'     // Ability 8
+                ];
+                return colors[(abilityNumber - 1) % colors.length];
             }
 
             function analyzeAndHighlightText(originalText) {
