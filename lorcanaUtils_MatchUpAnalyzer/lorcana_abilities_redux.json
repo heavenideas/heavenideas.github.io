@@ -1007,10 +1007,10 @@
       "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
-      "name": "State: Can't Challange",
+      "name": "State: Can't Challenge",
       "category": "State",
       "sub_type": "Control",
-      "regex": "/(?:all characters|characters|chosen (?:opposing )?characters?|opposing characters)(?: with cost (\\d+) or (less|more))? can't challenge/gi",
+      "regex": "/(?:this character|all characters|characters|chosen (?:opposing )?characters?|opposing characters)(?: with cost (\\d+) or (less|more))? can't challenge/gi",
       "value_type": "raw",
       "explanation": "Narrow form of control",
       "justification": "Affects tempo - but characters can still quest",
@@ -2139,7 +2139,7 @@
       "name": "Damage: Heal",
       "category": "Lore",
       "sub_type": "Survivability",
-      "regex": "/Remove(?: up to| all)? (\\d+|all)? damage from (?:chosen |each of your |one of your )?(?:character(?:s)?|location)/gi",
+      "regex": "/Remove(?: up to| all)? (\\d+|all)? damage from (?:chosen |each of your |one of your |another chosen )?(?:character(?:s)?|location|character of yours)/gi",
       "value_type": "raw",
       "explanation": "Removes damage from one of your cards, increasing its survivability.",
       "justification": "Increases the longevity of your characters.",
@@ -2572,7 +2572,7 @@
       "name": "Stat: Cost Reduction",
       "category": "Stat",
       "sub_type": "Ramp",
-      "regex": "/pay (\\d+) ⬡ less/gi",
+      "regex": "/pay (\\d+) ⬡ less(?: to play (?:this character|this card|a character|an? (?:\\w+)))?/gi",
       "value_type": "raw",
       "explanation": "Reduces the ink cost to play certain cards.",
       "justification": "A form of resource advantage.",
@@ -2999,6 +2999,68 @@
       },
       "createdAt": "2026-01-30T12:00:00.000Z",
       "lastModified": "2026-01-30T12:00:00.000Z"
+    },
+    {
+      "name": "Modifier: Turn Duration",
+      "category": "Modifier",
+      "sub_type": "Duration",
+      "regex": "/For the rest of this turn/gi",
+      "value_type": "raw",
+      "explanation": "Captures the turn-wide scope of effects.",
+      "justification": "Indicates a temporary effect that lasts until the end of the current turn.",
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [],
+        "scores": {},
+        "createdAt": "2026-02-02T12:00:00.000Z",
+        "lastModified": "2026-02-02T12:00:00.000Z"
+      }
+    },
+    {
+      "name": "Trigger: On Quest (Other)",
+      "category": "Trigger",
+      "sub_type": "On Quest",
+      "regex": "/When(?:ever)? (?:one of your (?:other )?characters|a character of yours) quests/gi",
+      "value_type": "raw",
+      "explanation": "Triggers when other characters quest.",
+      "justification": "Similar to On Quest but for other characters, enabling synergy effects.",
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [
+          {
+            "targetMetric": "all",
+            "name": "trigger",
+            "operation": "multiply",
+            "value": "1.1"
+          }
+        ],
+        "scores": {},
+        "createdAt": "2026-02-02T12:00:00.000Z",
+        "lastModified": "2026-02-02T12:00:00.000Z"
+      }
+    },
+    {
+      "name": "Condition: Second Player Advantage",
+      "category": "Condition",
+      "sub_type": "Player Order",
+      "regex": "/If this is your first turn and you're not the first player/gi",
+      "value_type": "raw",
+      "explanation": "Captures the specific 'Underdog' mechanic.",
+      "justification": "A condition that only applies if the player is going second and it's their first turn.",
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [
+          {
+            "targetMetric": "all",
+            "name": "trigger",
+            "operation": "multiply",
+            "value": "0.5"
+          }
+        ],
+        "scores": {},
+        "createdAt": "2026-02-02T12:00:00.000Z",
+        "lastModified": "2026-02-02T12:00:00.000Z"
+      }
     }
   ]
 }
