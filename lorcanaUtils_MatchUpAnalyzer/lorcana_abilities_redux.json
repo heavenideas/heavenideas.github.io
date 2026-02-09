@@ -77,6 +77,11 @@
       "songs": 0.06,
       "actions": 0.15
     },
+    "choiceMult": {
+      "at random": 0.5,
+      "of their choice": 0.25,
+      "of your choice": 2
+    },
     "subtype": {
       "Storyborn": 0.5,
       "Hero": 0.26,
@@ -1770,6 +1775,26 @@
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
       "lastModified": "2025-09-02T18:00:59.705Z"
+    },
+    {
+      "name": "Card Effect: Discard Until",
+      "category": "Resource",
+      "sub_type": "Hand Management",
+      "regex": "/(?:they|you) choose and discard cards until (?:they|you) have \\d+/gi",
+      "value_type": "raw",
+      "explanation": "Forces a player to discard cards until they reach a specific hand size.",
+      "justification": "Caps resource accumulation, penalizing large hands.",
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [],
+        "scores": {
+          "resource_development": {
+            "value": "-2"
+          }
+        }
+      },
+      "lastModified": "2026-02-02T00:00:00.000Z",
+      "createdAt": "2026-02-05T19:38:42.044Z"
     },
     {
       "name": "Card Effect: Tutor",
