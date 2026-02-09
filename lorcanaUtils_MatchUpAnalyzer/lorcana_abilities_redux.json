@@ -1,6 +1,7 @@
 {
   "@constants": {
     "cardDrawValue": 2,
+    "inkValue": 1,
     "uninkableBurdenMultiplier": 1.75,
     "selfBanishBurden": 1.1,
     "discardBurden": 1.5,
@@ -75,6 +76,11 @@
       "locations": 0.04,
       "songs": 0.06,
       "actions": 0.15
+    },
+    "choiceMult": {
+      "at random": 0.5,
+      "of their choice": 0.25,
+      "of your choice": 2
     },
     "subtype": {
       "Storyborn": 0.5,
@@ -354,6 +360,32 @@
       }
     },
     {
+      "name": "Condition: Hand Size",
+      "category": "Condition",
+      "sub_type": "Hand Size",
+      "regex": "/(?:if|each) (?:player|opponent|they) (?:with|has|have) (?:fewer|more) than \\d+ cards in (?:their|your) hand/gi",
+      "value_type": "raw",
+      "explanation": "Condition based on the number of cards in hand.",
+      "justification": "Hand size conditions control when powerful effects trigger.",
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [
+          {
+            "type": "condition_met_probability",
+            "value": 0.7,
+            "description": "Hand size conditions are dynamic but generally achievable."
+          }
+        ],
+        "scores": {
+          "resource_development": {
+            "value": "0"
+          }
+        }
+      },
+      "lastModified": "2026-02-02T00:00:00.000Z",
+      "createdAt": "2026-02-02T22:05:22.117Z"
+    },
+    {
       "name": "Condition: Have in play",
       "category": "Condition",
       "sub_type": "Have In Play",
@@ -364,12 +396,15 @@
       "createdAt": "2025-09-05T23:29:24.963Z",
       "calculation": {
         "variables": [],
-        "contextModifiers": [],
-        "scores": {
-          "resource_dominance": {
-            "value": "-2 / @card.cost"
+        "contextModifiers": [
+          {
+            "targetMetric": "all",
+            "name": "trigger",
+            "operation": "multiply",
+            "value": "0.25"
           }
-        }
+        ],
+        "scores": {}
       }
     },
     {
@@ -763,7 +798,8 @@
       "name": "Trigger: Start/End Turn",
       "category": "Trigger",
       "sub_type": "Turn",
-      "regex": "/At the (start|end) of your turn/gi",
+      "regex": "/At the (start|end) of (?:your|each player's) turn/gi",
+      "value_type": "raw",
       "explanation": "This is a recurring trigger, but it also means that the card that has it has to survive at least until the next turn.",
       "justification": "Trigger: Start/End of Turn -> Requires surviving one turn if Start But if End of turn then it's almost like on play",
       "calculation": {
@@ -1555,10 +1591,52 @@
       "lastModified": "2025-09-02T18:00:59.705Z"
     },
     {
+      "name": "Condition: Hand Disadvantage",
+      "category": "Condition",
+      "sub_type": "Hand Size",
+      "regex": "/if chosen opponent has more cards in their hand than you/gi",
+      "value_type": "raw",
+      "explanation": "Condition where opponent has more cards in hand.",
+      "justification": "Allows catch-up mechanics.",
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [],
+        "scores": {
+          "resource_dominance": {
+            "value": "4.0",
+            "explanation": "High potential for resource dominace as a catch-up mechanic"
+          }
+        }
+      },
+      "createdAt": "2026-02-05T19:38:42.043Z",
+      "lastModified": "2026-02-05T19:38:42.044Z"
+    },
+    {
+      "name": "Card Effect: Draw to Parity",
+      "category": "Resource",
+      "sub_type": "Card Draw",
+      "regex": "/(?:you may )?draw cards until you have the same number/gi",
+      "value_type": "raw",
+      "explanation": "Draw cards until hand size equals opponent's.",
+      "justification": "Powerful catch-up draw engine.",
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [],
+        "scores": {
+          "resource_dominance": {
+            "value": "2.5 * @cardDrawValue",
+            "explanation": "Est. draw 2.5 cards"
+          }
+        }
+      },
+      "createdAt": "2026-02-05T19:38:42.044Z",
+      "lastModified": "2026-02-05T19:38:42.044Z"
+    },
+    {
       "name": "Card Effect: Draw",
       "category": "Resource",
       "sub_type": "Card Draw",
-      "regex": "/(?<!Whenever you )(?:you may )?draws?\\s+(?:until (you|they) have\\s+)? ?(\\d+|a|one|two|three)? ?(cards?)?(?: equal to the (¤|⬡|⛉) of (?:chosen|this) (?:(?:\\w+) )?characters?(?: of yours)?)?/gi",
+      "regex": "/(?<!Whenever you )(?!((?:you may )?draw cards until you have the same number))(?:you may )?draws?\\s+(?:until (you|they) have\\s+)? ?(\\d+|a|one|two|three)? ?(cards?)?(?: equal to the (¤|⬡|⛉) of (?:chosen|this) (?:(?:\\w+) )?characters?(?: of yours)?)?/gi",
       "value_type": "raw",
       "explanation": "Allows the player to draw one or more cards from their deck.",
       "justification": "Card draw is the primary engine for resource advantage.",
@@ -1586,22 +1664,41 @@
       "name": "Card Effect: Opponent Discards",
       "category": "Resource",
       "sub_type": "Hand Disruption",
-      "regex": "/(chosen opponent|each opponent|player)? ?(chooses and |reveals their hand and ) ?discards? (\\d+|a|one|two|three) ?(song|item|character|action|location)? ?cards? ?(at random)?/gi",
+      "regex": "/(?:chosen opponent|each opponent|player)? ?(?:chooses and |reveals their hand and ) ?discards? (\\d+|a|one|two|three) ?(song|item|character|action|location|non-character)? ?cards? ?(at random|of their choice|of your choice)?/gi",
       "value_type": "raw",
       "explanation": "Forces an opponent to discard one or more cards from their hand.",
       "justification": "Directly attacks the opponent's resources.",
       "calculation": {
-        "variables": [],
+        "variables": [
+          {
+            "name": "cardCount",
+            "source": "regex",
+            "group": 1,
+            "type": "textOrNumber"
+          },
+          {
+            "name": "cardType",
+            "source": "regex",
+            "group": "2",
+            "type": "string"
+          },
+          {
+            "name": "choice",
+            "source": "regex",
+            "group": 3,
+            "type": "string"
+          }
+        ],
         "contextModifiers": [],
         "scores": {
           "resource_dominance": {
-            "value": "1.5",
+            "value": "1.5 * @cardCount * @cardTypesMult[cardType] * @choiceMult[choice]",
             "explanation": "Opponent Discards"
           }
         }
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
-      "lastModified": "2025-11-07T15:07:32.765Z"
+      "lastModified": "2026-02-02T22:22:16.487Z"
     },
     {
       "name": "Card Effect: Self Discard",
@@ -1678,6 +1775,26 @@
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
       "lastModified": "2025-09-02T18:00:59.705Z"
+    },
+    {
+      "name": "Card Effect: Discard Until",
+      "category": "Resource",
+      "sub_type": "Hand Management",
+      "regex": "/(?:they|you) choose and discard cards until (?:they|you) have \\d+/gi",
+      "value_type": "raw",
+      "explanation": "Forces a player to discard cards until they reach a specific hand size.",
+      "justification": "Caps resource accumulation, penalizing large hands.",
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [],
+        "scores": {
+          "resource_development": {
+            "value": "-2"
+          }
+        }
+      },
+      "lastModified": "2026-02-02T00:00:00.000Z",
+      "createdAt": "2026-02-05T19:38:42.044Z"
     },
     {
       "name": "Card Effect: Tutor",
@@ -2260,7 +2377,7 @@
       "name": "Condition: Sequential",
       "category": "Condition",
       "sub_type": "Requirement",
-      "regex": "/\\. If you do,/gi",
+      "regex": "/(?:(?:you may )?choose (?:an? )?(?:opposing )?character)?\\.? If you do,/gi",
       "explanation": "Links two effects where the second requires the first to be successful.",
       "justification": "Indicates a multi-step ability.",
       "calculation": {
@@ -2270,6 +2387,27 @@
       },
       "createdAt": "2026-01-30T12:00:00.000Z",
       "lastModified": "2026-01-30T12:00:00.000Z"
+    },
+    {
+      "name": "Condition: Opponent Prevention",
+      "category": "Condition",
+      "sub_type": "Punisher",
+      "regex": "/unless (?:that character's player|an opponent|this player|each opponent|they) (?:puts|discards|banishes|pays|exerts)(?: that card on the| a card| it)?/gi",
+      "value_type": "raw",
+      "explanation": "Allows an opponent to prevent an effect by performing a specific action (Punisher mechanic).",
+      "justification": "Captures the conditional choice logic without modifying common effect regexes.",
+      "calculation": {
+        "variables": [],
+        "contextModifiers": [],
+        "scores": {
+          "board_control": {
+            "value": "-0.5",
+            "explanation": "It's conditional on the opponent which makes it less reliable"
+          }
+        }
+      },
+      "lastModified": "2026-02-02T00:00:00.000Z",
+      "createdAt": "2026-02-02T22:05:22.118Z"
     },
     {
       "name": "Trigger: Chosen",
@@ -2444,7 +2582,7 @@
       "name": "State: Prevent Readying",
       "category": "State",
       "sub_type": "Control",
-      "regex": "/(chosen (?:opposing )|this|your|they) ?characters? can't ready ?(?:at the start of (?:their|your) next turn)?/gi",
+      "regex": "/(chosen (?:opposing )|this|your|they)(?: ?characters?)? can't ready ?(?:at the start of (?:their|your) next turn)?/gi",
       "value_type": "raw",
       "explanation": "Prevents an opponent's character from readying.",
       "justification": "A stronger form of soft removal.",
@@ -2572,29 +2710,41 @@
       "name": "Stat: Cost Reduction",
       "category": "Stat",
       "sub_type": "Ramp",
-      "regex": "/pay (\\d+) ⬡ less(?: to play (?:this character|this card|a character|an? (?:\\w+)))?/gi",
+      "regex": "/(?:For each (.*?), )?(?:you )?pay (\\d+|that amount)(?: of)? ⬡ less (?:to play|for) (?:the next )?(?:this )?(?:[\\w-]+ )?(character|item|action|song|location|card)?s?(?: you play)?(?: this turn)?/gi",
       "value_type": "raw",
       "explanation": "Reduces the ink cost to play certain cards.",
-      "justification": "A form of resource advantage.",
+      "justification": "Aligned with Frank Karsten's Resource Theory (1 Ink = 1.0 pt). This unified regex captures dynamic ('that amount'), scalable ('For each'), and type-specific reductions, applying @cardTypesMult to weight the impact based on the target card type.",
       "calculation": {
         "variables": [
           {
-            "name": "costReduction",
+            "name": "scalableText",
             "source": "regex",
             "group": 1,
+            "type": "string"
+          },
+          {
+            "name": "reductionAmount",
+            "source": "regex",
+            "group": 2,
             "type": "textOrNumber"
+          },
+          {
+            "name": "targetType",
+            "source": "regex",
+            "group": 3,
+            "type": "string"
           }
         ],
         "contextModifiers": [],
         "scores": {
           "resource_dominance": {
-            "value": "0.25 * @costReduction * @context.rds.trigger",
-            "explanation": "Cost Reduction -> "
+            "value": "(@reductionAmount === 'that amount' ? 2 : @reductionAmount) * (@scalableText !== 0.0 ? 3 : 1) * @constants.inkValue * @cardTypesMult[targetType] * @context.rds.trigger",
+            "explanation": ""
           }
         }
       },
       "createdAt": "2025-09-02T18:00:59.705Z",
-      "lastModified": "2025-09-02T18:00:59.705Z"
+      "lastModified": "2026-02-09T18:30:00.000Z"
     },
     {
       "name": "Play: From Discard",
@@ -3014,7 +3164,9 @@
         "scores": {},
         "createdAt": "2026-02-02T12:00:00.000Z",
         "lastModified": "2026-02-02T12:00:00.000Z"
-      }
+      },
+      "createdAt": "2026-02-02T22:05:22.118Z",
+      "lastModified": "2026-02-02T22:05:22.118Z"
     },
     {
       "name": "Trigger: On Quest (Other)",
@@ -3037,7 +3189,9 @@
         "scores": {},
         "createdAt": "2026-02-02T12:00:00.000Z",
         "lastModified": "2026-02-02T12:00:00.000Z"
-      }
+      },
+      "createdAt": "2026-02-02T22:05:22.118Z",
+      "lastModified": "2026-02-02T22:05:22.118Z"
     },
     {
       "name": "Condition: Second Player Advantage",
@@ -3060,7 +3214,9 @@
         "scores": {},
         "createdAt": "2026-02-02T12:00:00.000Z",
         "lastModified": "2026-02-02T12:00:00.000Z"
-      }
+      },
+      "createdAt": "2026-02-02T22:05:22.118Z",
+      "lastModified": "2026-02-02T22:05:22.118Z"
     }
   ]
 }
