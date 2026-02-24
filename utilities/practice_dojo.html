@@ -265,6 +265,23 @@
         </div>
     </div>
 
+    <!-- Inspect Deck Modal -->
+    <div id="inspect-deck-modal"
+        class="absolute inset-0 z-50 bg-black bg-opacity-90 flex items-center justify-center hidden">
+        <div class="bg-gray-800 p-6 rounded-lg shadow-2xl w-[90vw] h-[90vh] max-w-7xl flex flex-col">
+            <h2
+                class="text-2xl font-bold mb-4 border-b border-gray-700 pb-2 text-white flex justify-between items-center">
+                <span id="inspect-deck-title">Inspecting Deck</span>
+                <button onclick="App.closeInspectDeck()" class="text-gray-400 hover:text-white transition"><i
+                        class="fa-solid fa-times"></i></button>
+            </h2>
+            <div id="inspect-deck-grid"
+                class="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4 p-2 content-start">
+                <!-- Cards injected here -->
+            </div>
+        </div>
+    </div>
+
     <!-- Time Jump Flash & Toast -->
     <div id="time-flash"
         class="absolute inset-0 bg-purple-500/20 z-40 pointer-events-none opacity-0 transition-opacity duration-300">
@@ -560,7 +577,8 @@
                         <div class="relative cursor-pointer w-[100px] h-[140px] drop-zone hover:scale-105 transition"
                             onclick="App.drawCard(App.state.inactivePlayer)" ondragover="App.allowDrop(event)"
                             ondragenter="App.dragEnter(event)" ondragleave="App.dragLeave(event)"
-                            ondrop="App.drop(event, 'deck', 'top')">
+                            ondrop="App.drop(event, 'deck', 'top')"
+                            oncontextmenu="App.showDeckContextMenu(event, App.state.inactivePlayer)">
                             <div class="card card-back absolute inset-0 shadow-lg" draggable="true"
                                 ondragstart="App.dragStartTopCard(event, 'top')"></div>
                             <div class="absolute -bottom-2 -right-2 bg-black text-xs px-2 py-0.5 rounded border border-gray-600 pointer-events-none shadow"
@@ -626,7 +644,8 @@
                         <div class="relative cursor-pointer w-[100px] h-[140px] drop-zone hover:scale-105 transition"
                             onclick="App.drawCard(App.state.activePlayer)" ondragover="App.allowDrop(event)"
                             ondragenter="App.dragEnter(event)" ondragleave="App.dragLeave(event)"
-                            ondrop="App.drop(event, 'deck', 'bottom')">
+                            ondrop="App.drop(event, 'deck', 'bottom')"
+                            oncontextmenu="App.showDeckContextMenu(event, App.state.activePlayer)">
                             <div class="card card-back absolute inset-0 shadow-lg" draggable="true"
                                 ondragstart="App.dragStartTopCard(event, 'bottom')"></div>
                             <div class="absolute -bottom-2 -right-2 bg-black text-xs px-2 py-0.5 rounded border border-gray-600 pointer-events-none shadow"
@@ -1843,6 +1862,81 @@
                     menu.style.left = e.clientX + 'px';
                     menu.style.top = e.clientY + 'px';
                 }
+            },
+
+            showDeckContextMenu(e, playerIndex) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                const menu = document.getElementById('context-menu');
+                menu.innerHTML = '';
+
+                const p = this.state.players[playerIndex];
+
+                const addOption = (text, onClick) => {
+                    const item = document.createElement('div');
+                    item.className = 'context-item flex items-center gap-2';
+                    item.innerHTML = text;
+                    item.onclick = (evt) => {
+                        evt.stopPropagation();
+                        menu.style.display = 'none';
+                        onClick();
+                    };
+                    menu.appendChild(item);
+                };
+
+                addOption('<i class="fa-solid fa-magnifying-glass text-blue-400"></i> Inspect Deck', () => this.inspectDeck(playerIndex));
+                addOption('<i class="fa-solid fa-shuffle text-purple-400"></i> Shuffle Deck', () => this.shuffleDeck(playerIndex));
+
+                if (menu.children.length > 0) {
+                    menu.style.display = 'block';
+                    menu.style.left = e.clientX + 'px';
+                    menu.style.top = e.clientY + 'px';
+                }
+            },
+
+            inspectDeck(playerIndex) {
+                const p = this.state.players[playerIndex];
+                document.getElementById('inspect-deck-title').innerText = `Inspecting ${p.name}'s Deck (${p.deck.length} Cards)`;
+
+                const container = document.getElementById('inspect-deck-grid');
+                container.innerHTML = '';
+
+                // Keep track of counts for grouping identical cards (optional but helpful)
+                // For a raw view, we just render them straight from the deck array
+                p.deck.forEach(c => {
+                    const dbCard = this.cardDB[c.cardId];
+                    if (!dbCard) return;
+
+                    const el = document.createElement('div');
+                    el.className = `relative rounded-md bg-cover bg-center shadow-md border border-white/10 hover:scale-110 hover:z-10 transition-transform cursor-pointer`;
+                    el.style.width = '100%';
+                    el.style.aspectRatio = '2.5 / 3.5';
+                    el.style.backgroundImage = `url('${this.getCardImage(dbCard)}')`;
+
+                    // Show sidebar preview when hovered
+                    el.addEventListener('mouseenter', () => this.showPreview(dbCard));
+
+                    container.appendChild(el);
+                });
+
+                document.getElementById('inspect-deck-modal').classList.remove('hidden');
+            },
+
+            closeInspectDeck() {
+                document.getElementById('inspect-deck-modal').classList.add('hidden');
+            },
+
+            shuffleDeck(playerIndex) {
+                this.saveState();
+                const p = this.state.players[playerIndex];
+
+                if (p.deck.length > 1) {
+                    this.shuffle(p.deck);
+                    this.logAction(`You shuffled ${p.id === this.state.activePlayer ? 'your' : "the opponent's"} deck.`);
+                }
+
+                this.render();
             },
 
             updateLog() {
