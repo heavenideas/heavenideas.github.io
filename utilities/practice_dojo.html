@@ -517,51 +517,29 @@
 
             <!-- Top Area (Opponent) -->
             <div id="top-board"
-                class="flex-1 relative p-4 flex flex-col justify-between overflow-hidden transition-colors duration-500">
+                class="flex-1 relative p-4 flex flex-col-reverse justify-between overflow-hidden transition-colors duration-500 z-10">
                 <!-- Top Player Stats Overlay -->
+                <!-- these are absolute positioned so DOM order vs reverse doesn't break them conceptually -->
                 <div
-                    class="absolute top-4 right-4 bg-black bg-opacity-60 border border-gray-600 rounded-lg p-3 flex flex-col items-center min-w-[60px] shadow-lg">
+                    class="absolute top-4 right-4 bg-black bg-opacity-60 border border-gray-600 rounded-lg p-3 flex flex-col items-center min-w-[60px] shadow-lg z-30">
                     <span class="text-xs text-gray-400 font-bold">LORE</span>
                     <span id="top-lore" class="text-3xl font-black text-white">0</span>
                 </div>
 
-                <div class="absolute top-4 left-4 text-white/30 text-8xl font-black pointer-events-none"
+                <div class="absolute top-4 left-4 text-white/30 text-8xl font-black pointer-events-none z-0"
                     id="top-player-bg-text">P2</div>
 
-                <!-- Opponent Hand Toggle -->
-                <div class="flex justify-center mb-1 relative z-20">
-                    <button onclick="App.toggleRevealHand()"
-                        class="text-xs text-gray-300 hover:text-white transition flex items-center gap-2 bg-black/40 hover:bg-black/60 px-3 py-1 rounded-full border border-gray-600">
-                        <i id="reveal-icon" class="fa-solid fa-eye"></i> <span id="reveal-text">Reveal Hand</span>
-                    </button>
-                </div>
-
-                <!-- Opponent Hand -->
-                <div class="flex flex-col items-center mb-4 relative">
-                    <div class="flex justify-center h-[120px] drop-zone p-2 w-full max-w-4xl mx-auto z-10"
+                <!-- Opponent Field -->
+                <div class="flex-1 flex items-end justify-center pb-2 w-full shrink-0 z-20">
+                    <div id="top-field"
+                        class="flex gap-4 flex-wrap justify-center w-full max-w-4xl min-h-[150px] drop-zone p-2 rounded"
                         ondragover="App.allowDrop(event)" ondragenter="App.dragEnter(event)"
-                        ondragleave="App.dragLeave(event)" ondrop="App.drop(event, 'hand', 'top')">
-                        <div id="top-hand" class="hand-container scale-[0.85] origin-top"></div>
-                    </div>
-
-                    <!-- Top Hand Potential Badge -->
-                    <div class="flex gap-4 bg-black/60 px-4 py-1.5 rounded-full border border-gray-600/50 text-[10px] font-mono -mt-2 z-0 shadow-lg"
-                        title="Total Potential Metrics of all cards currently in Hand">
-                        <span class="text-gray-400 font-bold uppercase tracking-wider mr-2">Hand Potential</span>
-                        <span class="text-white">CTL <span id="top-hand-ctl"
-                                class="font-bold text-[11px]">0.0</span></span>
-                        <span class="text-blue-400">BCR <span id="top-hand-bcr"
-                                class="font-bold text-[11px]">0.0</span></span>
-                        <span class="text-green-400">RDS <span id="top-hand-rds"
-                                class="font-bold text-[11px]">0.0</span></span>
-                        <span class="text-yellow-400">LVI <span id="top-hand-lvi"
-                                class="font-bold text-[11px]">0.0</span></span>
-                    </div>
+                        ondragleave="App.dragLeave(event)" ondrop="App.drop(event, 'field', 'top')"></div>
                 </div>
 
                 <!-- Opponent Inkwell & Deck Row -->
                 <div
-                    class="flex justify-between items-center w-full max-w-5xl mx-auto px-4 mb-4 bg-black/20 rounded-xl p-3 border border-gray-700/50 shadow-inner">
+                    class="flex justify-between items-center w-full max-w-5xl mx-auto px-4 mb-4 bg-black/20 rounded-xl p-3 border border-gray-700/50 shadow-inner shrink-0 z-20">
                     <!-- Inkwell -->
                     <div class="flex items-center gap-4 w-1/2 drop-zone p-2 border border-transparent rounded hover:border-gray-500 transition"
                         ondragover="App.allowDrop(event)" ondragenter="App.dragEnter(event)"
@@ -594,12 +572,35 @@
                     </div>
                 </div>
 
-                <!-- Opponent Field -->
-                <div class="flex-1 flex items-end justify-center pb-2 w-full">
-                    <div id="top-field"
-                        class="flex gap-4 flex-wrap justify-center w-full max-w-4xl min-h-[150px] drop-zone p-2 rounded"
+                <!-- Opponent Hand -->
+                <div class="flex flex-col items-center mb-4 relative shrink-0 z-20">
+                    <div class="flex justify-center h-[120px] drop-zone p-2 w-full max-w-4xl mx-auto z-10"
                         ondragover="App.allowDrop(event)" ondragenter="App.dragEnter(event)"
-                        ondragleave="App.dragLeave(event)" ondrop="App.drop(event, 'field', 'top')"></div>
+                        ondragleave="App.dragLeave(event)" ondrop="App.drop(event, 'hand', 'top')">
+                        <div id="top-hand" class="hand-container scale-[0.85] origin-top"></div>
+                    </div>
+
+                    <!-- Top Hand Potential Badge -->
+                    <div class="flex gap-4 bg-black/60 px-4 py-1.5 rounded-full border border-gray-600/50 text-[10px] font-mono -mt-2 z-0 shadow-lg"
+                        title="Total Potential Metrics of all cards currently in Hand">
+                        <span class="text-gray-400 font-bold uppercase tracking-wider mr-2">Hand Potential</span>
+                        <span class="text-white">CTL <span id="top-hand-ctl"
+                                class="font-bold text-[11px]">0.0</span></span>
+                        <span class="text-blue-400">BCR <span id="top-hand-bcr"
+                                class="font-bold text-[11px]">0.0</span></span>
+                        <span class="text-green-400">RDS <span id="top-hand-rds"
+                                class="font-bold text-[11px]">0.0</span></span>
+                        <span class="text-yellow-400">LVI <span id="top-hand-lvi"
+                                class="font-bold text-[11px]">0.0</span></span>
+                    </div>
+                </div>
+
+                <!-- Opponent Hand Toggle -->
+                <div class="flex justify-center mb-1 relative z-20 shrink-0">
+                    <button onclick="App.toggleRevealHand()"
+                        class="text-xs text-gray-300 hover:text-white transition flex items-center gap-2 bg-black/40 hover:bg-black/60 px-3 py-1 rounded-full border border-gray-600">
+                        <i id="reveal-icon" class="fa-solid fa-eye"></i> <span id="reveal-text">Reveal Hand</span>
+                    </button>
                 </div>
             </div>
 
