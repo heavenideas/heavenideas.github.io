@@ -492,7 +492,8 @@
             </div>
 
             <!-- Top Area (Opponent) -->
-            <div id="top-board" class="flex-1 bg-player-top relative p-4 flex flex-col justify-between overflow-hidden">
+            <div id="top-board"
+                class="flex-1 relative p-4 flex flex-col justify-between overflow-hidden transition-colors duration-500">
                 <!-- Top Player Stats Overlay -->
                 <div
                     class="absolute top-4 right-4 bg-black bg-opacity-60 border border-gray-600 rounded-lg p-3 flex flex-col items-center min-w-[60px] shadow-lg">
@@ -579,7 +580,7 @@
 
             <!-- Bottom Area (Active Player) -->
             <div id="bottom-board"
-                class="flex-1 bg-player-bottom relative p-4 flex flex-col justify-between overflow-hidden">
+                class="flex-1 relative p-4 flex flex-col justify-between overflow-hidden transition-colors duration-500">
 
                 <!-- Bottom Player Stats Overlay -->
                 <div
@@ -1898,10 +1899,46 @@
                 const p1LviPct = totalLvi > 0 ? (p1Lvi / totalLvi) * 100 : 50;
                 const p2LviPct = 100 - p1LviPct;
 
-                document.getElementById('bcr-p1').style.width = p1BcrPct + '%';
-                document.getElementById('bcr-p2').style.width = p2BcrPct + '%';
-                document.getElementById('lvi-p1').style.width = p1LviPct + '%';
-                document.getElementById('lvi-p2').style.width = p2LviPct + '%';
+                const bcrP0 = document.getElementById('bcr-p1'); // Technically maps to Player 1 (id=0)
+                const bcrP1 = document.getElementById('bcr-p2'); // Technically maps to Player 2 (id=1)
+
+                // If P2 is active (bottom), flip the order of the flex items so P2 is on the left
+                const bcrContainer = bcrP0.parentElement;
+                if (this.state.activePlayer === 1) {
+                    bcrContainer.style.flexDirection = 'row-reverse';
+                } else {
+                    bcrContainer.style.flexDirection = 'row';
+                }
+
+                bcrP0.style.width = p1BcrPct + '%';
+                bcrP1.style.width = p2BcrPct + '%';
+
+                const lviP0 = document.getElementById('lvi-p1');
+                const lviP1 = document.getElementById('lvi-p2');
+
+                const lviContainer = lviP0.parentElement;
+                if (this.state.activePlayer === 1) {
+                    lviContainer.style.flexDirection = 'row-reverse';
+                } else {
+                    lviContainer.style.flexDirection = 'row';
+                }
+
+                lviP0.style.width = p1LviPct + '%';
+                lviP1.style.width = p2LviPct + '%';
+
+                // We also need to flip the text labels underneath
+                const bcrValP1 = document.getElementById('bcr-val-p1');
+                const bcrValP2 = document.getElementById('bcr-val-p2');
+                const lviValP1 = document.getElementById('lvi-val-p1');
+                const lviValP2 = document.getElementById('lvi-val-p2');
+
+                if (this.state.activePlayer === 1) {
+                    bcrValP1.parentElement.style.flexDirection = 'row-reverse';
+                    lviValP1.parentElement.style.flexDirection = 'row-reverse';
+                } else {
+                    bcrValP1.parentElement.style.flexDirection = 'row';
+                    lviValP1.parentElement.style.flexDirection = 'row';
+                }
 
                 // --- Calculate Hand Potential ---
                 let p0Hand = { ctl: 0, bcr: 0, rds: 0, lvi: 0 };
@@ -2028,6 +2065,19 @@
                         divider.classList.remove('opacity-80');
                     }
                 }
+
+                // Apply Player Identity Colors dynamically to Top and Bottom Boards
+                // P1 (id=0) is Orange (#a86b32), P2 (id=1) is Purple (#3f2e70)
+                const topBoard = document.getElementById('top-board');
+                const bottomBoard = document.getElementById('bottom-board');
+
+                // Remove existing
+                topBoard.classList.remove('bg-[#a86b32]', 'bg-[#3f2e70]');
+                bottomBoard.classList.remove('bg-[#a86b32]', 'bg-[#3f2e70]');
+
+                // Add based on who is playing
+                topBoard.classList.add(ip.id === 0 ? 'bg-[#a86b32]' : 'bg-[#3f2e70]');
+                bottomBoard.classList.add(ap.id === 0 ? 'bg-[#a86b32]' : 'bg-[#3f2e70]');
 
                 // --- TOP BOARD (Inactive Player) ---
                 document.getElementById('top-player-bg-text').innerText = `P${ip.id + 1}`;
