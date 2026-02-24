@@ -1190,7 +1190,7 @@
                         const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
                         return `
-                        <div class="bg-[#1a1a1e] rounded border border-gray-700 hover:border-purple-500 transition shadow-sm flex flex-col overflow-hidden mb-1" ${!isAuto && b.color ? `style="border-left: 4px solid ${b.color};"` : ''}>
+                        <div class="shrink-0 bg-[#1a1a1e] rounded border border-gray-700 hover:border-purple-500 transition shadow-sm flex flex-col overflow-hidden mb-1" ${!isAuto && b.color ? `style="border-left: 4px solid ${b.color};"` : ''}>
                            <div class="group relative p-2 cursor-pointer">
                                <div class="text-[11px] font-bold text-white mb-0.5 truncate">${b.name}</div>
                                <div class="text-[9px] text-gray-400 font-mono tracking-wider flex justify-between items-center">
