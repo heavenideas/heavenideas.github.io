@@ -257,11 +257,18 @@
         </div>
     </div>
 
+    <!-- Time Jump Flash & Toast -->
+    <div id="time-flash"
+        class="absolute inset-0 bg-purple-500/20 z-40 pointer-events-none opacity-0 transition-opacity duration-300">
+    </div>
+    <div id="toast-container"
+        class="fixed top-8 left-1/2 transform -translate-x-1/2 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
     <!-- Main App Container -->
     <div id="app" class="flex-1 flex overflow-hidden hidden">
 
         <!-- Sidebar Game Log -->
-        <div class="w-72 bg-[#1a1a1e] border-r border-gray-800 flex flex-col shadow-xl z-10">
+        <div class="w-72 bg-[#1a1a1e] border-r border-gray-800 flex flex-col shadow-xl z-20 relative overflow-hidden">
             <div class="p-4 border-b border-gray-800 flex items-center justify-between">
                 <h1 class="font-bold text-lg tracking-wide"><i class="fa-solid fa-khanda text-purple-500 mr-2"></i>
                     Practice Dojo</h1>
@@ -338,11 +345,7 @@
                 </div>
             </div>
 
-            <div class="flex-1 overflow-y-auto p-4 flex flex-col gap-2" id="game-log">
-                <!-- Log entries injected here -->
-            </div>
-
-            <!-- Card Preview Panel (Fixed Location, Cropped Top 50%) -->
+            <!-- Card Preview Panel (Moved ABOVE Game Log) -->
             <div
                 class="h-[200px] w-full border-t border-gray-800 bg-[#111] flex items-center justify-center relative overflow-hidden shrink-0">
                 <span id="sidebar-preview-placeholder"
@@ -380,7 +383,11 @@
                         id="metric-lvi" class="text-yellow-400 font-bold">0.00</span></div>
             </div>
 
-            <div class="p-4 border-t border-gray-800 bg-[#151518] flex flex-col gap-2">
+            <div class="flex-1 overflow-y-auto p-4 flex flex-col gap-2 bg-[#1a1a1e]" id="game-log">
+                <!-- Log entries injected here -->
+            </div>
+
+            <div class="p-4 border-t border-gray-800 bg-[#151518] flex flex-col gap-2 shrink-0 z-30 relative">
                 <div class="flex gap-2">
                     <button onclick="App.questWithAll()"
                         class="flex-1 py-2 bg-gray-800 hover:bg-gray-700 text-sm font-semibold rounded text-gray-300 transition"
@@ -395,15 +402,59 @@
                     </button>
                 </div>
                 <div class="flex gap-2">
+                    <button onclick="App.toggleTimelines()"
+                        class="px-3 py-2 bg-gray-800 hover:bg-gray-700 text-sm font-semibold rounded text-purple-400 transition"
+                        title="Timelines & Bookmarks">
+                        <i class="fa-solid fa-clock-rotate-left"></i>
+                    </button>
                     <button onclick="App.undo()"
-                        class="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-sm font-semibold rounded text-gray-300 transition"
+                        class="px-3 py-2 bg-gray-800 hover:bg-gray-700 text-sm font-semibold rounded text-gray-300 transition"
                         title="Undo Last Action">
                         <i class="fa-solid fa-rotate-left"></i>
                     </button>
                     <button onclick="App.endTurn()"
-                        class="flex-1 py-2 bg-white hover:bg-gray-200 text-black text-sm font-bold rounded transition">
+                        class="flex-1 py-2 bg-white hover:bg-gray-200 text-black text-sm font-bold rounded transition shadow-[0_0_15px_rgba(255,255,255,0.2)]">
                         End Turn &rarr;
                     </button>
+                </div>
+            </div>
+
+            <!-- Timelines Drawer (Overlaying Sidebar) -->
+            <div id="timeline-drawer"
+                class="absolute inset-0 bg-black/95 backdrop-blur-md z-40 flex flex-col transform -translate-x-full transition-transform duration-300 shadow-2xl">
+                <div class="p-4 border-b border-gray-800 flex justify-between items-center shrink-0">
+                    <h2 class="font-bold text-lg text-white"><i
+                            class="fa-solid fa-code-branch text-purple-500 mr-2"></i> Timelines</h2>
+                    <button onclick="App.toggleTimelines()" class="text-gray-400 hover:text-white transition"><i
+                            class="fa-solid fa-times text-lg"></i></button>
+                </div>
+
+                <!-- Create Bookmark -->
+                <div class="p-4 bg-[#151518] border-b border-gray-800 shrink-0">
+                    <input type="text" id="bookmark-name"
+                        class="w-full bg-black border border-gray-700 rounded p-2 text-xs text-white mb-2 focus:border-purple-500 outline-none transition"
+                        placeholder="Name this timeline (optional)...">
+                    <button onclick="App.saveTimeline()"
+                        class="w-full py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded transition shadow-lg">
+                        + Save Current State
+                    </button>
+                </div>
+
+                <!-- Bookmarks List -->
+                <div class="flex-1 overflow-y-auto p-3 flex flex-col gap-2" id="bookmark-list">
+                    <!-- Bookmarks injected here -->
+                </div>
+
+                <!-- Auto-Saves (Safety Net) -->
+                <div class="p-3 bg-gray-900 border-t border-gray-800 min-h-[140px] shrink-0">
+                    <div
+                        class="text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-2 ml-1 flex justify-between">
+                        <span>Auto-Saves (Time Jumps)</span>
+                        <i class="fa-solid fa-life-ring text-gray-600"></i>
+                    </div>
+                    <div id="autosave-list" class="flex flex-col gap-1.5">
+                        <!-- Auto-saves injected here -->
+                    </div>
                 </div>
             </div>
         </div>
@@ -601,6 +652,9 @@
             allCards: [],
             abilitiesConfigLoaded: false,
             mulliganSelection: [],
+
+            bookmarks: [],
+            autoSaves: [],
 
             state: {
                 turn: 1,
@@ -821,6 +875,10 @@
                 this.state.players[0].deck = this.shuffle(d1Ids.map(mapCard));
                 this.state.players[1].deck = this.shuffle(d2Ids.map(mapCard));
 
+                this.bookmarks = [];
+                this.autoSaves = [];
+                this.renderTimelines();
+
                 document.getElementById('setup-modal').classList.add('hidden');
                 document.getElementById('app').classList.remove('hidden');
 
@@ -908,6 +966,133 @@
                 this.state.opponentHandRevealed = !this.state.opponentHandRevealed;
                 this.logAction(`You ${this.state.opponentHandRevealed ? 'revealed' : 'hid'} the opponent's hand.`, true);
                 this.render();
+            },
+
+            // --- Timelines & Bookmarks System ---
+
+            toggleTimelines() {
+                document.getElementById('timeline-drawer').classList.toggle('-translate-x-full');
+                this.renderTimelines();
+            },
+
+            saveTimeline() {
+                const nameInput = document.getElementById('bookmark-name').value.trim();
+                const ap = this.state.players[this.state.activePlayer];
+                const defaultName = `Turn ${this.state.turn} - ${ap.name} Active`;
+                const finalName = nameInput || defaultName;
+
+                const p1 = this.state.players[0];
+                const p2 = this.state.players[1];
+                const stats = `Turn ${this.state.turn} | P1: ${p1.lore} Lore - P2: ${p2.lore} Lore`;
+
+                this.bookmarks.unshift({
+                    id: this.uuid(),
+                    name: finalName,
+                    stats: stats,
+                    state: JSON.stringify(this.state),
+                    timestamp: Date.now()
+                });
+
+                document.getElementById('bookmark-name').value = '';
+                this.renderTimelines();
+            },
+
+            autoSaveTimeline() {
+                const p1 = this.state.players[0];
+                const p2 = this.state.players[1];
+                const name = `Auto-Save: Left Turn ${this.state.turn}`;
+                const stats = `Turn ${this.state.turn} | P1: ${p1.lore} Lore - P2: ${p2.lore} Lore`;
+
+                this.autoSaves.unshift({
+                    id: this.uuid(),
+                    name: name,
+                    stats: stats,
+                    state: JSON.stringify(this.state),
+                    timestamp: Date.now()
+                });
+
+                if (this.autoSaves.length > 5) {
+                    this.autoSaves.pop();
+                }
+            },
+
+            restoreTimeline(id, isAuto = false) {
+                // Save safety net before jumping
+                this.autoSaveTimeline();
+
+                const list = isAuto ? this.autoSaves : this.bookmarks;
+                const bookmark = list.find(b => b.id === id);
+                if (!bookmark) return;
+
+                // Restore State
+                this.state = JSON.parse(bookmark.state);
+
+                // Close Drawer, Render, and Flash
+                this.toggleTimelines();
+                this.render();
+                this.showToast(`Timeline Restored: ${bookmark.name}`);
+                this.triggerTimeFlash();
+            },
+
+            deleteTimeline(id, isAuto = false) {
+                if (isAuto) {
+                    this.autoSaves = this.autoSaves.filter(b => b.id !== id);
+                } else {
+                    this.bookmarks = this.bookmarks.filter(b => b.id !== id);
+                }
+                this.renderTimelines();
+            },
+
+            renderTimelines() {
+                const buildHtml = (list, isAuto) => {
+                    if (list.length === 0) return `<div class="text-xs text-gray-600 text-center py-4 italic">No timelines saved.</div>`;
+                    return list.map(b => `
+                        <div class="group relative bg-[#1a1a1e] p-2 rounded border border-gray-700 hover:border-purple-500 transition cursor-pointer overflow-hidden shadow-sm">
+                           <div class="text-[11px] font-bold text-white mb-0.5 truncate">${b.name}</div>
+                           <div class="text-[9px] text-gray-400 font-mono tracking-wider">${b.stats}</div>
+                           
+                           <!-- Hover Overlay -->
+                           <div class="absolute inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                               <button onclick="App.restoreTimeline('${b.id}', ${isAuto})" class="px-4 py-1.5 bg-purple-600 hover:bg-purple-500 text-white text-[10px] font-bold rounded shadow-lg transition">Restore</button>
+                               <button onclick="App.deleteTimeline('${b.id}', ${isAuto})" class="px-3 py-1.5 bg-red-900/80 hover:bg-red-600 text-white text-[10px] font-bold rounded shadow-lg transition"><i class="fa-solid fa-trash"></i></button>
+                           </div>
+                        </div>
+                    `).join('');
+                };
+
+                document.getElementById('bookmark-list').innerHTML = buildHtml(this.bookmarks, false);
+                document.getElementById('autosave-list').innerHTML = buildHtml(this.autoSaves, true);
+            },
+
+            triggerTimeFlash() {
+                const flash = document.getElementById('time-flash');
+                flash.classList.remove('opacity-0');
+                flash.classList.add('opacity-100');
+                setTimeout(() => {
+                    flash.classList.remove('opacity-100');
+                    flash.classList.add('opacity-0');
+                }, 300);
+            },
+
+            showToast(msg) {
+                const container = document.getElementById('toast-container');
+                const toast = document.createElement('div');
+                toast.className = 'bg-purple-600/90 backdrop-blur-md border border-purple-400 text-white px-6 py-3 rounded-full shadow-[0_10px_30px_rgba(147,51,234,0.4)] font-bold text-sm transform transition-all duration-300 translate-y-[-20px] opacity-0 flex items-center gap-3';
+                toast.innerHTML = `<i class="fa-solid fa-clock-rotate-left animate-spin-reverse" style="animation-duration: 3s;"></i> ${msg}`;
+                container.appendChild(toast);
+
+                // Animate in
+                requestAnimationFrame(() => {
+                    toast.classList.remove('translate-y-[-20px]', 'opacity-0');
+                    toast.classList.add('translate-y-0', 'opacity-100');
+                });
+
+                // Animate out and remove
+                setTimeout(() => {
+                    toast.classList.remove('translate-y-0', 'opacity-100');
+                    toast.classList.add('translate-y-[-20px]', 'opacity-0');
+                    setTimeout(() => toast.remove(), 300);
+                }, 2500);
             },
 
             // --- Mulligan Handlers ---
