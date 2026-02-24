@@ -1,0 +1,1878 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InkTrade</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+
+    <!-- Compression Library -->
+    <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
+
+    <!-- Win Probability Library -->
+    <script
+        src="https://cdn.jsdelivr.net/gh/heavenideas/heavenideas.github.io@main/utilities/unified_win_probability_utilities.js"></script>
+
+    <!-- Fuzzy Search Library -->
+    <script src="https://cdn.jsdelivr.net/npm/fuse.js@6.6.2/dist/fuse.min.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #0f0c1d;
+            --card-bg: rgba(30, 30, 45, 0.7);
+            --accent-gold: #d4af37;
+            --accent-purple: #9b59b6;
+            --accent-blue: #3498db;
+            --text-main: #ffffff;
+            --text-muted: #a0a0a0;
+            --glass-border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-color);
+            background-image:
+                radial-gradient(circle at 10% 20%, rgba(155, 89, 182, 0.1) 0%, transparent 20%),
+                radial-gradient(circle at 90% 80%, rgba(52, 152, 219, 0.1) 0%, transparent 20%);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding-bottom: 80px;
+            /* Space for fixed footer */
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            padding: 2rem 1rem;
+            background: rgba(15, 12, 29, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: var(--glass-border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        h1 {
+            font-weight: 800;
+            font-size: 2rem;
+            background: linear-gradient(135deg, var(--accent-gold), #f1c40f);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+            letter-spacing: 1px;
+        }
+
+        p.subtitle {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        /* Main Container */
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+
+        /* Loading State */
+        #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg-color);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            transition: opacity 0.5s ease;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            border-top-color: var(--accent-gold);
+            animation: spin 1s ease-in-out infinite;
+            margin-bottom: 1rem;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Input Section */
+        .input-section {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 1.5rem;
+            border: var(--glass-border);
+            margin-bottom: 2rem;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        textarea {
+            width: 100%;
+            height: 200px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: var(--text-main);
+            padding: 1rem;
+            font-family: monospace;
+            font-size: 1rem;
+            resize: vertical;
+            margin-bottom: 1rem;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--accent-purple);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, var(--accent-purple), #8e44ad);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            font-size: 1rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            margin-top: 1rem;
+        }
+
+        /* Card List */
+        .card-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1rem;
+        }
+
+        .card-item {
+            background: var(--card-bg);
+            border-radius: 12px;
+            overflow: hidden;
+            border: var(--glass-border);
+            display: flex;
+            flex-direction: row;
+            height: 160px;
+            position: relative;
+        }
+
+        .card-img-wrapper {
+            width: 110px;
+            height: 100%;
+            flex-shrink: 0;
+            background: #000;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .card-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .card-details {
+            padding: 1rem;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .card-name {
+            font-weight: 600;
+            font-size: 1rem;
+            margin-bottom: 0.25rem;
+            line-height: 1.2;
+        }
+
+        .card-meta {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .rarity-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .rarity-Common {
+            background: #a0a0a0;
+        }
+
+        .rarity-Uncommon {
+            background: #fff;
+        }
+
+        .rarity-Rare {
+            background: #cd7f32;
+        }
+
+        .rarity-Super {
+            background: #b33dc6;
+        }
+
+        /* Super Rare */
+        .rarity-Legendary {
+            background: #ffa500;
+        }
+
+        .rarity-Enchanted {
+            background: linear-gradient(45deg, #ff00cc, #3333ff);
+        }
+
+        .price-tag {
+            background: rgba(46, 204, 113, 0.2);
+            color: #2ecc71;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .power-rating {
+            font-size: 0.7rem;
+            color: var(--accent-blue);
+            margin-top: 2px;
+        }
+
+        .trade-controls {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 0.5rem;
+            border-radius: 8px;
+            margin-top: auto;
+        }
+
+        .wanted-badge {
+            font-size: 0.8rem;
+            color: var(--accent-gold);
+            font-weight: 600;
+        }
+
+        .counter {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .counter-btn {
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            border: none;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+        }
+
+        .counter-val {
+            font-weight: 600;
+            min-width: 20px;
+            text-align: center;
+        }
+
+        .active-have {
+            border: 1px solid var(--accent-gold);
+            box-shadow: 0 0 10px rgba(212, 175, 55, 0.2);
+        }
+
+        /* Floating Action Bar */
+        .fab-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(15, 12, 29, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem;
+            border-top: var(--glass-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 90;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+        }
+
+        .fab-bar.visible {
+            transform: translateY(0);
+        }
+
+        .fab-info {
+            font-size: 0.9rem;
+        }
+
+        .fab-total {
+            font-weight: 800;
+            color: var(--accent-gold);
+            font-size: 1.1rem;
+        }
+
+        .fab-disclaimer {
+            font-size: 0.6rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+            line-height: 1.2;
+            max-width: 200px;
+        }
+
+        .fab-btn {
+            background: var(--accent-gold);
+            color: #000;
+            border: none;
+            padding: 0.5rem 1.5rem;
+            border-radius: 20px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--accent-purple);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 25px;
+            font-weight: 600;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+            z-index: 3000;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        }
+
+        .toast.show {
+            opacity: 1;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--text-muted);
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .card-list {
+                grid-template-columns: 1fr;
+            }
+
+            .card-item {
+                height: 140px;
+            }
+
+            .card-img-wrapper {
+                width: 100px;
+            }
+        }
+
+        /* Variant Modal Styles */
+        .variant-item {
+            display: flex;
+            gap: 1rem;
+            padding: 0.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .variant-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Fuzzy Search Dropdown */
+        .search-container {
+            position: relative;
+            margin-bottom: 1rem;
+        }
+
+        #card-search {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: var(--text-main);
+            padding: 1rem;
+            font-family: monospace;
+            font-size: 1rem;
+            resize: vertical;
+        }
+
+        #card-search:focus {
+            outline: none;
+            border-color: var(--accent-purple);
+        }
+
+        #search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--card-bg);
+            border: var(--glass-border);
+            border-radius: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .search-result-item {
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            transition: background 0.2s;
+        }
+
+        .search-result-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
+
+        /* Trade view search styles - same as main search */
+        #trade-card-search {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: var(--text-main);
+            padding: 1rem;
+            font-family: monospace;
+            font-size: 1rem;
+            resize: vertical;
+        }
+
+        #trade-card-search:focus {
+            outline: none;
+            border-color: var(--accent-purple);
+        }
+
+        #trade-search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--card-bg);
+            border: var(--glass-border);
+            border-radius: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="loading-overlay">
+        <div class="spinner"></div>
+        <p>Summoning Card Data...</p>
+        <p id="loading-status" style="font-size: 0.8rem; color: #888; margin-top: 0.5rem;">Connecting to Lore...</p>
+    </div>
+
+    <div id="price-loading-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); z-index: 1500; justify-content: center; align-items: center; flex-direction: column;">
+        <div class="spinner"></div>
+        <p>Fetching Market Prices...</p>
+        <p id="price-loading-status" style="font-size: 0.8rem; color: #888; margin-top: 0.5rem;">Contacting CardTrader API...</p>
+    </div>
+
+    <div class="toast" id="toast">Copied to Clipboard!</div>
+
+    <header>
+        <div style="position: relative;">
+            <img src="../img/inktrade.png" alt="InkTrade Logo" style="position: absolute; left: 50%; transform: translateX(-50%) translateY(-50%); margin-left: -120px; height: 80px; border-radius: 8px; top: 50%;">
+            <h1>InkTrade</h1>
+            <p class="subtitle"><strong>Paste - Share - Trade</strong></p>
+            <select id="currency-select" style="position: absolute; top: 10px; right: 110px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 5px; border-radius: 4px;">
+                <option value="£">£</option>
+                <option value="€">€</option>
+                <option value="$">$</option>
+            </select>
+            <select id="language-select" style="position: absolute; top: 10px; right: 20px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 5px; border-radius: 4px;">
+                <option value="en">English</option>
+                <option value="es">Español</option>
+            </select>
+        </div>
+    </header>
+
+    <div class="container">
+
+        <!-- Creator View -->
+        <div id="creator-view" class="input-section" style="display: none;">
+            <h2 style="margin-bottom: 1rem;">Create Wanted List</h2>
+            <p style="margin-bottom: 1rem; font-size: 0.9rem; color: #ccc;">Add a card or paste your full tradelist below. Send a message with the generated link to your trading partner.</p>
+            <div class="search-container">
+                <input type="text" id="card-search" placeholder="Search card name to add to list...">
+                <div id="search-results"></div>
+            </div>
+            <textarea id="decklist-input"
+                placeholder="Paste card list&#10;4 Mickey Mouse - Brave Little Tailor&#10;3 Elsa - Snow Queen&#10;..."></textarea>
+            <div style="margin-bottom: 1rem;">
+                <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; color: #ccc;">
+                    <input type="checkbox" id="skip-prices" unchecked>
+                    Skip CardTrader Prices Lookup (Faster)
+                </label>
+            </div>
+            <button class="btn" onclick="processDecklist()">Generate Trade Link</button>
+        </div>
+
+        <!-- Trade View -->
+        <div id="trade-view" style="display: none;">
+            <div class="search-container" id="trade-search-container" style="display: none;">
+                <input type="text" id="trade-card-search" placeholder="Add more cards to your wanted list...">
+                <div id="trade-search-results"></div>
+            </div>
+            <div id="cards-container" class="card-list">
+                <!-- Cards will be injected here -->
+            </div>
+            <div class="empty-state" id="empty-msg" style="display: none;">
+                No cards found. Check the link or create a new list.
+            </div>
+            <button class="btn btn-secondary" onclick="fetchPricesNow()" style="margin-top: 1rem;">Fetch CardTrader Prices</button>
+            <button class="btn btn-secondary" onclick="removePrices()" style="margin-top: 1rem;">Remove Prices</button>
+            <button class="btn btn-secondary" onclick="confirmReset()" style="margin-top: 1rem;">Create New List</button>
+        </div>
+
+    </div>
+
+    <!-- Floating Action Bar for Responder -->
+    <div class="fab-bar" id="fab-bar">
+        <div class="fab-info">
+            <div>Your Offer:</div>
+            <div class="fab-total" id="offer-total">£0.00</div>
+            <small class="fab-disclaimer">Any Prices used in this app are representative and can be incorrect or incomplete. Please check any prices or provide new prices for any card</small>
+        </div>
+        <button class="fab-btn" onclick="generateResponse()">Review Offer</button>
+    </div>
+
+    <!-- Variant Selection Modal -->
+    <div id="variant-modal"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; justify-content: center; align-items: center; padding: 1rem;">
+        <div
+            style="background: var(--bg-color); border: var(--glass-border); border-radius: 16px; width: 100%; max-width: 500px; max-height: 80vh; display: flex; flex-direction: column;">
+            <div
+                style="padding: 1rem; border-bottom: var(--glass-border); display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0;">Select Version</h3>
+                <button onclick="closeModal()"
+                    style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer;">&times;</button>
+            </div>
+            <div id="variant-list"
+                style="overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem;">
+                <!-- Variants injected here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Review Offer Modal -->
+    <div id="review-modal"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; justify-content: center; align-items: center; padding: 1rem;">
+        <div
+            style="background: var(--bg-color); border: var(--glass-border); border-radius: 16px; width: 100%; max-width: 500px; max-height: 80vh; display: flex; flex-direction: column;">
+            <div
+                style="padding: 1rem; border-bottom: var(--glass-border); display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0;">Review Offer</h3>
+                <button onclick="closeReviewModal()"
+                    style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer;">&times;</button>
+            </div>
+            <div style="padding: 1rem; flex: 1; display: flex; flex-direction: column;">
+                <pre id="offer-text" style="background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 8px; color: white; white-space: pre-wrap; flex: 1; overflow-y: auto; margin-bottom: 1rem;"></pre>
+                <button class="btn" onclick="copyOffer()">Copy Offer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Share Trade Link Modal -->
+    <div id="share-modal"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; justify-content: center; align-items: center; padding: 1rem;">
+        <div
+            style="background: var(--bg-color); border: var(--glass-border); border-radius: 16px; width: 100%; max-width: 500px; max-height: 80vh; display: flex; flex-direction: column;">
+            <div
+                style="padding: 1rem; border-bottom: var(--glass-border); display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0;">Share Trade Link</h3>
+                <button onclick="closeShareModal()"
+                    style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer;">&times;</button>
+            </div>
+            <div style="padding: 1rem; flex: 1; display: flex; flex-direction: column;">
+                <pre id="share-text" style="background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 8px; color: white; white-space: pre-wrap; flex: 1; overflow-y: auto; margin-bottom: 1rem;"></pre>
+                <button class="btn" onclick="copyAndProceed()">Copy To Clipboard to Share</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Disclaimer Footer -->
+    <footer style="margin-top: 3rem; margin-bottom: 2rem;">
+        <div style="max-width: 800px; margin: 0 auto; background: rgba(30, 30, 45, 0.5); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 1.5rem; backdrop-filter: blur(10px);">
+            <div style="text-align: center; color: var(--text-muted); font-size: 0.8rem; line-height: 1.5;">
+                <p style="margin-bottom: 1rem; font-weight: 500;">
+                    ⚠️ <strong>Legal Disclaimer</strong>
+                </p>
+                <p style="margin-bottom: 0.75rem;">
+                    This is an unofficial, fan‑made project and is not affiliated with, endorsed, sponsored, or specifically approved by Disney, Ravensburger, or any other rights holder.
+                </p>
+                <p style="margin-bottom: 0.75rem;">
+                    Disney Lorcana and all related characters, names, logos, artwork, and other elements are trademarks and/or copyrights of their respective owners. All rights are reserved by those owners.
+                </p>
+                <p style="margin-bottom: 0.75rem;">
+                    This website is provided for non‑commercial, fan‑community purposes only. No profit is made from this project, and no claim is made to any official intellectual property.
+                </p>
+                <p>
+                    If you are a rights holder and have concerns about any content on this site, please contact us and the material will be reviewed and removed or adjusted as appropriate.
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // --- State ---
+        let allCards = [];
+        let cardIndex = {}; // simpleName -> cardObject
+        let wantedList = []; // Array of { card, quantity }
+        let offerState = {}; // cardId -> quantityHave
+        let customPrices = {}; // cardId -> userDefinedPrice
+        let activeVariantId = null; // For the modal
+        let isResponderMode = false;
+        let skipPricesGlobal = false; // Whether to skip CardTrader prices for this trade
+        let priceCache = new Map(); // cardId -> price string, to avoid refetching
+        let fuse; // Fuzzy search instance
+        let pendingList = null; // For share modal
+        let pendingSkipPrices = false;
+        let pendingUrl = '';
+        let pendingShareText = '';
+        let selectedCurrency = '£'; // Selected currency symbol
+
+        // --- Constants ---
+        const ALL_CARDS_URL = 'https://cdn.jsdelivr.net/gh/heavenideas/similcana@main/database/allCards.json';
+        const API_TOKEN = 'eyJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJjYXJkdHJhZGVyLXByb2R1Y3Rpb24iLCJzdWIiOiJhcHA6MTgzNzMiLCJhdWQiOiJhcHA6MTgzNzMiLCJleHAiOjQ5MTk5MTQwNjMsImp0aSI6IjNmYmViMDE5LTcyYmUtNDVjNC05OGM4LTQxYjliN2MwNGRlNCIsImlhdCI6MTc2NDI0MDQ2MywibmFtZSI6IlRyaWJvY3JhZnRzIEFwcCAyMDI1MTEyNzEwNDc0MyJ9.FhELwnCvgsTGx-RrT24ITgJvZhEXQMWD-OrtXppaeQhH1PlFxz8hg8zqyqCf1aow3DONHMdmXgUHJrU94eA1dyVrUSwXCyjJcD-AsmzCV5t2UZ1Ai_bbeTOHeEPSI6v6lcsJ9i-zA1XCA3rmAkz5bR5d3HSkO5i-PBT40YyjE3EQXtd1wu_pFYfT-reJa0sNLh3HaUtDzOQ0HTHVFzYtFKWO-6jvKeL-N3pslfvD6pDHHKHk1vSoIw4IJeb4zoHVWBJxhhujP8Z185_TS-UjSy1SJi_CzhOnybj9cX7m2Ar78ch73xyxhuirA_Ujyks3qNFZq7LgcE5ek1kGPu7w0g'; // CardTrader API token
+        const BASE_URL = 'https://api.cardtrader.com/api/v2/marketplace/products';
+
+        // --- Translations ---
+        const translations = {
+            en: {
+                loadingSummoning: "Summoning Card Data...",
+                loadingConnecting: "Connecting to Lore...",
+                loadingFetchingCards: "Fetching All Cards Database...",
+                loadingIndexing: "Indexing Cards...",
+                loadingWinProb: "Loading Win Probability Matrix...",
+                errorLoadingData: "Error loading data. Please refresh.",
+                failedLoadCardData: "Failed to load card data.",
+                createWantedList: "Create Wanted List",
+                creatorInstructions: "Add a card or paste your full tradelist below. Send a message with the generated link to your trading partner.",
+                searchPlaceholder: "Search card name to add to list...",
+                decklistPlaceholder: "Paste card list\n4 Mickey Mouse - Brave Little Tailor\n3 Elsa - Snow Queen\n...",
+                skipPricesLabel: "Skip CardTrader Prices Lookup (Faster)",
+                generateTradeLink: "Generate Trade Link",
+                addMoreCards: "Add more cards to your wanted list...",
+                noCardsFound: "No cards found. Check the link or create a new list.",
+                noValidCards: "No valid cards found. Please check the format.",
+                fetchPrices: "Fetch CardTrader Prices",
+                removePrices: "Remove Prices",
+                createNewList: "Create New List",
+                yourOffer: "Your Offer:",
+                reviewOffer: "Review Offer",
+                selectVersion: "Select Version",
+                shareTradeLink: "Share Trade Link",
+                copyToClipboard: "Copy To Clipboard to Share",
+                copiedClipboard: "Copied to clipboard! Share it on WhatsApp.",
+                copyOffer: "Copy Offer",
+                offerCopied: "Offer copied to clipboard!",
+                selectCardsFirst: "Select cards first!",
+                cardAdded: "Card added to list!",
+                cardAlreadyInList: "Card already in wanted list!",
+                changeVersion: "Change Version",
+                wanted: "Wanted:",
+                priceLabel: "Price",
+                ctButton: "CT",
+                tradeOffer: "🤝 Trade Offer:",
+                totalValue: "💰 Total Value: ",
+                confirmReset: "Are you sure you want to create a new list? It will erase the current list. If you just want to add more cards, cancel this and you can add them to the existing ones at the top of this page.",
+                fetchingMarketPrices: "Fetching Market Prices...",
+                contactingAPI: "Contacting CardTrader API...",
+                fetchingPricesForCards: "Fetching prices for {count} cards...",
+                fetchingPricesForVariants: "Fetching prices for {count} variants...",
+                legalDisclaimer: "Legal Disclaimer",
+                subtitle: "Paste - Share - Trade",
+                shareMessage: "I'm looking for a trade! \nDo you have any of these?:\n\n{input}\n \nUse this Trade Link to let me know which cards you have:\n\n{url}",
+                currency: "£",
+                priceDisclaimer: "Any Prices used in this app are representative and can be incorrect or incomplete. Please check any prices or provide new prices for any card",
+                languageEnglish: "English",
+                languageSpanish: "Español"
+            },
+            es: {
+                loadingSummoning: "Invocando Datos de Cartas...",
+                loadingConnecting: "Conectando a Lore...",
+                loadingFetchingCards: "Obteniendo Base de Datos de Todas las Cartas...",
+                loadingIndexing: "Indexando Cartas...",
+                loadingWinProb: "Cargando Matriz de Probabilidad de Victoria...",
+                errorLoadingData: "Error al cargar datos. Por favor, actualiza.",
+                failedLoadCardData: "Error al cargar datos de cartas.",
+                createWantedList: "Crear Lista Deseada",
+                creatorInstructions: "Agrega una carta o pega tu lista completa de cartas abajo. Envía un mensaje con el enlace generado a tu compañero de intercambio.",
+                searchPlaceholder: "Buscar nombre de carta para agregar a la lista...",
+                decklistPlaceholder: "Pegar lista de cartas\n4 Mickey Mouse - Brave Little Tailor\n3 Elsa - Snow Queen\n...",
+                skipPricesLabel: "Omitir Búsqueda de Precios de CardTrader (Más Rápido)",
+                generateTradeLink: "Generar Enlace de Intercambio",
+                addMoreCards: "Agregar más cartas a tu lista deseada...",
+                noCardsFound: "No se encontraron cartas. Verifica el enlace o crea una nueva lista.",
+                noValidCards: "No se encontraron cartas válidas. Por favor, verifica el formato.",
+                fetchPrices: "Obtener Precios de CardTrader",
+                removePrices: "Eliminar Precios",
+                createNewList: "Crear Nueva Lista",
+                yourOffer: "Tu Oferta:",
+                reviewOffer: "Revisar Oferta",
+                selectVersion: "Seleccionar Versión",
+                shareTradeLink: "Compartir Enlace de Intercambio",
+                copyToClipboard: "Copiar al Portapapeles para Compartir",
+                copiedClipboard: "¡Copiado al portapapeles! Comparte en WhatsApp.",
+                copyOffer: "Copiar Oferta",
+                offerCopied: "¡Oferta copiada al portapapeles!",
+                selectCardsFirst: "¡Selecciona cartas primero!",
+                cardAdded: "¡Carta agregada a la lista!",
+                cardAlreadyInList: "¡La carta ya está en la lista deseada!",
+                changeVersion: "Cambiar Versión",
+                wanted: "Cantidad Deseada:",
+                priceLabel: "Precio",
+                ctButton: "CT",
+                tradeOffer: "🤝 Oferta de Intercambio:",
+                totalValue: "💰 Valor Total: ",
+                confirmReset: "¿Estás seguro de que quieres crear una nueva lista? Borrará la lista actual. Si solo quieres agregar más cartas, cancela esto y puedes agregarlas a las existentes en la parte superior de esta página.",
+                fetchingMarketPrices: "Obteniendo Precios de Mercado...",
+                contactingAPI: "Contactando API de CardTrader...",
+                fetchingPricesForCards: "Obteniendo precios para {count} cartas...",
+                fetchingPricesForVariants: "Obteniendo precios para {count} variantes...",
+                legalDisclaimer: "Descargo de Responsabilidad Legal",
+                subtitle: "Pega - Comparte - Cambia",
+                shareMessage: "¡Estoy buscando un intercambio! \n¿Tienes alguna de estas?:\n\n{input}\n \nUsa este Enlace de Intercambio para decirme qué cartas tienes:\n\n{url}",
+                currency: "€",
+                priceDisclaimer: "Cualquier precio utilizado en esta aplicación es representativo y puede ser incorrecto o incompleto. Por favor, verifica cualquier precio o proporciona nuevos precios para cualquier carta",
+                languageEnglish: "English",
+                languageSpanish: "Español"
+            }
+        };
+
+        // --- Language Management ---
+        let currentLanguage = 'en';
+
+        function t(key, params = {}) {
+            let text = translations[currentLanguage][key] || translations['en'][key] || key;
+            for (const [param, value] of Object.entries(params)) {
+                text = text.replace(new RegExp(`\\{${param}\\}`, 'g'), value);
+            }
+            return text;
+        }
+
+        function setLanguage(lang) {
+            currentLanguage = lang;
+            localStorage.setItem('language', lang);
+            document.documentElement.lang = lang;
+            updateUIText();
+        }
+
+        function setCurrency(currency) {
+            selectedCurrency = currency;
+            localStorage.setItem('currency', currency);
+            updateUIText();
+            calculateTotal(); // Update the total display
+        }
+
+        function detectLanguage() {
+            const stored = localStorage.getItem('language');
+            if (stored && translations[stored]) {
+                return stored;
+            }
+            const browserLang = navigator.language.toLowerCase();
+            return browserLang.startsWith('es') ? 'es' : 'en';
+        }
+
+        function detectCurrency() {
+            const stored = localStorage.getItem('currency');
+            if (stored) {
+                return stored;
+            }
+            // Default based on language
+            const lang = detectLanguage();
+            return lang === 'es' ? '€' : '£';
+        }
+
+        function updateUIText() {
+            // Update loading overlay
+            const loadingOverlay = document.getElementById('loading-overlay');
+            if (loadingOverlay) {
+                const loadingP = loadingOverlay.querySelector('p:first-child');
+                if (loadingP) loadingP.textContent = t('loadingSummoning');
+                const loadingStatus = document.getElementById('loading-status');
+                if (loadingStatus) loadingStatus.textContent = t('loadingConnecting');
+            }
+
+            // Update price loading overlay
+            const priceOverlay = document.getElementById('price-loading-overlay');
+            if (priceOverlay) {
+                const priceP = priceOverlay.querySelector('p:first-child');
+                if (priceP) priceP.textContent = t('fetchingMarketPrices');
+                const priceStatus = document.getElementById('price-loading-status');
+                if (priceStatus) priceStatus.textContent = t('contactingAPI');
+            }
+
+            // Update header
+            const subtitle = document.querySelector('p.subtitle');
+            if (subtitle) subtitle.textContent = t('subtitle');
+
+            // Update creator view
+            const creatorView = document.getElementById('creator-view');
+            if (creatorView && creatorView.style.display !== 'none') {
+                const h2 = creatorView.querySelector('h2');
+                if (h2) h2.textContent = t('createWantedList');
+                const p = creatorView.querySelector('p');
+                if (p) p.textContent = t('creatorInstructions');
+                const cardSearch = document.getElementById('card-search');
+                if (cardSearch) cardSearch.placeholder = t('searchPlaceholder');
+                const decklistInput = document.getElementById('decklist-input');
+                if (decklistInput) decklistInput.placeholder = t('decklistPlaceholder');
+                const skipLabel = document.querySelector('label[for="skip-prices"]');
+                if (skipLabel) skipLabel.textContent = t('skipPricesLabel');
+                const genBtn = document.querySelector('#creator-view button.btn');
+                if (genBtn) genBtn.textContent = t('generateTradeLink');
+            }
+
+            // Update trade view
+            const tradeView = document.getElementById('trade-view');
+            if (tradeView && tradeView.style.display !== 'none') {
+                const tradeSearch = document.getElementById('trade-card-search');
+                if (tradeSearch) tradeSearch.placeholder = t('addMoreCards');
+                const emptyMsg = document.getElementById('empty-msg');
+                if (emptyMsg) emptyMsg.textContent = t('noCardsFound');
+                const buttons = tradeView.querySelectorAll('button.btn-secondary');
+                if (buttons.length >= 3) {
+                    buttons[0].textContent = t('fetchPrices');
+                    buttons[1].textContent = t('removePrices');
+                    buttons[2].textContent = t('createNewList');
+                }
+            }
+
+            // Update FAB
+            const fabBar = document.getElementById('fab-bar');
+            if (fabBar) {
+                const fabOfferDiv = fabBar.querySelector('.fab-info div:first-child');
+                if (fabOfferDiv) fabOfferDiv.textContent = t('yourOffer');
+                const fabDisclaimer = fabBar.querySelector('.fab-disclaimer');
+                if (fabDisclaimer) fabDisclaimer.textContent = t('priceDisclaimer');
+                const fabBtn = fabBar.querySelector('button');
+                if (fabBtn) fabBtn.textContent = t('reviewOffer');
+            }
+
+            // Update modals
+            const variantModal = document.getElementById('variant-modal');
+            if (variantModal) {
+                const h3 = variantModal.querySelector('h3');
+                if (h3) h3.textContent = t('selectVersion');
+            }
+
+            const reviewModal = document.getElementById('review-modal');
+            if (reviewModal) {
+                const h3 = reviewModal.querySelector('h3');
+                if (h3) h3.textContent = t('reviewOffer');
+            }
+
+            const shareModal = document.getElementById('share-modal');
+            if (shareModal) {
+                const h3 = shareModal.querySelector('h3');
+                if (h3) h3.textContent = t('shareTradeLink');
+            }
+
+            // Update footer
+            const disclaimer = document.querySelector('footer p strong');
+            if (disclaimer) disclaimer.textContent = t('legalDisclaimer');
+
+            // Update existing card items
+            document.querySelectorAll('.card-item').forEach(cardEl => {
+                const changeVersionDiv = cardEl.querySelector('.card-img-wrapper div');
+                if (changeVersionDiv) changeVersionDiv.textContent = t('changeVersion');
+
+                const priceLabel = cardEl.querySelector('.price-edit-container label');
+                if (priceLabel) priceLabel.textContent = t('priceLabel') + ' ' + selectedCurrency;
+
+                const ctButton = cardEl.querySelector('.price-edit-container button');
+                if (ctButton) ctButton.textContent = t('ctButton');
+
+                const wantedBadge = cardEl.querySelector('.wanted-badge');
+                if (wantedBadge) {
+                    const qty = cardEl.dataset.wanted;
+                    wantedBadge.textContent = `${t('wanted')} ${qty}`;
+                }
+            });
+
+            // Update language switcher
+            const langSelect = document.getElementById('language-select');
+            if (langSelect) {
+                const enOpt = langSelect.querySelector('option[value="en"]');
+                if (enOpt) enOpt.textContent = t('languageEnglish');
+                const esOpt = langSelect.querySelector('option[value="es"]');
+                if (esOpt) esOpt.textContent = t('languageSpanish');
+            }
+
+            // Update currency switcher
+            const currencySelect = document.getElementById('currency-select');
+            if (currencySelect) {
+                currencySelect.value = selectedCurrency;
+            }
+        }
+
+        // Helper function to delay execution (prevents 429 Rate Limit errors)
+        const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+        async function fetchPrices(cardList) {
+            const results = [];
+            const chunkSize = 5; // Process 2 cards concurrently to reduce rate limit errors
+
+            for (let i = 0; i < cardList.length; i += chunkSize) {
+                const chunk = cardList.slice(i, i + chunkSize);
+
+                const promises = chunk.map(async (card) => {
+                    const ctId = card.externalLinks?.cardTraderId;
+
+                    if (!ctId) {
+                        console.log(`Skipping card ${card.fullName || card.id}: No cardTraderId`);
+                        return;
+                    }
+
+                    try {
+                        // Construct URL with blueprint_id
+                        const url = `${BASE_URL}?blueprint_id=${ctId}`;
+
+                        const response = await fetch(url, {
+                            headers: {
+                                'Authorization': `Bearer ${API_TOKEN}`,
+                                'Content-Type': 'application/json'
+                            }
+                        });
+
+                        if (!response.ok) {
+                            console.error(`Error fetching ${ctId}: ${response.statusText}`);
+                            return;
+                        }
+
+                        const data = await response.json();
+
+                        // Parse response: API keys results by the string version of the ID
+                        const lookupId = String(ctId);
+
+                        if (data[lookupId] && data[lookupId].length > 0) {
+                            // Grab the first listing (usually sorted by price low-to-high)
+                            const cheapestListing = data[lookupId][0];
+                            const priceCents = cheapestListing.price.cents;
+                            const formattedPrice = (priceCents / 100).toFixed(2);
+
+                            console.log(`Card ${ctId} (${card.fullName || card.id}): ${formattedPrice} ${cheapestListing.price.currency}`);
+
+                            // Add price back to card object or results array
+                            results.push({
+                                ...card,
+                                marketPrice: formattedPrice,
+                                currency: cheapestListing.price.currency
+                            });
+                        } else {
+                            console.log(`No listings found for ${ctId}`);
+                        }
+
+                    } catch (error) {
+                        console.error(`Failed to fetch ${ctId}`, error);
+                    }
+                });
+
+                await Promise.all(promises);
+
+                // Wait between chunks to avoid rate limits
+                if (i + chunkSize < cardList.length) {
+                    await sleep(500);
+                }
+            }
+
+            return results;
+        }
+
+        // --- Initialization ---
+        window.addEventListener('DOMContentLoaded', async () => {
+            await loadData();
+            await checkUrlState();
+
+            // Initialize language
+            const detectedLang = detectLanguage();
+            setLanguage(detectedLang);
+
+            // Initialize currency
+            selectedCurrency = detectCurrency();
+
+            // Add language switcher event listener
+            const langSelect = document.getElementById('language-select');
+            langSelect.value = currentLanguage;
+            langSelect.addEventListener('change', (e) => {
+                setLanguage(e.target.value);
+            });
+
+            // Add currency switcher event listener
+            const currencySelect = document.getElementById('currency-select');
+            currencySelect.value = selectedCurrency;
+            currencySelect.addEventListener('change', (e) => {
+                setCurrency(e.target.value);
+            });
+        });
+
+        async function loadData() {
+            const statusEl = document.getElementById('loading-status');
+            try {
+                // Load Cards
+                statusEl.textContent = t('loadingFetchingCards');
+                const response = await fetch(ALL_CARDS_URL);
+                const data = await response.json();
+                allCards = data.cards;
+
+                // Build Index
+                statusEl.textContent = t('loadingIndexing');
+                allCards.forEach(card => {
+                    if (card.simpleName) {
+                        cardIndex[card.simpleName] = card;
+                    }
+                    // Also index by fullName just in case, normalized
+                    const normFull = normalizeName(card.fullName);
+                    if (!cardIndex[normFull]) {
+                        cardIndex[normFull] = card;
+                    }
+                });
+
+                // Initialize fuzzy search
+                fuse = new Fuse(allCards, {
+                    keys: ['fullName', 'simpleName'],
+                    threshold: 0.4,
+                    includeScore: true
+                });
+
+                // Load Win Probability Config
+                statusEl.textContent = t('loadingWinProb');
+                try {
+                    if (window.UnifiedWinProbabiliyCalculation) {
+                        await window.UnifiedWinProbabiliyCalculation.loadAbilitiesConfig();
+                    }
+                } catch (e) {
+                    console.warn("Win Prob load failed", e);
+                }
+
+                document.getElementById('loading-overlay').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('loading-overlay').style.display = 'none';
+                    initFuzzySearch();
+                }, 500);
+
+            } catch (err) {
+                statusEl.textContent = t('errorLoadingData');
+                console.error(err);
+                alert(t('failedLoadCardData'));
+            }
+        }
+
+        async function checkUrlState() {
+            const params = new URLSearchParams(window.location.search);
+            const listParam = params.get('list');
+
+            if (listParam) {
+                try {
+                    const dataStr = LZString.decompressFromEncodedURIComponent(listParam);
+                    const parts = dataStr.split('|');
+                    let list, skipPrices = false;
+                    if (parts.length === 2) {
+                        // New compact format: listStr|skipPrices
+                        const listStr = parts[0];
+                        skipPrices = parts[1] === 'true';
+                        list = listStr.split(',').map(s => {
+                            const [id, qty] = s.split('-');
+                            return { id: parseInt(id), qty: parseInt(qty) };
+                        });
+                    } else {
+                        // Fallback: try old JSON format
+                        const parsed = JSON.parse(dataStr);
+                        if (Array.isArray(parsed)) {
+                            // Old format: just the list array
+                            list = parsed;
+                        } else {
+                            // Old new format: {list, skipPrices}
+                            list = parsed.list;
+                            skipPrices = parsed.skipPrices || false;
+                        }
+                    }
+                    await renderTradeView(list, skipPrices);
+                    isResponderMode = true;
+                } catch (e) {
+                    console.error("Failed to parse list", e);
+                    showCreatorView();
+                }
+            } else {
+                showCreatorView();
+            }
+        }
+
+        function showCreatorView() {
+            document.getElementById('creator-view').style.display = 'block';
+            document.getElementById('trade-view').style.display = 'none';
+            document.getElementById('fab-bar').classList.remove('visible');
+        }
+
+        // --- Core Logic ---
+
+        function normalizeName(name) {
+            // Replace special chars with space, then collapse multiple spaces
+            return name.toLowerCase()
+                .replace(/[^a-z0-9]/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+        }
+
+        function getPseudoPrice(card) {
+            // Generate a consistent "fake" price based on card ID
+            // In a real app, this would query an API
+            let hash = 0;
+            const str = card.fullName + card.rarity;
+            for (let i = 0; i < str.length; i++) {
+                hash = ((hash << 5) - hash) + str.charCodeAt(i);
+                hash |= 0;
+            }
+            const seed = Math.abs(hash) % 1000;
+
+            // Base price logic
+            let base = 0.5;
+            if (card.rarity === 'Rare') base = 2;
+            if (card.rarity === 'Super Rare') base = 5;
+            if (card.rarity === 'Legendary') base = 15;
+            if (card.rarity === 'Enchanted') base = 150;
+
+            // Add variance
+            const variance = (seed / 1000) * base;
+            return (base + variance).toFixed(2);
+        }
+
+        function getPowerRating(card) {
+            if (!window.UnifiedWinProbabiliyCalculation) return null;
+            try {
+                // Construct the card object expected by the library
+                // The library expects 'fullTextSections', 'cost', etc.
+                // allCards.json has 'fullTextSections' usually.
+                if (!card.fullTextSections) return null;
+
+                const metrics = window.UnifiedWinProbabiliyCalculation.calculateCardMetrics(card);
+                // Combine metrics into a single "Power Score" for display
+                // RDS + BCR + LVI
+                const total = (metrics.rds || 0) + (metrics.bcr || 0) + (metrics.lvi || 0);
+                return total.toFixed(1);
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function processDecklist() {
+            const input = document.getElementById('decklist-input').value;
+            const lines = input.split('\n');
+            const list = [];
+
+            const rarityOrder = ['Common', 'Uncommon', 'Rare', 'Super Rare', 'Legendary', 'Epic', 'Enchanted', 'Special'];
+
+            lines.forEach(line => {
+                line = line.trim();
+                if (!line) return;
+
+                // Regex to match "Quantity Name"
+                // Supports "4 Mickey Mouse" or "4x Mickey Mouse"
+                const match = line.match(/^(\d+)[xX]?\s+(.+)$/);
+
+                if (match) {
+                    const qty = parseInt(match[1]);
+                    const name = match[2].trim();
+
+                    // Find all variants
+                    const simple = normalizeName(name);
+                    const variants = allCards.filter(c => {
+                        const cName = normalizeName(c.simpleName || c.fullName);
+                        return cName === simple;
+                    });
+
+                    if (variants.length > 0) {
+                        // Sort by lowest rarity, then highest set
+                        variants.sort((a, b) => {
+                            const aRarityIndex = rarityOrder.indexOf(a.rarity);
+                            const bRarityIndex = rarityOrder.indexOf(b.rarity);
+                            if (aRarityIndex !== bRarityIndex) return aRarityIndex - bRarityIndex;
+                            // Same rarity, higher set first
+                            return parseInt(b.setCode) - parseInt(a.setCode);
+                        });
+
+                        const card = variants[0];
+                        list.push({
+                            id: card.id,
+                            qty: qty
+                        });
+                    } else {
+                        console.warn("Card not found:", name);
+                        // Optional: Handle unknown cards
+                    }
+                }
+            });
+
+            if (list.length === 0) {
+                alert(t('noValidCards'));
+                return;
+            }
+
+            // Check skip prices option
+            const skipPrices = document.getElementById('skip-prices').checked;
+
+            // Generate compact data string: id-qty,id-qty,...|skipPrices
+            const listStr = list.map(item => `${item.id}-${item.qty}`).join(',');
+            const dataStr = `${listStr}|${skipPrices}`;
+            const compressed = LZString.compressToEncodedURIComponent(dataStr);
+            const url = `${window.location.origin}${window.location.pathname}?list=${compressed}`;
+
+            // Prepare share text
+            let shareText = t('shareMessage', {input, url});
+
+            // Store for modal
+            pendingList = list;
+            pendingSkipPrices = skipPrices;
+            pendingUrl = url;
+            pendingShareText = shareText;
+
+            // Show share modal
+            document.getElementById('share-text').textContent = shareText;
+            document.getElementById('share-modal').style.display = 'flex';
+        }
+
+        async function renderTradeView(list, skipPrices = false) {
+            wantedList = list;
+            skipPricesGlobal = skipPrices;
+            document.getElementById('creator-view').style.display = 'none';
+            document.getElementById('trade-view').style.display = 'block';
+            document.getElementById('fab-bar').classList.add('visible');
+
+            // Show add card search only for creators (not responders)
+            if (!isResponderMode) {
+                document.getElementById('trade-search-container').style.display = 'block';
+                initTradeFuzzySearch();
+            }
+
+            const container = document.getElementById('cards-container');
+            container.innerHTML = '';
+
+            if (list.length === 0) {
+                document.getElementById('empty-msg').style.display = 'block';
+                return;
+            }
+
+            // Create price map
+            const priceMap = new Map();
+
+            // Collect cards to price
+            const cardsToPrice = list.map(item => allCards.find(c => c.id === item.id)).filter(Boolean);
+
+            // Check which cards need fetching
+            const cardsToFetch = skipPrices ? [] : cardsToPrice.filter(c => !priceCache.has(c.id));
+
+            if (cardsToFetch.length > 0) {
+                // Show loading overlay
+                const priceOverlay = document.getElementById('price-loading-overlay');
+                const priceStatus = document.getElementById('price-loading-status');
+                priceStatus.textContent = t('fetchingPricesForCards', {count: cardsToFetch.length});
+                priceOverlay.style.display = 'flex';
+
+                // Fetch real prices
+                const pricedCards = await fetchPrices(cardsToFetch);
+
+                // Hide loading overlay
+                priceOverlay.style.display = 'none';
+
+                // Update cache
+                pricedCards.forEach(c => {
+                    if (c.marketPrice) priceCache.set(c.id, c.marketPrice);
+                });
+            }
+
+            // Populate price map from cache or defaults
+            cardsToPrice.forEach(c => {
+                const cachedPrice = priceCache.get(c.id);
+                if (cachedPrice !== undefined) {
+                    priceMap.set(c.id, cachedPrice);
+                } else {
+                    // No price available, set to 0.00
+                    priceMap.set(c.id, '0.00');
+                }
+            });
+
+            list.forEach((item, index) => {
+                // Find card data
+                // We stored ID, but let's look up by ID now
+                const card = allCards.find(c => c.id === item.id);
+                if (!card) return;
+
+                const defaultPrice = priceMap.get(card.id) || getPseudoPrice(card);
+                const currentPrice = customPrices[card.id] !== undefined ? customPrices[card.id] : defaultPrice;
+                const power = getPowerRating(card);
+
+                const el = document.createElement('div');
+                el.className = 'card-item';
+                el.dataset.id = card.id;
+                el.dataset.price = currentPrice;
+                el.dataset.name = card.fullName;
+                el.dataset.wanted = item.qty;
+
+                // Image
+                const imgUrl = card.images?.thumbnail || card.images?.full || '';
+
+                // Rarity Class
+                const rarityClass = `rarity-${card.rarity.split(' ')[0]}`; // Simple mapping
+
+                el.innerHTML = `
+                    <div class="card-img-wrapper" onclick="openVariantSelector(${index})">
+                        <img src="${imgUrl}" class="card-img" alt="${card.fullName}">
+                        <div style="position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.7); color: white; font-size: 0.7rem; text-align: center; padding: 2px;">
+                            ${t('changeVersion')}
+                        </div>
+                    </div>
+                    <div class="card-details">
+                        <div>
+                            <div class="card-name">${card.fullName}</div>
+                            <div class="card-meta">
+                                <span class="rarity-dot ${rarityClass}"></span>
+                                <span>${card.rarity}</span>
+                                <span>Set: ${card.setCode}</span>
+                            </div>
+                            ${power ? `<div class="power-rating">⚡ Power: ${power}</div>` : ''}
+
+                            <div class="price-edit-container" style="margin-top: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                                <label style="font-size: 0.8rem; color: var(--text-muted);">${t('priceLabel')} ${selectedCurrency}</label>
+                                <input type="number" step="0.01" class="price-input"
+                                    value="${currentPrice}"
+                                    onchange="updatePrice(${card.id}, this.value)"
+                                    style="width: 80px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 2px 5px; border-radius: 4px;">
+                                <button onclick="openCardTrader(${card.id})" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 2px 5px; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">${t('ctButton')}</button>
+                            </div>
+                        </div>
+
+                        <div class="trade-controls">
+                            <div class="wanted-badge">${t('wanted')} ${item.qty}</div>
+                            <div class="counter">
+                                <button class="counter-btn" onclick="updateOffer(${card.id}, -1)">-</button>
+                                <span class="counter-val" id="count-${card.id}">0</span>
+                                <button class="counter-btn" onclick="updateOffer(${card.id}, 1)">+</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // Restore offer state to DOM
+                const countEl = el.querySelector('.counter-val');
+                const currentOffer = offerState[card.id] || 0;
+                countEl.textContent = currentOffer;
+                if (currentOffer > 0) {
+                    el.classList.add('active-have');
+                }
+
+                container.appendChild(el);
+            });
+        }
+
+        function updatePrice(cardId, newPrice) {
+            customPrices[cardId] = parseFloat(newPrice);
+            const cardEl = document.querySelector(`.card-item[data-id="${cardId}"]`);
+            if (cardEl) {
+                cardEl.dataset.price = newPrice;
+                const priceInput = cardEl.querySelector('.price-input');
+                if (priceInput) priceInput.value = newPrice;
+            }
+            calculateTotal();
+        }
+
+        function updateOffer(cardId, change) {
+            const current = offerState[cardId] || 0;
+            const cardEl = document.querySelector(`.card-item[data-id="${cardId}"]`);
+            const max = parseInt(cardEl.dataset.wanted);
+
+            let newVal = current + change;
+            if (newVal < 0) newVal = 0;
+            // Allow offering more than wanted? Maybe not for now.
+            // if (newVal > max) newVal = max; 
+
+            offerState[cardId] = newVal;
+            document.getElementById(`count-${cardId}`).textContent = newVal;
+
+            // Highlight
+            if (newVal > 0) {
+                cardEl.classList.add('active-have');
+            } else {
+                cardEl.classList.remove('active-have');
+            }
+
+            calculateTotal();
+        }
+
+        function calculateTotal() {
+            let total = 0;
+            for (const [id, qty] of Object.entries(offerState)) {
+                if (qty > 0) {
+                    const cardEl = document.querySelector(`.card-item[data-id="${id}"]`);
+                    if (cardEl) {
+                        const price = parseFloat(cardEl.dataset.price);
+                        total += price * qty;
+                    }
+                }
+            }
+            const offerTotalEl = document.getElementById('offer-total');
+            if (offerTotalEl) {
+                offerTotalEl.textContent = selectedCurrency + total.toFixed(2);
+            }
+        }
+
+        function generateResponse() {
+            let lines = [t('tradeOffer')];
+            let total = 0;
+            let hasItems = false;
+
+            for (const [id, qty] of Object.entries(offerState)) {
+                if (qty > 0) {
+                    hasItems = true;
+                    const cardEl = document.querySelector(`.card-item[data-id="${id}"]`);
+                    const name = cardEl.querySelector('.card-name').textContent;
+                    const price = parseFloat(cardEl.dataset.price);
+                    total += price * qty;
+
+                    if (price === 0) {
+                        lines.push(`- ${qty} ${name}`);
+                    } else {
+                        const lineTotal = price * qty;
+                        lines.push(`- ${qty} ${name} @ ${selectedCurrency}${price.toFixed(2)} (${selectedCurrency}${lineTotal.toFixed(2)})`);
+                    }
+                }
+            }
+
+            if (!hasItems) {
+                showToast(t('selectCardsFirst'));
+                return;
+            }
+
+            if (total > 0) {
+                lines.push(`\n${t('totalValue')}${selectedCurrency}${total.toFixed(2)}`);
+            }
+
+            const text = lines.join('\n');
+            document.getElementById('offer-text').textContent = text;
+            document.getElementById('review-modal').style.display = 'flex';
+        }
+
+        function closeReviewModal() {
+            document.getElementById('review-modal').style.display = 'none';
+        }
+
+        function closeShareModal() {
+            document.getElementById('share-modal').style.display = 'none';
+        }
+
+        async function copyAndProceed() {
+            navigator.clipboard.writeText(pendingShareText).then(async () => {
+                showToast(t('copiedClipboard'));
+                closeShareModal();
+                // Proceed with rendering
+                await renderTradeView(pendingList, pendingSkipPrices);
+                // Update URL without reload
+                const listStr = pendingList.map(item => `${item.id}-${item.qty}`).join(',');
+                const dataStr = `${listStr}|${pendingSkipPrices}`;
+                const compressed = LZString.compressToEncodedURIComponent(dataStr);
+                window.history.pushState({}, '', `?list=${compressed}`);
+                // Clear pending
+                pendingList = null;
+                pendingSkipPrices = false;
+                pendingUrl = '';
+                pendingShareText = '';
+            });
+        }
+
+        function copyOffer() {
+            const text = document.getElementById('offer-text').textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                showToast(t('offerCopied'));
+                closeReviewModal();
+            });
+        }
+
+        // --- Variant Modal Logic ---
+
+        async function openVariantSelector(listIndex) {
+            const item = wantedList[listIndex];
+            const currentCard = allCards.find(c => c.id === item.id);
+            if (!currentCard) return;
+
+            // Find all cards with same simpleName, fallback to normalized fullName
+            const targetName = normalizeName(currentCard.simpleName || currentCard.fullName);
+
+            const variants = allCards.filter(c => {
+                const cName = normalizeName(c.simpleName || c.fullName);
+                return cName === targetName;
+            });
+
+            // Create price map for variants
+            const variantPriceMap = new Map();
+
+            if (!skipPricesGlobal) {
+                // Show loading overlay
+                const priceOverlay = document.getElementById('price-loading-overlay');
+                const priceStatus = document.getElementById('price-loading-status');
+                priceStatus.textContent = t('fetchingPricesForVariants', {count: variants.length});
+                priceOverlay.style.display = 'flex';
+
+                // Fetch prices for variants
+                const pricedVariants = await fetchPrices(variants);
+
+                // Hide loading overlay
+                priceOverlay.style.display = 'none';
+
+                // Create price map for variants and update cache
+                pricedVariants.forEach(v => {
+                    if (v.marketPrice) {
+                        variantPriceMap.set(v.id, v.marketPrice);
+                        priceCache.set(v.id, v.marketPrice);
+                    }
+                });
+            } else {
+                // Skip prices: set all to 0.0
+                variants.forEach(v => {
+                    variantPriceMap.set(v.id, '0.00');
+                    priceCache.set(v.id, '0.00');
+                });
+            }
+
+            const modal = document.getElementById('variant-modal');
+            const container = document.getElementById('variant-list');
+            container.innerHTML = '';
+
+            variants.forEach(v => {
+                const el = document.createElement('div');
+                el.className = 'variant-item';
+                el.onclick = () => selectVariant(listIndex, v.id);
+
+                const imgUrl = v.images?.thumbnail || v.images?.full || '';
+                const price = variantPriceMap.get(v.id) || getPseudoPrice(v);
+                el.innerHTML = `
+                    <img src="${imgUrl}" style="width: 60px; height: 84px; object-fit: cover; border-radius: 4px;">
+                    <div style="flex: 1;">
+                        <div style="font-weight: bold; font-size: 0.9rem;">${v.version || 'Base'}</div>
+                        <div style="font-size: 0.8rem; color: #aaa;">${v.rarity} • Set ${v.setCode}</div>
+                        <div style="font-size: 0.8rem; color: var(--accent-gold);">£${price}</div>
+                    </div>
+                `;
+                container.appendChild(el);
+            });
+
+            modal.style.display = 'flex';
+        }
+
+        async function selectVariant(listIndex, newCardId) {
+            // Update the wanted list item to point to the new card ID
+            // We keep the quantity the same
+            const oldId = wantedList[listIndex].id;
+
+            wantedList[listIndex].id = newCardId;
+
+            // Update the DOM for this card item without re-rendering the whole list
+            const cardEl = document.querySelector(`.card-item[data-id="${oldId}"]`);
+            if (cardEl) {
+                const newCard = allCards.find(c => c.id === newCardId);
+                if (newCard) {
+                    // Update dataset
+                    cardEl.dataset.id = newCardId;
+                    const newPrice = priceCache.get(newCardId) || '0.00';
+                    cardEl.dataset.price = newPrice;
+
+                    // Update image
+                    const imgEl = cardEl.querySelector('.card-img');
+                    if (imgEl) imgEl.src = newCard.images?.thumbnail || newCard.images?.full || '';
+
+                    // Update name
+                    const nameEl = cardEl.querySelector('.card-name');
+                    if (nameEl) nameEl.textContent = newCard.fullName;
+
+                    // Update meta
+                    const metaEl = cardEl.querySelector('.card-meta');
+                    if (metaEl) {
+                        const rarityClass = `rarity-${newCard.rarity.split(' ')[0]}`;
+                        metaEl.innerHTML = `
+                            <span class="rarity-dot ${rarityClass}"></span>
+                            <span>${newCard.rarity}</span>
+                            <span>Set: ${newCard.setCode}</span>
+                        `;
+                    }
+
+                    // Update price input
+                    const priceInput = cardEl.querySelector('.price-input');
+                    if (priceInput) priceInput.value = newPrice;
+
+                    // Update counter buttons onclick
+                    const minusBtn = cardEl.querySelector('.counter-btn:first-of-type');
+                    const plusBtn = cardEl.querySelector('.counter-btn:last-of-type');
+                    if (minusBtn) minusBtn.setAttribute('onclick', `updateOffer(${newCardId}, -1)`);
+                    if (plusBtn) plusBtn.setAttribute('onclick', `updateOffer(${newCardId}, 1)`);
+
+                    // Update power rating
+                    const powerEl = cardEl.querySelector('.power-rating');
+                    const power = getPowerRating(newCard);
+                    if (powerEl) {
+                        if (power) {
+                            powerEl.textContent = `⚡ Power: ${power}`;
+                            powerEl.style.display = '';
+                        } else {
+                            powerEl.style.display = 'none';
+                        }
+                    }
+                }
+            }
+
+            // Transfer offer quantity to new card if different
+            if (newCardId !== oldId && offerState[oldId]) {
+                offerState[newCardId] = offerState[oldId];
+                delete offerState[oldId];
+            }
+
+            // Update counter id and preserve count
+            const counterEl = document.getElementById(`count-${oldId}`);
+            if (counterEl) {
+                counterEl.id = `count-${newCardId}`;
+                counterEl.textContent = offerState[newCardId] || '0';
+            }
+
+            // Reset custom price
+            if (customPrices[oldId]) {
+                delete customPrices[oldId];
+            }
+
+            closeModal();
+            calculateTotal();
+        }
+
+        function closeModal() {
+            document.getElementById('variant-modal').style.display = 'none';
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 3000);
+        }
+
+        async function fetchPricesNow() {
+            skipPricesGlobal = false;
+            // Clear cache for current cards to force refetch
+            wantedList.forEach(item => {
+                const card = allCards.find(c => c.id === item.id);
+                if (card) priceCache.delete(card.id);
+            });
+            // Re-render with prices
+            await renderTradeView(wantedList, false);
+            // Update total price display
+            calculateTotal();
+        }
+
+        function removePrices() {
+            skipPricesGlobal = true;
+            wantedList.forEach(item => {
+                const card = allCards.find(c => c.id === item.id);
+                if (card) {
+                    updatePrice(card.id, '0.00');
+                    priceCache.set(card.id, '0.00');
+                }
+            });
+        }
+
+        function openCardTrader(cardId) {
+            const card = allCards.find(c => c.id === cardId);
+            if (card && card.externalLinks?.cardTraderUrl) {
+                window.open(`${card.externalLinks.cardTraderUrl}`, '_blank');
+            }
+        }
+
+        function confirmReset() {
+            const confirmed = confirm(t('confirmReset'));
+            if (confirmed) {
+                resetApp();
+            }
+        }
+
+        function resetApp() {
+            window.location.href = window.location.pathname;
+        }
+
+        // --- Fuzzy Search Functions ---
+
+        function initFuzzySearch() {
+            const searchInput = document.getElementById('card-search');
+            const resultsDiv = document.getElementById('search-results');
+
+            searchInput.addEventListener('input', (e) => {
+                const query = e.target.value.trim();
+                if (query.length < 2) {
+                    resultsDiv.style.display = 'none';
+                    return;
+                }
+
+                const results = fuse.search(query).slice(0, 10); // Top 10 results
+                resultsDiv.innerHTML = '';
+
+                if (results.length === 0) {
+                    resultsDiv.style.display = 'none';
+                    return;
+                }
+
+                results.forEach(result => {
+                    const card = result.item;
+                    const div = document.createElement('div');
+                    div.className = 'search-result-item';
+                    div.textContent = `${card.fullName} - Set ${card.setCode}`;
+                    div.onclick = () => addCardToList(card.fullName);
+                    resultsDiv.appendChild(div);
+                });
+
+                resultsDiv.style.display = 'block';
+            });
+
+            // Hide results when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) {
+                    resultsDiv.style.display = 'none';
+                }
+            });
+        }
+
+        function addCardToList(cardName) {
+            const textarea = document.getElementById('decklist-input');
+            const currentValue = textarea.value;
+            const newLine = currentValue ? '\n1 ' + cardName : '1 ' + cardName;
+            textarea.value += newLine;
+            document.getElementById('search-results').style.display = 'none';
+            document.getElementById('card-search').value = '';
+            showToast(t('cardAdded'));
+        }
+
+        function initTradeFuzzySearch() {
+            const searchInput = document.getElementById('trade-card-search');
+            const resultsDiv = document.getElementById('trade-search-results');
+
+            searchInput.addEventListener('input', (e) => {
+                const query = e.target.value.trim();
+                if (query.length < 2) {
+                    resultsDiv.style.display = 'none';
+                    return;
+                }
+
+                const results = fuse.search(query).slice(0, 10); // Top 10 results
+                resultsDiv.innerHTML = '';
+
+                if (results.length === 0) {
+                    resultsDiv.style.display = 'none';
+                    return;
+                }
+
+                results.forEach(result => {
+                    const card = result.item;
+                    const div = document.createElement('div');
+                    div.className = 'search-result-item';
+                    div.textContent = `${card.fullName} - Set ${card.setCode}`;
+                    div.onclick = () => addCardToWantedList(card.id);
+                    resultsDiv.appendChild(div);
+                });
+
+                resultsDiv.style.display = 'block';
+            });
+
+            // Hide results when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) {
+                    resultsDiv.style.display = 'none';
+                }
+            });
+        }
+
+        async function addCardToWantedList(cardId) {
+            // Check if already in list
+            const existing = wantedList.find(item => item.id === cardId);
+            if (existing) {
+                showToast(t('cardAlreadyInList'));
+                return;
+            }
+
+            // Add with qty 1
+            wantedList.push({ id: cardId, qty: 1 });
+
+            // Update URL
+            const listStr = wantedList.map(item => `${item.id}-${item.qty}`).join(',');
+            const dataStr = `${listStr}|${skipPricesGlobal}`;
+            const compressed = LZString.compressToEncodedURIComponent(dataStr);
+            window.history.pushState({}, '', `?list=${compressed}`);
+
+            // Re-render
+            await renderTradeView(wantedList, skipPricesGlobal);
+
+            document.getElementById('trade-search-results').style.display = 'none';
+            document.getElementById('trade-card-search').value = '';
+            showToast("Card added to wanted list!");
+        }
+
+    </script>
+</body>
+
+</html>
