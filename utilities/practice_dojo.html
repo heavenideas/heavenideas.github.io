@@ -227,10 +227,18 @@
                         placeholder="Paste decklist here (e.g. 4 Maui - Hero to All)"></textarea>
                 </div>
             </div>
-            <div class="mt-4 flex justify-between items-center">
-                <p class="text-xs text-gray-400">Leave blank to use pre-generated demo decks.</p>
+            <div class="mt-4 flex justify-between items-center border-t border-gray-700 pt-4">
+                <div class="flex items-center gap-4">
+                    <input type="file" id="setup-import-file" class="hidden" accept=".json"
+                        onchange="App.importTimelines(event)">
+                    <button onclick="document.getElementById('setup-import-file').click()"
+                        class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded transition flex items-center text-sm shadow-md">
+                        <i class="fa-solid fa-file-import mr-2"></i> Resume Session
+                    </button>
+                    <p class="text-xs text-gray-400 hidden sm:block">or leave blank to use pre-generated demo decks.</p>
+                </div>
                 <button onclick="App.startGame()"
-                    class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded transition">Start
+                    class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded transition shadow-lg">Start
                     Match</button>
             </div>
         </div>
@@ -427,6 +435,20 @@
                             class="fa-solid fa-code-branch text-purple-500 mr-2"></i> Timelines</h2>
                     <button onclick="App.toggleTimelines()" class="text-gray-400 hover:text-white transition"><i
                             class="fa-solid fa-times text-lg"></i></button>
+                </div>
+
+                <!-- Import / Export Utility Row -->
+                <div class="flex border-b border-gray-800 shrink-0 bg-[#0a0a0c]">
+                    <input type="file" id="import-file" class="hidden" accept=".json"
+                        onchange="App.importTimelines(event)">
+                    <button onclick="document.getElementById('import-file').click()"
+                        class="flex-1 py-2 text-xs font-bold text-gray-400 hover:text-white hover:bg-gray-800 transition border-r border-gray-800">
+                        <i class="fa-solid fa-file-import mr-1"></i> Import Session
+                    </button>
+                    <button onclick="App.exportTimelines()"
+                        class="flex-1 py-2 text-xs font-bold text-gray-400 hover:text-white hover:bg-gray-800 transition">
+                        <i class="fa-solid fa-file-export mr-1"></i> Export Session
+                    </button>
                 </div>
 
                 <!-- Create Bookmark -->
@@ -975,6 +997,67 @@
                 this.renderTimelines();
             },
 
+            exportTimelines() {
+                const exportData = {
+                    version: 1,
+                    currentState: this.state,
+                    bookmarks: this.bookmarks,
+                    autoSaves: this.autoSaves,
+                    deck1: document.getElementById('deck1-input').value,
+                    deck2: document.getElementById('deck2-input').value
+                };
+
+                const blob = new Blob([JSON.stringify(exportData)], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `lorcana-session-${Date.now()}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                this.showToast("Session Exported!");
+            },
+
+            importTimelines(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const importedData = JSON.parse(e.target.result);
+                        if (importedData.currentState && importedData.bookmarks) {
+                            this.state = importedData.currentState;
+                            this.bookmarks = importedData.bookmarks;
+                            this.autoSaves = importedData.autoSaves || [];
+
+                            if (importedData.deck1) document.getElementById('deck1-input').value = importedData.deck1;
+                            if (importedData.deck2) document.getElementById('deck2-input').value = importedData.deck2;
+
+                            // Ensure user is booted into the app if they imported from setup modal
+                            document.getElementById('setup-modal').classList.add('hidden');
+                            document.getElementById('app').classList.remove('hidden');
+
+                            // Close Drawer if open, render new state
+                            document.getElementById('timeline-drawer').classList.add('-translate-x-full');
+                            this.renderTimelines();
+                            this.render();
+                            this.showToast("Session Imported Successfully!");
+                        } else {
+                            alert("Invalid session file format.");
+                        }
+                    } catch (err) {
+                        console.error("Failed to parse timeline file", err);
+                        alert("Failed to read the file. Ensure it is a valid JSON exported from the Dojo.");
+                    }
+                    // Reset file input so the same file can be imported again if needed
+                    event.target.value = '';
+                };
+                reader.readAsText(file);
+            },
+
             saveTimeline() {
                 const nameInput = document.getElementById('bookmark-name').value.trim();
                 const ap = this.state.players[this.state.activePlayer];
@@ -1000,7 +1083,9 @@
             autoSaveTimeline() {
                 const p1 = this.state.players[0];
                 const p2 = this.state.players[1];
-                const name = `Auto-Save: Left Turn ${this.state.turn}`;
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                const name = `Auto-Save: Left Turn ${this.state.turn} (${timeStr})`;
                 const stats = `Turn ${this.state.turn} | P1: ${p1.lore} Lore - P2: ${p2.lore} Lore`;
 
                 this.autoSaves.unshift({
@@ -1008,11 +1093,14 @@
                     name: name,
                     stats: stats,
                     state: JSON.stringify(this.state),
-                    timestamp: Date.now()
+                    timestamp: now.getTime()
                 });
 
+                // Ensure newest is always strictly on top
+                this.autoSaves.sort((a, b) => b.timestamp - a.timestamp);
+
                 if (this.autoSaves.length > 5) {
-                    this.autoSaves.pop();
+                    this.autoSaves.length = 5;
                 }
             },
 
