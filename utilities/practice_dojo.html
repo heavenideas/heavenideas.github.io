@@ -279,6 +279,13 @@
                 class="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4 p-2 content-start">
                 <!-- Cards injected here -->
             </div>
+            <div class="mt-4 flex justify-end gap-4 border-t border-gray-700 pt-4">
+                <button onclick="App.closeInspectDeck()"
+                    class="px-6 py-2 bg-gray-600 hover:bg-gray-500 text-white font-bold rounded transition">Cancel</button>
+                <button onclick="App.saveInspectDeck()"
+                    class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded transition">Save Custom
+                    Order</button>
+            </div>
         </div>
     </div>
 
@@ -700,6 +707,9 @@
 
             bookmarks: [],
             autoSaves: [],
+
+            _inspectingPlayerIndex: null, // New property to store the player index being inspected
+            _tempDeckOrder: null, // New property to store the temporary deck order for inspection
 
             state: {
                 turn: 1,
@@ -1896,20 +1906,25 @@
             },
 
             inspectDeck(playerIndex) {
+                this._inspectingPlayerIndex = playerIndex;
                 const p = this.state.players[playerIndex];
-                document.getElementById('inspect-deck-title').innerText = `Inspecting ${p.name}'s Deck (${p.deck.length} Cards)`;
+                this._tempDeckOrder = [...p.deck];
 
+                document.getElementById('inspect-deck-title').innerText = `Inspecting ${p.name}'s Deck (${p.deck.length} Cards)`;
+                this.renderInspectGrid();
+                document.getElementById('inspect-deck-modal').classList.remove('hidden');
+            },
+
+            renderInspectGrid() {
                 const container = document.getElementById('inspect-deck-grid');
                 container.innerHTML = '';
 
-                // Keep track of counts for grouping identical cards (optional but helpful)
-                // For a raw view, we just render them straight from the deck array
-                p.deck.forEach(c => {
+                this._tempDeckOrder.forEach((c, index) => {
                     const dbCard = this.cardDB[c.cardId];
                     if (!dbCard) return;
 
                     const el = document.createElement('div');
-                    el.className = `relative rounded-md bg-cover bg-center shadow-md border border-white/10 hover:scale-110 hover:z-10 transition-transform cursor-pointer`;
+                    el.className = `relative rounded-md bg-cover bg-center shadow-md border border-white/10 hover:scale-110 hover:z-10 transition-transform cursor-grab`;
                     el.style.width = '100%';
                     el.style.aspectRatio = '2.5 / 3.5';
                     el.style.backgroundImage = `url('${this.getCardImage(dbCard)}')`;
@@ -1917,14 +1932,78 @@
                     // Show sidebar preview when hovered
                     el.addEventListener('mouseenter', () => this.showPreview(dbCard));
 
+                    // Drag and drop for reordering
+                    el.draggable = true;
+                    el.ondragstart = (e) => this.inspectDragStart(e, index);
+                    el.ondragover = (e) => this.allowDrop(e);
+                    el.ondrop = (e) => this.inspectDrop(e, index);
+
                     container.appendChild(el);
                 });
+            },
 
-                document.getElementById('inspect-deck-modal').classList.remove('hidden');
+            inspectDragStart(e, index) {
+                e.dataTransfer.setData("text/plain", index.toString());
+                e.dataTransfer.effectAllowed = "move";
+            },
+
+            inspectDrop(e, targetIndex) {
+                e.preventDefault();
+                const sourceIndexStr = e.dataTransfer.getData("text/plain");
+                if (!sourceIndexStr) return;
+
+                const sourceIndex = parseInt(sourceIndexStr, 10);
+                if (sourceIndex === targetIndex) return;
+
+                // Move the card in our temp array
+                const [movedCard] = this._tempDeckOrder.splice(sourceIndex, 1);
+                this._tempDeckOrder.splice(targetIndex, 0, movedCard);
+
+                // Re-render the grid to show the new order
+                this.renderInspectGrid();
             },
 
             closeInspectDeck() {
                 document.getElementById('inspect-deck-modal').classList.add('hidden');
+                this._tempDeckOrder = null;
+                this._inspectingPlayerIndex = null;
+            },
+
+            saveInspectDeck() {
+                if (this._inspectingPlayerIndex === null || !this._tempDeckOrder) return;
+
+                this.saveState();
+
+                const p = this.state.players[this._inspectingPlayerIndex];
+                p.deck = [...this._tempDeckOrder];
+
+                const timeString = new Date().toLocaleTimeString();
+                const name = `Custom deck ordering - ${timeString}`;
+
+                this.logAction(`Saved a custom deck order for ${p.id === this.state.activePlayer ? 'your' : "the opponent's"} deck.`);
+
+                // Keep the color of the current active timeline if there is one
+                const bColor = this.state.activeTimelineColor || '#3b82f6';
+
+                const p1 = this.state.players[0];
+                const p2 = this.state.players[1];
+                const stats = `Turn ${this.state.turn} | P1: ${p1.lore} Lore - P2: ${p2.lore} Lore`;
+
+                // Add to manual bookmarks
+                this.bookmarks.unshift({
+                    id: this.uuid(),
+                    name: name,
+                    stats: stats,
+                    comment: "Custom arrangement created from Inspect Deck.",
+                    color: bColor,
+                    state: JSON.stringify(this.state),
+                    timestamp: Date.now()
+                });
+
+                this.renderTimelines();
+                this.closeInspectDeck();
+                this.render();
+                this.showToast("Custom Deck Order Saved & Bookmarked!");
             },
 
             shuffleDeck(playerIndex) {
