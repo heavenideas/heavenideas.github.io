@@ -487,8 +487,8 @@
         <!-- Main Play Area -->
         <div class="flex-1 flex flex-col relative bg-gray-900">
             <!-- Center dividing line -->
-            <div
-                class="absolute top-1/2 left-0 right-0 h-1 bg-black z-0 opacity-50 transform -translate-y-1/2 shadow-[0_0_10px_rgba(0,0,0,1)]">
+            <div id="board-divider"
+                class="absolute top-1/2 left-0 right-0 h-1 z-30 opacity-0 transform -translate-y-1/2 transition-all duration-500 pointer-events-none">
             </div>
 
             <!-- Top Area (Opponent) -->
@@ -849,6 +849,7 @@
                     inactivePlayer: this.state.inactivePlayer,
                     opponentHandRevealed: this.state.opponentHandRevealed,
                     turn: this.state.turn,
+                    activeTimelineColor: this.state.activeTimelineColor,
                     log: this.state.log
                 }));
                 // Keep last 50 states
@@ -863,6 +864,7 @@
                 this.state.inactivePlayer = prev.inactivePlayer;
                 this.state.opponentHandRevealed = prev.opponentHandRevealed || false;
                 this.state.turn = prev.turn;
+                this.state.activeTimelineColor = prev.activeTimelineColor || null;
                 this.state.log = prev.log;
                 this.render();
             },
@@ -889,6 +891,7 @@
                 // Reset state
                 this.state = {
                     turn: 1, activePlayer: 0, inactivePlayer: 1, opponentHandRevealed: false, history: [], log: [],
+                    activeTimelineColor: null,
                     players: [
                         { id: 0, name: "Player 1", deck: [], hand: [], field: [], inkwell: [], discard: [], lore: 0, inkTotal: 0, inkReady: 0, hasMulliganed: false },
                         { id: 1, name: "Player 2", deck: [], hand: [], field: [], inkwell: [], discard: [], lore: 0, inkTotal: 0, inkReady: 0, hasMulliganed: false }
@@ -1072,11 +1075,15 @@
                 const p2 = this.state.players[1];
                 const stats = `Turn ${this.state.turn} | P1: ${p1.lore} Lore - P2: ${p2.lore} Lore`;
 
+                const timelineColors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6', '#d946ef', '#f43f5e'];
+                const bColor = timelineColors[this.bookmarks.length % timelineColors.length];
+
                 this.bookmarks.unshift({
                     id: this.uuid(),
                     name: finalName,
                     stats: stats,
                     comment: commentInput,
+                    color: bColor,
                     state: JSON.stringify(this.state),
                     timestamp: Date.now()
                 });
@@ -1121,6 +1128,12 @@
                 // Restore State
                 this.state = JSON.parse(bookmark.state);
 
+                if (!isAuto && bookmark.color) {
+                    this.state.activeTimelineColor = bookmark.color;
+                } else if (!isAuto) {
+                    this.state.activeTimelineColor = '#3b82f6';
+                }
+
                 // Close Drawer, Render, and Flash
                 this.toggleTimelines();
                 this.render();
@@ -1141,7 +1154,7 @@
                 const buildHtml = (list, isAuto) => {
                     if (list.length === 0) return `<div class="text-xs text-gray-600 text-center py-4 italic">No timelines saved.</div>`;
                     return list.map(b => `
-                        <div class="bg-[#1a1a1e] rounded border border-gray-700 hover:border-purple-500 transition shadow-sm flex flex-col overflow-hidden mb-1">
+                        <div class="bg-[#1a1a1e] rounded border border-gray-700 hover:border-purple-500 transition shadow-sm flex flex-col overflow-hidden mb-1" ${!isAuto && b.color ? `style="border-left: 4px solid ${b.color};"` : ''}>
                            <div class="group relative p-2 cursor-pointer">
                                <div class="text-[11px] font-bold text-white mb-0.5 truncate">${b.name}</div>
                                <div class="text-[9px] text-gray-400 font-mono tracking-wider">${b.stats}</div>
@@ -1999,6 +2012,22 @@
 
                 this.updateLog();
                 this.updateMetrics();
+
+                // Update Timeline Board Divider Color
+                const divider = document.getElementById('board-divider');
+                if (divider) {
+                    if (this.state.activeTimelineColor) {
+                        divider.style.backgroundColor = this.state.activeTimelineColor;
+                        divider.style.boxShadow = `0 0 15px ${this.state.activeTimelineColor}`;
+                        divider.classList.remove('opacity-0');
+                        divider.classList.add('opacity-80');
+                    } else {
+                        divider.style.backgroundColor = 'transparent';
+                        divider.style.boxShadow = 'none';
+                        divider.classList.add('opacity-0');
+                        divider.classList.remove('opacity-80');
+                    }
+                }
 
                 // --- TOP BOARD (Inactive Player) ---
                 document.getElementById('top-player-bg-text').innerText = `P${ip.id + 1}`;
