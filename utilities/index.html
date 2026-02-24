@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -15,10 +16,12 @@
       align-items: center;
       min-height: 100vh;
     }
+
     h1 {
       margin-top: 40px;
       color: #f3f3f3;
     }
+
     .container {
       display: flex;
       gap: 40px;
@@ -26,10 +29,11 @@
       flex-wrap: wrap;
       justify-content: center;
     }
+
     .card {
       background: #23262f;
       border-radius: 16px;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.32);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.32);
       overflow: hidden;
       transition: transform 0.2s, box-shadow 0.2s;
       width: 340px;
@@ -37,11 +41,13 @@
       cursor: pointer;
       border: 1px solid #23262f;
     }
+
     .card:hover {
       transform: translateY(-8px) scale(1.03);
-      box-shadow: 0 8px 32px rgba(0,0,0,0.48);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.48);
       border: 1px solid #4f8cff;
     }
+
     .card img {
       width: 100%;
       height: 220px;
@@ -49,26 +55,31 @@
       display: block;
       background: #181a20;
     }
+
     .card-title {
       font-size: 1.2rem;
       font-weight: 600;
       margin: 18px 0 12px 0;
       color: #f3f3f3;
     }
+
     .card-desc {
       color: #b0b3c0;
       font-size: 1rem;
       margin-bottom: 18px;
       padding: 0 16px;
     }
+
     a.card {
       text-decoration: none;
     }
+
     @media (max-width: 800px) {
       .container {
         flex-direction: column;
         gap: 24px;
       }
+
       .card {
         width: 90vw;
         max-width: 340px;
@@ -76,6 +87,7 @@
     }
   </style>
 </head>
+
 <body>
   <h1>Lorcana Tools</h1>
   <div class="container">
@@ -89,66 +101,72 @@
       <div class="card-title">Matchup Analyzer</div>
       <div class="card-desc">Analyze Lorcana deck matchups and get insights for your next game.</div>
     </a>
+    <a class="card" href="../utilities/practice_dojo.html">
+      <img src="../img/practice_dojo.PNG" alt="Practice Dojo">
+      <div class="card-title">Practice Dojo</div>
+      <div class="card-desc">Practice with 2 decks with added Card Threat Level Calculations</div>
+    </a>
     <a class="card" href="../lorcanaUtils_lorcanaRotationVisualizer/lorcanaVisualizer.html">
       <img src="../img/lorcana_set_rotation_visualizer_001.png" alt="Set Rotation Visualizer">
       <div class="card-title">Set Rotation Visualizer</div>
       <div class="card-desc">Visualize Lorcana set rotations and plan your collection.</div>
     </a>
     <a class="card" href="https://lorcana-lens.vercel.app/">
-        <img src="../img/lorcana_lens_001.png" alt="Lorcana Lens">
-        <div class="card-title">Lorcana Lens</div>
-        <div class="card-desc">Compare pictures of your cards to spot any fake cards</div>
+      <img src="../img/lorcana_lens_001.png" alt="Lorcana Lens">
+      <div class="card-title">Lorcana Lens</div>
+      <div class="card-desc">Compare pictures of your cards to spot any fake cards</div>
     </a>
     <a class="card" href="../lorcanaUtils_turnMapper/turnMapper_advanced.html">
-        <img src="../img/lorcana_turnMapper_001.png" alt="Set Rotation Visualizer">
-        <div class="card-title">Lorcana Deck Turn Mapper Advanced</div>
-        <div class="card-desc">Map out your deck's turn order and see how it compares to other decks.</div>
+      <img src="../img/lorcana_turnMapper_001.png" alt="Set Rotation Visualizer">
+      <div class="card-title">Lorcana Deck Turn Mapper Advanced</div>
+      <div class="card-desc">Map out your deck's turn order and see how it compares to other decks.</div>
     </a>
     <a class="card" href="personal_deck_saver.html">
       <img src="../img/personal_deck_saver.png" alt="Set Rotation Visualizer">
       <div class="card-title">Personal Lorcana Deck Saver</div>
       <div class="card-desc">My own personal dreamborn</div>
-  </a>
-  <a class="card" href="decision_tree_visualizer.html">
-    <img src="../img/decision_tree.png" alt="Set Rotation Visualizer">
-    <div class="card-title">Desicion Tree Visualizer</div>
-    <div class="card-desc">Map out available plays based on board state.</div>
-  </a>
-  <a class="card" href="lorcana_abilities.html">
-    <img src="../img/ability_text_analyzer.png" alt="Set Rotation Visualizer">
-    <div class="card-title">Ability Text Analyzer</div>
-    <div class="card-desc">Check ability text from cards using regular expresions</div>
-  </a>
-  <a class="card" href="lorcana_investigator.html">
-    <img src="../img/lorcana_investigator.png" alt="Lorcana Investigator">
-    <div class="card-title">Lorcana Investigator</div>
-    <div class="card-desc">Investigate the coverage gaps of Lorcana Abilities</div>
-  </a>
-  <a class="card" href="lorcana_text_exporter.html">
-    <img src="../img/text_exporter.png" alt="Set Rotation Visualizer">
-    <div class="card-title">Lorcana Markdown Exporter</div>
-    <div class="card-desc">Export lorcana card information as markdown for easy feeding into LLMs</div>
-  </a>
-  <a class="card" href="lorcana_card_explorer.html">
-    <img src="../img/card_analyzer.png" alt="Ultimate Card Analyzer">
-    <div class="card-title">Ultimate Card Analyzer</div>
-    <div class="card-desc">Fuzzy search for a card to begin a deep-dive statistical analysis.</div>
-  </a>
-  <a class="card" href="lorcana_card_analytics.html">
-    <img src="../img/card_analytics.png" alt="Ultimate Card Analytics">
-    <div class="card-title">Card Analytics for The whole Lorcana Card Pool</div>
-    <div class="card-desc">See all the cards stats and explore card's CTL.</div>
-  </a>
-  <a class="card" href="../simulator/proof_of_concept_01.html">
-    <img src="../img/sim.png" alt="AI simulator">
-    <div class="card-title">AI Simulator</div>
-    <div class="card-desc">Match-up two decks together and see them fight</div>
-  </a>
-  <a class="card" href="../utilities/deck_shuffler.html">
-    <img src="../img/deck_shuffler.PNG" alt="Deck Shuffler">
-    <div class="card-title">Deck Shuffler</div>
-    <div class="card-desc">Deck Shuffler from the simulator we don't speak about</div>
-  </a>
+    </a>
+    <a class="card" href="decision_tree_visualizer.html">
+      <img src="../img/decision_tree.png" alt="Set Rotation Visualizer">
+      <div class="card-title">Desicion Tree Visualizer</div>
+      <div class="card-desc">Map out available plays based on board state.</div>
+    </a>
+    <a class="card" href="lorcana_abilities.html">
+      <img src="../img/ability_text_analyzer.png" alt="Set Rotation Visualizer">
+      <div class="card-title">Ability Text Analyzer</div>
+      <div class="card-desc">Check ability text from cards using regular expresions</div>
+    </a>
+    <a class="card" href="lorcana_investigator.html">
+      <img src="../img/lorcana_investigator.png" alt="Lorcana Investigator">
+      <div class="card-title">Lorcana Investigator</div>
+      <div class="card-desc">Investigate the coverage gaps of Lorcana Abilities</div>
+    </a>
+    <a class="card" href="lorcana_text_exporter.html">
+      <img src="../img/text_exporter.png" alt="Set Rotation Visualizer">
+      <div class="card-title">Lorcana Markdown Exporter</div>
+      <div class="card-desc">Export lorcana card information as markdown for easy feeding into LLMs</div>
+    </a>
+    <a class="card" href="lorcana_card_explorer.html">
+      <img src="../img/card_analyzer.png" alt="Ultimate Card Analyzer">
+      <div class="card-title">Ultimate Card Analyzer</div>
+      <div class="card-desc">Fuzzy search for a card to begin a deep-dive statistical analysis.</div>
+    </a>
+    <a class="card" href="lorcana_card_analytics.html">
+      <img src="../img/card_analytics.png" alt="Ultimate Card Analytics">
+      <div class="card-title">Card Analytics for The whole Lorcana Card Pool</div>
+      <div class="card-desc">See all the cards stats and explore card's CTL.</div>
+    </a>
+    <a class="card" href="../simulator/proof_of_concept_01.html">
+      <img src="../img/sim.png" alt="AI simulator">
+      <div class="card-title">AI Simulator</div>
+      <div class="card-desc">Match-up two decks together and see them fight</div>
+    </a>
+    <a class="card" href="../utilities/deck_shuffler.html">
+      <img src="../img/deck_shuffler.PNG" alt="Deck Shuffler">
+      <div class="card-title">Deck Shuffler</div>
+      <div class="card-desc">Deck Shuffler from the simulator we don't speak about</div>
+    </a>
   </div>
 </body>
+
 </html>
