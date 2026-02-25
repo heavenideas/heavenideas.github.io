@@ -930,7 +930,7 @@
                 };
 
                 // Populate decks
-                const mapCard = (id) => ({ instanceId: this.uuid(), cardId: id, exerted: false, damage: 0, faceUp: false, locationId: null, drying: false });
+                const mapCard = (id) => ({ instanceId: this.uuid(), cardId: id, exerted: false, damage: 0, faceUp: false, locationId: null, drying: false, stackedCards: [] });
                 this.state.players[0].deck = this.shuffle(d1Ids.map(mapCard));
                 this.state.players[1].deck = this.shuffle(d2Ids.map(mapCard));
 
@@ -1395,6 +1395,21 @@
                 }
             },
 
+            _unpackStack(cardObj) {
+                const results = [cardObj];
+                if (cardObj.stackedCards && cardObj.stackedCards.length > 0) {
+                    cardObj.stackedCards.forEach(sc => {
+                        results.push({
+                            instanceId: sc.instanceId,
+                            cardId: sc.cardId,
+                            exerted: false, damage: 0, faceUp: false, locationId: null, drying: false, stackedCards: []
+                        });
+                    });
+                    cardObj.stackedCards = [];
+                }
+                return results;
+            },
+
             moveCard(instanceId, targetZone, position, deckPlacement = 'top') {
                 this.saveState();
                 let found = this.findCard(instanceId);
@@ -1444,24 +1459,32 @@
                     found.player.inkTotal--;
                     if (found.player.inkReady > found.player.inkTotal) found.player.inkReady = found.player.inkTotal;
                 }
-                if (targetZone === 'inkwell') {
-                    targetPlayer.inkTotal++;
-                    targetPlayer.inkReady++;
-                    found.card.faceUp = true; // Inked this turn (starts face up)
+
+                let cardsToMove = [found.card];
+                if (targetZone !== 'field') {
+                    cardsToMove = this._unpackStack(found.card);
                 }
 
-                // Add to new location
-                if (targetZone === 'deck') {
-                    if (deckPlacement === 'bottom') {
-                        targetPlayer.deck.push(found.card); // Bottom of deck
-                    } else {
-                        targetPlayer.deck.unshift(found.card); // Top of deck
+                cardsToMove.forEach(c => {
+                    if (targetZone === 'inkwell') {
+                        targetPlayer.inkTotal++;
+                        targetPlayer.inkReady++;
+                        c.faceUp = true; // Inked this turn
                     }
-                } else {
-                    targetPlayer[targetZone].push(found.card);
-                }
 
-                this.logAction(`Moved ${dbCard.name} to ${targetZone}${targetZone === 'deck' ? ` (${deckPlacement})` : ''}.`);
+                    // Add to new location
+                    if (targetZone === 'deck') {
+                        if (deckPlacement === 'bottom') {
+                            targetPlayer.deck.push(c);
+                        } else {
+                            targetPlayer.deck.unshift(c);
+                        }
+                    } else {
+                        targetPlayer[targetZone].push(c);
+                    }
+                });
+
+                this.logAction(`Moved ${dbCard.name}${cardsToMove.length > 1 ? ` and its stack (${cardsToMove.length} cards)` : ''} to ${targetZone}${targetZone === 'deck' ? ` (${deckPlacement})` : ''}.`);
                 this.render();
             },
 
@@ -1488,13 +1511,18 @@
                 }
 
                 found.player[found.loc].splice(found.idx, 1);
-                found.card.exerted = false; // comes in ready
-                found.card.faceUp = true; // face up for the turn it is inked
-                found.player.inkwell.push(found.card);
-                found.player.inkTotal++;
-                found.player.inkReady++;
 
-                this.logAction(`You added ${dbCard.name} to ink.`);
+                const cardsToMove = this._unpackStack(found.card);
+                cardsToMove.forEach(c => {
+                    c.exerted = false; // comes in ready
+                    c.drying = false;
+                    c.faceUp = true; // face up for the turn it is inked
+                    found.player.inkwell.push(c);
+                    found.player.inkTotal++;
+                    found.player.inkReady++;
+                });
+
+                this.logAction(`You added ${dbCard.name}${cardsToMove.length > 1 ? ` and its stack (${cardsToMove.length} cards)` : ''} to ink.`);
                 this.render();
             },
 
@@ -1608,12 +1636,17 @@
                 }
 
                 found.player[found.loc].splice(found.idx, 1);
-                found.card.damage = 0;
-                found.card.exerted = false;
-                found.card.locationId = null;
-                found.player.discard.push(found.card);
 
-                this.logAction(`${dbCard.name} was banished.`);
+                const cardsToMove = this._unpackStack(found.card);
+                cardsToMove.forEach(c => {
+                    c.damage = 0;
+                    c.exerted = false;
+                    c.drying = false;
+                    c.locationId = null;
+                    found.player.discard.push(c);
+                });
+
+                this.logAction(`${dbCard.name}${cardsToMove.length > 1 ? ` and its stack (${cardsToMove.length} cards)` : ''} was banished.`);
                 this.render();
             },
 
@@ -1632,10 +1665,16 @@
                 }
 
                 found.player[found.loc].splice(found.idx, 1);
-                found.card.damage = 0;
-                found.card.exerted = false;
-                found.card.locationId = null;
-                found.player.hand.push(found.card);
+
+                const cardsToMove = this._unpackStack(found.card);
+                cardsToMove.forEach(c => {
+                    c.damage = 0;
+                    c.exerted = false;
+                    c.drying = false;
+                    c.locationId = null;
+                    found.player.hand.push(c);
+                });
+
                 this.render();
             },
 
@@ -1688,6 +1727,142 @@
                 }
             },
 
+            // --- Handlers for Stacking (Shifting/Putting Under) ---
+
+            dropToStack(ev, targetInstanceId) {
+                ev.preventDefault();
+                ev.stopPropagation(); // Stop normal field drop logic
+                const draggedInstanceId = ev.dataTransfer.getData("text/plain");
+                if (draggedInstanceId && draggedInstanceId !== targetInstanceId) {
+                    this.shiftOnto(draggedInstanceId, targetInstanceId);
+                }
+            },
+
+            shiftOnto(draggedInstanceId, targetInstanceId) {
+                this.saveState();
+                let draggedFound = this.findCard(draggedInstanceId);
+                let targetFound = this.findCard(targetInstanceId);
+                if (!draggedFound || !targetFound) return;
+
+                // Do not allow stacking onto a card that isn't on the field
+                if (targetFound.loc !== 'field') return;
+
+                // Both cards must belong to the active player
+                if (draggedFound.player.id !== this.state.activePlayer || targetFound.player.id !== this.state.activePlayer) return;
+
+                const dbCard = this.cardDB[draggedFound.card.cardId];
+
+                // If coming from hand, handle ink cost automatically
+                if (draggedFound.loc === 'hand') {
+                    const targetPlayer = draggedFound.player;
+                    if (targetPlayer.inkReady >= dbCard.cost) {
+                        targetPlayer.inkReady -= dbCard.cost;
+                        let inkToExert = dbCard.cost;
+                        for (let i = 0; i < targetPlayer.inkwell.length && inkToExert > 0; i++) {
+                            if (!targetPlayer.inkwell[i].exerted) {
+                                targetPlayer.inkwell[i].exerted = true;
+                                inkToExert--;
+                            }
+                        }
+                    }
+                }
+
+                // Inherit state from the target card
+                draggedFound.card.exerted = targetFound.card.exerted;
+                draggedFound.card.damage = targetFound.card.damage;
+                draggedFound.card.drying = targetFound.card.drying;
+                draggedFound.card.locationId = targetFound.card.locationId;
+                draggedFound.card.faceUp = targetFound.card.faceUp;
+
+                if (!draggedFound.card.stackedCards) {
+                    draggedFound.card.stackedCards = [];
+                }
+
+                // Convert target card to a nested object
+                draggedFound.card.stackedCards.push({
+                    cardId: targetFound.card.cardId,
+                    instanceId: targetFound.card.instanceId,
+                    faceUp: true
+                });
+
+                // Absorb any existing stacked cards from the target
+                if (targetFound.card.stackedCards && targetFound.card.stackedCards.length > 0) {
+                    draggedFound.card.stackedCards.push(...targetFound.card.stackedCards);
+                }
+
+                // Replace the target card in the field array with the new dragged card
+                const fieldIdx = targetFound.player.field.findIndex(c => c.instanceId === targetInstanceId);
+                if (fieldIdx !== -1) {
+                    targetFound.player.field[fieldIdx] = draggedFound.card;
+
+                    // Cleanup original location of dragged card if it wasn't already in the field matching the target index
+                    if (!(draggedFound.loc === 'field' && draggedFound.idx === fieldIdx)) {
+                        draggedFound.player[draggedFound.loc].splice(draggedFound.idx, 1);
+                    }
+
+                    draggedFound.loc = 'field';
+                }
+
+                this.logAction(`Assigned ${dbCard.name} to stack onto ${this.cardDB[targetFound.card.cardId].name}.`);
+                this.render();
+            },
+
+            slideUnderFromDeck(targetInstanceId) {
+                this.saveState();
+                let targetFound = this.findCard(targetInstanceId);
+                if (!targetFound || targetFound.loc !== 'field') return;
+
+                const p = targetFound.player;
+                if (p.deck.length === 0) return;
+
+                const topCard = p.deck.shift();
+
+                if (!targetFound.card.stackedCards) {
+                    targetFound.card.stackedCards = [];
+                }
+
+                // Add to the stack (facedown usually implied for this mechanic)
+                targetFound.card.stackedCards.push({
+                    cardId: topCard.cardId,
+                    instanceId: topCard.instanceId,
+                    faceUp: false
+                });
+
+                this.logAction(`Slipped top card of deck underneath ${this.cardDB[targetFound.card.cardId].name}.`);
+                this.render();
+            },
+
+            unstackCards(targetInstanceId) {
+                this.saveState();
+                let targetFound = this.findCard(targetInstanceId);
+                if (!targetFound || targetFound.loc !== 'field' || !targetFound.card.stackedCards || targetFound.card.stackedCards.length === 0) return;
+
+                const p = targetFound.player;
+                const dbCard = this.cardDB[targetFound.card.cardId];
+
+                // Extract copies to push back to field
+                const cardsToExtract = targetFound.card.stackedCards.map(sc => {
+                    return {
+                        instanceId: sc.instanceId,
+                        cardId: sc.cardId,
+                        exerted: true, // enter exerted to be safe if separated
+                        damage: parseInt(targetFound.card.damage) || 0, // retain damage counters individually
+                        faceUp: sc.faceUp,
+                        locationId: targetFound.card.locationId,
+                        drying: true // enter drying when separated
+                    };
+                });
+
+                // Clear the stack
+                targetFound.card.stackedCards = [];
+
+                // Add them back to the field
+                cardsToExtract.forEach(c => p.field.push(c));
+
+                this.logAction(`Separated stacked cards beneath ${dbCard.name}.`);
+                this.render();
+            },
+
             // --- UI Rendering ---
 
             getCardImage(dbCard) {
@@ -1729,6 +1904,15 @@
                     dmg.className = 'damage-counter';
                     dmg.innerText = c.damage;
                     el.appendChild(dmg);
+                }
+
+                // Add Stack count badge
+                if (c.stackedCards && c.stackedCards.length > 0 && !isOpponentHand && (!isInkwell || c.faceUp)) {
+                    const stackBadge = document.createElement('div');
+                    stackBadge.className = 'absolute -bottom-2 -right-2 bg-purple-600 border border-white text-white rounded w-6 h-6 flex items-center justify-center text-xs font-bold shadow-lg z-20';
+                    stackBadge.innerText = c.stackedCards.length;
+                    stackBadge.title = `${c.stackedCards.length} cards stacked underneath`;
+                    el.appendChild(stackBadge);
                 }
 
                 // Context menu trigger
@@ -1865,6 +2049,13 @@
                     addOption('Return to Hand', () => this.returnToHand(instanceId));
                     addOption('Put on Top of Deck', () => this.moveCard(instanceId, 'deck', isActivePlayerOwned ? 'bottom' : 'top', 'top'));
                     addOption('Put on Bottom of Deck', () => this.moveCard(instanceId, 'deck', isActivePlayerOwned ? 'bottom' : 'top', 'bottom'));
+                    addDivider();
+                    if (isActivePlayerOwned) {
+                        addOption('Put Top Card of Deck Under', () => this.slideUnderFromDeck(instanceId));
+                        if (found.card.stackedCards && found.card.stackedCards.length > 0) {
+                            addOption('Separate Stacked Cards', () => this.unstackCards(instanceId));
+                        }
+                    }
                 } else if (found.loc === 'inkwell') {
                     addOption(found.card.exerted ? 'Ready Ink' : 'Exert Ink', () => this.toggleExert(instanceId));
                     addDivider();
@@ -2168,7 +2359,38 @@
                 const independentCards = player.field.filter(c => !c.locationId && this.cardDB[c.cardId].type !== 'Location');
 
                 // Render independent cards
-                independentCards.forEach(c => container.appendChild(this.createCardElement(c)));
+                independentCards.forEach(c => {
+                    const group = document.createElement('div');
+                    group.className = 'relative inline-block m-1 group transition-all drop-zone rounded';
+
+                    group.ondragover = (e) => { e.preventDefault(); e.stopPropagation(); group.classList.add('drop-target-active'); };
+                    group.ondragleave = (e) => { e.preventDefault(); e.stopPropagation(); group.classList.remove('drop-target-active'); };
+                    group.ondrop = (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        group.classList.remove('drop-target-active');
+                        this.dropToStack(e, c.instanceId);
+                    };
+
+                    // Render stacked cards behind first
+                    if (c.stackedCards && c.stackedCards.length > 0) {
+                        c.stackedCards.forEach((sc, idx) => {
+                            const scEl = this.createCardElement(sc, !sc.faceUp);
+                            scEl.style.position = 'absolute';
+                            scEl.style.left = `-${(idx + 1) * 4}px`;
+                            scEl.style.top = `-${(idx + 1) * 4}px`;
+                            scEl.style.zIndex = -1 - idx;
+                            scEl.style.pointerEvents = 'none'; // so they don't intercept clicks meant for the main card
+                            group.appendChild(scEl);
+                        });
+                    }
+
+                    // Render main card on top
+                    const mainEl = this.createCardElement(c);
+                    group.appendChild(mainEl);
+
+                    container.appendChild(group);
+                });
 
                 // Render locations with their stacked characters
                 locations.forEach(loc => {
