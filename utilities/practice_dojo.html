@@ -187,6 +187,27 @@
             text-transform: uppercase;
             letter-spacing: 1px;
         }
+
+        /* Tree Node Pulse */
+        @keyframes treeNodePulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(147, 51, 234, 0.7);
+            }
+
+            70% {
+                box-shadow: 0 0 0 10px rgba(147, 51, 234, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(147, 51, 234, 0);
+            }
+        }
+
+        .tree-node-active {
+            animation: treeNodePulse 2s infinite;
+            border-color: #a855f7 !important;
+            background-color: #2e1065 !important;
+        }
     </style>
 </head>
 
@@ -285,6 +306,32 @@
                 <button onclick="App.saveInspectDeck()"
                     class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded transition">Save Custom
                     Order</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Multiverse Tree Modal -->
+    <div id="tree-modal" class="absolute inset-0 z-50 bg-black/95 backdrop-blur-md hidden flex-col overflow-hidden">
+        <div class="p-4 bg-gray-900 border-b border-gray-800 flex justify-between items-center z-10 shadow-2xl">
+            <div class="flex items-center gap-3">
+                <i class="fa-solid fa-network-wired text-purple-500 text-xl"></i>
+                <h2 class="text-2xl font-bold text-white tracking-wide">Multiverse Timelines</h2>
+                <span class="text-xs text-gray-500 ml-4 hidden sm:block">Click and drag canvas to pan. Click a node to
+                    restore that timeline.</span>
+            </div>
+            <button onclick="App.closeTreeModal()" class="text-gray-400 hover:text-white transition"><i
+                    class="fa-solid fa-times text-2xl"></i></button>
+        </div>
+
+        <!-- Draggable Canvas Area -->
+        <div id="tree-viewport" class="flex-1 relative cursor-grab overflow-hidden bg-[#0a0a0c]"
+            style="background-image: radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px); background-size: 40px 40px;">
+            <div id="tree-canvas"
+                class="absolute inset-0 transform origin-top-left transition-transform duration-75 ease-out">
+                <!-- SVG lines go here -->
+                <svg id="tree-svg" class="absolute inset-0 overflow-visible z-0 pointer-events-none"></svg>
+                <!-- HTML Nodes go here -->
+                <div id="tree-nodes" class="absolute inset-0 z-10"></div>
             </div>
         </div>
     </div>
@@ -475,8 +522,16 @@
                     </button>
                 </div>
 
+                <!-- Open Multiverse Tree View -->
+                <div class="p-4 border-b border-gray-800 shrink-0 bg-[#151518]">
+                    <button onclick="App.openTreeModal()"
+                        class="w-full py-3 bg-gray-800 hover:bg-gray-700 border border-purple-500/50 hover:border-purple-400 text-white text-sm font-bold rounded transition shadow-[0_0_15px_rgba(147,51,234,0.15)] flex justify-center items-center gap-2">
+                        <i class="fa-solid fa-network-wired text-purple-400"></i> Explore Multiverse (Tree View)
+                    </button>
+                </div>
+
                 <!-- Create Bookmark -->
-                <div class="p-4 bg-[#151518] border-b border-gray-800 shrink-0 flex flex-col gap-2">
+                <div class="p-4 bg-[#1a1a1e] border-b border-gray-800 shrink-0 flex flex-col gap-2">
                     <input type="text" id="bookmark-name"
                         class="w-full bg-black border border-gray-700 rounded p-2 text-xs text-white focus:border-purple-500 outline-none transition"
                         placeholder="Name this timeline (optional)...">
@@ -489,19 +544,14 @@
                     </button>
                 </div>
 
-                <!-- Bookmarks List -->
-                <div class="flex-1 overflow-y-auto p-3 flex flex-col gap-2" id="bookmark-list">
-                    <!-- Bookmarks injected here -->
-                </div>
-
                 <!-- Auto-Saves (Safety Net) -->
-                <div class="p-3 bg-gray-900 border-t border-gray-800 min-h-[140px] shrink-0">
+                <div class="p-3 bg-gray-900 border-t border-gray-800 flex-1 overflow-y-auto">
                     <div
-                        class="text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-2 ml-1 flex justify-between">
+                        class="text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-2 ml-1 flex justify-between sticky top-0 bg-gray-900 pb-1 z-10">
                         <span>Auto-Saves (Time Jumps)</span>
                         <i class="fa-solid fa-life-ring text-gray-600"></i>
                     </div>
-                    <div id="autosave-list" class="flex flex-col gap-1.5">
+                    <div id="autosave-list" class="flex flex-col gap-1.5 pb-4">
                         <!-- Auto-saves injected here -->
                     </div>
                 </div>
@@ -709,10 +759,20 @@
             bookmarks: [],
             autoSaves: [],
 
-            _inspectingPlayerIndex: null, // New property to store the player index being inspected
-            _tempDeckOrder: null, // New property to store the temporary deck order for inspection
+            _inspectingPlayerIndex: null,
+            _tempDeckOrder: null,
+
+            // Tree Panning State
+            treePan: {
+                isDragging: false,
+                startX: 0,
+                startY: 0,
+                translateX: 50,
+                translateY: 50
+            },
 
             state: {
+                activeBookmarkId: null, // Tracks where we are in the multiverse tree
                 turn: 1,
                 activePlayer: 0,
                 inactivePlayer: 1,
@@ -825,6 +885,8 @@
                         console.warn("Could not load win probability config:", err);
                     }
 
+                    this.initTreePan();
+
                     document.getElementById('loading-screen').classList.add('hidden');
                     this.showSetup();
 
@@ -832,6 +894,31 @@
                     document.getElementById('loading-text').innerText = "Error loading database. Please refresh.";
                     console.error("Initialization error:", e);
                 }
+            },
+
+            initTreePan() {
+                const viewport = document.getElementById('tree-viewport');
+                const canvas = document.getElementById('tree-canvas');
+
+                viewport.addEventListener('mousedown', (e) => {
+                    if (e.target.closest('.tree-node')) return; // Do not pan if clicking a node card
+                    this.treePan.isDragging = true;
+                    this.treePan.startX = e.clientX - this.treePan.translateX;
+                    this.treePan.startY = e.clientY - this.treePan.translateY;
+                    viewport.style.cursor = 'grabbing';
+                });
+
+                window.addEventListener('mousemove', (e) => {
+                    if (!this.treePan.isDragging) return;
+                    this.treePan.translateX = e.clientX - this.treePan.startX;
+                    this.treePan.translateY = e.clientY - this.treePan.startY;
+                    canvas.style.transform = `translate(${this.treePan.translateX}px, ${this.treePan.translateY}px)`;
+                });
+
+                window.addEventListener('mouseup', () => {
+                    this.treePan.isDragging = false;
+                    viewport.style.cursor = 'grab';
+                });
             },
 
             showSetup() {
@@ -883,8 +970,8 @@
                     activeTimelineColor: this.state.activeTimelineColor,
                     log: this.state.log
                 }));
-                // Keep last 50 states
-                if (this.state.history.length > 50) this.state.history.shift();
+                // Keep last 250 states
+                if (this.state.history.length > 250) this.state.history.shift();
             },
 
             undo() {
@@ -921,6 +1008,7 @@
 
                 // Reset state
                 this.state = {
+                    activeBookmarkId: null,
                     turn: 1, activePlayer: 0, inactivePlayer: 1, opponentHandRevealed: false, history: [], log: [],
                     activeTimelineColor: null,
                     players: [
@@ -1031,7 +1119,6 @@
 
             toggleTimelines() {
                 document.getElementById('timeline-drawer').classList.toggle('-translate-x-full');
-                this.renderTimelines();
             },
 
             exportTimelines() {
@@ -1079,7 +1166,8 @@
 
                             // Close Drawer if open, render new state
                             document.getElementById('timeline-drawer').classList.add('-translate-x-full');
-                            this.renderTimelines();
+                            this.renderAutoSaves();
+                            this.renderTree(); // Ensure tree is ready if they open it
                             this.render();
                             this.showToast("Session Imported Successfully!");
                         } else {
@@ -1104,24 +1192,31 @@
 
                 const p1 = this.state.players[0];
                 const p2 = this.state.players[1];
-                const stats = `Turn ${this.state.turn} | ${ap.name} Active | P1: ${p1.lore} - P2: ${p2.lore}`;
+                const stats = `Turn ${this.state.turn} | P1: ${p1.lore} - P2: ${p2.lore}`;
 
                 const timelineColors = ['#ef4444', '#f97316', '#eab308', '#22c54e', '#06b6d4', '#3b82f6', '#8b5cf6', '#d946ef', '#f43f5e'];
                 const bColor = timelineColors[this.bookmarks.length % timelineColors.length];
 
-                this.bookmarks.unshift({
-                    id: this.uuid(),
+                const newId = this.uuid();
+
+                this.bookmarks.push({
+                    id: newId,
+                    parentId: this.state.activeBookmarkId || null, // Create lineage
                     name: finalName,
                     stats: stats,
                     comment: commentInput,
                     color: bColor,
                     state: JSON.stringify(this.state),
-                    timestamp: Date.now()
+                    timestamp: Date.now(),
+                    isDeckEdit: false
                 });
+
+                // Update active pointer to the new node we just created
+                this.state.activeBookmarkId = newId;
 
                 document.getElementById('bookmark-name').value = '';
                 document.getElementById('bookmark-comment').value = '';
-                this.renderTimelines();
+                this.showToast("Timeline node created.");
             },
 
             autoSaveTimeline() {
@@ -1143,10 +1238,9 @@
 
                 // Ensure newest is always strictly on top
                 this.autoSaves.sort((a, b) => b.timestamp - a.timestamp);
+                if (this.autoSaves.length > 5) this.autoSaves.length = 5;
 
-                if (this.autoSaves.length > 5) {
-                    this.autoSaves.length = 5;
-                }
+                this.renderAutoSaves();
             },
 
             restoreTimeline(id, isAuto = false) {
@@ -1160,14 +1254,15 @@
                 // Restore State
                 this.state = JSON.parse(bookmark.state);
 
-                if (!isAuto && bookmark.color) {
-                    this.state.activeTimelineColor = bookmark.color;
-                } else if (!isAuto) {
-                    this.state.activeTimelineColor = '#3b82f6';
+                // CRUCIAL: If it's a manual tree node, we must explicitly tell the state we are now physically located AT this node.
+                if (!isAuto) {
+                    this.state.activeBookmarkId = id;
+                    this.state.activeTimelineColor = bookmark.color || '#3b82f6';
                 }
 
-                // Close Drawer, Render, and Flash
-                this.toggleTimelines();
+                // Close Drawer and Modal, Render, and Flash
+                document.getElementById('timeline-drawer').classList.add('-translate-x-full');
+                this.closeTreeModal();
                 this.render();
                 this.showToast(`Timeline Restored: ${bookmark.name}`);
                 this.triggerTimeFlash();
@@ -1176,58 +1271,175 @@
             deleteTimeline(id, isAuto = false) {
                 if (isAuto) {
                     this.autoSaves = this.autoSaves.filter(b => b.id !== id);
+                    this.renderAutoSaves();
                 } else {
-                    this.bookmarks = this.bookmarks.filter(b => b.id !== id);
+                    const nodeToDelete = this.bookmarks.find(b => b.id === id);
+                    if (nodeToDelete) {
+                        // Grandparenting algorithm: Find children and attach them to the deleted node's parent
+                        this.bookmarks.forEach(b => {
+                            if (b.parentId === id) {
+                                b.parentId = nodeToDelete.parentId;
+                            }
+                        });
+                        this.bookmarks = this.bookmarks.filter(b => b.id !== id);
+                        this.renderTree(); // Re-draw the canvas
+                    }
                 }
-                this.renderTimelines();
             },
 
-            renderTimelines() {
-                const buildHtml = (list, isAuto) => {
-                    if (list.length === 0) return `<div class="text-xs text-gray-600 text-center py-4 italic">No timelines saved.</div>`;
+            // --- Multiverse Canvas Drawing (Tree View) ---
+
+            openTreeModal() {
+                document.getElementById('timeline-drawer').classList.add('-translate-x-full');
+                document.getElementById('tree-modal').classList.remove('hidden');
+                document.getElementById('tree-modal').classList.add('flex');
+
+                // Center the camera
+                this.treePan.translateX = 100;
+                this.treePan.translateY = 100;
+                document.getElementById('tree-canvas').style.transform = `translate(${this.treePan.translateX}px, ${this.treePan.translateY}px)`;
+
+                this.renderTree();
+            },
+
+            closeTreeModal() {
+                document.getElementById('tree-modal').classList.add('hidden');
+                document.getElementById('tree-modal').classList.remove('flex');
+            },
+
+            renderTree() {
+                const svgContainer = document.getElementById('tree-svg');
+                const nodesContainer = document.getElementById('tree-nodes');
+
+                if (this.bookmarks.length === 0) {
+                    svgContainer.innerHTML = '';
+                    nodesContainer.innerHTML = `<div class="absolute left-[100px] top-[100px] text-gray-500 italic">The Multiverse is empty. Save a state to begin a timeline.</div>`;
+                    return;
+                }
+
+                // Build Adjacency List & Roots
+                const childrenMap = {};
+                const roots = [];
+
+                this.bookmarks.forEach(b => {
+                    // Check if parentId exists AND that the parent hasn't been completely wiped from memory
+                    if (b.parentId && this.bookmarks.find(p => p.id === b.parentId)) {
+                        if (!childrenMap[b.parentId]) childrenMap[b.parentId] = [];
+                        childrenMap[b.parentId].push(b);
+                    } else {
+                        roots.push(b);
+                    }
+                });
+
+                // Sort children chronologically to ensure predictable layout
+                Object.keys(childrenMap).forEach(key => {
+                    childrenMap[key].sort((a, b) => a.timestamp - b.timestamp);
+                });
+                roots.sort((a, b) => a.timestamp - b.timestamp);
+
+                // Tree Layout Calculation
+                let currentY = 0;
+                const nodePositions = {}; // id -> {x, y}
+                const CARD_W = 220;
+                const CARD_H = 100;
+                const X_SPACING = 300; // 220 card + 80 gap
+                const Y_SPACING = 140; // 100 card + 40 gap
+
+                const assignCoords = (node, depth) => {
+                    const children = childrenMap[node.id] || [];
+                    const x = depth * X_SPACING;
+
+                    if (children.length === 0) {
+                        nodePositions[node.id] = { x, y: currentY };
+                        currentY += Y_SPACING;
+                    } else {
+                        let startY = currentY;
+                        children.forEach(child => assignCoords(child, depth + 1));
+                        let endY = currentY - Y_SPACING;
+                        nodePositions[node.id] = { x, y: (startY + endY) / 2 }; // Center parent vertically between children
+                    }
+                };
+
+                roots.forEach(root => assignCoords(root, 0));
+
+                // 1. Render SVG Curved Paths
+                let svgHtml = '';
+                this.bookmarks.forEach(b => {
+                    if (b.parentId && nodePositions[b.parentId]) {
+                        const pPos = nodePositions[b.parentId];
+                        const cPos = nodePositions[b.id];
+
+                        const startX = pPos.x + CARD_W;
+                        const startY = pPos.y + (CARD_H / 2);
+                        const endX = cPos.x;
+                        const endY = cPos.y + (CARD_H / 2);
+
+                        svgHtml += `<path d="M ${startX} ${startY} C ${startX + 40} ${startY}, ${endX - 40} ${endY}, ${endX} ${endY}" fill="none" stroke="${b.color || '#4b5563'}" stroke-width="3" opacity="0.6" />`;
+                    }
+                });
+                svgContainer.innerHTML = svgHtml;
+
+                // 2. Render HTML Nodes
+                nodesContainer.innerHTML = '';
+                this.bookmarks.forEach(b => {
+                    const pos = nodePositions[b.id];
+                    if (!pos) return;
+
+                    const isActive = this.state.activeBookmarkId === b.id;
+                    const d = new Date(b.timestamp);
+                    const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                    const icon = b.isDeckEdit ? '<i class="fa-solid fa-layer-group text-blue-400"></i>' : '<i class="fa-solid fa-bookmark text-purple-400"></i>';
+
+                    const el = document.createElement('div');
+                    el.className = `tree-node absolute w-[220px] h-[100px] bg-[#1a1a1e] rounded-lg border-2 shadow-lg flex flex-col overflow-hidden transition-transform hover:scale-105 hover:z-20 ${isActive ? 'tree-node-active' : ''}`;
+                    el.style.left = `${pos.x}px`;
+                    el.style.top = `${pos.y}px`;
+                    el.style.borderColor = b.color || '#4b5563';
+
+                    el.innerHTML = `
+                         <div class="p-2.5 flex-1 flex flex-col relative group cursor-pointer" onclick="App.restoreTimeline('${b.id}', false)">
+                             <div class="text-[12px] font-bold text-white truncate pr-6 flex items-center gap-1.5">${icon} ${b.name}</div>
+                             <div class="text-[9px] text-gray-400 font-mono tracking-wider mt-1 flex justify-between items-center">
+                                 <span>${b.stats}</span>
+                             </div>
+                             <div class="text-[10px] text-gray-500 truncate italic mt-1.5 opacity-80">${b.comment || ''}</div>
+                             
+                             <!-- Hover overlay for restore -->
+                             <div class="absolute inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 rounded">
+                                 <button class="px-5 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded shadow-lg transition">Restore Warp</button>
+                             </div>
+                         </div>
+                         <!-- Delete button avoids the hover capture above -->
+                         <button onclick="App.deleteTimeline('${b.id}', false)" class="absolute top-1.5 right-1.5 w-6 h-6 flex items-center justify-center bg-gray-800 hover:bg-red-600 text-gray-400 hover:text-white rounded-md text-[10px] transition z-20" title="Delete Node (Children will automatically attach to parent)"><i class="fa-solid fa-trash"></i></button>
+                    `;
+                    nodesContainer.appendChild(el);
+                });
+            },
+
+            renderAutoSaves() {
+                const buildHtml = (list) => {
+                    if (list.length === 0) return `<div class="text-xs text-gray-600 text-center py-4 italic">No auto-saves available.</div>`;
                     return list.map(b => {
                         const d = new Date(b.timestamp);
                         const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
                         return `
-                        <div class="shrink-0 bg-[#1a1a1e] rounded border border-gray-700 hover:border-purple-500 transition shadow-sm flex flex-col overflow-hidden mb-1" ${!isAuto && b.color ? `style="border-left: 4px solid ${b.color};"` : ''}>
-                           <div class="group relative p-2 cursor-pointer">
-                               <div class="text-[11px] font-bold text-white mb-0.5 truncate">${b.name}</div>
-                               <div class="text-[9px] text-gray-400 font-mono tracking-wider flex justify-between items-center">
+                        <div class="shrink-0 bg-[#1a1a1e] rounded border border-gray-700 hover:border-gray-500 transition shadow-sm flex flex-col overflow-hidden mb-1">
+                           <div class="group relative p-2 cursor-pointer" onclick="App.restoreTimeline('${b.id}', true)">
+                               <div class="text-[11px] font-bold text-gray-300 mb-0.5 truncate">${b.name}</div>
+                               <div class="text-[9px] text-gray-500 font-mono tracking-wider flex justify-between items-center">
                                    <span>${b.stats}</span>
-                                   <span class="text-[8px] opacity-60">${timeStr}</span>
                                </div>
-                               
-                               <!-- Hover Overlay -->
-                               <div class="absolute inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
-                                   <button onclick="App.restoreTimeline('${b.id}', ${isAuto})" class="px-4 py-1.5 bg-purple-600 hover:bg-purple-500 text-white text-[10px] font-bold rounded shadow-lg transition">Restore</button>
-                                   <button onclick="App.deleteTimeline('${b.id}', ${isAuto})" class="px-3 py-1.5 bg-red-900/80 hover:bg-red-600 text-white text-[10px] font-bold rounded shadow-lg transition"><i class="fa-solid fa-trash"></i></button>
+                               <div class="absolute inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+                                   <span class="text-xs font-bold text-white">Restore Auto-Save</span>
                                </div>
                            </div>
-                           ${!isAuto ? `
-                           <div class="border-t border-gray-800 bg-black/40">
-                               <textarea 
-                                   class="w-full bg-transparent text-gray-300 text-[10px] p-2 outline-none resize-none placeholder-gray-600 focus:bg-black/60 transition" 
-                                   rows="2" 
-                                   placeholder="Add a comment..." 
-                                   onchange="App.updateTimelineComment('${b.id}', this.value)"
-                                   onclick="event.stopPropagation()">${(b.comment || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</textarea>
-                           </div>
-                           ` : ''}
                         </div>
                         `;
                     }).join('');
                 };
-
-                document.getElementById('bookmark-list').innerHTML = buildHtml(this.bookmarks, false);
-                document.getElementById('autosave-list').innerHTML = buildHtml(this.autoSaves, true);
-            },
-
-            updateTimelineComment(id, newComment) {
-                const bookmark = this.bookmarks.find(b => b.id === id);
-                if (bookmark) {
-                    bookmark.comment = newComment.trim();
-                }
+                document.getElementById('autosave-list').innerHTML = buildHtml(this.autoSaves);
             },
 
             triggerTimeFlash() {
@@ -1505,11 +1717,6 @@
                 if (!found) return;
 
                 const dbCard = this.cardDB[found.card.cardId];
-                if (!dbCard.inkwell) {
-                    // Optional warning, but we allow it for practice Dojo freedom
-                    console.log("Card is technically not inkable");
-                }
-
                 found.player[found.loc].splice(found.idx, 1);
 
                 const cardsToMove = this._unpackStack(found.card);
@@ -2185,24 +2392,26 @@
 
                 // Keep the color of the current active timeline if there is one
                 const bColor = this.state.activeTimelineColor || '#3b82f6';
-
                 const p1 = this.state.players[0];
                 const p2 = this.state.players[1];
                 const ap = this.state.players[this.state.activePlayer];
                 const stats = `Turn ${this.state.turn} | ${ap.name} Active | P1: ${p1.lore} Lore - P2: ${p2.lore} Lore`;
+                const newId = this.uuid();
 
-                // Add to manual bookmarks
-                this.bookmarks.unshift({
-                    id: this.uuid(),
+                this.bookmarks.push({
+                    id: newId,
+                    parentId: this.state.activeBookmarkId || null,
                     name: name,
                     stats: stats,
                     comment: "Custom arrangement created from Inspect Deck.",
                     color: bColor,
                     state: JSON.stringify(this.state),
-                    timestamp: Date.now()
+                    timestamp: Date.now(),
+                    isDeckEdit: true
                 });
 
-                this.renderTimelines();
+                this.state.activeBookmarkId = newId;
+
                 this.closeInspectDeck();
                 this.render();
                 this.showToast("Custom Deck Order Saved & Bookmarked!");
@@ -2380,7 +2589,7 @@
                             scEl.style.left = `-${(idx + 1) * 4}px`;
                             scEl.style.top = `-${(idx + 1) * 4}px`;
                             scEl.style.zIndex = -1 - idx;
-                            scEl.style.pointerEvents = 'none'; // so they don't intercept clicks meant for the main card
+                            scEl.style.pointerEvents = 'none';
                             group.appendChild(scEl);
                         });
                     }
