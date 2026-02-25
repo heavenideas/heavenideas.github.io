@@ -1305,6 +1305,7 @@
             closeTreeModal() {
                 document.getElementById('tree-modal').classList.add('hidden');
                 document.getElementById('tree-modal').classList.remove('flex');
+                if (this.state) this.state.editingNodeId = null; // Clear edit state on close
             },
 
             renderTree() {
@@ -1341,9 +1342,9 @@
                 let currentY = 0;
                 const nodePositions = {}; // id -> {x, y}
                 const CARD_W = 220;
-                const CARD_H = 100;
+                const CARD_H = 150;
                 const X_SPACING = 300; // 220 card + 80 gap
-                const Y_SPACING = 140; // 100 card + 40 gap
+                const Y_SPACING = 190; // 150 card + 40 gap
 
                 const assignCoords = (node, depth) => {
                     const children = childrenMap[node.id] || [];
@@ -1392,27 +1393,62 @@
                     const icon = b.isDeckEdit ? '<i class="fa-solid fa-layer-group text-blue-400"></i>' : '<i class="fa-solid fa-bookmark text-purple-400"></i>';
 
                     const el = document.createElement('div');
-                    el.className = `tree-node absolute w-[220px] h-[100px] bg-[#1a1a1e] rounded-lg border-2 shadow-lg flex flex-col overflow-hidden transition-transform hover:scale-105 hover:z-20 ${isActive ? 'tree-node-active' : ''}`;
+                    el.className = `tree-node absolute w-[220px] h-[150px] bg-[#1a1a1e] rounded-lg border-2 shadow-lg flex flex-col overflow-hidden transition-transform hover:scale-105 hover:z-20 ${isActive ? 'tree-node-active' : ''}`;
                     el.style.left = `${pos.x}px`;
                     el.style.top = `${pos.y}px`;
                     el.style.borderColor = b.color || '#4b5563';
 
-                    el.innerHTML = `
-                         <div class="p-2.5 flex-1 flex flex-col relative group cursor-pointer" onclick="App.restoreTimeline('${b.id}', false)">
-                             <div class="text-[12px] font-bold text-white truncate pr-6 flex items-center gap-1.5">${icon} ${b.name}</div>
-                             <div class="text-[9px] text-gray-400 font-mono tracking-wider mt-1 flex justify-between items-center">
-                                 <span>${b.stats}</span>
+                    const isEditing = this.state.editingNodeId === b.id;
+
+                    if (isEditing) {
+                        el.innerHTML = `
+                            <div class="p-2.5 flex-1 flex flex-col relative h-full bg-[#2a2a2e]">
+                                <input type="text" id="edit-node-name-${b.id}" class="w-full bg-black border border-gray-600 rounded px-1.5 py-0.5 text-[11px] text-white focus:border-purple-500 outline-none mb-1" value="${b.name.replace(/"/g, '&quot;')}">
+                                <textarea id="edit-node-comment-${b.id}" class="w-full flex-1 bg-black border border-gray-600 rounded px-1.5 py-1 text-[10px] text-gray-300 focus:border-purple-500 outline-none resize-none custom-scrollbar mb-1">${b.comment || ''}</textarea>
+                                <div class="flex justify-end gap-2 shrink-0">
+                                    <button onclick="App.toggleEditNode(null)" class="px-2 py-0.5 bg-gray-600 hover:bg-gray-500 text-white text-[10px] rounded transition">Cancel</button>
+                                    <button onclick="App.saveEditNode('${b.id}')" class="px-2 py-0.5 bg-purple-600 hover:bg-purple-500 text-white text-[10px] font-bold rounded transition shadow-lg">Save</button>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        el.innerHTML = `
+                             <div class="p-2.5 flex-1 flex flex-col relative h-full">
+                                 <!-- Header Row -->
+                                 <div class="flex items-center justify-between">
+                                     <button onclick="App.restoreTimeline('${b.id}', false)"
+                                         class="text-[12px] font-bold text-white truncate pr-6 flex items-center gap-1.5 hover:text-purple-300 transition"
+                                         title="Click to Restore this Timeline Warp">
+                                         ${icon} <span class="group-hover:underline underline-offset-2">${b.name}</span>
+                                     </button>
+                                 </div>
+                                 
+                                 <!-- Stats Row -->
+                                 <div class="text-[9px] text-gray-400 font-mono tracking-wider mt-1 flex justify-between items-center shrink-0">
+                                     <span>${b.stats}</span>
+                                 </div>
+                                 
+                                 <!-- Scrollable Comment Area -->
+                                 <div class="text-[11px] text-gray-300 mt-1.5 whitespace-normal break-words overflow-y-auto pr-1 flex-1 min-h-0 custom-scrollbar pb-1">
+                                     ${b.comment || ''}
+                                 </div>
                              </div>
-                             <div class="text-[10px] text-gray-500 truncate italic mt-1.5 opacity-80">${b.comment || ''}</div>
                              
-                             <!-- Hover overlay for restore -->
-                             <div class="absolute inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 rounded">
-                                 <button class="px-5 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded shadow-lg transition">Restore Warp</button>
-                             </div>
-                         </div>
-                         <!-- Delete button avoids the hover capture above -->
-                         <button onclick="App.deleteTimeline('${b.id}', false)" class="absolute top-1.5 right-1.5 w-6 h-6 flex items-center justify-center bg-gray-800 hover:bg-red-600 text-gray-400 hover:text-white rounded-md text-[10px] transition z-20" title="Delete Node (Children will automatically attach to parent)"><i class="fa-solid fa-trash"></i></button>
-                    `;
+                             <!-- Edit Button -->
+                             <button onclick="App.toggleEditNode('${b.id}')" 
+                                 class="absolute top-1.5 right-8 w-6 h-6 flex items-center justify-center bg-gray-800 hover:bg-blue-600 text-gray-400 hover:text-white rounded-md text-[10px] transition z-20" 
+                                 title="Edit Node">
+                                 <i class="fa-solid fa-pen"></i>
+                             </button>
+                             
+                             <!-- Delete Button -->
+                             <button onclick="App.deleteTimeline('${b.id}', false)" 
+                                 class="absolute top-1.5 right-1.5 w-6 h-6 flex items-center justify-center bg-gray-800 hover:bg-red-600 text-gray-400 hover:text-white rounded-md text-[10px] transition z-20" 
+                                 title="Delete Node (Children will automatically attach to parent)">
+                                 <i class="fa-solid fa-trash"></i>
+                             </button>
+                        `;
+                    }
                     nodesContainer.appendChild(el);
                 });
             },
@@ -1440,6 +1476,26 @@
                     }).join('');
                 };
                 document.getElementById('autosave-list').innerHTML = buildHtml(this.autoSaves);
+            },
+
+            toggleEditNode(id) {
+                this.state.editingNodeId = id;
+                this.renderTree();
+            },
+
+            saveEditNode(id) {
+                const node = this.bookmarks.find(b => b.id === id);
+                if (!node) return;
+
+                const newName = document.getElementById(`edit-node-name-${id}`).value.trim();
+                const newComment = document.getElementById(`edit-node-comment-${id}`).value.trim();
+
+                if (newName) node.name = newName;
+                node.comment = newComment; // Allow clearing the comment
+
+                this.state.editingNodeId = null;
+                this.renderTree();
+                this.showToast("Timeline node updated.");
             },
 
             triggerTimeFlash() {
