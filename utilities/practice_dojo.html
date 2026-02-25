@@ -644,11 +644,13 @@
                                 class="font-bold text-[11px]">0.0</span></span>
                     </div>
 
-                    <!-- Opponent Hand Toggle -->
+                    <!-- Opponent Hand Toggle (Hold to Reveal) -->
                     <div class="flex justify-center mt-2 relative z-20 shrink-0">
-                        <button onclick="App.toggleRevealHand()"
-                            class="text-xs text-gray-300 hover:text-white transition flex items-center gap-2 bg-black/40 hover:bg-black/60 px-3 py-1 rounded-full border border-gray-600">
-                            <i id="reveal-icon" class="fa-solid fa-eye"></i> <span id="reveal-text">Reveal Hand</span>
+                        <button onmousedown="App.setHandReveal(true)" onmouseup="App.setHandReveal(false)"
+                            onmouseleave="App.setHandReveal(false)"
+                            class="text-xs text-gray-300 hover:text-white transition flex items-center gap-2 bg-black/40 hover:bg-black/60 px-3 py-1 rounded-full border border-gray-600 select-none cursor-pointer">
+                            <i id="reveal-icon" class="fa-solid fa-eye"></i> <span id="reveal-text">Hold to Reveal
+                                Hand</span>
                         </button>
                     </div>
                 </div>
@@ -1108,11 +1110,43 @@
                 }
             },
 
-            toggleRevealHand() {
-                this.saveState();
-                this.state.opponentHandRevealed = !this.state.opponentHandRevealed;
-                this.logAction(`You ${this.state.opponentHandRevealed ? 'revealed' : 'hid'} the opponent's hand.`, true);
-                this.render();
+            setHandReveal(isRevealed) {
+                if (this.state.opponentHandRevealed === isRevealed) return;
+
+                this.state.opponentHandRevealed = isRevealed;
+
+                // Directly manipulate the DOM for smooth animation without a full React-style render
+                const th = document.getElementById('top-hand');
+                const icon = document.getElementById('reveal-icon');
+                const text = document.getElementById('reveal-text');
+
+                if (isRevealed) {
+                    // Slide down, scale up slightly, bring to absolute front
+                    th.classList.add('translate-y-[120px]', 'scale-[1.1]', 'z-50');
+                    th.classList.remove('scale-[0.85]');
+                    icon.className = 'fa-solid fa-eye-slash';
+                    text.innerText = 'Release to Hide';
+
+                    // Re-render just the cards inside to show faces
+                    th.innerHTML = '';
+                    this.state.players[1 - this.state.activePlayer].hand.forEach(c => th.appendChild(this.createCardElement(c, false)));
+
+                    if (!this._hasLoggedReveal) {
+                        this.logAction(`You peeked at the opponent's hand.`, true);
+                        this._hasLoggedReveal = true; // Prevent spamming log if they click rapidly
+                    }
+                } else {
+                    // Return to normal
+                    th.classList.remove('translate-y-[120px]', 'scale-[1.1]', 'z-50');
+                    th.classList.add('scale-[0.85]');
+                    icon.className = 'fa-solid fa-eye';
+                    text.innerText = 'Hold to Reveal Hand';
+
+                    // Re-render to hide faces
+                    th.innerHTML = '';
+                    this.state.players[1 - this.state.activePlayer].hand.forEach(c => th.appendChild(this.createCardElement(c, true)));
+                    this._hasLoggedReveal = false;
+                }
             },
 
             // --- Timelines & Bookmarks System ---
@@ -2766,13 +2800,20 @@
                 document.getElementById('top-ink').innerText = `${ip.inkReady}/${ip.inkTotal}`;
                 document.getElementById('top-deck-count').innerText = ip.deck.length;
 
-                // Update Reveal Button
-                document.getElementById('reveal-icon').className = this.state.opponentHandRevealed ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye';
-                document.getElementById('reveal-text').innerText = this.state.opponentHandRevealed ? 'Hide Hand' : 'Reveal Hand';
-
-                // Top Hand (Hidden or Revealed based on state)
+                // Note: Reveal button state is handled dynamically by setHandReveal to prevent animation stuttering
+                // Top Hand (Hidden by default unless currently held down)
                 const th = document.getElementById('top-hand');
                 th.innerHTML = '';
+                // Ensure base transition classes are on the container
+                th.classList.add('transition-all', 'duration-300', 'ease-in-out');
+
+                if (this.state.opponentHandRevealed) {
+                    th.classList.add('translate-y-[120px]', 'scale-[1.1]', 'z-50');
+                    th.classList.remove('scale-[0.85]');
+                } else {
+                    th.classList.remove('translate-y-[120px]', 'scale-[1.1]', 'z-50');
+                    th.classList.add('scale-[0.85]');
+                }
                 ip.hand.forEach(c => th.appendChild(this.createCardElement(c, !this.state.opponentHandRevealed)));
 
                 // Top Field
