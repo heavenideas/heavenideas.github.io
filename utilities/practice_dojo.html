@@ -643,14 +643,14 @@
                         <span class="text-yellow-400">LVI <span id="top-hand-lvi"
                                 class="font-bold text-[11px]">0.0</span></span>
                     </div>
-                </div>
 
-                <!-- Opponent Hand Toggle -->
-                <div class="flex justify-center mb-1 relative z-20 shrink-0">
-                    <button onclick="App.toggleRevealHand()"
-                        class="text-xs text-gray-300 hover:text-white transition flex items-center gap-2 bg-black/40 hover:bg-black/60 px-3 py-1 rounded-full border border-gray-600">
-                        <i id="reveal-icon" class="fa-solid fa-eye"></i> <span id="reveal-text">Reveal Hand</span>
-                    </button>
+                    <!-- Opponent Hand Toggle -->
+                    <div class="flex justify-center mt-2 relative z-20 shrink-0">
+                        <button onclick="App.toggleRevealHand()"
+                            class="text-xs text-gray-300 hover:text-white transition flex items-center gap-2 bg-black/40 hover:bg-black/60 px-3 py-1 rounded-full border border-gray-600">
+                            <i id="reveal-icon" class="fa-solid fa-eye"></i> <span id="reveal-text">Reveal Hand</span>
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -2277,8 +2277,13 @@
 
                 if (menu.children.length > 0) {
                     menu.style.display = 'block';
-                    menu.style.left = e.clientX + 'px';
-                    menu.style.top = e.clientY + 'px';
+                    const rect = menu.getBoundingClientRect();
+                    let left = e.clientX;
+                    let top = e.clientY;
+                    if (left + rect.width > window.innerWidth) left = window.innerWidth - rect.width - 10;
+                    if (top + rect.height > window.innerHeight) top = window.innerHeight - rect.height - 10;
+                    menu.style.left = left + 'px';
+                    menu.style.top = top + 'px';
                 }
             },
 
@@ -2308,8 +2313,13 @@
 
                 if (menu.children.length > 0) {
                     menu.style.display = 'block';
-                    menu.style.left = e.clientX + 'px';
-                    menu.style.top = e.clientY + 'px';
+                    const rect = menu.getBoundingClientRect();
+                    let left = e.clientX;
+                    let top = e.clientY;
+                    if (left + rect.width > window.innerWidth) left = window.innerWidth - rect.width - 10;
+                    if (top + rect.height > window.innerHeight) top = window.innerHeight - rect.height - 10;
+                    menu.style.left = left + 'px';
+                    menu.style.top = top + 'px';
                 }
             },
 
