@@ -8,3 +8,7 @@ lorcanaUtils_MatchUpAnalyzer/matchup_analyzer_batchmode_example.html
 .kiro
 test_*
 utilities/cardThreatLevelInspector.todo
+practice_dojo/multiverse_examples/analyze.js
+practice_dojo/multiverse_examples/extract.js
+practice_dojo/multiverse_examples/extracted.js
+practice_dojo/multiverse_examples/search.js
