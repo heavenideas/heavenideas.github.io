@@ -86,6 +86,22 @@ As a player, I want the practice dojo to automatically save the game state every
 - There should be a custom tickbox that allows the practice dojo to automatically save the game state every turn.
 - The state save should be stored in the same way as the current saves.
 - The save should be named in a way that indicates the turn number and the player that was playing.
+## Feature 9: Multiverse Animated Starfield
+
+### User Story
+As a player, I want to see an animated starfield background in the "Multiverse Timelines" view, giving a sense of space and depth.
+
+### Details
+- Render an HTML Canvas initialized with hundreds of moving "stars".
+- Provides a sense of 3D depth.
+
+## Feature 10: State Restore "Warp" Effect
+
+### User Story
+As a player, I want a visual "Warp" effect when I travel through time by restoring a state, making the action feel impactful.
+
+### Details
+- Triggers a CSS animation filtering and scaling the entire interface to mimic a warp jump.
 
 # Refactor
 
@@ -111,3 +127,5 @@ As a developer, I want the JSON game state to be way more optimized and organize
 - [x] Feature 6: Fix the "Orphan Nodes" issue
 - [x] Feature 7: Turn Comments should be for each player
 - [x] Feature 8: Allow a mode that Creates a Save every turn
+- [x] Feature 9: Multiverse Animated Starfield
+- [x] Feature 10: State Restore "Warp" Effect
