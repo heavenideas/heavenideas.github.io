@@ -1,0 +1,192 @@
+body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        /* Custom Scrollbar for Game Log */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #4B5563;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6B7280;
+        }
+
+        .card {
+            width: 100px;
+            height: 140px;
+            border-radius: 0.375rem;
+            background-size: cover;
+            background-position: center;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+            position: relative;
+            flex-shrink: 0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+            z-index: 20;
+        }
+
+        .card.exerted {
+            transform: rotate(90deg) scale(0.9);
+            opacity: 0.8;
+        }
+
+        .card.exerted:hover {
+            transform: rotate(90deg) scale(0.95);
+        }
+
+        .card-back {
+            background-image: url('https://wiki.mushureport.com/images/d/d7/Card_Back_official.png');
+            background-color: #1a202c;
+        }
+
+        /* Hand fanning effect */
+        .hand-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: -50px;
+            /* Overlap adjusted for larger cards */
+        }
+
+        .hand-container .card {
+            margin-left: -40px;
+            /* Adjusted for larger cards */
+        }
+
+        .hand-container .card:first-child {
+            margin-left: 0;
+        }
+
+        /* Context Menu */
+        #context-menu {
+            position: fixed;
+            background: #1F2937;
+            border: 1px solid #374151;
+            border-radius: 8px;
+            padding: 4px;
+            z-index: 100;
+            display: none;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+            min-width: 140px;
+        }
+
+        .context-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            border-radius: 4px;
+            color: #E5E7EB;
+            font-size: 14px;
+            transition: background 0.1s;
+        }
+
+        .context-item:hover {
+            background: #374151;
+        }
+
+        .context-divider {
+            height: 1px;
+            background: #374151;
+            margin: 4px 0;
+        }
+
+        /* Damage Counter */
+        .damage-counter {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #EF4444;
+            color: white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 12px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+            z-index: 5;
+        }
+
+        .bg-player-top {
+            background-color: #3f2e70;
+        }
+
+        .bg-player-bottom {
+            background-color: #a86b32;
+        }
+
+        /* Drag & Drop Visuals */
+        .drop-zone {
+            transition: all 0.2s;
+            border-radius: 0.375rem;
+        }
+
+        .drop-zone.drop-target-active {
+            box-shadow: 0 0 0 4px #8B5CF6;
+            background-color: rgba(139, 92, 246, 0.3) !important;
+        }
+
+        /* Drying State Visuals */
+        .card.drying {
+            filter: grayscale(80%) contrast(0.85);
+        }
+
+        .drying-badge {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.85);
+            color: #d1d5db;
+            font-size: 9px;
+            font-weight: bold;
+            padding: 4px 8px;
+            border-radius: 12px;
+            pointer-events: none;
+            z-index: 10;
+            border: 1px solid #4b5563;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Tree Node Pulse */
+        @keyframes treeNodePulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(147, 51, 234, 0.7);
+            }
+
+            70% {
+                box-shadow: 0 0 0 10px rgba(147, 51, 234, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(147, 51, 234, 0);
+            }
+        }
+
+        .tree-node-active {
+            animation: treeNodePulse 2s infinite;
+            border-color: #a855f7 !important;
+            background-color: #2e1065 !important;
+        }
