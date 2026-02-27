@@ -15,7 +15,7 @@
     <!-- Unified Win Probability Utilities Library -->
     <script
         src="https://cdn.jsdelivr.net/gh/heavenideas/heavenideas.github.io@main/utilities/unified_win_probability_utilities.js"></script>
-    <link rel="stylesheet" href="practice_dojo.css">
+    <link rel="stylesheet" href="2player_practice_dojo.css">
 </head>
 
 <body class="bg-gray-900 text-gray-200 h-screen w-screen flex flex-col font-sans select-none">
@@ -80,6 +80,33 @@
             </div>
 
             <!-- Session Actions Area -->
+            <!-- Multiplayer Setup -->
+            <div
+                class="bg-gray-900/50 p-4 rounded-xl border border-gray-700 flex flex-wrap gap-4 items-center justify-between mb-6">
+                <div class="flex items-center gap-4 w-full">
+                    <div class="flex-1">
+                        <label class="font-bold text-sm text-gray-400 mb-1 block">
+                            <i class="fa-solid fa-users"></i> Room Name (Required for 2-Player Sync)
+                        </label>
+                        <input type="text" id="room-name-input"
+                            class="w-full bg-black text-sm p-2.5 rounded border border-gray-700 text-white focus:border-purple-500 focus:outline-none transition placeholder-gray-600"
+                            placeholder="e.g. testing123">
+                    </div>
+
+                    <div class="flex flex-col">
+                        <label class="font-bold text-sm text-gray-400 mb-1 block">Your Role</label>
+                        <div class="flex bg-black rounded border border-gray-700 p-1">
+                            <button id="role-btn-p1"
+                                class="role-btn px-4 py-1.5 rounded text-sm font-bold bg-purple-600 text-white"
+                                onclick="App.selectRole(1)">Player 1</button>
+                            <button id="role-btn-p2"
+                                class="role-btn px-4 py-1.5 rounded text-sm font-bold text-gray-500 hover:text-white transition"
+                                onclick="App.selectRole(2)">Player 2</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div
                 class="bg-gray-900/50 p-4 rounded-xl border border-gray-700 flex flex-wrap gap-4 items-center justify-between mb-6">
                 <!-- Example Session -->
@@ -244,11 +271,11 @@
                 </div>
                 <div id="p0-badge"
                     class="py-1 px-2 rounded bg-gray-800 text-sm mb-1 border-l-2 border-orange-500 flex justify-between">
-                    <span>Player 1 (You)</span> <span id="p0-cards">0 cards</span>
+                    <span id="p0-name">Player 1</span> <span id="p0-cards">0 cards</span>
                 </div>
                 <div id="p1-badge"
                     class="py-1 px-2 rounded bg-gray-800 text-sm border-l-2 border-purple-500 flex justify-between text-gray-400">
-                    <span>Player 2</span> <span id="p1-cards">0 cards</span>
+                    <span id="p1-name">Player 2</span> <span id="p1-cards">0 cards</span>
                 </div>
             </div>
 
@@ -670,7 +697,7 @@
     <!-- Context Menu -->
     <div id="context-menu"></div>
 
-    <script src="practice_dojo.js"></script>
+    <script src="2player_practice_dojo.js"></script>
 </body>
 
 </html>
