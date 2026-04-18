@@ -485,6 +485,32 @@
             color: var(--secondary-color);
             border-top: 1px solid var(--border-color);
         }
+
+        /* --- CARD ZOOM POPUP --- */
+        #card-zoom-popup {
+            display: none;
+            position: fixed;
+            z-index: 5000;
+            pointer-events: none;
+            transition: opacity 0.2s ease-in-out, transform 0.2s ease-in-out;
+            opacity: 0;
+            transform: scale(0.95);
+        }
+
+        #card-zoom-popup.visible {
+            display: block;
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        #card-zoom-image {
+            width: 320px;
+            border-radius: 12px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+            border: 2px solid var(--accent-color);
+            background: rgba(26, 26, 26, 0.8);
+            backdrop-filter: blur(8px);
+        }
     </style>
 </head>
 
@@ -639,6 +665,11 @@
                 <button id="cancel-import-map-btn" class="btn btn-secondary">Cancel</button>
             </div>
         </div>
+    </div>
+
+
+    <div id="card-zoom-popup">
+        <img id="card-zoom-image" src="" alt="Card Zoom">
     </div>
 
 
@@ -832,10 +863,57 @@
             const cancelImportMapBtnEl = document.getElementById('cancel-import-map-btn');
 
 
-            // --- DOM ELEMENTS (Popular Decks) ---
             const popularDecksSelectEl = document.getElementById('popular-decks-select');
             const loadPopularDeckBtnEl = document.getElementById('load-popular-deck-btn');
             let popularDecks = [];
+
+            // --- ZOOM POPUP LOGIC ---
+            const zoomPopupEl = document.getElementById('card-zoom-popup');
+            const zoomImageEl = document.getElementById('card-zoom-image');
+            let zoomTimer = null;
+            let currentMousePos = { x: 0, y: 0 };
+
+            function showZoomPopup(cardData, x, y) {
+                const originalUrl = cardData.images.full;
+                const proxiedUrl = `https://images.weserv.nl/?url=${encodeURIComponent(originalUrl)}`;
+                zoomImageEl.src = proxiedUrl;
+
+                // Position logic
+                const padding = 20;
+                let posX = x + 20;
+                let posY = y - 150; // Offset to center vertically relative to cursor
+
+                // Viewport constraints
+                const popupWidth = 320;
+                const popupHeight = 450; // Estimated max height
+
+                if (posX + popupWidth + padding > window.innerWidth) {
+                    posX = x - popupWidth - 20;
+                }
+                if (posY + popupHeight + padding > window.innerHeight) {
+                    posY = window.innerHeight - popupHeight - padding;
+                }
+                if (posY < padding) {
+                    posY = padding;
+                }
+
+                zoomPopupEl.style.left = `${posX}px`;
+                zoomPopupEl.style.top = `${posY}px`;
+                zoomPopupEl.classList.add('visible');
+            }
+
+            function hideZoomPopup() {
+                if (zoomTimer) {
+                    clearTimeout(zoomTimer);
+                    zoomTimer = null;
+                }
+                zoomPopupEl.classList.remove('visible');
+            }
+
+            document.addEventListener('mousemove', (e) => {
+                currentMousePos.x = e.clientX;
+                currentMousePos.y = e.clientY;
+            });
 
             // --- INITIALIZATION ---
             const SUPABASE_URL = 'https://cjlhrfhximjldqrfblkj.supabase.co';
@@ -1056,6 +1134,7 @@
 
                 if (isDraggable) {
                     cardContainer.addEventListener('dragstart', (e) => {
+                        hideZoomPopup();
                         draggedCardData = cardData;
                         const clone = e.target.cloneNode(true);
                         clone.style.position = 'absolute';
@@ -1065,6 +1144,17 @@
                         setTimeout(() => document.body.removeChild(clone), 0);
                     });
                 }
+
+                // Hover zoom functionality
+                cardContainer.addEventListener('mouseenter', () => {
+                    zoomTimer = setTimeout(() => {
+                        showZoomPopup(cardData, currentMousePos.x, currentMousePos.y);
+                    }, 2000);
+                });
+
+                cardContainer.addEventListener('mouseleave', hideZoomPopup);
+                cardContainer.addEventListener('mousedown', hideZoomPopup);
+
                 return cardContainer;
             };
 
