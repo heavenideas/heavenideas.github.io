@@ -780,6 +780,7 @@
             <div class="empty-state" id="empty-msg" style="display: none;">
                 No cards found. Check the link or create a new list.
             </div>
+            <button class="btn" id="generate-trade-link-btn" onclick="generateTradeLinkFromTradeView()" style="margin-top: 1.5rem;">Generate Trade Link</button>
             <button class="btn btn-secondary" onclick="fetchPricesNow()" style="margin-top: 1rem;">Fetch CardTrader Prices</button>
             <button class="btn btn-secondary" onclick="removePrices()" style="margin-top: 1rem;">Remove Prices</button>
             <button class="btn btn-secondary" onclick="confirmReset()" style="margin-top: 1rem;">Create New List</button>
@@ -1107,6 +1108,8 @@
                 if (tradeSearch) tradeSearch.placeholder = t('addMoreCards');
                 const emptyMsg = document.getElementById('empty-msg');
                 if (emptyMsg) emptyMsg.textContent = t('noCardsFound');
+                const tradeGenBtn = document.getElementById('generate-trade-link-btn');
+                if (tradeGenBtn) tradeGenBtn.textContent = t('generateTradeLink');
                 const buttons = tradeView.querySelectorAll('button.btn-secondary');
                 if (buttons.length >= 3) {
                     buttons[0].textContent = t('fetchPrices');
@@ -1516,11 +1519,9 @@
             document.getElementById('trade-view').style.display = 'block';
             document.getElementById('fab-bar').classList.add('visible');
 
-            // Show add card search only for creators (not responders)
-            if (!isResponderMode) {
-                document.getElementById('trade-search-container').style.display = 'block';
-                initTradeFuzzySearch();
-            }
+            // Show add card search in Trade View so users can add cards on either screen
+            document.getElementById('trade-search-container').style.display = 'block';
+            initTradeFuzzySearch();
 
             const container = document.getElementById('cards-container');
             container.innerHTML = '';
@@ -1620,7 +1621,15 @@
                         </div>
 
                         <div class="trade-controls">
-                            <div class="wanted-badge">${t('wanted')} ${item.qty}</div>
+                            <div class="wanted-badge" style="display: flex; align-items: center; gap: 0.5rem;">
+                                <span>${t('wanted')}</span>
+                                <div class="wanted-counter" style="display: flex; align-items: center; gap: 0.25rem; background: rgba(0,0,0,0.4); padding: 2px; border-radius: 4px;">
+                                    <button class="counter-btn" onclick="updateWantedQty(${card.id}, -1)" style="width: 20px; height: 20px; font-size: 0.8rem; line-height: 1; display: flex; align-items: center; justify-content: center;">-</button>
+                                    <span class="wanted-qty-val" id="wanted-qty-${card.id}" style="font-weight: 800; min-width: 14px; text-align: center; color: var(--accent-gold); font-size: 0.85rem;">${item.qty}</span>
+                                    <button class="counter-btn" onclick="updateWantedQty(${card.id}, 1)" style="width: 20px; height: 20px; font-size: 0.8rem; line-height: 1; display: flex; align-items: center; justify-content: center;">+</button>
+                                </div>
+                                <button class="counter-btn" onclick="removeCardFromWantedList(${card.id})" style="width: 20px; height: 20px; font-size: 0.8rem; background: rgba(231, 76, 60, 0.2); color: #ff8a80; border: 1px solid rgba(231, 76, 60, 0.3); margin-left: 0.25rem; display: flex; align-items: center; justify-content: center;" title="Remove card">&times;</button>
+                            </div>
                             <div class="counter">
                                 <button class="counter-btn" onclick="updateOffer(${card.id}, -1)">-</button>
                                 <span class="counter-val" id="count-${card.id}">0</span>
@@ -1875,11 +1884,22 @@
                     const priceInput = cardEl.querySelector('.price-input');
                     if (priceInput) priceInput.value = newPrice;
 
-                    // Update counter buttons onclick
-                    const minusBtn = cardEl.querySelector('.counter-btn:first-of-type');
-                    const plusBtn = cardEl.querySelector('.counter-btn:last-of-type');
-                    if (minusBtn) minusBtn.setAttribute('onclick', `updateOffer(${newCardId}, -1)`);
-                    if (plusBtn) plusBtn.setAttribute('onclick', `updateOffer(${newCardId}, 1)`);
+                    // Update wanted counter buttons onclick
+                    const wantedCounterMinus = cardEl.querySelector('.wanted-counter button:first-of-type');
+                    const wantedCounterPlus = cardEl.querySelector('.wanted-counter button:last-of-type');
+                    const removeBtn = cardEl.querySelector('.wanted-badge button[onclick^="removeCardFromWantedList"]');
+                    const wantedQtyVal = cardEl.querySelector('.wanted-qty-val');
+                    
+                    if (wantedQtyVal) wantedQtyVal.id = `wanted-qty-${newCardId}`;
+                    if (wantedCounterMinus) wantedCounterMinus.setAttribute('onclick', `updateWantedQty(${newCardId}, -1)`);
+                    if (wantedCounterPlus) wantedCounterPlus.setAttribute('onclick', `updateWantedQty(${newCardId}, 1)`);
+                    if (removeBtn) removeBtn.setAttribute('onclick', `removeCardFromWantedList(${newCardId})`);
+
+                    // Update offer counter buttons onclick
+                    const offerMinusBtn = cardEl.querySelector('.counter button:first-of-type');
+                    const offerPlusBtn = cardEl.querySelector('.counter button:last-of-type');
+                    if (offerMinusBtn) offerMinusBtn.setAttribute('onclick', `updateOffer(${newCardId}, -1)`);
+                    if (offerPlusBtn) offerPlusBtn.setAttribute('onclick', `updateOffer(${newCardId}, 1)`);
 
                     // Update power rating
                     const powerEl = cardEl.querySelector('.power-rating');
@@ -1915,6 +1935,7 @@
 
             closeModal();
             calculateTotal();
+            updateWantedListUrl();
         }
 
         function closeModal() {
@@ -1926,6 +1947,95 @@
             t.textContent = msg;
             t.classList.add('show');
             setTimeout(() => t.classList.remove('show'), 3000);
+        }
+
+        function updateWantedQty(cardId, change) {
+            const item = wantedList.find(i => i.id === cardId);
+            if (item) {
+                item.qty += change;
+                if (item.qty <= 0) {
+                    removeCardFromWantedList(cardId);
+                    return;
+                }
+                
+                // Update in DOM
+                const qtyValEl = document.getElementById(`wanted-qty-${cardId}`);
+                if (qtyValEl) qtyValEl.textContent = item.qty;
+                
+                // Update card element dataset wanted
+                const cardEl = document.querySelector(`.card-item[data-id="${cardId}"]`);
+                if (cardEl) {
+                    cardEl.dataset.wanted = item.qty;
+                }
+                
+                // Update URL in window history
+                updateWantedListUrl();
+            }
+        }
+
+        function removeCardFromWantedList(cardId) {
+            wantedList = wantedList.filter(item => item.id !== cardId);
+            
+            // Clean up offer state if any
+            if (offerState[cardId]) {
+                delete offerState[cardId];
+            }
+            
+            // Re-render the trade view
+            renderTradeView(wantedList, skipPricesGlobal);
+            calculateTotal();
+            
+            // Update URL in window history
+            updateWantedListUrl();
+            
+            showToast("Card removed from wanted list");
+        }
+
+        function updateWantedListUrl() {
+            if (wantedList.length === 0) {
+                window.history.pushState({}, '', window.location.pathname);
+                return;
+            }
+            const listStr = wantedList.map(item => `${item.id}-${item.qty}`).join(',');
+            const dataStr = `${listStr}|${skipPricesGlobal}`;
+            const compressed = LZString.compressToEncodedURIComponent(dataStr);
+            window.history.pushState({}, '', `?list=${compressed}`);
+        }
+
+        function generateTradeLinkFromTradeView() {
+            if (wantedList.length === 0) {
+                alert(t('noValidCards'));
+                return;
+            }
+
+            // Generate compact data string: id-qty,id-qty,...|skipPrices
+            const listStr = wantedList.map(item => `${item.id}-${item.qty}`).join(',');
+            const dataStr = `${listStr}|${skipPricesGlobal}`;
+            const compressed = LZString.compressToEncodedURIComponent(dataStr);
+            const url = `${window.location.origin}${window.location.pathname}?list=${compressed}`;
+
+            // Build human-readable lines for the share message text
+            let lines = [];
+            wantedList.forEach(item => {
+                const card = allCards.find(c => c.id === item.id);
+                if (card) {
+                    lines.push(`${item.qty} ${card.fullName}`);
+                }
+            });
+            const formattedListText = lines.join('\n');
+
+            // Prepare share text
+            let shareText = t('shareMessage', {input: formattedListText, url});
+
+            // Store for modal actions
+            pendingList = wantedList;
+            pendingSkipPrices = skipPricesGlobal;
+            pendingUrl = url;
+            pendingShareText = shareText;
+
+            // Show share modal
+            document.getElementById('share-text').textContent = shareText;
+            document.getElementById('share-modal').style.display = 'flex';
         }
 
         async function fetchPricesNow() {
