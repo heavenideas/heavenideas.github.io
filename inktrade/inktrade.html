@@ -514,6 +514,173 @@
             display: none;
             box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
         }
+
+        /* Live Preview Styling */
+        .preview-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin-top: 1rem;
+            padding: 0.75rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            border: var(--glass-border);
+            min-height: 80px;
+        }
+
+        .preview-grid-empty {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            text-align: center;
+            width: 100%;
+            padding: 1.5rem 0;
+        }
+
+        .preview-card {
+            position: relative;
+            width: 90px;
+            height: 126px;
+            flex-shrink: 0;
+            cursor: pointer;
+            transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+            border-radius: 8px;
+            overflow: hidden;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+        }
+
+        .preview-card:hover {
+            transform: translateY(-4px) scale(1.04);
+            border-color: var(--accent-gold);
+            box-shadow: 0 8px 24px rgba(212, 175, 55, 0.25);
+        }
+
+        .preview-card-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .preview-qty-badge {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background: linear-gradient(135deg, var(--accent-gold), #f1c40f);
+            color: #000;
+            font-weight: 800;
+            font-size: 0.7rem;
+            padding: 2px 5px;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+            z-index: 5;
+        }
+
+        .preview-card-name {
+            font-size: 0.65rem;
+            padding: 4px 6px;
+            text-align: center;
+            background: rgba(15, 12, 29, 0.85);
+            color: #fff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 5;
+            backdrop-filter: blur(2px);
+        }
+
+        .preview-card-unrecognized {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 0.5rem;
+            height: 100%;
+            box-sizing: border-box;
+            background: linear-gradient(135deg, rgba(231, 76, 60, 0.1), rgba(0, 0, 0, 0.6));
+            border: 1px dashed rgba(231, 76, 60, 0.4);
+            border-radius: 8px;
+        }
+
+        .preview-card-unrecognized span.warning-icon {
+            font-size: 1.2rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .preview-card-unrecognized span.card-name {
+            font-size: 0.6rem;
+            color: #ff8a80;
+            font-weight: 600;
+            line-height: 1.2;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .preview-card-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(15, 12, 29, 0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            z-index: 10;
+        }
+
+        .preview-card:hover .preview-card-overlay {
+            opacity: 1;
+        }
+
+        .preview-overlay-controls {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .preview-overlay-btn {
+            width: 22px;
+            height: 22px;
+            border-radius: 4px;
+            border: none;
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: bold;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .preview-overlay-btn:hover {
+            background: var(--accent-gold);
+            color: black;
+        }
+
+        .preview-overlay-btn.delete-btn {
+            background: rgba(231, 76, 60, 0.3);
+            color: #ff8a80;
+        }
+
+        .preview-overlay-btn.delete-btn:hover {
+            background: #e74c3c;
+            color: white;
+        }
     </style>
 </head>
 
@@ -562,6 +729,17 @@
             </div>
             <textarea id="decklist-input"
                 placeholder="Paste card list&#10;4 Mickey Mouse - Brave Little Tailor&#10;3 Elsa - Snow Queen&#10;..."></textarea>
+
+            <!-- Tradelist Preview -->
+            <div id="creator-preview-section" style="margin-bottom: 1.5rem;">
+                <h3 id="preview-heading" style="font-size: 1rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--accent-gold); display: flex; align-items: center; gap: 0.5rem;">
+                    <span>📋</span> <span id="preview-heading-text">Tradelist Preview</span>
+                </h3>
+                <div id="creator-preview-grid" class="preview-grid">
+                    <div class="preview-grid-empty" id="preview-empty-text">Type or paste cards above to see a live preview...</div>
+                </div>
+            </div>
+
             <div style="margin-bottom: 1rem;">
                 <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; color: #ccc;">
                     <input type="checkbox" id="skip-prices" unchecked>
@@ -750,7 +928,10 @@
                 currency: "£",
                 priceDisclaimer: "Any Prices used in this app are representative and can be incorrect or incomplete. Please check any prices or provide new prices for any card",
                 languageEnglish: "English",
-                languageSpanish: "Español"
+                languageSpanish: "Español",
+                tradelistPreview: "Tradelist Preview",
+                noCardsChosen: "Type or paste cards above to see a live preview...",
+                unrecognizedCard: "Unrecognized"
             },
             es: {
                 loadingSummoning: "Invocando Datos de Cartas...",
@@ -800,7 +981,10 @@
                 currency: "€",
                 priceDisclaimer: "Cualquier precio utilizado en esta aplicación es representativo y puede ser incorrecto o incompleto. Por favor, verifica cualquier precio o proporciona nuevos precios para cualquier carta",
                 languageEnglish: "English",
-                languageSpanish: "Español"
+                languageSpanish: "Español",
+                tradelistPreview: "Vista Previa de la Lista",
+                noCardsChosen: "Escribe o pega cartas arriba para ver una vista previa en vivo...",
+                unrecognizedCard: "No reconocido"
             }
         };
 
@@ -886,6 +1070,15 @@
                 if (skipLabel) skipLabel.textContent = t('skipPricesLabel');
                 const genBtn = document.querySelector('#creator-view button.btn');
                 if (genBtn) genBtn.textContent = t('generateTradeLink');
+                
+                // Update live preview translations
+                const previewHeading = document.getElementById('preview-heading-text');
+                if (previewHeading) previewHeading.textContent = t('tradelistPreview');
+                const previewEmpty = document.getElementById('preview-empty-text');
+                if (previewEmpty) previewEmpty.textContent = t('noCardsChosen');
+                if (typeof updateLivePreview === 'function') {
+                    updateLivePreview();
+                }
             }
 
             // Update trade view
@@ -1114,6 +1307,7 @@
                 setTimeout(() => {
                     document.getElementById('loading-overlay').style.display = 'none';
                     initFuzzySearch();
+                    initLivePreview();
                 }, 500);
 
             } catch (err) {
@@ -1806,6 +2000,158 @@
             document.getElementById('search-results').style.display = 'none';
             document.getElementById('card-search').value = '';
             showToast(t('cardAdded'));
+            updateLivePreview();
+        }
+
+        // --- Live Preview Functions ---
+
+        function initLivePreview() {
+            const textarea = document.getElementById('decklist-input');
+            if (textarea) {
+                textarea.addEventListener('input', updateLivePreview);
+                updateLivePreview();
+            }
+        }
+
+        function updateLivePreview() {
+            const input = document.getElementById('decklist-input').value;
+            const previewGrid = document.getElementById('creator-preview-grid');
+            
+            if (!previewGrid) return;
+            
+            const lines = input.split('\n');
+            const parsed = [];
+            
+            lines.forEach((line, index) => {
+                const trimmed = line.trim();
+                if (!trimmed) return;
+                
+                // Regex to match "Quantity Name" (same as processDecklist)
+                const match = trimmed.match(/^(\d+)[xX]?\s+(.+)$/);
+                let qty = 1;
+                let name = trimmed;
+                
+                if (match) {
+                    qty = parseInt(match[1]);
+                    name = match[2].trim();
+                } else {
+                    // Try to see if it starts with a number but has no name, or just a name.
+                    // If it's just a number, we ignore it.
+                    if (trimmed.match(/^\d+[xX]?$/)) return;
+                }
+                
+                // Find all variants
+                const simple = normalizeName(name);
+                const variants = allCards.filter(c => {
+                    const cName = normalizeName(c.simpleName || c.fullName);
+                    return cName === simple;
+                });
+                
+                if (variants.length > 0) {
+                    const rarityOrder = ['Common', 'Uncommon', 'Rare', 'Super Rare', 'Legendary', 'Epic', 'Enchanted', 'Special'];
+                    variants.sort((a, b) => {
+                        const aRarityIndex = rarityOrder.indexOf(a.rarity);
+                        const bRarityIndex = rarityOrder.indexOf(b.rarity);
+                        if (aRarityIndex !== bRarityIndex) return aRarityIndex - bRarityIndex;
+                        return parseInt(b.setCode) - parseInt(a.setCode);
+                    });
+                    
+                    parsed.push({
+                        lineIndex: index,
+                        qty: qty,
+                        card: variants[0]
+                    });
+                } else {
+                    parsed.push({
+                        lineIndex: index,
+                        qty: qty,
+                        card: null,
+                        unrecognizedName: name
+                    });
+                }
+            });
+            
+            if (parsed.length === 0) {
+                previewGrid.innerHTML = `<div class="preview-grid-empty" id="preview-empty-text">${t('noCardsChosen')}</div>`;
+                return;
+            }
+            
+            previewGrid.innerHTML = '';
+            
+            parsed.forEach(item => {
+                const el = document.createElement('div');
+                el.className = 'preview-card';
+                
+                if (item.card) {
+                    const imgUrl = item.card.images?.thumbnail || item.card.images?.full || '';
+                    el.innerHTML = `
+                        <div class="preview-qty-badge">${item.qty}x</div>
+                        <img src="${imgUrl}" class="preview-card-img" alt="${item.card.fullName}">
+                        <div class="preview-card-name">${item.card.fullName}</div>
+                        <div class="preview-card-overlay">
+                            <div style="font-size: 0.7rem; color: var(--accent-gold); font-weight: 800; margin-bottom: 2px;">${item.qty}x ${item.card.version || 'Base'}</div>
+                            <div class="preview-overlay-controls">
+                                <button class="preview-overlay-btn" onclick="adjustCardQtyInTextarea(${item.lineIndex}, -1)">-</button>
+                                <button class="preview-overlay-btn" onclick="adjustCardQtyInTextarea(${item.lineIndex}, 1)">+</button>
+                                <button class="preview-overlay-btn delete-btn" onclick="removeCardFromTextarea(${item.lineIndex})">&times;</button>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    el.innerHTML = `
+                        <div class="preview-qty-badge">${item.qty}x</div>
+                        <div class="preview-card-unrecognized">
+                            <span class="warning-icon">⚠️</span>
+                            <span class="card-name" title="${item.unrecognizedName}">${item.unrecognizedName}</span>
+                            <div style="font-size: 0.5rem; color: var(--text-muted); margin-top: 4px;">${t('unrecognizedCard')}</div>
+                        </div>
+                        <div class="preview-card-overlay">
+                            <div style="font-size: 0.6rem; color: #ff8a80; text-align: center; padding: 0 4px; margin-bottom: 4px; word-break: break-all;">${item.unrecognizedName}</div>
+                            <div class="preview-overlay-controls">
+                                <button class="preview-overlay-btn" onclick="adjustCardQtyInTextarea(${item.lineIndex}, -1)">-</button>
+                                <button class="preview-overlay-btn" onclick="adjustCardQtyInTextarea(${item.lineIndex}, 1)">+</button>
+                                <button class="preview-overlay-btn delete-btn" onclick="removeCardFromTextarea(${item.lineIndex})">&times;</button>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                previewGrid.appendChild(el);
+            });
+        }
+        
+        function removeCardFromTextarea(lineIndex) {
+            const textarea = document.getElementById('decklist-input');
+            const lines = textarea.value.split('\n');
+            lines.splice(lineIndex, 1);
+            textarea.value = lines.join('\n');
+            updateLivePreview();
+        }
+        
+        function adjustCardQtyInTextarea(lineIndex, change) {
+            const textarea = document.getElementById('decklist-input');
+            const lines = textarea.value.split('\n');
+            const line = lines[lineIndex];
+            if (!line) return;
+            
+            const match = line.match(/^(\d+)([xX]?\s+.+)$/);
+            if (match) {
+                let qty = parseInt(match[1]) + change;
+                if (qty <= 0) {
+                    lines.splice(lineIndex, 1);
+                } else {
+                    lines[lineIndex] = qty + match[2];
+                }
+            } else {
+                let qty = 1 + change;
+                if (qty <= 0) {
+                    lines.splice(lineIndex, 1);
+                } else {
+                    lines[lineIndex] = `${qty} ${line.trim()}`;
+                }
+            }
+            textarea.value = lines.join('\n');
+            updateLivePreview();
         }
 
         function initTradeFuzzySearch() {
