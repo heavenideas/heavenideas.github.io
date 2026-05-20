@@ -460,7 +460,7 @@
             background: var(--card-bg);
             border: var(--glass-border);
             border-radius: 8px;
-            max-height: 200px;
+            max-height: 300px;
             overflow-y: auto;
             z-index: 1000;
             display: none;
@@ -468,18 +468,37 @@
         }
 
         .search-result-item {
-            padding: 0.75rem 1rem;
+            padding: 0.5rem 1rem;
             cursor: pointer;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            transition: background 0.2s;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            transition: background 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
         }
 
         .search-result-item:hover {
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.08);
         }
 
         .search-result-item:last-child {
             border-bottom: none;
+        }
+
+        .search-result-img {
+            width: 32px;
+            height: 44px;
+            object-fit: cover;
+            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            background: #000;
+            transition: transform 0.2s ease, border-color 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .search-result-item:hover .search-result-img {
+            transform: scale(1.05);
+            border-color: var(--accent-gold);
         }
 
         /* Trade view search styles - same as main search */
@@ -508,7 +527,7 @@
             background: var(--card-bg);
             border: var(--glass-border);
             border-radius: 8px;
-            max-height: 200px;
+            max-height: 300px;
             overflow-y: auto;
             z-index: 1000;
             display: none;
@@ -1976,7 +1995,22 @@
                     const card = result.item;
                     const div = document.createElement('div');
                     div.className = 'search-result-item';
-                    div.textContent = `${card.fullName} - Set ${card.setCode}`;
+                    
+                    const imgUrl = card.images?.thumbnail || card.images?.full || '';
+                    const rarityClass = `rarity-${card.rarity.split(' ')[0]}`;
+                    
+                    div.innerHTML = `
+                        <img src="${imgUrl}" class="search-result-img" alt="${card.fullName}">
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; font-size: 0.95rem; margin-bottom: 2px;">${card.fullName}</div>
+                            <div style="font-size: 0.75rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.5rem;">
+                                <span class="rarity-dot ${rarityClass}"></span>
+                                <span>${card.rarity}</span>
+                                <span>•</span>
+                                <span>Set ${card.setCode}</span>
+                            </div>
+                        </div>
+                    `;
                     div.onclick = () => addCardToList(card.fullName);
                     resultsDiv.appendChild(div);
                 });
@@ -2177,7 +2211,22 @@
                     const card = result.item;
                     const div = document.createElement('div');
                     div.className = 'search-result-item';
-                    div.textContent = `${card.fullName} - Set ${card.setCode}`;
+                    
+                    const imgUrl = card.images?.thumbnail || card.images?.full || '';
+                    const rarityClass = `rarity-${card.rarity.split(' ')[0]}`;
+                    
+                    div.innerHTML = `
+                        <img src="${imgUrl}" class="search-result-img" alt="${card.fullName}">
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; font-size: 0.95rem; margin-bottom: 2px;">${card.fullName}</div>
+                            <div style="font-size: 0.75rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.5rem;">
+                                <span class="rarity-dot ${rarityClass}"></span>
+                                <span>${card.rarity}</span>
+                                <span>•</span>
+                                <span>Set ${card.setCode}</span>
+                            </div>
+                        </div>
+                    `;
                     div.onclick = () => addCardToWantedList(card.id);
                     resultsDiv.appendChild(div);
                 });
