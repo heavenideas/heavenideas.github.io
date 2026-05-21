@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <title>Turn Mapper · Timeline</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+    <link rel="stylesheet" href="styles-timeline.css" />
+
+    <!-- Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/fuse.js@6.6.2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://unpkg.com/intro.js/minified/introjs.min.css" />
+    <script src="https://unpkg.com/intro.js/minified/intro.min.js"></script>
+</head>
+<body class="drawer-open">
+
+<!-- ============ TOP BAR ============ -->
+<header class="topbar">
+    <div class="topbar-left">
+        <button class="icon-btn drawer-toggle" id="drawer-toggle" title="Toggle card drawer (D)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <div class="brand">
+            <span class="brand-mark"></span>
+            <span class="brand-name">Turn Mapper</span>
+            <span class="brand-tag">timeline</span>
+        </div>
+    </div>
+
+    <div class="topbar-center">
+        <div class="logic-hint">
+            <span class="chip chip-and">AND</span>
+            <span class="mono dim">side-by-side</span>
+            <span class="dim">·</span>
+            <span class="chip chip-or">OR</span>
+            <span class="mono dim">stacked rows</span>
+            <span class="dim">·</span>
+            <span class="mono dim">Shift-drag for arrows</span>
+        </div>
+    </div>
+
+    <div class="topbar-right">
+        <button class="icon-btn" id="tutorial-btn" title="Walk-through tutorial">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <span>Tutorial</span>
+        </button>
+        <div class="divider-v"></div>
+        <button class="icon-btn" id="import-btn" title="Import encoded map">Import</button>
+        <div class="menu-wrap">
+            <button class="icon-btn primary" id="export-btn" title="Export">
+                Export
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="menu" id="export-menu" hidden>
+                <button data-action="export-text"><span>Encoded text</span><kbd>share</kbd></button>
+                <button data-action="export-human"><span>Turn-by-turn text</span><kbd>readable</kbd></button>
+                <button data-action="export-png"><span>PNG image</span><kbd>screenshot</kbd></button>
+                <div class="menu-sep"></div>
+                <button data-action="save-to-deck" id="menu-save-to-deck" disabled><span>Save to deck comments</span><kbd>cloud</kbd></button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- ============ APP SHELL ============ -->
+<div class="app">
+
+    <!-- Card drawer (slides over canvas) -->
+    <aside class="drawer" id="drawer">
+        <div class="drawer-inner">
+            <section class="panel">
+                <div class="panel-head">
+                    <h3>Decks</h3>
+                </div>
+                <div class="popular-row">
+                    <select id="popular-decks-select" class="select"><option>Loading…</option></select>
+                    <button class="btn btn-ghost" id="load-popular-deck-btn">Load</button>
+                </div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-head">
+                    <h3>Your decklist</h3>
+                    <span class="hint">paste, one card per line</span>
+                </div>
+                <textarea id="decklist-input" placeholder="2 Diablo - Maleficent's Spy&#10;3 Diablo - Devoted Herald"></textarea>
+                <input type="url" id="decklist-url-input" class="input" placeholder="Decklist URL (optional)" />
+                <div class="row-2">
+                    <button class="btn btn-primary" id="load-deck-btn">Load deck</button>
+                    <button class="btn btn-ghost" id="auto-populate-btn" title="Drop cards into turns by ink cost">Auto-populate</button>
+                </div>
+            </section>
+
+            <section class="panel grow">
+                <div class="panel-head">
+                    <h3>Card library</h3>
+                    <span class="hint" id="card-count-hint">—</span>
+                </div>
+                <div class="search-wrap">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input type="text" id="search-input" class="input search-input" placeholder="Search any card…" />
+                </div>
+                <div id="card-list" class="card-list"><p class="muted">Load a deck or search to browse cards.</p></div>
+            </section>
+
+            <section class="panel">
+                <button class="btn btn-danger-ghost" id="clear-session-btn">Clear session</button>
+            </section>
+        </div>
+    </aside>
+
+    <!-- Canvas -->
+    <main class="canvas-host" id="canvas-host">
+        <div class="canvas-bg"></div>
+        <div class="stage" id="stage">
+            <div class="lanes" id="lanes"></div>
+            <svg class="arrows" id="arrows" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                        <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor" />
+                    </marker>
+                </defs>
+            </svg>
+            <svg class="arrows arrows-preview" id="arrows-preview" xmlns="http://www.w3.org/2000/svg"></svg>
+        </div>
+
+        <!-- Floating overall comments toggle -->
+        <button class="float-btn comments-toggle" id="comments-toggle" title="Overall comments">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <span id="comments-toggle-label">Notes</span>
+        </button>
+
+        <!-- Overall comments popover -->
+        <div class="comments-popover" id="comments-popover" hidden>
+            <div class="popover-head">
+                <h4>Overall strategy notes</h4>
+                <button class="icon-btn ghost" id="close-comments">×</button>
+            </div>
+            <textarea id="overall-comments" placeholder="Match-up notes, mulligan plan, key targets…"></textarea>
+        </div>
+
+        <!-- Zoom + pan controls -->
+        <div class="zoom-dock">
+            <button class="icon-btn ghost" id="zoom-out-btn" title="Zoom out">−</button>
+            <input type="range" id="zoom-slider" min="40" max="180" step="5" value="100" />
+            <button class="icon-btn ghost" id="zoom-in-btn" title="Zoom in">+</button>
+            <span class="mono dim" id="zoom-value">100%</span>
+            <div class="divider-v"></div>
+            <button class="icon-btn ghost" id="zoom-fit-btn" title="Fit board to view">Fit</button>
+            <button class="icon-btn ghost" id="zoom-reset-btn" title="Reset to 100% / center">Reset</button>
+        </div>
+
+        <!-- Pan hint -->
+        <div class="pan-hint" id="pan-hint">
+            <span class="mono">space + drag</span><span class="dim">or</span><span class="mono">middle mouse</span><span class="dim">or</span><span class="mono">two-finger</span><span class="dim">to pan</span>
+        </div>
+    </main>
+</div>
+
+<!-- ============ MODALS ============ -->
+<div class="modal" id="arrow-modal" hidden>
+    <div class="modal-card">
+        <h3 id="arrow-modal-title">Arrow annotation</h3>
+        <p class="muted">Optional label — e.g. <span class="mono">shift</span>, <span class="mono">sing</span>, <span class="mono">challenge</span>.</p>
+        <input type="text" id="arrow-annotation-input" class="input" placeholder="(optional)" />
+        <div class="modal-actions">
+            <button class="btn btn-danger-ghost" id="delete-arrow-btn" hidden>Delete</button>
+            <button class="btn btn-ghost" id="cancel-arrow-btn">Cancel</button>
+            <button class="btn btn-primary" id="save-arrow-btn">Create arrow</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="export-modal" hidden>
+    <div class="modal-card">
+        <h3>Encoded map data</h3>
+        <p class="muted">Copy this string. Paste it back into Import on any device.</p>
+        <textarea id="export-text-output" readonly class="code-area"></textarea>
+        <div class="modal-actions">
+            <button class="btn btn-ghost" data-close-modal>Close</button>
+            <button class="btn btn-primary" id="copy-export-btn">Copy</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="human-export-modal" hidden>
+    <div class="modal-card wide">
+        <h3>Turn-by-turn plan</h3>
+        <p class="muted">Human-readable script. Good for forum posts.</p>
+        <textarea id="human-export-text-output" readonly class="code-area tall"></textarea>
+        <div class="modal-actions">
+            <button class="btn btn-ghost" data-close-modal>Close</button>
+            <button class="btn btn-primary" id="copy-human-btn">Copy</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="import-modal" hidden>
+    <div class="modal-card">
+        <h3>Import map</h3>
+        <p class="muted">Paste an encoded string from a previous export.</p>
+        <textarea id="import-text-input" class="code-area" placeholder="eyJ0dXJuQ291bnQiOj…"></textarea>
+        <div class="modal-actions">
+            <button class="btn btn-ghost" data-close-modal>Cancel</button>
+            <button class="btn btn-primary" id="confirm-import-btn">Import</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="confirm-clear-modal" hidden>
+    <div class="modal-card">
+        <h3>Clear the entire session?</h3>
+        <p class="muted">Your turns, cards, arrows and notes will be erased. This can't be undone.</p>
+        <div class="modal-actions">
+            <button class="btn btn-ghost" data-close-modal>Cancel</button>
+            <button class="btn btn-danger" id="confirm-clear-btn">Yes, clear everything</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="save-map-modal" hidden>
+    <div class="modal-card">
+        <h3>Save turn map</h3>
+        <p id="save-map-deck-name" class="muted"></p>
+        <p id="save-map-prompt"></p>
+        <div id="map-save-options" class="radio-group"></div>
+        <div class="modal-actions">
+            <button class="btn btn-ghost" id="cancel-save-map-btn">Cancel</button>
+            <button class="btn btn-primary" id="confirm-save-map-btn">Confirm</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="import-from-comment-modal" hidden>
+    <div class="modal-card">
+        <h3>Import map from deck comments</h3>
+        <p class="muted">This deck has saved maps. Pick one or start fresh.</p>
+        <div id="import-map-options" class="radio-group"></div>
+        <div class="modal-actions">
+            <button class="btn btn-ghost" id="cancel-import-map-btn">Cancel</button>
+            <button class="btn btn-primary" id="confirm-import-map-btn">Load selected</button>
+        </div>
+    </div>
+</div>
+
+<!-- Card zoom preview -->
+<div id="card-zoom" class="card-zoom" hidden>
+    <img id="card-zoom-img" alt="" />
+</div>
+
+<!-- Card popover (comment + delete) -->
+<div id="card-popover" class="card-popover" hidden>
+    <textarea id="card-popover-textarea" placeholder="Note for this card…"></textarea>
+    <div class="card-popover-actions">
+        <button class="icon-btn ghost" id="card-popover-delete" title="Remove card">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/></svg>
+            <span>Remove</span>
+        </button>
+        <button class="icon-btn ghost" id="card-popover-close">Done</button>
+    </div>
+</div>
+
+<!-- Tweaks panel mount -->
+<div id="tweaks-root"></div>
+
+<!-- Toast container -->
+<div class="toasts" id="toasts"></div>
+
+<script src="app-timeline.js"></script>
+</body>
+</html>
