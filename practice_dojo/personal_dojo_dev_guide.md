@@ -249,4 +249,53 @@ Duels.ink replay downloads are gzip-compressed (`<gameId>_p1.replay.gz`). The im
 
 > **Note (dropped direction):** loading games directly from the Duels.ink API was prototyped but removed. Duels.ink serves **no CORS headers**, so a static single-file app hosted on GitHub Pages cannot call its API from the browser without an external proxy (a Supabase Edge Function was tried, then reverted to keep the app dependency-free). The reusable loader helper `_loadSessionIntoApp(session, turnCount)` introduced during that work was kept, since `_applyDojoLog` uses it.
 
+---
+
+## **8\. Feature 23: Auto-replay a sibling branch onto the current branch (v1.23.0, fixes in v1.23.1)**
+
+### **8.1 Overview**
+
+When you branch back to an earlier turn-node, change your play, and end the turn, you can **auto-play what the other player did on the old branch** instead of re-playing it by hand. The replay applies the old line's recorded actions to your *new, divergent* live state and can **cascade** down the rest of the old line, one turn at a time.
+
+### **8.2 The action journal (recording layer)**
+
+Turn-nodes historically stored only `cardsPlayedData` (an array of cardIds). Feature 23 adds a structured, replayable **per-turn action journal**:
+
+* `state.currentTurnActions` accumulates structured intents during a turn. `recordAction(a)` is called inside the semantic mutators: `playToInkwell`/`moveCard`→ink (`INK`), `playCard`/`moveCard`→field (`PLAY`), `quest`/`questWithAll` (`QUEST`), `performChallenge` (`CHALLENGE`).
+* Action shape: `{ type, actor, instanceId, cardId, ...(QUEST: lore)|(CHALLENGE: targetInstanceId, targetCardId, defenderBanished, challengerBanished) }`.
+* On `endTurn`, the buffer is frozen onto the new bookmark node as `node.actions` (next to `cardsPlayedData`), then cleared. It is **also reset unconditionally** at the end of every `endTurn` so turns don't bleed together when auto-save is off.
+* `currentTurnActions` (and `cardsPlayedThisTurn`) are now carried through `compressState`/`decompressState`, so the journal survives undo and snapshot restore.
+* **Additive only** — full-state snapshots remain the source of truth for restore; the journal is read solely by the replay engine. Freeform drag-and-drop (`moveCard` to non-hand zones) is *not* journaled in v1.
+
+### **8.3 Replay engine (consuming layer)**
+
+| Function | Purpose |
+|---|---|
+| `_normalizeActions(node)` | Returns `node.actions`, else synthesizes `PLAY` actions from `cardsPlayedData` (cardId-only fallback for legacy/imported nodes). |
+| `_resolveActionInstance(a, loc)` | Resolves an action to a live `instanceId` in the expected zone: exact `instanceId` first (stable across a branch), then any same-`cardId` card in the actor's zone. |
+| `_resolveChallengeTarget(a)` | Same idea for a challenge's defender in the opponent's field. |
+| `_applyOneAction(a)` | Re-executes one action via the real mutators (`playToInkwell`/`playCard`/`quest`/`performChallenge`). Returns `false` if it can't be applied (→ flagged/skipped). |
+| `replayActions(nodeId)` | Aligns `activePlayer` to the node's `_dominantActor`, applies all actions, returns `{ applied, total, skipped }`. |
+| `runReplayStep(nodeId)` | Applies a node's turn, calls `endTurn()` to bank it on the new branch, then shows the prompt (or auto-advances via a 700ms timer if auto-continue is on and there were no conflicts). |
+| `startLineReplay(nodeId)` | Node-button entry point. |
+| `_oldLineFrom(branchPointId, excludeId)` | Ordered list of nodes down the old line from a branch point. |
+| `_findEndTurnReplayCandidate(newId)` | After a manual branched `endTurn`, finds the old-line node to offer. |
+
+> **⚠️ Two opposite snapshot conventions (the v1.23.1 fix).** Imported nodes (`closeSegment` in `buildSessionFromReplay`/`buildSessionFromLog`) snapshot at the **start** of a turn and store **that turn's own** plays — so an imported "Turn N – Px Active" carries **Px's** actions. Live-autosave nodes snapshot at the start of the *new* turn but stamp the **previous** turn's `cardsPlayedThisTurn` — so a live "Turn N – Px Active" carries the **other** player's actions. Because of this, the end-turn candidate is chosen by **matching the action's `actor` to the live `activePlayer`** (`_findEndTurnReplayCandidate` walks `_oldLineFrom` and picks the first node whose `_dominantActor` === current active player) rather than by a fixed sibling/child offset or the node name. `_normalizeActions` stamps the synth fallback's `actor` from the node name (correct for imports, which is the only path that reaches synth). **Never** infer the acting player from a node's name.
+
+**Why instanceId matching is reliable:** both branches descend from the same snapshot, deck order there is fixed, and draws are deterministic (`deck.shift()`), so the other player draws the same physical cards (same instanceIds) on the new branch. Only that player's actions **targeting the branching player's board** can break — those are skipped and flagged.
+
+**Replayed turns re-journal themselves** (`recordAction` is *not* suppressed during replay), so each banked replay node carries its own `.actions` and can be replayed again later.
+
+### **8.4 Triggers & UI**
+
+* **Node button** — a wand (`fa-wand-magic-sparkles`) button on each tree node with replayable actions (`App.startLineReplay`). Applies that node's turn onto the current branch.
+* **End-turn prompt** — after a manually played, branched turn, `endTurn` (guarded by `_suppressEndTurnPrompt`, which `runReplayStep` sets while banking) offers *"Auto-play X's turn as before?"* when a sibling line exists.
+* **Floating panel** (`#replay-prompt`, injected into `body`) — built by `_renderReplayPrompt`. Shows applied/total, a flagged "couldn't replay" list, the next node, **Replay next / Stop** buttons, and an **"Auto-continue down this line"** checkbox (`_replayAutoContinue`). Auto-continue **always pauses on conflicts**.
+
+### **8.5 Known limits (v1)**
+
+* Imported duels replays don't yet map their `takenAction` frames into the `node.actions` schema, so they use the cardId-only `PLAY` synth fallback (no quest/challenge/ink fidelity on replay). Manual play is full-fidelity.
+* Cascade follows the most-recent child at each step; genuinely forked old lines are disambiguated by asking each turn.
+
 

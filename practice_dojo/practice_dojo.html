@@ -1144,7 +1144,7 @@
         let cardFuse = null;
         let allSessions = [];
 
-        const APP_VERSION = "v1.22.0"; // Centralized version string
+        const APP_VERSION = "v1.23.1"; // Centralized version string
 
         window.addEventListener('DOMContentLoaded', () => {
             const loadingVer = document.getElementById('app-version-loading');
@@ -1203,6 +1203,8 @@
                     opponentHandRevealed: stateObj.opponentHandRevealed,
                     activeTimelineColor: stateObj.activeTimelineColor,
                     turnComments: stateObj.turnComments,
+                    cardsPlayedThisTurn: stateObj.cardsPlayedThisTurn || [],
+                    currentTurnActions: stateObj.currentTurnActions || [],
                     players: stateObj.players.map(p => ({
                         id: p.id,
                         name: p.name,
@@ -1234,6 +1236,8 @@
                     opponentHandRevealed: compressed.opponentHandRevealed || false,
                     activeTimelineColor: compressed.activeTimelineColor || null,
                     turnComments: compressed.turnComments || {},
+                    cardsPlayedThisTurn: compressed.cardsPlayedThisTurn || [],
+                    currentTurnActions: compressed.currentTurnActions || [],
                     log: compressed.log !== undefined ? [...compressed.log] : currentLog.slice(0, compressed.logLength || 0),
                     players: compressed.players.map(p => ({
                         id: p.id,
@@ -1271,6 +1275,8 @@
                 inactivePlayer: 1,
                 opponentHandRevealed: false,
                 turnComments: {},
+                cardsPlayedThisTurn: [],
+                currentTurnActions: [],
                 players: [
                     { id: 0, name: "Player 1", deck: [], hand: [], field: [], inkwell: [], discard: [], lore: 0, inkTotal: 0, inkReady: 0, hasMulliganed: false },
                     { id: 1, name: "Player 2", deck: [], hand: [], field: [], inkwell: [], discard: [], lore: 0, inkTotal: 0, inkReady: 0, hasMulliganed: false }
@@ -1692,6 +1698,16 @@
                 this.state.log.push({ text: msg, isSystem, player: this.state.activePlayer });
             },
 
+            // Feature 23: Per-turn action journal. Records the structured, replayable intent
+            // behind a turn's semantic moves (ink/play/quest/challenge) so a sibling branch can
+            // auto-replay them. Purely additive metadata — snapshots remain the restore source of truth.
+            // Note: NOT suppressed during replay — a replayed turn re-journals itself against the new
+            // branch so it banks a proper node (and can itself be replayed later).
+            recordAction(action) {
+                if (!this.state.currentTurnActions) this.state.currentTurnActions = [];
+                this.state.currentTurnActions.push(action);
+            },
+
             shuffle(array) {
                 for (let i = array.length - 1; i > 0; i--) {
                     const j = Math.floor(Math.random() * (i + 1));
@@ -1714,6 +1730,7 @@
                     turn: 1, activePlayer: 0, inactivePlayer: 1, opponentHandRevealed: false, log: [], turnComments: {},
                     cardsPlayedThisTurn: [],
                     activeTimelineColor: null,
+                    currentTurnActions: [],
                     players: [
                         { id: 0, name: "Player 1", deck: [], hand: [], field: [], inkwell: [], discard: [], lore: 0, inkTotal: 0, inkReady: 0, hasMulliganed: false },
                         { id: 1, name: "Player 2", deck: [], hand: [], field: [], inkwell: [], discard: [], lore: 0, inkTotal: 0, inkReady: 0, hasMulliganed: false }
@@ -1764,6 +1781,7 @@
 
             endTurn() {
                 this.saveState();
+                let createdNodeId = null; // Feature 23: track the node this end-turn creates (if any)
 
                 this.state.activePlayer = this.state.inactivePlayer;
                 this.state.inactivePlayer = 1 - this.state.activePlayer;
@@ -1833,19 +1851,35 @@
                         comment: finalComment,
                         color: bColor,
                         cardsPlayedData: [...(this.state.cardsPlayedThisTurn || [])],
+                        actions: [...(this.state.currentTurnActions || [])],
                         state: JSON.stringify(this.compressState(this.state, true)),
                         timestamp: Date.now(),
                         isDeckEdit: false
                     });
 
-                    // Clear the buffer now that the previous turn's played cards are saved
+                    // Clear the buffers now that the previous turn's played cards/actions are saved
                     this.state.cardsPlayedThisTurn = [];
+                    this.state.currentTurnActions = [];
 
                     this.state.activeBookmarkId = newId;
                     this.showToast("Auto-Saved Timeline");
+                    createdNodeId = newId;
                 }
 
+                // Feature 23: always start the new turn with a fresh action journal so turns
+                // don't bleed together when auto-save is disabled.
+                this.state.currentTurnActions = [];
+
                 this.render();
+
+                // Feature 23: if this end-turn just created a node that branches off a point which
+                // already has an old line, offer to auto-play that line's next turn.
+                if (!this._suppressEndTurnPrompt && createdNodeId) {
+                    const cand = this._findEndTurnReplayCandidate(createdNodeId);
+                    if (cand) {
+                        setTimeout(() => this._renderReplayPrompt(null, cand, false, false, true), 60);
+                    }
+                }
             },
 
             exertInk() {
@@ -3030,6 +3064,8 @@
                     stats: stats,
                     comment: commentInput,
                     color: bColor,
+                    cardsPlayedData: [...(this.state.cardsPlayedThisTurn || [])],
+                    actions: [...(this.state.currentTurnActions || [])],
                     state: JSON.stringify(this.compressState(this.state, true)),
                     timestamp: Date.now(),
                     isDeckEdit: false
@@ -3124,6 +3160,299 @@
                     }
                 }
                 this.saveToLocalStorage();
+            },
+
+            // --- Feature 23: Auto-replay a sibling branch's turns onto the current branch ---
+            //
+            // Model: each turn-node carries a `.actions` journal (the moves that produced it).
+            // To "auto-play what the other player did", we apply a node's recorded actions to the
+            // CURRENT (divergent) live state, then end the turn to bank it as a node on the new
+            // branch. A ghost cursor walks down the old line (node -> most-recent child) so the
+            // replay can cascade. Anything that can't be re-applied (e.g. a challenge whose target
+            // no longer exists on the new branch) is skipped and flagged — sandbox stays the referee.
+
+            _replayAutoContinue: false,
+            _replayGhostId: null,
+            _replayTimer: null,
+            _suppressEndTurnPrompt: false,
+
+            // Normalize a node into a replayable action list. New nodes carry `.actions`; legacy /
+            // imported nodes fall back to synthesizing PLAY actions from `cardsPlayedData` (cardId only).
+            _normalizeActions(node) {
+                if (node && Array.isArray(node.actions) && node.actions.length) return node.actions;
+                if (node && Array.isArray(node.cardsPlayedData) && node.cardsPlayedData.length) {
+                    // Synth fallback (imported / legacy nodes): cardId-only PLAY actions.
+                    // Imported nodes snapshot at the START of a turn and store that turn's OWN plays,
+                    // so the player named in the node IS the actor. (Live-autosave nodes always carry
+                    // a real `.actions` journal with explicit actor, so they never reach this branch.)
+                    const namedActor = /P2|Player 2/.test(node.name || '') ? 1 : 0;
+                    return node.cardsPlayedData.map(cid => ({ type: 'PLAY', actor: namedActor, instanceId: null, cardId: cid, from: 'hand', _synth: true }));
+                }
+                return [];
+            },
+
+            _dominantActor(actions) {
+                let c0 = 0, c1 = 0;
+                actions.forEach(a => { if (a.actor === 0) c0++; else if (a.actor === 1) c1++; });
+                if (c0 === 0 && c1 === 0) return null;
+                return c1 > c0 ? 1 : 0;
+            },
+
+            // Resolve an action's card to a live instanceId in the expected zone.
+            // Prefers the exact instanceId (stable across a branch); falls back to any same-cardId
+            // card in the actor's (or either player's) matching zone.
+            _resolveActionInstance(a, loc) {
+                if (a.instanceId) {
+                    const f = this.findCard(a.instanceId);
+                    if (f && f.loc === loc) return a.instanceId;
+                }
+                const pools = (a.actor === 0 || a.actor === 1) ? [this.state.players[a.actor]] : this.state.players;
+                for (const p of pools) {
+                    const c = p && p[loc] && p[loc].find(x => x.cardId === a.cardId);
+                    if (c) return c.instanceId;
+                }
+                return null;
+            },
+
+            _resolveChallengeTarget(a) {
+                if (a.targetInstanceId) {
+                    const f = this.findCard(a.targetInstanceId);
+                    if (f && f.loc === 'field') return a.targetInstanceId;
+                }
+                const oppIdx = a.actor === 0 ? 1 : 0;
+                const opp = (a.actor === 0 || a.actor === 1) ? this.state.players[oppIdx] : null;
+                if (opp) {
+                    const c = opp.field.find(x => x.cardId === a.targetCardId);
+                    if (c) return c.instanceId;
+                }
+                return null;
+            },
+
+            // Apply a single action via the real mutators. Returns true if applied, false if skipped.
+            _applyOneAction(a) {
+                switch (a.type) {
+                    case 'INK': {
+                        const id = this._resolveActionInstance(a, 'hand');
+                        if (!id) return false;
+                        this.playToInkwell(id);
+                        return true;
+                    }
+                    case 'PLAY': {
+                        let id = this._resolveActionInstance(a, 'hand') || this._resolveActionInstance(a, 'discard');
+                        if (!id) return false;
+                        this.playCard(id);
+                        return true;
+                    }
+                    case 'QUEST': {
+                        const id = this._resolveActionInstance(a, 'field');
+                        if (!id) return false;
+                        this.quest(id);
+                        return true;
+                    }
+                    case 'CHALLENGE': {
+                        const att = this._resolveActionInstance(a, 'field');
+                        const def = this._resolveChallengeTarget(a);
+                        if (!att || !def) return false;
+                        this.performChallenge(att, def);
+                        return true;
+                    }
+                    default:
+                        return false;
+                }
+            },
+
+            // Apply all of a node's actions to the current live state. Aligns the active player to
+            // the acting player first so the subsequent endTurn() flips correctly.
+            replayActions(nodeId) {
+                const node = this.bookmarks.find(b => b.id === nodeId);
+                if (!node) return null;
+                const actions = this._normalizeActions(node);
+                if (!actions.length) return { node, applied: 0, total: 0, skipped: [] };
+
+                this.saveState();
+                const actor = this._dominantActor(actions);
+                if (actor === 0 || actor === 1) {
+                    this.state.activePlayer = actor;
+                    this.state.inactivePlayer = 1 - actor;
+                }
+
+                const skipped = [];
+                this._replaying = true;
+                try {
+                    for (const a of actions) {
+                        let ok = false;
+                        try { ok = this._applyOneAction(a); } catch (e) { ok = false; }
+                        if (!ok) skipped.push(a);
+                    }
+                } finally {
+                    this._replaying = false;
+                }
+                this.render();
+                return { node, applied: actions.length - skipped.length, total: actions.length, skipped };
+            },
+
+            _ghostNextNode(nodeId) {
+                const kids = this.bookmarks.filter(b => b.parentId === nodeId);
+                if (!kids.length) return null;
+                kids.sort((a, b) => a.timestamp - b.timestamp);
+                return kids[kids.length - 1];
+            },
+
+            _actorLabel(node) {
+                const actor = this._dominantActor(this._normalizeActions(node));
+                return this.state.players[actor === 1 ? 1 : 0].name;
+            },
+
+            _describeAction(a) {
+                const db = this.cardDB[a.cardId];
+                const name = db ? db.name : '(unknown card)';
+                if (a.type === 'CHALLENGE') {
+                    const tdb = this.cardDB[a.targetCardId];
+                    return `Challenge ${tdb ? tdb.name : '?'} with ${name}`;
+                }
+                if (a.type === 'QUEST') return `Quest with ${name}`;
+                if (a.type === 'INK') return `Ink ${name}`;
+                return `Play ${name}`;
+            },
+
+            // Node-button entry: apply this node's turn onto the current branch and offer to cascade.
+            startLineReplay(nodeId) {
+                this._replayAutoContinue = false;
+                this.closeTreeModal();
+                this.runReplayStep(nodeId);
+            },
+
+            // One replay step: apply a node's actions, bank the turn, then prompt to continue (or
+            // auto-advance if enabled and there were no conflicts).
+            runReplayStep(nodeId) {
+                const result = this.replayActions(nodeId);
+                if (!result) return;
+
+                this._suppressEndTurnPrompt = true;
+                this.endTurn();
+                this._suppressEndTurnPrompt = false;
+
+                this._replayGhostId = nodeId;
+                const next = this._ghostNextNode(nodeId);
+                const hasConflict = result.skipped.length > 0;
+
+                if (this._replayAutoContinue && !hasConflict && next) {
+                    this._renderReplayPrompt(result, next, false, true);
+                    clearTimeout(this._replayTimer);
+                    this._replayTimer = setTimeout(() => this.runReplayStep(next.id), 700);
+                    return;
+                }
+                this._renderReplayPrompt(result, next, hasConflict, false);
+            },
+
+            // Ordered list of nodes down the old line from a branch point (excluding the new node).
+            _oldLineFrom(branchPointId, excludeId) {
+                const sibs = this.bookmarks.filter(b => b.parentId === branchPointId && b.id !== excludeId);
+                if (!sibs.length) return [];
+                sibs.sort((a, b) => b.timestamp - a.timestamp);
+                const line = [];
+                const seen = new Set();
+                let node = sibs[0];
+                while (node && !seen.has(node.id)) {
+                    seen.add(node.id);
+                    line.push(node);
+                    node = this._ghostNextNode(node.id);
+                }
+                return line;
+            },
+
+            // Find the old-line node to offer at the end of a manually played, branched turn.
+            // The turn we're about to play belongs to the live active player, so we pick the first
+            // old-line node whose RECORDED ACTIONS belong to that player. Keying off the action's
+            // actor (not the node name or a fixed offset) is convention-agnostic: it works whether
+            // the node stores its own turn's actions (imports) or the previous turn's (live autosaves).
+            _findEndTurnReplayCandidate(newId) {
+                if (!newId) return null;
+                const bPrime = this.bookmarks.find(b => b.id === newId);
+                if (!bPrime || !bPrime.parentId) return null;
+                const live = this.state.activePlayer;
+                for (const n of this._oldLineFrom(bPrime.parentId, newId)) {
+                    const acts = this._normalizeActions(n);
+                    if (acts.length && this._dominantActor(acts) === live) return n;
+                }
+                return null;
+            },
+
+            setReplayAutoContinue(v) { this._replayAutoContinue = !!v; },
+
+            dismissReplayPrompt() {
+                clearTimeout(this._replayTimer);
+                this._replayGhostId = null;
+                const el = document.getElementById('replay-prompt');
+                if (el) el.remove();
+            },
+
+            // Renders the floating replay control panel.
+            // - isInitialOffer: end-of-turn "auto-play as before?" offer (result is null).
+            // - autoAdvancing: a cascade step is queued on a timer.
+            _renderReplayPrompt(result, nextNode, hasConflict, autoAdvancing, isInitialOffer = false) {
+                let el = document.getElementById('replay-prompt');
+                if (!el) {
+                    el = document.createElement('div');
+                    el.id = 'replay-prompt';
+                    el.className = 'fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] w-[420px] max-w-[92vw] bg-[#1a1a1e] border-2 border-purple-500 rounded-xl shadow-[0_10px_40px_rgba(147,51,234,0.45)] p-4 text-white';
+                    document.body.appendChild(el);
+                }
+
+                let summaryHtml = '';
+                if (result) {
+                    const conflictHtml = result.skipped.length
+                        ? `<div class="mt-2 text-[11px] text-amber-300">
+                               <i class="fa-solid fa-triangle-exclamation"></i> Couldn't replay ${result.skipped.length}:
+                               <ul class="list-disc list-inside text-amber-200/80 mt-0.5">
+                                   ${result.skipped.map(a => `<li>${this._describeAction(a)}</li>`).join('')}
+                               </ul>
+                           </div>`
+                        : '';
+                    summaryHtml = `
+                        <div class="text-sm font-bold text-purple-300 flex items-center gap-2">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> Replayed ${result.node ? result.node.name : 'turn'}
+                        </div>
+                        <div class="text-[12px] text-gray-300 mt-1">Applied ${result.applied}/${result.total} actions.</div>
+                        ${conflictHtml}`;
+                } else if (isInitialOffer) {
+                    summaryHtml = `
+                        <div class="text-sm font-bold text-purple-300 flex items-center gap-2">
+                            <i class="fa-solid fa-clock-rotate-left"></i> Branch detected
+                        </div>
+                        <div class="text-[12px] text-gray-300 mt-1">Auto-play <span class="font-bold text-white">${this._actorLabel(nextNode)}</span>'s turn the way the old branch did?</div>`;
+                }
+
+                let actionsHtml = '';
+                if (nextNode) {
+                    const label = isInitialOffer ? 'Auto-play' : 'Replay next turn';
+                    const stopLabel = isInitialOffer ? 'No, I\'ll play it' : 'Stop';
+                    const advNote = autoAdvancing
+                        ? `<div class="text-[11px] text-purple-300/80 mt-2 italic"><i class="fa-solid fa-spinner fa-spin"></i> Auto-continuing… <button onclick="App.dismissReplayPrompt()" class="underline ml-1">pause</button></div>`
+                        : '';
+                    const nextActor = this._actorLabel(nextNode);
+                    actionsHtml = `
+                        <div class="text-[11px] text-gray-400 mt-2">Next: <span class="text-gray-200">${nextNode.name}</span> (${nextActor})</div>
+                        ${advNote}
+                        ${autoAdvancing ? '' : `
+                        <div class="flex items-center gap-2 mt-3">
+                            <button onclick="App.runReplayStep('${nextNode.id}')" class="flex-1 px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white text-[12px] font-bold rounded transition">${label}</button>
+                            <button onclick="App.dismissReplayPrompt()" class="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-white text-[12px] rounded transition">${stopLabel}</button>
+                        </div>`}
+                        <label class="flex items-center gap-2 mt-3 text-[11px] text-gray-400 cursor-pointer select-none">
+                            <input type="checkbox" ${this._replayAutoContinue ? 'checked' : ''} onchange="App.setReplayAutoContinue(this.checked)">
+                            Auto-continue down this line (pauses on conflicts)
+                        </label>`;
+                    if (hasConflict && !isInitialOffer) {
+                        actionsHtml += `<div class="text-[10px] text-amber-300/70 mt-1">Paused: this turn had conflicts — review before continuing.</div>`;
+                    }
+                } else {
+                    actionsHtml = `
+                        <div class="text-[11px] text-gray-400 mt-2">End of the old line — nothing left to replay.</div>
+                        <button onclick="App.dismissReplayPrompt()" class="mt-3 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-white text-[12px] rounded transition">Done</button>`;
+                }
+
+                el.innerHTML = summaryHtml + actionsHtml;
             },
 
             // --- Multiverse Canvas Drawing (Tree View) ---
@@ -3310,7 +3639,7 @@
                                  <!-- Header Row -->
                                  <div class="flex items-center justify-between shrink-0">
                                      <button onclick="App.restoreTimeline('${b.id}', false)"
-                                         class="text-[12px] font-bold text-white truncate pr-6 flex items-center gap-1.5 hover:text-purple-300 transition"
+                                         class="text-[12px] font-bold text-white truncate pr-[5.5rem] flex items-center gap-1.5 hover:text-purple-300 transition"
                                          title="Click to Restore this Timeline Warp">
                                          ${icon} <span class="group-hover:underline underline-offset-2">${b.name}</span>
                                      </button>
@@ -3345,11 +3674,19 @@
                              </button>
                              
                              <!-- Delete Button -->
-                             <button onclick="App.deleteTimeline('${b.id}', false)" 
-                                 class="absolute top-1.5 right-1.5 w-6 h-6 flex items-center justify-center bg-gray-800 hover:bg-red-600 text-gray-400 hover:text-white rounded-md text-[10px] transition z-20" 
+                             <button onclick="App.deleteTimeline('${b.id}', false)"
+                                 class="absolute top-1.5 right-1.5 w-6 h-6 flex items-center justify-center bg-gray-800 hover:bg-red-600 text-gray-400 hover:text-white rounded-md text-[10px] transition z-20"
                                  title="Delete Node (Children will automatically attach to parent)">
                                  <i class="fa-solid fa-trash"></i>
                              </button>
+
+                             ${this._normalizeActions(b).length ? `
+                             <!-- Feature 23: Replay this turn's actions onto the current branch -->
+                             <button onclick="App.startLineReplay('${b.id}')"
+                                 class="absolute top-1.5 right-[3.75rem] w-6 h-6 flex items-center justify-center bg-gray-800 hover:bg-purple-600 text-gray-400 hover:text-white rounded-md text-[10px] transition z-20"
+                                 title="Replay this turn's actions onto your current branch (then cascade down this line)">
+                                 <i class="fa-solid fa-wand-magic-sparkles"></i>
+                             </button>` : ''}
                         `;
                     }
                     nodesContainer.appendChild(el);
@@ -3747,6 +4084,14 @@
 
                 // Deduct ink automatically if dropping from hand to field
                 const dbCard = this.cardDB[found.card.cardId];
+
+                // Feature 23: journal hand plays/inks performed via drag-and-drop
+                if (found.loc === 'hand' && targetZone === 'field') {
+                    this.recordAction({ type: 'PLAY', actor: targetPlayer.id, instanceId: found.card.instanceId, cardId: found.card.cardId, from: 'hand' });
+                } else if (found.loc === 'hand' && targetZone === 'inkwell') {
+                    this.recordAction({ type: 'INK', actor: targetPlayer.id, instanceId: found.card.instanceId, cardId: found.card.cardId });
+                }
+
                 if (found.loc === 'hand' && targetZone === 'field' && targetPlayerIndex === this.state.activePlayer) {
                     if (targetPlayer.inkReady >= dbCard.cost) {
                         targetPlayer.inkReady -= dbCard.cost;
@@ -3850,6 +4195,12 @@
                 if (!found) return;
 
                 const dbCard = this.cardDB[found.card.cardId];
+
+                // Feature 23: journal the ink (only when coming from hand, the meaningful play)
+                if (found.loc === 'hand') {
+                    this.recordAction({ type: 'INK', actor: found.player.id, instanceId: found.card.instanceId, cardId: found.card.cardId });
+                }
+
                 found.player[found.loc].splice(found.idx, 1);
 
                 // Feature 14: Track card played to inkwell
@@ -3876,6 +4227,9 @@
                 if (!found) return;
 
                 const dbCard = this.cardDB[found.card.cardId];
+
+                // Feature 23: journal the play
+                this.recordAction({ type: 'PLAY', actor: found.player.id, instanceId: found.card.instanceId, cardId: found.card.cardId, from: found.loc });
 
                 // Deduct ink if available (Dojo allows playing even if not enough, for testing)
                 if (found.player.inkReady >= dbCard.cost) {
@@ -3941,6 +4295,8 @@
                 const loreVal = dbCard.lore || 0;
                 found.player.lore += loreVal;
 
+                this.recordAction({ type: 'QUEST', actor: found.player.id, instanceId: found.card.instanceId, cardId: found.card.cardId, lore: loreVal });
+
                 this.logAction(`You quested with ${dbCard.name} for ${loreVal} lore.`);
                 this.render();
                 this.checkBranchOver();
@@ -3958,6 +4314,7 @@
                         c.exerted = true;
                         totalLore += dbCard.lore;
                         count++;
+                        this.recordAction({ type: 'QUEST', actor: p.id, instanceId: c.instanceId, cardId: c.cardId, lore: dbCard.lore });
                     }
                 });
 
@@ -4093,6 +4450,15 @@
                         }
                     }
                 }
+
+                // Feature 23: journal the challenge with its banish outcomes
+                this.recordAction({
+                    type: 'CHALLENGE', actor: cf.player.id,
+                    instanceId: challengerInstanceId, cardId: cf.card.cardId,
+                    targetInstanceId: defenderInstanceId, targetCardId: df.card.cardId,
+                    defenderBanished: (dWp > 0 && df.card.damage >= dWp),
+                    challengerBanished: (cWp > 0 && cf.card.damage >= cWp)
+                });
 
                 this.logAction(logParts.join(' '));
                 this.render();
