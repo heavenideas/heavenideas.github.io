@@ -1265,6 +1265,10 @@
             display: block
         }
 
+        .r-hero img[hidden] {
+            display: none
+        }
+
         .r-hero .r-emoji {
             position: absolute;
             inset: 0;
@@ -2230,8 +2234,14 @@
         }
         function renderQueue() {
             const q = $("queue"), reel = $("reel");
+            const wasHidden = q.hidden;
             if (!pool.length) { q.hidden = true; reel.innerHTML = ""; $("queueName").textContent = "—"; return; }
-            q.hidden = false; reel.innerHTML = "";
+            q.hidden = false;
+            if (wasHidden) {                       // queue just appeared — keep what the user is looking at in place
+                const h = q.getBoundingClientRect().height;
+                if (h) window.scrollBy(0, h);
+            }
+            reel.innerHTML = "";
             pool.forEach(p => {
                 const t = document.createElement("div"); t.className = "qtile"; t.dataset.id = p.id;
                 t.innerHTML = p.kind === "card"
