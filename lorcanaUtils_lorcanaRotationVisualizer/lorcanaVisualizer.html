@@ -1,543 +1,1579 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lorcana Deck Builder</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>The Inkwell · Lorcana Set-Rotation Visualizer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&family=Outfit:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
     <style>
-        /* Define custom HSL color variables based on globals.css */
         :root {
-            --background: 215 30% 15%;
-            --foreground: 0 0% 98%;
-            --card: 215 30% 17%;
-            --card-foreground: 0 0% 98%;
-            --popover: 215 30% 12%;
-            --popover-foreground: 0 0% 98%;
-            --primary: 205 60% 50%;
-            --primary-foreground: 0 0% 98%;
-            --secondary: 210 20% 30%;
-            --secondary-foreground: 0 0% 98%;
-            --muted: 215 20% 25%;
-            --muted-foreground: 210 15% 65%;
-            --accent: 0 70% 55%;
-            --accent-foreground: 0 0% 98%;
-            --destructive: 0 70% 55%;
-            --destructive-foreground: 0 0% 98%;
-            --border: 215 25% 20%;
-            --input: 215 25% 20%;
-            --ring: 205 60% 50%;
-            --radius: 0.5rem;
+            --abyss: #090d1c;
+            --ink-deep: #111733;
+            --ink-panel: #161e40;
+            --ink-raised: #1d2750;
+            --line: #2a3566;
+            --line-soft: #222c54;
+            --gold: #d8b25a;
+            --gold-bright: #f3dc97;
+            --gold-deep: #a9863a;
+            --parchment: #ece3d0;
+            --parchment-dim: #b6b09c;
+            --muted: #8590bd;
+            --muted-dim: #5a648f;
+
+            --amber: #e7a832;
+            --amethyst: #a463d6;
+            --emerald: #3fae6e;
+            --ruby: #df4a45;
+            --sapphire: #3f86df;
+            --steel: #93a2bd;
+
+            --stay: var(--gold-bright);
+            --gone: #6b7398;
+
+            --r: 14px;
+            --shadow: 0 24px 60px -28px rgba(0, 0, 0, .8);
         }
 
-        .dark {
-            --background: 215 30% 15%;
-            --foreground: 0 0% 98%;
-            --card: 215 30% 17%;
-            --card-foreground: 0 0% 98%;
-            --popover: 215 30% 12%;
-            --popover-foreground: 0 0% 98%;
-            --primary: 205 60% 50%;
-            --primary-foreground: 0 0% 98%;
-            --secondary: 210 20% 30%;
-            --secondary-foreground: 0 0% 98%;
-            --muted: 215 20% 25%;
-            --muted-foreground: 210 15% 65%;
-            --accent: 0 70% 55%;
-            --accent-foreground: 0 0% 98%;
-            --destructive: 0 70% 55%;
-            --destructive-foreground: 0 0% 98%;
-            --border: 215 25% 20%;
-            --input: 215 25% 20%;
-            --ring: 205 60% 50%;
+        * {
+            box-sizing: border-box;
         }
 
-        /* Apply base styles using Tailwind's @apply directive within a style tag */
-        @layer base {
-            * {
-                @apply border-border;
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: 'Outfit', system-ui, sans-serif;
+            color: var(--parchment);
+            background:
+                radial-gradient(1200px 700px at 78% -8%, rgba(216, 178, 90, .12), transparent 60%),
+                radial-gradient(1000px 800px at -10% 12%, rgba(63, 134, 223, .12), transparent 55%),
+                linear-gradient(180deg, #0b1024 0%, var(--abyss) 55%, #070a16 100%);
+            background-attachment: fixed;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* faint ink-fleck texture */
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background-image: radial-gradient(rgba(243, 220, 151, .25) 1px, transparent 1.4px);
+            background-size: 46px 46px;
+            opacity: .05;
+            z-index: 0;
+        }
+
+        .wrap {
+            position: relative;
+            z-index: 1;
+            max-width: 1240px;
+            margin: 0 auto;
+            padding: clamp(20px, 4vw, 52px) clamp(16px, 4vw, 40px) 80px;
+        }
+
+        /* ---------- Header ---------- */
+        header {
+            margin-bottom: clamp(28px, 5vw, 52px);
+        }
+
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 11.5px;
+            letter-spacing: .42em;
+            text-transform: uppercase;
+            color: var(--gold);
+            font-weight: 600;
+            margin: 0 0 18px;
+        }
+
+        .eyebrow::before {
+            content: "";
+            width: 34px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--gold-deep));
+        }
+
+        h1 {
+            font-family: 'Cinzel', serif;
+            font-weight: 700;
+            font-size: clamp(34px, 6.2vw, 68px);
+            line-height: 1.02;
+            margin: 0;
+            letter-spacing: .01em;
+            background: linear-gradient(176deg, var(--gold-bright) 8%, var(--gold) 46%, var(--gold-deep) 96%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 1px 0 rgba(0, 0, 0, .25);
+        }
+
+        h1 .ink {
+            font-style: italic;
+            font-weight: 600;
+        }
+
+        .lede {
+            max-width: 56ch;
+            margin: 18px 0 0;
+            color: var(--parchment-dim);
+            font-size: clamp(15px, 1.6vw, 17.5px);
+            line-height: 1.6;
+            font-weight: 300;
+        }
+
+        /* ---------- Layout ---------- */
+        .stage {
+            display: grid;
+            grid-template-columns: minmax(0, 360px) minmax(0, 1fr);
+            gap: clamp(20px, 2.6vw, 34px);
+            align-items: start;
+        }
+
+        @media (max-width: 920px) {
+            .stage {
+                grid-template-columns: 1fr;
             }
+        }
 
-            body {
-                @apply bg-background text-foreground;
+        .panel {
+            background: linear-gradient(180deg, var(--ink-panel), var(--ink-deep));
+            border: 1px solid var(--line-soft);
+            border-radius: var(--r);
+            box-shadow: var(--shadow);
+        }
+
+        .rail {
+            position: sticky;
+            top: 22px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        @media (max-width: 920px) {
+            .rail {
+                position: static;
             }
         }
 
-        /* Custom styles */
-        .card-image {
-            transition: filter 0.3s ease-in-out;
-            width: 150px;
-            /* Fixed width for consistency */
-            height: auto;
+        .block {
+            padding: 20px;
         }
 
-        .card-item.filtered-out .card-image {
-            filter: grayscale(100%) opacity(50%);
+        .block-head {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 14px;
         }
 
-        .card-item.filtered-out .card-name,
-        .card-item.filtered-out .card-set {
-            /* Also fade out set name */
-            opacity: 50%;
+        .block-title {
+            font-family: 'Cinzel', serif;
+            font-size: 13.5px;
+            letter-spacing: .16em;
+            text-transform: uppercase;
+            color: var(--parchment);
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .block-hint {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        /* ---------- Decklist input ---------- */
+        textarea {
+            width: 100%;
+            min-height: 168px;
+            resize: vertical;
+            padding: 14px;
+            border-radius: 10px;
+            background: var(--abyss);
+            border: 1px solid var(--line);
+            color: var(--parchment);
+            font-family: 'Outfit', sans-serif;
+            font-size: 14px;
+            line-height: 1.55;
+            transition: border-color .2s, box-shadow .2s;
+        }
+
+        textarea::placeholder {
+            color: var(--muted-dim);
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--gold-deep);
+            box-shadow: 0 0 0 3px rgba(216, 178, 90, .14);
+        }
+
+        .row {
+            display: flex;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        button {
+            font-family: 'Outfit', sans-serif;
+            cursor: pointer;
+            border: none;
+            transition: transform .12s, background .2s, color .2s, border-color .2s, box-shadow .2s;
+        }
+
+        button:active {
+            transform: translateY(1px);
+        }
+
+        button:focus-visible {
+            outline: 2px solid var(--gold-bright);
+            outline-offset: 2px;
+        }
+
+        .btn-primary {
+            flex: 1;
+            padding: 12px 18px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 14.5px;
+            letter-spacing: .02em;
+            color: #1a1303;
+            background: linear-gradient(180deg, var(--gold-bright), var(--gold));
+            box-shadow: 0 10px 24px -12px rgba(216, 178, 90, .7), inset 0 1px 0 rgba(255, 255, 255, .4);
+        }
+
+        .btn-primary:hover {
+            box-shadow: 0 14px 30px -10px rgba(216, 178, 90, .85), inset 0 1px 0 rgba(255, 255, 255, .5);
+        }
+
+        .btn-primary:disabled {
+            opacity: .5;
+            cursor: not-allowed;
+        }
+
+        .btn-ghost {
+            padding: 11px 14px;
+            border-radius: 10px;
+            font-weight: 500;
+            font-size: 13.5px;
+            color: var(--parchment);
+            background: var(--ink-raised);
+            border: 1px solid var(--line);
+        }
+
+        .btn-ghost:hover {
+            border-color: var(--gold-deep);
+            color: var(--gold-bright);
+        }
+
+        /* ---------- Set presets + crests ---------- */
+        .presets {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 7px;
+            margin-bottom: 14px;
+        }
+
+        .pill {
+            padding: 7px 12px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 500;
+            letter-spacing: .02em;
+            color: var(--muted);
+            background: transparent;
+            border: 1px solid var(--line);
+        }
+
+        .pill:hover {
+            color: var(--gold-bright);
+            border-color: var(--gold-deep);
+        }
+
+        .crests {
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+            max-height: 320px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        .crests::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .crests::-webkit-scrollbar-thumb {
+            background: var(--line);
+            border-radius: 99px;
+        }
+
+        .crest {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+            text-align: left;
+            padding: 9px 12px;
+            border-radius: 10px;
+            background: var(--abyss);
+            border: 1px solid var(--line-soft);
+            color: var(--parchment);
+        }
+
+        .crest:hover {
+            border-color: var(--line);
+        }
+
+        .crest[aria-pressed="true"] {
+            background: linear-gradient(100deg, rgba(216, 178, 90, .16), rgba(216, 178, 90, .05));
+            border-color: var(--gold-deep);
+        }
+
+        .crest-num {
+            flex: none;
+            width: 32px;
+            height: 32px;
+            display: grid;
+            place-items: center;
+            border-radius: 8px;
+            font-family: 'Cinzel', serif;
+            font-weight: 700;
+            font-size: 13px;
+            color: var(--muted);
+            background: var(--ink-raised);
+            border: 1px solid var(--line);
+            transition: all .2s;
+        }
+
+        .crest[aria-pressed="true"] .crest-num {
+            color: #1a1303;
+            background: linear-gradient(180deg, var(--gold-bright), var(--gold));
+            border-color: transparent;
+        }
+
+        .crest-body {
+            min-width: 0;
+            flex: 1;
+        }
+
+        .crest-name {
+            display: block;
+            font-size: 13.5px;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .crest-tag {
+            font-size: 10.5px;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+            color: var(--muted-dim);
+        }
+
+        .crest-tag.legal {
+            color: var(--emerald);
+        }
+
+        .crest-check {
+            flex: none;
+            color: var(--muted-dim);
+            font-size: 15px;
+        }
+
+        .crest[aria-pressed="true"] .crest-check {
+            color: var(--gold-bright);
+        }
+
+        /* ---------- Message + loader ---------- */
+        .message {
+            font-size: 12.5px;
+            min-height: 18px;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+
+        .message.error {
+            color: var(--ruby);
+        }
+
+        .message.success {
+            color: var(--emerald);
+        }
+
+        .loader-row {
+            display: none;
+            align-items: center;
+            gap: 12px;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .loader-row.on {
+            display: flex;
         }
 
         .loader {
-            border: 4px solid hsl(var(--secondary));
-            border-top: 4px solid hsl(var(--primary));
+            width: 22px;
+            height: 22px;
             border-radius: 50%;
-            width: 40px;
-            height: 40px;
+            border: 2.5px solid var(--line);
+            border-top-color: var(--gold);
             animation: spin 1s linear infinite;
         }
 
         @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            100% {
+            to {
                 transform: rotate(360deg);
             }
         }
-    </style>
-    <script>
-        // Configure Tailwind CSS
-        tailwind.config = {
-            darkMode: 'class', // Use the 'dark' class for dark mode
-            theme: {
-                extend: {
-                    colors: {
-                        background: 'hsl(var(--background))',
-                        foreground: 'hsl(var(--foreground))',
-                        card: {
-                            DEFAULT: 'hsl(var(--card))',
-                            foreground: 'hsl(var(--card-foreground))'
-                        },
-                        popover: {
-                            DEFAULT: 'hsl(var(--popover))',
-                            foreground: 'hsl(var(--popover-foreground))'
-                        },
-                        primary: {
-                            DEFAULT: 'hsl(var(--primary))',
-                            foreground: 'hsl(var(--primary-foreground))'
-                        },
-                        secondary: {
-                            DEFAULT: 'hsl(var(--secondary))',
-                            foreground: 'hsl(var(--secondary-foreground))'
-                        },
-                        muted: {
-                            DEFAULT: 'hsl(var(--muted))',
-                            foreground: 'hsl(var(--muted-foreground))'
-                        },
-                        accent: {
-                            DEFAULT: 'hsl(var(--accent))',
-                            foreground: 'hsl(var(--accent-foreground))'
-                        },
-                        destructive: {
-                            DEFAULT: 'hsl(var(--destructive))',
-                            foreground: 'hsl(var(--destructive-foreground))'
-                        },
-                        border: 'hsl(var(--border))',
-                        input: 'hsl(var(--input))',
-                        ring: 'hsl(var(--ring))',
-                    },
-                    borderRadius: {
-                        lg: 'var(--radius)',
-                        md: 'calc(var(--radius) - 2px)',
-                        sm: 'calc(var(--radius) - 4px)'
-                    }
-                }
+
+        /* ---------- Verdict / gauge ---------- */
+        .verdict {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: clamp(18px, 3vw, 36px);
+            align-items: center;
+            padding: clamp(20px, 3vw, 30px);
+        }
+
+        @media (max-width: 560px) {
+            .verdict {
+                grid-template-columns: 1fr;
+                justify-items: center;
+                text-align: center;
             }
         }
-    </script>
+
+        .gauge {
+            position: relative;
+            width: clamp(170px, 22vw, 210px);
+            aspect-ratio: 1;
+            flex: none;
+        }
+
+        .gauge svg {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .ring-track {
+            fill: none;
+            stroke: var(--line);
+            stroke-width: 7;
+        }
+
+        .ring-fill {
+            fill: none;
+            stroke: url(#goldStroke);
+            stroke-width: 7;
+            stroke-linecap: round;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+            transition: stroke-dashoffset 1.1s cubic-bezier(.22, 1, .36, 1);
+            filter: drop-shadow(0 0 6px rgba(243, 220, 151, .5));
+        }
+
+        .ink-shimmer path {
+            animation: drift 6s linear infinite;
+        }
+
+        .ink-shimmer rect {
+            transform: translateX(0);
+        }
+
+        @keyframes drift {
+            to {
+                transform: translateX(-80px);
+            }
+        }
+
+        .gauge-readout {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            pointer-events: none;
+        }
+
+        .gauge-pct {
+            font-family: 'Cinzel', serif;
+            font-weight: 700;
+            font-size: clamp(34px, 5.5vw, 46px);
+            line-height: 1;
+            color: var(--gold-bright);
+            -webkit-text-stroke: 3px rgba(7, 10, 22, .82);
+            text-stroke: 3px rgba(7, 10, 22, .82);
+            paint-order: stroke fill;
+            text-shadow: 0 2px 5px rgba(7, 10, 22, .65);
+        }
+
+        .gauge-pct.empty {
+            color: var(--muted);
+            -webkit-text-stroke-width: 0;
+            text-stroke: 0;
+            text-shadow: none;
+        }
+
+        .gauge-sub {
+            margin-top: 5px;
+            font-size: 10px;
+            letter-spacing: .22em;
+            text-transform: uppercase;
+            font-weight: 600;
+            color: var(--parchment);
+            -webkit-text-stroke: 2.5px rgba(7, 10, 22, .82);
+            text-stroke: 2.5px rgba(7, 10, 22, .82);
+            paint-order: stroke fill;
+            text-shadow: 0 1px 3px rgba(7, 10, 22, .7);
+        }
+
+        .gauge-pct.empty+.gauge-sub {
+            color: var(--muted-dim);
+            -webkit-text-stroke-width: 0;
+            text-stroke: 0;
+            text-shadow: none;
+        }
+
+        .verdict-info {
+            min-width: 0;
+        }
+
+        .verdict-kicker {
+            font-size: 11px;
+            letter-spacing: .26em;
+            text-transform: uppercase;
+            color: var(--gold);
+            font-weight: 600;
+            margin: 0 0 6px;
+        }
+
+        .verdict-line {
+            font-family: 'Cinzel', serif;
+            font-size: clamp(19px, 2.6vw, 26px);
+            font-weight: 600;
+            margin: 0 0 16px;
+            line-height: 1.18;
+        }
+
+        .tallies {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .tally {
+            flex: 1 1 120px;
+            padding: 12px 14px;
+            border-radius: 11px;
+            background: var(--abyss);
+            border: 1px solid var(--line-soft);
+        }
+
+        .tally .n {
+            font-family: 'Cinzel', serif;
+            font-weight: 700;
+            font-size: 24px;
+            line-height: 1;
+        }
+
+        .tally.stay .n {
+            color: var(--gold-bright);
+        }
+
+        .tally.gone .n {
+            color: var(--gone);
+        }
+
+        .tally .k {
+            display: block;
+            margin-top: 5px;
+            font-size: 11px;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        /* ---------- Ink breakdown ---------- */
+        .inks {
+            display: none;
+            padding: 0 clamp(20px, 3vw, 30px) clamp(20px, 3vw, 26px);
+        }
+
+        .inks.on {
+            display: block;
+        }
+
+        .inks-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px 18px;
+            padding-top: 18px;
+            border-top: 1px solid var(--line-soft);
+        }
+
+        .ink-row {
+            display: grid;
+            grid-template-columns: 10px 1fr auto;
+            align-items: center;
+            gap: 9px;
+            font-size: 12.5px;
+        }
+
+        .ink-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            box-shadow: 0 0 8px currentColor;
+        }
+
+        .ink-bar {
+            position: relative;
+            height: 7px;
+            border-radius: 99px;
+            background: var(--line-soft);
+            overflow: hidden;
+        }
+
+        .ink-bar>span {
+            position: absolute;
+            inset: 0 auto 0 0;
+            border-radius: 99px;
+            background: currentColor;
+            transition: width .9s cubic-bezier(.22, 1, .36, 1);
+        }
+
+        .ink-frac {
+            color: var(--muted);
+            font-variant-numeric: tabular-nums;
+            font-size: 11.5px;
+        }
+
+        /* ---------- Deck toolbar ---------- */
+        .deck-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin: 26px 2px 16px;
+        }
+
+        .deck-bar h2 {
+            font-family: 'Cinzel', serif;
+            font-size: 15px;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+            margin: 0;
+            color: var(--parchment);
+        }
+
+        .group-toggle {
+            display: inline-flex;
+            background: var(--ink-deep);
+            border: 1px solid var(--line-soft);
+            border-radius: 999px;
+            padding: 3px;
+        }
+
+        .group-toggle button {
+            padding: 7px 14px;
+            border-radius: 999px;
+            background: transparent;
+            color: var(--muted);
+            font-size: 12.5px;
+            font-weight: 500;
+        }
+
+        .group-toggle button[aria-pressed="true"] {
+            color: #1a1303;
+            background: linear-gradient(180deg, var(--gold-bright), var(--gold));
+        }
+
+        /* ---------- Card groups + grid ---------- */
+        .groups {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .group-head {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 16px;
+        }
+
+        .group-head h3 {
+            font-family: 'Cinzel', serif;
+            font-size: 13.5px;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            margin: 0;
+            white-space: nowrap;
+            color: var(--parchment);
+        }
+
+        .group-head .swatch {
+            width: 11px;
+            height: 11px;
+            border-radius: 3px;
+            flex: none;
+            box-shadow: 0 0 9px currentColor;
+        }
+
+        .group-head .rule {
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(90deg, var(--line), transparent);
+        }
+
+        .group-head .count {
+            font-size: 12px;
+            color: var(--muted);
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 16px;
+        }
+
+        /* ---------- Card ---------- */
+        .card {
+            position: relative;
+        }
+
+        .card-frame {
+            position: relative;
+            border-radius: 11px;
+            overflow: hidden;
+            aspect-ratio: 1 / 1.395;
+            background: var(--ink-raised);
+            border: 1px solid var(--line);
+            box-shadow: 0 14px 28px -18px rgba(0, 0, 0, .9);
+            transition: transform .28s cubic-bezier(.22, 1, .36, 1), box-shadow .28s, border-color .28s;
+        }
+
+        .card-frame img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            transition: filter .45s ease, transform .4s ease;
+        }
+
+        .card:hover .card-frame {
+            transform: translateY(-7px);
+            border-color: var(--gold-deep);
+            box-shadow: 0 26px 44px -20px rgba(0, 0, 0, .95), 0 0 0 1px rgba(216, 178, 90, .3);
+        }
+
+        /* ink spine = card colour */
+        .card-spine {
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: currentColor;
+            box-shadow: 0 0 12px currentColor;
+            z-index: 3;
+        }
+
+        .card-qty {
+            position: absolute;
+            top: 7px;
+            right: 7px;
+            z-index: 3;
+            min-width: 26px;
+            height: 26px;
+            padding: 0 7px;
+            display: grid;
+            place-items: center;
+            border-radius: 8px;
+            font-family: 'Cinzel', serif;
+            font-weight: 700;
+            font-size: 13px;
+            color: #1a1303;
+            background: linear-gradient(180deg, var(--gold-bright), var(--gold));
+            box-shadow: 0 4px 12px -3px rgba(0, 0, 0, .7);
+        }
+
+        /* hover stat strip */
+        .card-stats {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 3;
+            display: flex;
+            justify-content: space-around;
+            gap: 2px;
+            padding: 8px 6px 7px;
+            background: linear-gradient(180deg, transparent, rgba(7, 10, 22, .94));
+            transform: translateY(101%);
+            transition: transform .28s cubic-bezier(.22, 1, .36, 1);
+        }
+
+        .card:hover .card-stats {
+            transform: translateY(0);
+        }
+
+        .stat {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            line-height: 1;
+            gap: 2px;
+        }
+
+        .stat b {
+            font-family: 'Cinzel', serif;
+            font-size: 14px;
+            color: var(--gold-bright);
+        }
+
+        .stat span {
+            font-size: 8px;
+            letter-spacing: .08em;
+            color: var(--muted);
+            text-transform: uppercase;
+        }
+
+        .card-meta {
+            padding: 9px 2px 0;
+        }
+
+        .card-name {
+            display: block;
+            font-size: 12.5px;
+            font-weight: 500;
+            line-height: 1.25;
+            color: var(--parchment);
+        }
+
+        .card-sub {
+            display: block;
+            margin-top: 2px;
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        /* rotating-out treatment */
+        .card.gone .card-frame img {
+            filter: grayscale(1) brightness(.62) contrast(.95);
+        }
+
+        .card.gone .card-frame::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background:
+                linear-gradient(160deg, rgba(9, 13, 28, .15), rgba(9, 13, 28, .68)),
+                radial-gradient(120% 90% at 50% 120%, rgba(9, 13, 28, .8), transparent 60%);
+            z-index: 2;
+        }
+
+        .card.gone .card-qty {
+            filter: grayscale(.7) brightness(.85);
+        }
+
+        .card.gone .card-spine {
+            opacity: .35;
+        }
+
+        .stamp {
+            position: absolute;
+            z-index: 4;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-11deg);
+            padding: 5px 12px;
+            font-family: 'Cinzel', serif;
+            font-weight: 700;
+            font-size: 11px;
+            letter-spacing: .18em;
+            text-transform: uppercase;
+            color: var(--gone);
+            border: 2px solid var(--gone);
+            border-radius: 6px;
+            background: rgba(9, 13, 28, .55);
+            box-shadow: 0 0 0 1px rgba(9, 13, 28, .4);
+            opacity: 0;
+            transition: opacity .3s;
+        }
+
+        .card.gone .stamp {
+            opacity: .92;
+        }
+
+        .card.notfound .card-frame {
+            border-color: var(--ruby);
+            border-style: dashed;
+            display: grid;
+            place-items: center;
+            text-align: center;
+        }
+
+        .card.notfound .card-frame img {
+            opacity: .25;
+            position: absolute;
+            inset: 0;
+        }
+
+        .nf-label {
+            position: relative;
+            z-index: 3;
+            padding: 10px;
+            font-size: 11px;
+            color: var(--ruby);
+            line-height: 1.4;
+        }
+
+        /* ---------- Empty state ---------- */
+        .empty {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 70px 24px;
+            gap: 14px;
+            color: var(--muted);
+        }
+
+        .empty .mark {
+            font-family: 'Cinzel', serif;
+            font-size: 40px;
+            color: var(--gold-deep);
+            opacity: .6;
+        }
+
+        .empty p {
+            margin: 0;
+            max-width: 38ch;
+            line-height: 1.55;
+            font-size: 14.5px;
+        }
+
+        .empty .link {
+            color: var(--gold-bright);
+            background: none;
+            border: none;
+            font: inherit;
+            font-weight: 600;
+            text-decoration: underline;
+            text-underline-offset: 3px;
+            padding: 0;
+        }
+
+        .visually-hidden {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+            clip: rect(0 0 0 0);
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: .001ms !important;
+                transition-duration: .001ms !important;
+                scroll-behavior: auto !important;
+            }
+        }
+    </style>
 </head>
 
-<body class="p-4 md:p-8 font-sans">
+<body>
+    <div class="wrap">
+        <header>
+            <p class="eyebrow">Disney Lorcana · Standard Rotation</p>
+            <h1>Will your deck<br>survive <span class="ink">rotation</span>?</h1>
+            <p class="lede">Paste a decklist and choose which sets are legal. Cards that stay glow gold;
+                cards that rotate out fade from the ink. The Inkwell shows exactly how much of your deck
+                lives on.</p>
+        </header>
 
-    <div class="container mx-auto max-w-6xl">
-        <h1 class="text-3xl font-bold mb-6 text-primary">Lorcana Set Rotation Visualizer</h1>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div class="md:col-span-1 space-y-6">
-                <div>
-                    <label for="decklistInput" class="block text-lg font-medium mb-2 text-foreground">Paste
-                        Decklist:</label>
-                    <textarea id="decklistInput" rows="10"
-                        class="w-full p-3 rounded-md bg-card text-card-foreground border border-border focus:ring-ring focus:border-primary placeholder-muted-foreground"
-                        placeholder="Example:&#10;4 Mickey Mouse - Brave Little Tailor&#10;2 Elsa - Spirit of Winter"></textarea>
-                    <button id="parseButton"
-                        class="mt-3 w-full bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background">
-                        Parse Decklist
-                    </button>
-                </div>
-
-                <div>
-                    <h2 class="text-lg font-medium mb-2 text-foreground">Filter by Set:</h2>
-                    <div id="setFilters"
-                        class="space-y-2 max-h-60 overflow-y-auto p-3 bg-card rounded-md border border-border">
-                        <p class="text-muted-foreground">Loading sets...</p>
+        <div class="stage">
+            <!-- ============ LEFT RAIL ============ -->
+            <aside class="rail">
+                <section class="panel block">
+                    <div class="block-head">
+                        <h2 class="block-title">Your Decklist</h2>
+                        <span class="block-hint">one card per line</span>
                     </div>
-                    <button id="selectAllSetsButton"
-                        class="mt-3 mr-2 bg-secondary text-secondary-foreground px-3 py-1 rounded-md text-sm hover:bg-secondary/90 transition-colors focus:outline-none focus:ring-2 focus:ring-ring">
-                        Select All
-                    </button>
-                    <button id="deselectAllSetsButton"
-                        class="mt-3 bg-secondary text-secondary-foreground px-3 py-1 rounded-md text-sm hover:bg-secondary/90 transition-colors focus:outline-none focus:ring-2 focus:ring-ring">
-                        Deselect All
-                    </button>
+                    <textarea id="decklistInput" spellcheck="false"
+                        placeholder="4 Ariel - On Human Legs&#10;4 Elsa - Spirit of Winter&#10;3 Mickey Mouse - Brave Little Tailor&#10;2 Be Prepared"></textarea>
+                    <div class="row">
+                        <button id="parseButton" class="btn-primary">Reveal the verdict</button>
+                        <button id="sampleButton" class="btn-ghost">Sample</button>
+                    </div>
+                    <div id="messageArea" class="message" style="margin-top:12px"></div>
+                    <div id="loadingIndicator" class="loader-row">
+                        <div class="loader"></div><span>Summoning the card archive…</span>
+                    </div>
+                </section>
+
+                <section class="panel block">
+                    <div class="block-head">
+                        <h2 class="block-title">Legal Sets</h2>
+                        <span class="block-hint" id="setCount"></span>
+                    </div>
+                    <div class="presets">
+                        <button class="pill" id="presetStandard">Current Standard</button>
+                        <button class="pill" id="presetAll">All sets</button>
+                        <button class="pill" id="presetNone">None</button>
+                    </div>
+                    <div id="setFilters" class="crests">
+                        <p class="block-hint">Loading sets…</p>
+                    </div>
+                </section>
+            </aside>
+
+            <!-- ============ MAIN ============ -->
+            <main>
+                <section class="panel">
+                    <div class="verdict">
+                        <div class="gauge" role="img" aria-label="Deck survival gauge">
+                            <svg viewBox="0 0 200 200" aria-hidden="true">
+                                <defs>
+                                    <linearGradient id="goldStroke" x1="0" y1="0" x2="1" y2="1">
+                                        <stop offset="0" stop-color="#f3dc97" />
+                                        <stop offset="1" stop-color="#a9863a" />
+                                    </linearGradient>
+                                    <linearGradient id="inkFill" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="0" stop-color="#f3dc97" />
+                                        <stop offset="1" stop-color="#c79a3f" />
+                                    </linearGradient>
+                                    <clipPath id="coreClip">
+                                        <circle cx="100" cy="100" r="78" />
+                                    </clipPath>
+                                </defs>
+                                <!-- ink pool -->
+                                <g clip-path="url(#coreClip)">
+                                    <rect x="22" y="22" width="156" height="156" fill="#0b1024" />
+                                    <g id="inkWave" transform="translate(0,178)">
+                                        <g class="ink-shimmer">
+                                            <path
+                                                d="M -40 6 Q -20 0 0 6 T 40 6 T 80 6 T 120 6 T 160 6 T 200 6 T 240 6 L 240 200 L -40 200 Z"
+                                                fill="url(#inkFill)" opacity="0.92" />
+                                            <rect x="-40" y="6" width="280" height="200" fill="url(#inkFill)" />
+                                        </g>
+                                    </g>
+                                </g>
+                                <!-- ring -->
+                                <circle class="ring-track" cx="100" cy="100" r="92" />
+                                <circle id="ringFill" class="ring-fill" cx="100" cy="100" r="92" stroke-dasharray="578"
+                                    stroke-dashoffset="578" />
+                            </svg>
+                            <div class="gauge-readout">
+                                <span id="gaugePct" class="gauge-pct empty">—</span>
+                                <span class="gauge-sub">Stays in standard</span>
+                            </div>
+                        </div>
+
+                        <div class="verdict-info">
+                            <p class="verdict-kicker">The Inkwell</p>
+                            <p id="verdictLine" class="verdict-line">Reveal a decklist to read its fate.</p>
+                            <div class="tallies">
+                                <div class="tally stay">
+                                    <span id="stayN" class="n">0</span>
+                                    <span class="k">Cards staying</span>
+                                </div>
+                                <div class="tally gone">
+                                    <span id="goneN" class="n">0</span>
+                                    <span class="k">Cards rotating</span>
+                                </div>
+                                <div class="tally">
+                                    <span id="totalN" class="n">0</span>
+                                    <span class="k">Cards total</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="inkBreakdown" class="inks">
+                        <div class="inks-grid" id="inksGrid"></div>
+                    </div>
+                </section>
+
+                <div class="deck-bar">
+                    <h2>The Deck</h2>
+                    <div class="group-toggle" id="groupToggle" role="group" aria-label="Group cards by">
+                        <button data-group="status" aria-pressed="true">Fate</button>
+                        <button data-group="set" aria-pressed="false">Set</button>
+                        <button data-group="ink" aria-pressed="false">Ink</button>
+                        <button data-group="cost" aria-pressed="false">Cost</button>
+                    </div>
                 </div>
 
-                <div id="messageArea" class="mt-4 text-sm min-h-[20px]"></div>
-                <div id="loadingIndicator" class="flex justify-center items-center mt-4 hidden">
-                    <div class="loader"></div>
-                    <span class="ml-3 text-muted-foreground">Loading cards...</span>
+                <div id="cardDisplay" class="groups">
+                    <div class="empty">
+                        <span class="mark">❦</span>
+                        <p>Your inkwell is empty. Paste a decklist and hit
+                            <em>Reveal the verdict</em>, or
+                            <button class="link" id="emptySample">load a sample deck</button>.
+                        </p>
+                    </div>
                 </div>
-            </div>
-
-            <div class="md:col-span-2">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-semibold text-foreground">Deck Display</h2>
-                    <div id="percentageDisplay" class="text-lg font-medium text-primary"></div>
-                </div>
-                <div id="cardDisplay"
-                    class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4 bg-card rounded-md border border-border min-h-[300px]">
-                    <p class="text-muted-foreground col-span-full text-center py-10">Enter a decklist and click "Parse
-                        Decklist".</p>
-                </div>
-            </div>
+            </main>
         </div>
     </div>
 
     <script>
-        // --- Configuration ---
+        // ---------- Config ----------
         const DATABASE_URL = 'https://raw.githubusercontent.com/heavenideas/similcana/refs/heads/main/database/allCards.json';
-        const PLACEHOLDER_IMAGE = 'https://placehold.co/150x210/2d3748/e2e8f0?text=No+Image';
+        const PLACEHOLDER_IMAGE = 'https://placehold.co/300x418/161e40/5a648f?text=No+Art';
+        const RING_CIRC = 578; // 2*pi*92
 
-        // --- DOM Elements ---
-        const decklistInput = document.getElementById('decklistInput');
-        const parseButton = document.getElementById('parseButton');
-        const setFiltersContainer = document.getElementById('setFilters');
-        const cardDisplayContainer = document.getElementById('cardDisplay');
-        const messageArea = document.getElementById('messageArea');
-        const loadingIndicator = document.getElementById('loadingIndicator');
-        const selectAllSetsButton = document.getElementById('selectAllSetsButton');
-        const deselectAllSetsButton = document.getElementById('deselectAllSetsButton');
-        const percentageDisplay = document.getElementById('percentageDisplay');
+        const INK_COLORS = {
+            Amber: '#e7a832', Amethyst: '#a463d6', Emerald: '#3fae6e',
+            Ruby: '#df4a45', Sapphire: '#3f86df', Steel: '#93a2bd'
+        };
+        // dual inks (e.g. "Amber-Steel") -> [hex, hex]; empty -> Steel
+        const inkParts = color => (color || 'Steel').split('-').map(p => INK_COLORS[p] || '#93a2bd');
+        const inkHex = color => inkParts(color)[0];
+        const inkBg = color => { const c = inkParts(color); return c.length > 1 ? `linear-gradient(135deg,${c[0]},${c[1]})` : c[0]; };
 
-        // --- State ---
-        let lorcanaDatabase = null;
+        // ---------- DOM ----------
+        const $ = id => document.getElementById(id);
+        const decklistInput = $('decklistInput');
+        const parseButton = $('parseButton');
+        const sampleButton = $('sampleButton');
+        const setFilters = $('setFilters');
+        const setCount = $('setCount');
+        const cardDisplay = $('cardDisplay');
+        const messageArea = $('messageArea');
+        const loadingIndicator = $('loadingIndicator');
+        const groupToggle = $('groupToggle');
+        const inkBreakdown = $('inkBreakdown');
+        const inksGrid = $('inksGrid');
+
+        // ---------- State ----------
+        let db = null;
         let parsedDeck = [];
         let selectedSets = new Set();
+        let groupMode = 'status';
 
-        // --- Utility Functions ---
+        const SAMPLE_DECK = `4 Ariel - On Human Legs
+4 Elsa - Spirit of Winter
+3 Mickey Mouse - Brave Little Tailor
+4 Stitch - Rock Star
+3 Maui - Hero to All
+2 Be Prepared
+4 Hades - King of Olympus
+3 Tinker Bell - Giant Fairy
+2 Friends on the Other Side
+4 The Queen - Wicked and Vain`;
+
+        // ---------- Utilities ----------
         function showMessage(text, type = 'info') {
-            messageArea.textContent = text;
-            messageArea.classList.remove('text-destructive', 'text-green-500', 'text-muted-foreground');
-            if (type === 'error') messageArea.classList.add('text-destructive');
-            else if (type === 'success') messageArea.classList.add('text-green-500');
-            else messageArea.classList.add('text-muted-foreground');
+            messageArea.textContent = text || '';
+            messageArea.className = 'message' + (type === 'error' ? ' error' : type === 'success' ? ' success' : '');
         }
 
-        function setLoading(show) {
-            loadingIndicator.classList.toggle('hidden', !show);
-            parseButton.disabled = show;
-            parseButton.classList.toggle('opacity-50', show);
-            parseButton.classList.toggle('cursor-not-allowed', show);
+        function setLoading(on) {
+            loadingIndicator.classList.toggle('on', on);
+            parseButton.disabled = on;
         }
 
-        // --- Core Logic ---
+        // ---------- Database ----------
         async function fetchDatabase() {
-            if (lorcanaDatabase) return lorcanaDatabase;
+            if (db) return db;
             setLoading(true);
-            showMessage('Fetching card database...');
+            showMessage('Fetching the card archive…');
             try {
-                const response = await fetch(DATABASE_URL);
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                const data = await response.json();
-
-                if (!data.cards || !data.sets) {
-                    console.warn("Fetched data structure might be different.");
-                    if (Array.isArray(data)) { // If root is cards array
-                        data = { cards: data, sets: {}, cardsByName: new Map() };
-                        console.log("Assuming fetched data is the cards array.");
-                    } else {
-                        throw new Error("Could not find 'cards' or 'sets' in the fetched database.");
-                    }
+                const res = await fetch(DATABASE_URL);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                let data = await res.json();
+                if (!data.cards) {
+                    if (Array.isArray(data)) data = { cards: data, sets: {} };
+                    else throw new Error("Couldn't find cards in the archive.");
                 }
                 data.cardsByName = new Map();
                 data.cards.forEach(card => {
-                    const nameProperty = card.fullName || card.name;
-                    if (nameProperty) {
-                        const normalizedName = nameProperty.toLowerCase().replace(/\s+/g, ' ').trim();
-                        data.cardsByName.set(normalizedName, card);
-                    } else {
-                        console.warn("Card object missing expected name property:", card);
-                    }
+                    const n = card.fullName || card.name;
+                    if (n) data.cardsByName.set(n.toLowerCase().replace(/\s+/g, ' ').trim(), card);
                 });
-
-                if (Object.keys(data.sets).length === 0 && data.cards.length > 0) {
-                    console.log("Attempting to derive sets from card data...");
+                if (!data.sets || !Object.keys(data.sets).length) {
                     data.sets = {};
-                    data.cards.forEach(card => {
-                        if (card.setCode && !data.sets[card.setCode]) {
-                            data.sets[card.setCode] = {
-                                name: `Set ${card.setCode.toUpperCase()}`,
-                                number: parseInt(card.setCode, 10) || 0,
-                                type: 'unknown',
-                                releaseDate: card.release_date || 'unknown',
-                                setCode: card.setCode
-                            };
-                        }
+                    data.cards.forEach(c => {
+                        const code = c.setCode || c.code;
+                        if (code && !data.sets[code]) data.sets[code] = { name: `Set ${code}`, number: parseInt(code, 10) || 0 };
                     });
-                    console.log("Derived sets:", data.sets);
                 }
-
-                lorcanaDatabase = data;
-                showMessage('Database loaded successfully.', 'success');
-                return lorcanaDatabase;
-            } catch (error) {
-                console.error('Failed to fetch Lorcana database:', error);
-                showMessage(`Error fetching database: ${error.message}`, 'error');
-                throw error;
+                db = data;
+                showMessage('Archive loaded.', 'success');
+                return db;
+            } catch (err) {
+                console.error(err);
+                showMessage(`Couldn't load the archive: ${err.message}. Check your connection and try again.`, 'error');
+                throw err;
             } finally {
                 setLoading(false);
             }
         }
 
-        function parseDecklist(decklist) {
-            if (!decklist || typeof decklist !== 'string') return [];
-            const lines = decklist.trim().split('\n');
+        // ---------- Parse ----------
+        function parseDecklist(text) {
+            if (!text) return [];
             const parsed = [];
-            let parseErrors = 0;
-            lines.forEach((line) => {
-                line = line.trim();
+            let skipped = 0;
+            text.trim().split('\n').forEach(raw => {
+                const line = raw.trim();
                 if (!line) return;
-                const match = line.match(/^(\d+)\s*x?\s+(.+?)(?:\s*\([A-Z0-9]{1,4}\))?$/);
-                if (match) {
-                    const quantity = parseInt(match[1], 10);
-                    let name = match[2].trim();
-                    if (!isNaN(quantity) && name) {
-                        parsed.push({ quantity, name });
-                    } else {
-                        console.warn(`Skipping invalid quantity/name in line: "${line}"`);
-                        parseErrors++;
-                    }
-                } else {
-                    const nameOnlyMatch = line.match(/^([a-zA-Z].*)$/);
-                    if (nameOnlyMatch && nameOnlyMatch[1].length > 3) {
-                        console.warn(`Assuming quantity 1 for line: "${line}"`);
-                        parsed.push({ quantity: 1, name: nameOnlyMatch[1].trim() });
-                    } else {
-                        console.warn(`Skipping invalid line format: "${line}"`);
-                        parseErrors++;
-                    }
+                const m = line.match(/^(\d+)\s*x?\s+(.+?)(?:\s*\([A-Z0-9]{1,4}\))?$/);
+                if (m) {
+                    const qty = parseInt(m[1], 10);
+                    const name = m[2].trim();
+                    if (!isNaN(qty) && name) { parsed.push({ quantity: qty, name }); return; }
                 }
+                const only = line.match(/^([a-zA-Z].{3,})$/);
+                if (only) parsed.push({ quantity: 1, name: only[1].trim() });
+                else skipped++;
             });
-            if (parseErrors > 0) showMessage(`Parsed decklist with ${parseErrors} skipped line(s). Check console.`, 'info');
+            if (skipped) showMessage(`Read your deck, skipped ${skipped} line(s) I couldn't parse.`, 'info');
             return parsed;
         }
 
-        function renderSetFilters() {
-            if (!lorcanaDatabase || !lorcanaDatabase.sets || Object.keys(lorcanaDatabase.sets).length === 0) {
-                setFiltersContainer.innerHTML = '<p class="text-destructive">Set data not available or could not be derived.</p>';
-                return;
+        function findCardData(name) {
+            if (!db || !db.cardsByName) return null;
+            const norm = name.toLowerCase().replace(/\s+/g, ' ').trim();
+            const exact = db.cardsByName.get(norm);
+            if (exact) return exact;
+            let best = null, top = -1;
+            for (const [dbName, card] of db.cardsByName) {
+                let s = 0;
+                if (norm.startsWith(dbName)) s = dbName.length;
+                else if (dbName.startsWith(norm)) s = norm.length;
+                else if (dbName.includes(norm)) s = norm.length * 0.5;
+                else if (norm.includes(dbName)) s = dbName.length * 0.5;
+                if (s > top) { top = s; best = card; }
             }
-
-            const setsArray = Object.entries(lorcanaDatabase.sets).map(([code, data]) => ({
-                ...data,
-                setCode: code
-            }));
-
-            // Filter for numeric set codes only and sort them
-            const numericSets = setsArray
-                .filter(set => /^\d+$/.test(set.setCode)) // Keep only sets with purely numeric setCode
-                .sort((a, b) => {
-                    const numA = parseInt(a.setCode, 10);
-                    const numB = parseInt(b.setCode, 10);
-                    return numA - numB; // Sort by set number ascending
-                });
-
-            setFiltersContainer.innerHTML = '';
-            selectedSets.clear();
-
-            if (numericSets.length === 0) {
-                setFiltersContainer.innerHTML = '<p class="text-muted-foreground">No standard sets found.</p>';
-                return;
-            }
-
-            numericSets.forEach(set => {
-                const setCode = set.setCode;
-                selectedSets.add(setCode); // Select all numeric sets by default
-
-                const div = document.createElement('div');
-                div.classList.add('flex', 'items-center', 'space-x-2');
-
-                const checkbox = document.createElement('input');
-                checkbox.type = 'checkbox';
-                checkbox.id = `set-${setCode}`;
-                checkbox.value = setCode;
-                checkbox.checked = true;
-                checkbox.classList.add('h-4', 'w-4', 'rounded', 'border-border', 'text-primary', 'focus:ring-ring');
-                checkbox.addEventListener('change', handleFilterChange);
-
-                const label = document.createElement('label');
-                label.htmlFor = `set-${setCode}`;
-                label.textContent = `${set.name || `Set ${setCode.toUpperCase()}`} (${setCode.toUpperCase()})`;
-                label.classList.add('text-sm', 'font-medium', 'leading-none', 'peer-disabled:cursor-not-allowed', 'peer-disabled:opacity-70', 'text-foreground');
-
-                div.appendChild(checkbox);
-                div.appendChild(label);
-                setFiltersContainer.appendChild(div);
-            });
+            return top > 2 ? best : null;
         }
 
-        function findCardData(name) {
-            if (!lorcanaDatabase || !lorcanaDatabase.cardsByName) return null;
-            const normalizedName = name.toLowerCase().replace(/\s+/g, ' ').trim();
-            let card = lorcanaDatabase.cardsByName.get(normalizedName);
-            if (card) return card;
+        // ---------- Sets ----------
+        function isCoreLegal(set) {
+            return !!(set && set.allowedInFormats && set.allowedInFormats.Core && set.allowedInFormats.Core.allowed);
+        }
 
-            let bestMatch = null;
-            let highestScore = -1;
-            for (const [dbNameNormalized, dbCard] of lorcanaDatabase.cardsByName.entries()) {
-                let score = 0;
-                if (normalizedName.startsWith(dbNameNormalized)) score = dbNameNormalized.length;
-                else if (dbNameNormalized.startsWith(normalizedName)) score = normalizedName.length;
-                else if (dbNameNormalized.includes(normalizedName)) score = normalizedName.length * 0.5;
-                else if (normalizedName.includes(dbNameNormalized)) score = dbNameNormalized.length * 0.5;
+        function numericSets() {
+            if (!db || !db.sets) return [];
+            return Object.entries(db.sets)
+                .map(([code, data]) => ({ ...data, setCode: code }))
+                .filter(s => /^\d+$/.test(s.setCode))
+                .sort((a, b) => parseInt(a.setCode, 10) - parseInt(b.setCode, 10));
+        }
 
-                if (score > highestScore) {
-                    highestScore = score;
-                    bestMatch = dbCard;
-                }
+        function renderSetFilters() {
+            const sets = numericSets();
+            setFilters.innerHTML = '';
+            if (!sets.length) {
+                setFilters.innerHTML = '<p class="block-hint">No standard sets found in the archive.</p>';
+                return;
             }
-            if (bestMatch) {
-                console.log(`Fuzzy match for "${name}": "${bestMatch.fullName || bestMatch.name}" (score ${highestScore})`);
-                return bestMatch;
+            selectedSets.clear();
+            const anyLegal = sets.some(isCoreLegal);
+            sets.forEach(set => {
+                const legal = isCoreLegal(set);
+                // Smart default: select current Standard-legal sets (or all, if data has none flagged)
+                if (legal || !anyLegal) selectedSets.add(set.setCode);
+
+                const btn = document.createElement('button');
+                btn.className = 'crest';
+                btn.dataset.set = set.setCode;
+                btn.setAttribute('aria-pressed', selectedSets.has(set.setCode));
+                btn.innerHTML = `
+                    <span class="crest-num">${String(set.number || set.setCode).padStart(2, '0')}</span>
+                    <span class="crest-body">
+                        <span class="crest-name">${set.name || 'Set ' + set.setCode}</span>
+                        <span class="crest-tag ${legal ? 'legal' : ''}">${legal ? 'In Standard' : 'Rotated out'}</span>
+                    </span>
+                    <span class="crest-check">${selectedSets.has(set.setCode) ? '◆' : '◇'}</span>`;
+                btn.addEventListener('click', () => toggleSet(btn));
+                setFilters.appendChild(btn);
+            });
+            updateSetCount();
+        }
+
+        function toggleSet(btn) {
+            const code = btn.dataset.set;
+            const on = btn.getAttribute('aria-pressed') !== 'true';
+            btn.setAttribute('aria-pressed', on);
+            btn.querySelector('.crest-check').textContent = on ? '◆' : '◇';
+            on ? selectedSets.add(code) : selectedSets.delete(code);
+            updateSetCount();
+            displayDecklist();
+        }
+
+        function applyPreset(predicate) {
+            selectedSets.clear();
+            setFilters.querySelectorAll('.crest').forEach(btn => {
+                const set = db.sets[btn.dataset.set];
+                const on = predicate({ ...set, setCode: btn.dataset.set });
+                btn.setAttribute('aria-pressed', on);
+                btn.querySelector('.crest-check').textContent = on ? '◆' : '◇';
+                if (on) selectedSets.add(btn.dataset.set);
+            });
+            updateSetCount();
+            displayDecklist();
+        }
+
+        function updateSetCount() {
+            const total = setFilters.querySelectorAll('.crest').length;
+            setCount.textContent = `${selectedSets.size}/${total} legal`;
+        }
+
+        // ---------- Display ----------
+        function cardInfo(card) {
+            const setCode = card.setCode || card.code || card.Set_Code;
+            return {
+                setCode,
+                setName: (db.sets[setCode] && db.sets[setCode].name) || ('Set ' + (setCode || '?')),
+                name: card.fullName || card.name || card.Name,
+                color: card.color || 'Steel',
+                cost: card.cost, lore: card.lore, strength: card.strength, willpower: card.willpower,
+                type: card.type, rarity: card.rarity,
+                img: (card.images && (card.images.thumbnail || card.images.full)) || card.Image_Small || card.Image || PLACEHOLDER_IMAGE
+            };
+        }
+
+        function buildCard(item) {
+            const wrap = document.createElement('div');
+            wrap.className = 'card';
+            if (!item.cardData) {
+                wrap.classList.add('notfound');
+                wrap.innerHTML = `
+                    <div class="card-frame">
+                        <span class="card-qty">${item.quantity}</span>
+                        <div class="nf-label"><strong>${item.name}</strong><br>not in the archive</div>
+                    </div>
+                    <div class="card-meta"><span class="card-name">${item.name}</span>
+                        <span class="card-sub" style="color:var(--ruby)">Card not found</span></div>`;
+                return wrap;
             }
-            console.warn(`Card not found: "${name}" (normalized: "${normalizedName}")`);
-            return null;
+            const c = cardInfo(item.cardData);
+            const glow = inkHex(c.color);
+            const stays = c.setCode && selectedSets.has(c.setCode);
+            if (!stays) wrap.classList.add('gone');
+
+            const stat = (v, k) => (v === undefined || v === null) ? '' : `<span class="stat"><b>${v}</b><span>${k}</span></span>`;
+            const statStrip = (c.type === 'Character')
+                ? stat(c.cost, '◈') + stat(c.strength, '⚔') + stat(c.willpower, '⛉') + stat(c.lore, '◇')
+                : stat(c.cost, 'cost') + (c.rarity ? `<span class="stat"><b style="font-size:10px">${c.rarity}</b><span>rarity</span></span>` : '');
+
+            wrap.innerHTML = `
+                <div class="card-frame" style="color:${glow}">
+                    <span class="card-spine" style="background:${inkBg(c.color)}"></span>
+                    <span class="card-qty">${item.quantity}</span>
+                    <img src="${c.img}" alt="${c.name}" loading="lazy"
+                         onerror="this.onerror=null;this.src='${PLACEHOLDER_IMAGE}'">
+                    <span class="stamp">Rotates out</span>
+                    <div class="card-stats">${statStrip}</div>
+                </div>
+                <div class="card-meta">
+                    <span class="card-name">${c.name}</span>
+                    <span class="card-sub">${c.setName}</span>
+                </div>`;
+            return wrap;
+        }
+
+        function groupKey(item) {
+            if (!item.cardData) return { key: 'zz_notfound', label: 'Not in archive', color: 'var(--ruby)' };
+            const c = cardInfo(item.cardData);
+            const stays = c.setCode && selectedSets.has(c.setCode);
+            switch (groupMode) {
+                case 'set': return { key: 's' + String(c.setCode).padStart(3, '0'), label: c.setName, color: 'var(--gold)' };
+                case 'ink': { const col = c.color || 'Steel'; return { key: 'i_' + col, label: col.replace('-', ' / '), color: inkHex(col), bg: inkBg(col) }; }
+                case 'cost': { const n = c.cost ?? 0; return { key: 'c' + String(n).padStart(2, '0'), label: (n >= 7 ? '7+' : n) + ' ink', color: 'var(--gold)' }; }
+                default: return stays
+                    ? { key: 'a_stay', label: 'Staying in Standard', color: 'var(--gold-bright)' }
+                    : { key: 'b_gone', label: 'Rotating out', color: 'var(--gone)' };
+            }
         }
 
         function displayDecklist() {
-            if (!lorcanaDatabase) {
-                showMessage('Database not loaded.', 'error');
-                percentageDisplay.textContent = '';
-                return;
-            }
-            if (parsedDeck.length === 0) {
-                cardDisplayContainer.innerHTML = '<p class="text-muted-foreground col-span-full text-center py-10">Decklist is empty or could not be parsed.</p>';
-                percentageDisplay.textContent = '';
+            if (!db) { showMessage('Archive not loaded.', 'error'); return; }
+            if (!parsedDeck.length) {
+                cardDisplay.innerHTML = `<div class="empty"><span class="mark">❦</span>
+                    <p>No cards parsed. Check the decklist format — one card per line, like
+                    <em>4 Elsa - Spirit of Winter</em>.</p></div>`;
+                resetVerdict();
                 return;
             }
 
-            cardDisplayContainer.innerHTML = '';
-            let cardsFoundCount = 0;
-            let cardsNotFound = [];
-            let totalCardsInDeck = 0;
-            let cardsInSelectedSets = 0;
+            parsedDeck.forEach(i => { if (i.cardData === undefined) i.cardData = findCardData(i.name); });
+
+            let total = 0, staying = 0, notFound = [];
+            const inkStat = {}; // color -> {stay,total}
+            const groups = {};
 
             parsedDeck.forEach(item => {
-                totalCardsInDeck += item.quantity;
-                if (!item.cardData) item.cardData = findCardData(item.name);
-
-                if (!item.cardData) {
-                    cardsNotFound.push(item.name);
-                    const cardDiv = document.createElement('div');
-                    cardDiv.className = 'card-item p-2 bg-card/50 rounded-md flex flex-col items-center text-center border border-destructive';
-                    cardDiv.innerHTML = `
-                        <img src="${PLACEHOLDER_IMAGE}" alt="Card not found" class="card-image rounded-sm mb-2 object-cover">
-                        <span class="card-name text-xs font-medium text-destructive">${item.quantity}x ${item.name}</span>
-                        <span class="text-xs text-destructive/80">(Not Found)</span>`;
-                    cardDisplayContainer.appendChild(cardDiv);
-                    return;
+                total += item.quantity;
+                if (!item.cardData) notFound.push(item.name);
+                else {
+                    const c = cardInfo(item.cardData);
+                    const stays = c.setCode && selectedSets.has(c.setCode);
+                    if (stays) staying += item.quantity;
+                    const ink = inkStat[c.color] || (inkStat[c.color] = { stay: 0, total: 0 });
+                    ink.total += item.quantity;
+                    if (stays) ink.stay += item.quantity;
                 }
-
-                cardsFoundCount++;
-                const card = item.cardData;
-                const setCode = card.Set_Code || card.setCode;
-                const fullName = card.fullName || card.Name;
-                const imageUrl = card.Image_Small || card.images?.thumbnail || card.Image || card.images?.full || PLACEHOLDER_IMAGE;
-
-                if (!setCode) console.warn("Card data missing set code:", card);
-                const isFilteredOut = setCode ? !selectedSets.has(setCode) : false;
-
-                if (!isFilteredOut) cardsInSelectedSets += item.quantity;
-
-                const cardDiv = document.createElement('div');
-                cardDiv.className = 'card-item p-2 bg-card/80 rounded-md flex flex-col items-center text-center border border-transparent transition-opacity duration-300';
-                if (isFilteredOut) cardDiv.classList.add('filtered-out');
-
-                cardDiv.innerHTML = `
-                    <img src="${imageUrl}" alt="${fullName || 'Card Image'}" class="card-image rounded-sm mb-2 object-cover" onerror="this.onerror=null; this.src='${PLACEHOLDER_IMAGE}';">
-                    <span class="card-name text-xs font-medium text-foreground">${item.quantity}x ${fullName || item.name}</span>
-                    <span class="card-set text-xs text-muted-foreground">Set: ${setCode ? setCode.toUpperCase() : 'N/A'}</span>`;
-                cardDisplayContainer.appendChild(cardDiv);
+                const g = groupKey(item);
+                (groups[g.key] || (groups[g.key] = { meta: g, items: [] })).items.push(item);
             });
 
-            const percentage = totalCardsInDeck > 0 ? ((cardsInSelectedSets / totalCardsInDeck) * 100).toFixed(1) : 0;
-            percentageDisplay.textContent = `${percentage}% (${cardsInSelectedSets}/${totalCardsInDeck}) Cards Included`;
+            // render groups
+            cardDisplay.innerHTML = '';
+            Object.keys(groups).sort().forEach(k => {
+                const g = groups[k];
+                const qty = g.items.reduce((s, i) => s + i.quantity, 0);
+                const head = document.createElement('div');
+                head.className = 'group-head';
+                head.innerHTML = `<span class="swatch" style="color:${g.meta.color};background:${g.meta.bg || g.meta.color}"></span>
+                    <h3>${g.meta.label}</h3><span class="rule"></span>
+                    <span class="count">${qty} card${qty !== 1 ? 's' : ''}</span>`;
+                const grid = document.createElement('div');
+                grid.className = 'grid';
+                g.items.forEach(item => grid.appendChild(buildCard(item)));
+                const section = document.createElement('section');
+                section.appendChild(head);
+                section.appendChild(grid);
+                cardDisplay.appendChild(section);
+            });
 
-            if (cardsNotFound.length > 0) showMessage(`Displayed ${cardsFoundCount} unique. Not found: ${cardsNotFound.join(', ')}`, 'info');
-            else if (cardsFoundCount > 0) showMessage(`Displayed ${cardsFoundCount} unique cards.`, 'success');
-            else if (parsedDeck.length > 0 && cardsFoundCount === 0 && cardsNotFound.length > 0) {
-                showMessage(`Could not find any cards for names: ${cardsNotFound.join(', ')}`, 'error');
-                percentageDisplay.textContent = '';
-            }
+            updateVerdict(staying, total, notFound);
+            renderInkBreakdown(inkStat);
         }
 
-        // --- Event Handlers ---
-        async function handleParseClick() {
-            showMessage('Parsing decklist...');
-            percentageDisplay.textContent = '';
-            cardDisplayContainer.innerHTML = '';
+        // ---------- Verdict / gauge ----------
+        function setGauge(pct) {
+            const ring = $('ringFill');
+            ring.setAttribute('stroke-dashoffset', RING_CIRC * (1 - pct / 100));
+            // ink pool: y from 178 (empty) to 16 (full) within clip
+            const top = 178 - (pct / 100) * 162;
+            $('inkWave').setAttribute('transform', `translate(0, ${top})`);
+        }
+
+        function updateVerdict(staying, total, notFound) {
+            const pct = total ? Math.round((staying / total) * 100) : 0;
+            const el = $('gaugePct');
+            el.textContent = pct + '%';
+            el.classList.remove('empty');
+            setGauge(pct);
+            $('stayN').textContent = staying;
+            $('goneN').textContent = total - staying;
+            $('totalN').textContent = total;
+
+            let line;
+            if (pct === 100) line = 'Untouched — the whole deck stays in Standard.';
+            else if (pct >= 75) line = 'Mostly safe. A few cards drift out of the ink.';
+            else if (pct >= 50) line = 'Half your deck holds. Plan some replacements.';
+            else if (pct > 0) line = 'Heavy losses ahead — most of this rotates out.';
+            else line = 'None of these cards survive the chosen sets.';
+            if (notFound.length) line += ` (${notFound.length} unrecognised)`;
+            $('verdictLine').textContent = line;
+
+            if (notFound.length) showMessage(`Couldn't find: ${notFound.join(', ')}`, 'info');
+            else showMessage(`${total} cards read.`, 'success');
+        }
+
+        function resetVerdict() {
+            const el = $('gaugePct');
+            el.textContent = '—';
+            el.classList.add('empty');
+            setGauge(0);
+            $('stayN').textContent = $('goneN').textContent = $('totalN').textContent = '0';
+            $('verdictLine').textContent = 'Reveal a decklist to read its fate.';
+            inkBreakdown.classList.remove('on');
+        }
+
+        function renderInkBreakdown(inkStat) {
+            const keys = Object.keys(inkStat);
+            if (!keys.length) { inkBreakdown.classList.remove('on'); return; }
+            inkBreakdown.classList.add('on');
+            inksGrid.innerHTML = '';
+            keys.sort().forEach(color => {
+                const { stay, total } = inkStat[color];
+                const pct = total ? (stay / total) * 100 : 0;
+                const row = document.createElement('div');
+                row.className = 'ink-row';
+                row.style.color = inkHex(color);
+                row.innerHTML = `<span class="ink-dot" style="background:${inkBg(color)}"></span>
+                    <span style="display:grid;gap:5px;min-width:0">
+                        <span style="color:var(--parchment);font-weight:500">${color.replace('-', ' / ')}</span>
+                        <span class="ink-bar"><span style="width:${pct}%"></span></span>
+                    </span>
+                    <span class="ink-frac">${stay}/${total}</span>`;
+                inksGrid.appendChild(row);
+            });
+        }
+
+        // ---------- Events ----------
+        async function handleParse() {
             try {
                 await fetchDatabase();
-                const decklistText = decklistInput.value;
-                parsedDeck = parseDecklist(decklistText);
-                parsedDeck.forEach(item => item.cardData = null); // Reset before re-attaching
-                parsedDeck.forEach(item => item.cardData = findCardData(item.name));
+                parsedDeck = parseDecklist(decklistInput.value);
+                parsedDeck.forEach(i => i.cardData = undefined);
                 displayDecklist();
-            } catch (error) {
-                console.error("Error during parsing or fetching:", error);
-                percentageDisplay.textContent = '';
-            }
+            } catch (e) { resetVerdict(); }
         }
 
-        function handleFilterChange(event) {
-            const setCode = event.target.value;
-            if (event.target.checked) selectedSets.add(setCode);
-            else selectedSets.delete(setCode);
-            displayDecklist();
+        function loadSample() {
+            decklistInput.value = SAMPLE_DECK;
+            handleParse();
         }
 
-        function handleSelectAllSets() {
-            const checkboxes = setFiltersContainer.querySelectorAll('input[type="checkbox"]');
-            checkboxes.forEach(cb => { cb.checked = true; selectedSets.add(cb.value); });
-            displayDecklist();
-        }
+        groupToggle.addEventListener('click', e => {
+            const btn = e.target.closest('button');
+            if (!btn) return;
+            groupMode = btn.dataset.group;
+            groupToggle.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b === btn));
+            if (parsedDeck.length) displayDecklist();
+        });
 
-        function handleDeselectAllSets() {
-            const checkboxes = setFiltersContainer.querySelectorAll('input[type="checkbox"]');
-            checkboxes.forEach(cb => { cb.checked = false; selectedSets.delete(cb.value); });
-            displayDecklist();
-        }
+        parseButton.addEventListener('click', handleParse);
+        sampleButton.addEventListener('click', loadSample);
+        $('emptySample').addEventListener('click', loadSample);
+        $('presetStandard').addEventListener('click', () => applyPreset(isCoreLegal));
+        $('presetAll').addEventListener('click', () => applyPreset(() => true));
+        $('presetNone').addEventListener('click', () => applyPreset(() => false));
 
-        // --- Initialization ---
-        async function initializeApp() {
-            parseButton.addEventListener('click', handleParseClick);
-            selectAllSetsButton.addEventListener('click', handleSelectAllSets);
-            deselectAllSetsButton.addEventListener('click', handleDeselectAllSets);
+        // ---------- Init ----------
+        (async function init() {
             try {
                 await fetchDatabase();
                 renderSetFilters();
-            } catch (error) {
-                setFiltersContainer.innerHTML = '<p class="text-destructive">Could not load set filters.</p>';
-                percentageDisplay.textContent = '';
+                showMessage('Archive ready — paste a deck or load the sample.', 'success');
+            } catch (e) {
+                setFilters.innerHTML = '<p class="block-hint" style="color:var(--ruby)">Could not load sets.</p>';
             }
-        }
-        document.addEventListener('DOMContentLoaded', initializeApp);
+        })();
     </script>
 </body>
 
