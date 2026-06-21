@@ -2078,11 +2078,24 @@
                     }
                 }
                 currentDeck = deck;
+                autoDetectInks(deck);
                 renderVisualDeck(deck);
                 updateCharts(deck);
                 updateTotalCards(deck);
                 selectedForMulligan = [];
                 updateCombinedProbability();
+            }
+
+            function autoDetectInks(deck) {
+                const detected = new Set();
+                for (const { card } of deck) {
+                    for (const color of (card.colors || [card.color])) {
+                        if (color) detected.add(color);
+                    }
+                }
+                document.querySelectorAll('#inkTypes input[type="checkbox"]').forEach(cb => {
+                    cb.checked = detected.has(cb.value);
+                });
             }
 
             function renderVisualDeck(deck) {
