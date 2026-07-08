@@ -71,6 +71,13 @@ const CardStatAnalysisModule = (function() {
         // Ability search needs to check all cards, not just characters
         const cardPool = criteria.type === 'ability' ? allCards : characterCards;
 
+        // Precompute the analyzed card's metrics once (was recomputed per card in the
+        // 'similar' branch below, which dominated the Stat Comparisons render cost).
+        let analyzedMetricsForSimilar = null;
+        if (criteria.type === 'similar' && unifiedWinProbabilityCalculation) {
+            analyzedMetricsForSimilar = unifiedWinProbabilityCalculation.calculateCardMetrics(analyzedCard);
+        }
+
         // First filter by criteria
         const filteredCards = cardPool.filter(c => {
             if (c.id === analyzedCard.id && criteria.type !== 'ability') return false;
@@ -117,12 +124,11 @@ const CardStatAnalysisModule = (function() {
                     if (criteria.comparison === 'unfavorable_ink') return yourCost > opponentCost;
                     return false;
                 case 'similar':
-                    if (!unifiedWinProbabilityCalculation) return false;
+                    if (!unifiedWinProbabilityCalculation || !analyzedMetricsForSimilar) return false;
 
-                    const analyzedMetrics = unifiedWinProbabilityCalculation.calculateCardMetrics(analyzedCard);
                     const cardMetrics = unifiedWinProbabilityCalculation.calculateCardMetrics(c);
 
-                    const analyzedValue = analyzedMetrics[criteria.metric];
+                    const analyzedValue = analyzedMetricsForSimilar[criteria.metric];
                     const cardValue = cardMetrics[criteria.metric];
                     const threshold = criteria.threshold || 0.1;
 

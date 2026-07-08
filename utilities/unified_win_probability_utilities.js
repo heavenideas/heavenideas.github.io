@@ -17,6 +17,11 @@ const UnifiedWinProbabiliyCalculation = (function() {
     // URL for loading abilities JSON
     const ABILITIES_URL = 'https://raw.githubusercontent.com/heavenideas/heavenideas.github.io/refs/heads/main/lorcanaUtils_MatchUpAnalyzer/lorcana_abilities_redux.json';
 
+    // Memoized results of calculateCardMetrics keyed by card identity.
+    // Metrics are deterministic for a given card + loaded ABILITIES_CONFIG, so we
+    // cache them and clear the cache whenever the config changes.
+    let metricsMemo = new Map();
+
     // Debug mode flag - disabled by default
     let debug = false;
 
@@ -34,7 +39,8 @@ const UnifiedWinProbabiliyCalculation = (function() {
             }
             const data = await response.json();
             ABILITIES_CONFIG = data;
-            
+            metricsMemo.clear();
+
             // Process regex objects for abilities
             if (ABILITIES_CONFIG.abilities) {
                 ABILITIES_CONFIG.abilities.forEach(ability => {
@@ -63,7 +69,8 @@ const UnifiedWinProbabiliyCalculation = (function() {
      */
     function setAbilitiesConfig(config) {
         ABILITIES_CONFIG = config;
-        
+        metricsMemo.clear();
+
         // Process regex objects for abilities
         if (ABILITIES_CONFIG.abilities) {
             ABILITIES_CONFIG.abilities.forEach(ability => {
@@ -248,6 +255,20 @@ const UnifiedWinProbabiliyCalculation = (function() {
         if (!configToUse || !configToUse.abilities) {
             return { rds: 0, lvi: 0, bcr: 0, breakdown: [] };
         }
+
+        // Memoize the common path (global config). Metrics are deterministic for a
+        // given card + config, and this is called thousands of times per stats view.
+        let memoKey = null;
+        if (!externalConfig && card) {
+            memoKey = card.id != null ? ('id:' + card.id) : (card.fullName ? 'fn:' + card.fullName : null);
+            if (memoKey && metricsMemo.has(memoKey)) return metricsMemo.get(memoKey);
+        }
+        const _result = computeCardMetrics(card, configToUse);
+        if (memoKey) metricsMemo.set(memoKey, _result);
+        return _result;
+    }
+
+    function computeCardMetrics(card, configToUse) {
 
         // --- PHASE 0: Determine ability texts based on card type ---
         let abilityTexts = [];

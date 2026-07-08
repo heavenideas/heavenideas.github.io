@@ -248,7 +248,7 @@ class CardThreatLevelInspector {
                         ${this.getThreatAnalysisHtml(card)}
                     </div>
                     <div id="${statsTabId}" class="tab-pane" style="display: none;">
-                        <div class="stat-analysis-content h-full overflow-y-auto">${this.getStatsAnalysisHtml(card)}</div>
+                        <div class="stat-analysis-content h-full overflow-y-auto"></div>
                     </div>
                 </div>
             </div>`;
@@ -544,17 +544,18 @@ class CardThreatLevelInspector {
                     targetPane.classList.add('active');
                     targetPane.style.display = 'block';
                     
-                    // Regenerate and setup stats content when switching to stats tab
+                    // Lazily render stats content the first time this tab is opened.
+                    // Rendering is heavy, so show a loading state and compute after the
+                    // tab has visually switched; cache the result so re-opening is instant.
                     if (targetTabId.includes('stats-tab')) {
                         const statAnalysisContent = targetPane.querySelector('.stat-analysis-content');
-                        if (statAnalysisContent) {
-                            // Regenerate the stats content to ensure it's fresh
-                            statAnalysisContent.innerHTML = this.getStatsAnalysisHtml(card);
-                            
-                            // Setup stat click handlers after content is regenerated
+                        if (statAnalysisContent && !statAnalysisContent.dataset.rendered) {
+                            statAnalysisContent.innerHTML = '<div class="text-center text-gray-400 py-8">Calculating stat comparisons…</div>';
                             setTimeout(() => {
+                                statAnalysisContent.innerHTML = this.getStatsAnalysisHtml(card);
+                                statAnalysisContent.dataset.rendered = '1';
                                 this.setupStatClickHandlers(targetPane, card);
-                            }, 10);
+                            }, 20);
                         }
                     }
                 }
