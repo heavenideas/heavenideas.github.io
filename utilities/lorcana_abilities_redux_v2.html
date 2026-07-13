@@ -1213,23 +1213,16 @@
             const cardText = card.fullText || (card.fullTextSections || []).join('\n');
             const { highlightedHtml, colorByName } = analyzeAndHighlightText(cardText);
 
-            const meterMax = Math.max(rds, lvi, bcr, 0.0001);
-            const meterRow = (cls, lbl, val) => `<div class="meter ${cls}"><span class="meter-lbl">${lbl}</span><div class="meter-track"><div class="meter-fill" data-fill="${cls}" style="width:0"></div></div><span class="meter-val"><span data-val="${cls}">${val.toFixed(3)}</span><span class="meter-delta" data-delta="${cls}"></span></span></div>`;
-
             cardDetailsContainer.innerHTML = `
                 <div class="card-header"><div><div class="cname display">${esc(card.fullName)}</div><div class="cmeta">${esc(meta)}</div></div></div>
-                ${fullImg ? `<div class="card-img-wrap"><img src="${esc(fullImg)}" alt="${esc(card.fullName)}" onerror="this.parentElement.style.display='none'"></div>` : ''}
-                <div class="stat-tiles">
-                    <div class="stat-tile ctl" title="Card Threat Level = RDS + LVI + BCR"><div class="t-lbl">CTL</div><div class="t-val">${ctl.toFixed(2)}</div></div>
-                    <div class="stat-tile rds" title="Resource Dominance Score"><div class="t-lbl">RDS</div><div class="t-val">${rds.toFixed(2)}</div></div>
-                    <div class="stat-tile lvi" title="Lore Velocity Index"><div class="t-lbl">LVI</div><div class="t-val">${lvi.toFixed(2)}</div></div>
-                    <div class="stat-tile bcr" title="Board Control Rating"><div class="t-lbl">BCR</div><div class="t-val">${bcr.toFixed(2)}</div></div>
-                </div>
-                <div class="ledger">
-                    <div class="ledger-title">Ink Ledger</div>
-                    ${meterRow('rds', 'RDS', rds)}
-                    ${meterRow('lvi', 'LVI', lvi)}
-                    ${meterRow('bcr', 'BCR', bcr)}
+                <div class="flex gap-3 justify-center items-stretch mb-4">
+                    ${fullImg ? `<div class="card-img-wrap mb-0 flex-shrink-0" style="max-width: calc(100% - 110px);"><img src="${esc(fullImg)}" alt="${esc(card.fullName)}" onerror="this.parentElement.style.display='none'"></div>` : ''}
+                    <div class="flex flex-col gap-2 justify-between flex-shrink-0" style="width: 90px;">
+                        <div class="stat-tile ctl flex-1 flex flex-col justify-center items-center p-2" title="Card Threat Level = RDS + LVI + BCR"><div class="t-lbl" style="font-size: 11px; line-height: 1;">CTL</div><div class="t-val" style="font-size: 18px; line-height: 1.2;">${ctl.toFixed(2)}</div></div>
+                        <div class="stat-tile rds flex-1 flex flex-col justify-center items-center p-2" title="Resource Dominance Score"><div class="t-lbl" style="font-size: 11px; line-height: 1;">RDS</div><div class="t-val" style="font-size: 18px; line-height: 1.2;">${rds.toFixed(2)}</div></div>
+                        <div class="stat-tile lvi flex-1 flex flex-col justify-center items-center p-2" title="Lore Velocity Index"><div class="t-lbl" style="font-size: 11px; line-height: 1;">LVI</div><div class="t-val" style="font-size: 18px; line-height: 1.2;">${lvi.toFixed(2)}</div></div>
+                        <div class="stat-tile bcr flex-1 flex flex-col justify-center items-center p-2" title="Board Control Rating"><div class="t-lbl" style="font-size: 11px; line-height: 1;">BCR</div><div class="t-val" style="font-size: 18px; line-height: 1.2;">${bcr.toFixed(2)}</div></div>
+                    </div>
                 </div>
                 ${highlightedHtml ? `<div class="ctext">${highlightedHtml}</div>` : ''}
                 <div class="sub-head" style="margin-top:0">Calculation Breakdown</div>
@@ -1242,24 +1235,6 @@
                     </div>`;
                 }).join('') : `<div class="empty" style="padding:20px"><p>No abilities from the loaded JSON matched this card.</p></div>`}`;
 
-            // animate ledger fills to width
-            requestAnimationFrame(() => {
-                [['rds', rds], ['lvi', lvi], ['bcr', bcr]].forEach(([cls, val]) => {
-                    const fill = cardDetailsContainer.querySelector(`[data-fill="${cls}"]`);
-                    if (fill) fill.style.width = (val > 0 ? Math.max((val / meterMax) * 100, 2) : 0) + '%';
-                });
-            });
-            if (deltas) {
-                [['rds', deltas.rds], ['lvi', deltas.lvi], ['bcr', deltas.bcr]].forEach(([cls, d]) => {
-                    if (Math.abs(d) < 0.0005) return;
-                    const el = cardDetailsContainer.querySelector(`[data-delta="${cls}"]`);
-                    if (!el) return;
-                    el.textContent = (d > 0 ? '+' : '−') + Math.abs(d).toFixed(2);
-                    el.style.color = d > 0 ? 'var(--ink-emerald)' : 'var(--ink-ruby)';
-                    el.classList.add('show');
-                    setTimeout(() => el.classList.remove('show'), 1500);
-                });
-            }
             lastLedger = { card, rds, lvi, bcr };
         }
 
