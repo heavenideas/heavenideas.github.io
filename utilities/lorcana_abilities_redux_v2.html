@@ -183,6 +183,30 @@
         .score-col.rds h6 { color: var(--ink-sapphire); }
         .score-col.lvi h6 { color: var(--ink-amber); }
         .score-col.bcr h6 { color: var(--ink-ruby); }
+        /* Formula drawer */
+        .fx-open {
+            min-width: 28px; min-height: 24px; padding: 0 6px; display: inline-flex; align-items: center; justify-content: center;
+            background: transparent; border: 1px solid var(--rule); border-radius: 6px; color: var(--text-dim);
+            cursor: pointer; font-size: 14px; line-height: 1; flex-shrink: 0;
+        }
+        .fx-open:hover, .fx-open:focus-visible { border-color: var(--ink-amber); color: var(--ink-amber); }
+        .fx-drawer { margin-top: 12px; border: 1px solid var(--ink-amber); border-radius: 10px; background: var(--inkwell); padding: 12px; }
+        .fx-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .fx-title { font-size: 13px; font-weight: 600; color: var(--ink-amber); }
+        .fx-close { background: none; border: none; color: var(--text-dim); font-size: 20px; cursor: pointer; min-width: 32px; min-height: 32px; line-height: 1; }
+        .fx-close:hover { color: var(--text); }
+        .fx-ta { font-size: 14px !important; }
+        .fx-chip-group { margin-top: 10px; }
+        .fx-chip-lbl { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-faint); margin-bottom: 4px; }
+        .fx-chips { display: flex; flex-wrap: wrap; gap: 6px; max-height: 96px; overflow-y: auto; }
+        .chip-btn {
+            font-family: 'JetBrains Mono', monospace; font-size: 12px; padding: 3px 8px; border-radius: 999px;
+            background: var(--vellum-2); border: 1px solid var(--rule); color: var(--ink-amethyst); cursor: pointer;
+        }
+        .chip-btn:hover, .chip-btn:focus-visible { border-color: var(--ink-amethyst); }
+        .fx-result { font-family: 'JetBrains Mono', monospace; font-size: 12px; margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--rule); min-height: 16px; word-break: break-word; }
+        .fx-result.ok { color: var(--ink-emerald); }
+        .fx-result.neutral { color: var(--text-faint); }
         .remove-btn {
             min-width: 40px; min-height: 40px; display: inline-flex; align-items: center; justify-content: center; gap: 4px;
             background: transparent; border: 1px solid var(--ink-ruby); color: var(--ink-ruby); border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600;
@@ -862,10 +886,30 @@
             const cls = opts.cls || '';
             const monoCls = opts.mono ? ' mono' : '';
             const listAttr = opts.list ? ` list="${opts.list}"` : '';
+            const labelHtml = opts.fxPath
+                ? `<div class="lbl-row"><label class="lbl" style="margin-bottom:0">${esc(label)}</label><button type="button" class="fx-open" data-fx-path="${esc(opts.fxPath)}" data-fx-label="${esc(opts.fxLabel || label)}" title="Open formula editor" aria-label="Open formula editor for ${esc(label)}">&#x2922;</button></div>`
+                : `<label class="lbl">${esc(label)}</label>`;
             if (opts.textarea) {
-                return `<div class="fld ${cls}"><label class="lbl">${esc(label)}</label><textarea class="inp ta${monoCls}" ${attrs} placeholder="${esc(placeholder)}" rows="2">${esc(value)}</textarea></div>`;
+                return `<div class="fld ${cls}">${labelHtml}<textarea class="inp ta${monoCls}" ${attrs} placeholder="${esc(placeholder)}" rows="${opts.rows || 2}">${esc(value)}</textarea></div>`;
             }
-            return `<div class="fld ${cls}"><label class="lbl">${esc(label)}</label><input type="text" class="inp${monoCls}" ${attrs}${listAttr} placeholder="${esc(placeholder)}" value="${esc(value)}"></div>`;
+            return `<div class="fld ${cls}">${labelHtml}<input type="text" class="inp${monoCls}" ${attrs}${listAttr} placeholder="${esc(placeholder)}" value="${esc(value)}"></div>`;
+        }
+
+        // Path helpers (read side; write side keeps the exact original setter semantics)
+        function pathKeys(path) { return path.match(/(\w+)|\[(\d+)\]/g).map(k => k.replace(/\[|\]/g, '')); }
+        function getByPath(obj, path) {
+            let cur = obj;
+            for (const k of pathKeys(path)) { if (cur === undefined || cur === null) return undefined; cur = cur[k]; }
+            return cur;
+        }
+        function flattenLeafPaths(obj, prefix = '') {
+            const out = [];
+            for (const [k, v] of Object.entries(obj || {})) {
+                const p = prefix ? `${prefix}.${k}` : k;
+                if (v && typeof v === 'object' && !Array.isArray(v)) out.push(...flattenLeafPaths(v, p));
+                else out.push(p);
+            }
+            return out;
         }
 
         function variablesHTML(pattern) {
@@ -887,8 +931,8 @@
                         ${field('Target Metric', `data-path="calculation.contextModifiers[${i}].targetMetric"`, m.targetMetric, 'lvi', { list: 'dl-targetMetric', mono: true })}
                         ${field('Name', `data-path="calculation.contextModifiers[${i}].name"`, m.name, 'survivability')}
                         ${field('Operation', `data-path="calculation.contextModifiers[${i}].operation"`, m.operation, 'multiply', { list: 'dl-operation' })}
-                        ${field('Value', `data-path="calculation.contextModifiers[${i}].value"`, m.value, '@constants.lvi.wardModifier', { mono: true })}
-                        ${field('Condition (Optional)', `data-path="calculation.contextModifiers[${i}].condition"`, m.condition, '@card.willpower > 5', { mono: true, cls: 'mod-cond' })}
+                        ${field('Value', `data-path="calculation.contextModifiers[${i}].value"`, m.value, '@constants.lvi.wardModifier', { mono: true, textarea: true, rows: 1, fxPath: `calculation.contextModifiers[${i}].value`, fxLabel: `Modifier ${i + 1} · Value` })}
+                        ${field('Condition (Optional)', `data-path="calculation.contextModifiers[${i}].condition"`, m.condition, '@card.willpower > 5', { mono: true, cls: 'mod-cond', textarea: true, rows: 1, fxPath: `calculation.contextModifiers[${i}].condition`, fxLabel: `Modifier ${i + 1} · Condition` })}
                     </div>
                     <div style="margin-top:8px"><button class="remove-btn" data-action="remove-modifier" data-index="${i}" aria-label="Remove modifier">&times; Remove</button></div>
                 </div>`).join('');
@@ -899,9 +943,9 @@
                 const meta = SCORE_META[metric];
                 const s = pattern.calculation?.scores?.[metric] || {};
                 return `<div class="score-col ${meta.cls}"><h6>${meta.label}</h6>
-                    ${field('Value', `data-path="calculation.scores.${metric}.value"`, s.value, 'baseLore * @context...', { mono: true })}
+                    ${field('Value', `data-path="calculation.scores.${metric}.value"`, s.value, 'baseLore * @context...', { mono: true, textarea: true, rows: 1, fxPath: `calculation.scores.${metric}.value`, fxLabel: `${meta.label} · Value` })}
                     ${field('Explanation', `data-path="calculation.scores.${metric}.explanation"`, s.explanation)}
-                    ${field('Condition', `data-path="calculation.scores.${metric}.condition"`, s.condition, '@card.willpower > 5', { mono: true })}
+                    ${field('Condition', `data-path="calculation.scores.${metric}.condition"`, s.condition, '@card.willpower > 5', { mono: true, textarea: true, rows: 1, fxPath: `calculation.scores.${metric}.condition`, fxLabel: `${meta.label} · Condition` })}
                 </div>`;
             }).join('');
         }
@@ -942,6 +986,7 @@
                         <div class="sub-head">Scores</div>
                         <div class="scores-grid">${scoresHTML(pattern)}</div>
                     </div>
+                    <div class="fx-drawer hidden" data-fx-drawer></div>
                 </div>
 
                 <div class="editor-footer">
@@ -1340,6 +1385,74 @@
             markDirty();
         });
 
+        // --- FORMULA DRAWER ---
+        function openFormulaDrawer(row, pattern, path, label) {
+            const drawer = row.querySelector('[data-fx-drawer]');
+            if (!drawer) return;
+            drawer.dataset.path = path;
+            const val = getByPath(pattern, path);
+            const vars = (pattern.calculation?.variables || []).map(v => v.name).filter(Boolean);
+            const constPaths = flattenLeafPaths(ABILITIES_CONFIG['@constants'] || {}).map(p => '@' + p);
+            const cardChips = ['@card.cost', '@card.strength', '@card.willpower', '@card.lore', '@context.lvi.survivability', '@context.lvi.questSafety'];
+            const chipGroup = (lbl, arr) => arr.length ? `<div class="fx-chip-group"><div class="fx-chip-lbl">${esc(lbl)}</div><div class="fx-chips">${arr.map(t => `<button type="button" class="chip-btn" data-fx-insert="${esc(t)}">${esc(t)}</button>`).join('')}</div></div>` : '';
+            drawer.innerHTML = `
+                <div class="fx-head"><span class="fx-title">${esc(label)}</span><button type="button" class="fx-close" aria-label="Close formula editor">&times;</button></div>
+                <textarea class="inp ta mono fx-ta" data-path="${esc(path)}" rows="3" placeholder="e.g. baseLore * @context.lvi.survivability">${esc(val)}</textarea>
+                ${chipGroup("This ability's variables", vars)}
+                ${chipGroup('Constants', constPaths)}
+                ${chipGroup('Card & context', cardChips)}
+                <div class="fx-result neutral" data-fx-result></div>`;
+            drawer.classList.remove('hidden');
+            const ta = drawer.querySelector('.fx-ta');
+            autoGrow(ta);
+            updateFxResult(drawer, pattern, path);
+            ta.focus();
+            drawer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+        function closeFxDrawer(row, pathPrefix) {
+            const drawer = row.querySelector('[data-fx-drawer]');
+            if (!drawer || drawer.classList.contains('hidden')) return;
+            if (pathPrefix && !(drawer.dataset.path || '').startsWith(pathPrefix)) return;
+            drawer.classList.add('hidden');
+            drawer.innerHTML = '';
+            delete drawer.dataset.path;
+        }
+        function updateFxResult(drawer, pattern, path) {
+            const el = drawer.querySelector('[data-fx-result]');
+            if (!el) return;
+            if (!selectedCard) {
+                el.className = 'fx-result neutral';
+                el.textContent = 'Select a card in Card Analysis to preview this score live.';
+                return;
+            }
+            const mm = (path || '').match(/^calculation\.scores\.(\w+)\./);
+            if (!mm) {
+                el.className = 'fx-result neutral';
+                el.textContent = `Editing against ${selectedCard.fullName} — totals update live in Card Analysis.`;
+                return;
+            }
+            const metric = mm[1];
+            const { breakdown } = calculateCardMetrics(selectedCard);
+            const item = breakdown.find(b => b.abilityName === pattern.name && b.metric === metric);
+            if (item) {
+                el.className = 'fx-result ok';
+                el.textContent = `✓ ${selectedCard.fullName}: ${item.explanation}`;
+            } else {
+                el.className = 'fx-result neutral';
+                el.textContent = `— no score applied to ${selectedCard.fullName} (pattern not matched, condition false, or empty value)`;
+            }
+        }
+        // Keep compact field and drawer textarea showing the same string
+        function syncFormulaEditors(row, source) {
+            const path = source.dataset.path;
+            if (!path) return;
+            row.querySelectorAll(`[data-path="${path}"]`).forEach(el => {
+                if (el === source) return;
+                el.value = source.value;
+                if (el.matches('textarea.ta')) autoGrow(el);
+            });
+        }
+
         // Toggle expand/collapse
         patternListContainer.addEventListener('click', (e) => {
             const head = e.target.closest('.prow-head');
@@ -1347,6 +1460,35 @@
                 const row = head.closest('.prow');
                 const pattern = ABILITIES_CONFIG.abilities[parseInt(row.dataset.index, 10)];
                 if (openSet.has(pattern)) collapseRow(pattern); else expandRow(pattern, false);
+                return;
+            }
+            const fxBtn = e.target.closest('.fx-open');
+            if (fxBtn) {
+                const row = fxBtn.closest('.prow');
+                const pattern = ABILITIES_CONFIG.abilities[parseInt(row.dataset.index, 10)];
+                if (pattern) openFormulaDrawer(row, pattern, fxBtn.dataset.fxPath, fxBtn.dataset.fxLabel);
+                return;
+            }
+            const fxCloseBtn = e.target.closest('.fx-close');
+            if (fxCloseBtn) {
+                const row = fxCloseBtn.closest('.prow');
+                if (row) closeFxDrawer(row);
+                return;
+            }
+            const chipBtn = e.target.closest('.chip-btn');
+            if (chipBtn && chipBtn.dataset.fxInsert !== undefined) {
+                const drawer = chipBtn.closest('[data-fx-drawer]');
+                const ta = drawer && drawer.querySelector('.fx-ta');
+                if (ta) {
+                    const s = ta.selectionStart != null ? ta.selectionStart : ta.value.length;
+                    const en = ta.selectionEnd != null ? ta.selectionEnd : ta.value.length;
+                    ta.value = ta.value.slice(0, s) + chipBtn.dataset.fxInsert + ta.value.slice(en);
+                    const pos = s + chipBtn.dataset.fxInsert.length;
+                    ta.selectionStart = ta.selectionEnd = pos;
+                    ta.focus();
+                    // Route through the normal live-edit loop (write, dirty, debounced re-analysis, sync)
+                    ta.dispatchEvent(new Event('input', { bubbles: true }));
+                }
                 return;
             }
             const actionBtn = e.target.closest('[data-action]');
@@ -1365,15 +1507,21 @@
             } else if (action === 'remove-variable') {
                 pattern.calculation.variables.splice(parseInt(actionBtn.dataset.index, 10), 1);
                 row.querySelector('.variables-container').innerHTML = variablesHTML(pattern);
+                closeFxDrawer(row, 'calculation.variables');
                 afterCalcEdit(pattern);
             } else if (action === 'add-modifier') {
                 pattern.calculation.contextModifiers = pattern.calculation.contextModifiers || [];
                 pattern.calculation.contextModifiers.push({ targetMetric: "lvi", name: "survivability", operation: "multiply", value: "1.0" });
-                row.querySelector('.modifiers-container').innerHTML = modifiersHTML(pattern);
+                const mc = row.querySelector('.modifiers-container');
+                mc.innerHTML = modifiersHTML(pattern);
+                autoGrowAll(mc);
                 afterCalcEdit(pattern);
             } else if (action === 'remove-modifier') {
                 pattern.calculation.contextModifiers.splice(parseInt(actionBtn.dataset.index, 10), 1);
-                row.querySelector('.modifiers-container').innerHTML = modifiersHTML(pattern);
+                const mc = row.querySelector('.modifiers-container');
+                mc.innerHTML = modifiersHTML(pattern);
+                autoGrowAll(mc);
+                closeFxDrawer(row, 'calculation.contextModifiers');
                 afterCalcEdit(pattern);
             } else if (action === 'test-search') {
                 testInCardSearch(pattern);
@@ -1427,6 +1575,7 @@
                     current = current[keys[i]];
                 }
                 current[keys[keys.length - 1]] = target.value;
+                syncFormulaEditors(row, target);
             }
 
             markDirty();
@@ -1438,6 +1587,13 @@
             selectedMatchSet = selectedCard ? getMatchedPatterns(selectedCard) : new Set();
             ABILITIES_CONFIG.abilities.forEach(refreshRowDots);
             if (selectedCard) displayCardDetails(selectedCard, false);
+            // refresh live result line in any open formula drawer
+            patternListContainer.querySelectorAll('.fx-drawer:not(.hidden)').forEach(dr => {
+                const row = dr.closest('.prow');
+                if (!row) return;
+                const pat = ABILITIES_CONFIG.abilities[parseInt(row.dataset.index, 10)];
+                if (pat) updateFxResult(dr, pat, dr.dataset.path);
+            });
         }, 250);
 
         function testInCardSearch(pattern) {
