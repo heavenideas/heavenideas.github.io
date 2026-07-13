@@ -442,8 +442,7 @@
                         <button id="copy-results-btn" class="btn btn-secondary hidden">Copy Names</button>
                     </div>
                     <div class="fmt-checks">
-                        <label><input type="checkbox" id="format-filter-core"> Core</label>
-                        <label><input type="checkbox" id="format-filter-infinity"> Infinity</label>
+                        <label title="Unchecked: only cards legal in Core Constructed. Checked: only cards legal in Infinity."><input type="checkbox" id="format-filter-infinity"> Infinity <span style="color:var(--text-faint)">(off = Core)</span></label>
                     </div>
                     <div id="custom-regex-error" class="hidden"></div>
                     <div id="custom-regex-stats" class="stat-block"></div>
@@ -1734,11 +1733,11 @@
             }
 
             const results = [];
-            const coreFilter = $('format-filter-core').checked;
+            // Single toggle: unchecked = Core Constructed legality, checked = Infinity legality
             const infinityFilter = $('format-filter-infinity').checked;
-            let filteredCards = allCards;
-            if (coreFilter) filteredCards = filteredCards.filter(card => card.allowedInFormats && card.allowedInFormats.Core);
-            if (infinityFilter) filteredCards = filteredCards.filter(card => card.allowedInFormats && card.allowedInFormats.Infinity);
+            const filteredCards = infinityFilter
+                ? allCards.filter(card => card.allowedInFormats && card.allowedInFormats.Infinity)
+                : allCards.filter(card => card.allowedInFormats && card.allowedInFormats.Core);
 
             filteredCards.forEach(card => {
                 let text = card.fullText || (card.fullTextSections || []).join(' ');
@@ -1801,6 +1800,11 @@
                 fragment.appendChild(cardDiv);
             });
             customRegexResults.appendChild(fragment);
+        });
+
+        // Toggling the format filter re-runs the current search
+        $('format-filter-infinity').addEventListener('change', () => {
+            if (customRegexInput.value.trim()) customRegexBtn.click();
         });
 
         function displayRegexStats(results) {
