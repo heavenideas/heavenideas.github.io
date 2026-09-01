@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deck Builder Gauntlet</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { background:#0b0f16; color:#e5e7eb; font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+  textarea { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .card { background:#111827; border:1px solid #1f2937; border-radius:.75rem; }
+  .pill { font-size:.68rem; padding:.05rem .4rem; border-radius:.35rem; white-space:nowrap; }
+  .k-exist { background:#064e3b; color:#6ee7b7; }
+  .k-magni { background:#3b2f0b; color:#fcd34d; }
+  .k-blind { background:#4c0519; color:#fda4af; }
+  .k-redux { background:#1e3a5f; color:#93c5fd; }
+  .k-engine{ background:#1f2937; color:#9ca3af; }
+  details > summary { cursor:pointer; list-style:none; }
+  details > summary::-webkit-details-marker { display:none; }
+  details > summary::before { content:"▸ "; color:#6b7280; }
+  details[open] > summary::before { content:"▾ "; }
+  th { font-weight:600; color:#9ca3af; text-align:left; }
+  td, th { padding:.35rem .5rem; border-bottom:1px solid #1f2937; vertical-align:top; }
+</style>
+</head>
+<body class="p-4 md:p-8">
+<div class="max-w-7xl mx-auto space-y-6">
+
+  <header>
+    <h1 class="text-2xl font-bold">Deck Builder Gauntlet</h1>
+    <p class="text-sm text-gray-400 mt-1">
+      One decklist against a field. Which of your cards answer which of their threats, by what
+      mechanism, how likely you are to have it in time — and every card the tool cannot vouch for,
+      named.
+    </p>
+  </header>
+
+  <div id="load-status" class="card p-4 text-sm text-gray-400">Loading catalog…</div>
+
+  <!-- Blocking banners. Rendered above everything, and the FAIL banner replaces the spread entirely. -->
+  <div id="blocked" class="hidden card p-4 border-2" style="border-color:#7f1d1d;background:#1c0f12">
+    <h2 class="font-bold text-rose-300">No spread rendered</h2>
+    <p id="blocked-reason" class="text-sm text-rose-200/80 mt-1"></p>
+  </div>
+  <div id="suspicious" class="hidden card p-4 border-2" style="border-color:#78350f;background:#1c150a">
+    <h2 class="font-bold text-amber-300">Failure state — coverage looks too clean</h2>
+    <p id="suspicious-reason" class="text-sm text-amber-200/80 mt-1"></p>
+  </div>
+
+  <section class="grid md:grid-cols-2 gap-4">
+    <div class="card p-4">
+      <label class="block text-sm font-semibold mb-2">Your decklist</label>
+      <textarea id="my-deck" rows="12" class="w-full bg-gray-950 border border-gray-800 rounded p-2 text-xs"
+        placeholder="4 Dragon Fire&#10;4 Be Prepared&#10;…"></textarea>
+      <div class="mt-2 flex items-center gap-3 text-xs text-gray-400">
+        <label class="flex items-center gap-1">
+          <input type="checkbox" id="on-the-play" checked class="accent-sky-500"> on the play
+        </label>
+        <span id="my-deck-count"></span>
+      </div>
+    </div>
+    <div class="card p-4">
+      <div class="flex items-center justify-between mb-2">
+        <label class="text-sm font-semibold">Opponent decklists</label>
+        <button id="add-opp" class="text-xs px-2 py-1 bg-gray-800 hover:bg-gray-700 rounded">+ add opponent</button>
+      </div>
+      <div id="opponents" class="space-y-3"></div>
+    </div>
+  </section>
+
+  <div class="flex gap-3">
+    <button id="run" class="px-4 py-2 bg-sky-700 hover:bg-sky-600 rounded font-semibold disabled:opacity-40" disabled>
+      Run the gauntlet
+    </button>
+    <button id="sample" class="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded text-sm">Fill with a sample field</button>
+  </div>
+
+  <div id="results" class="space-y-6"></div>
+</div>
+
+<script src="gauntlet_resolver.js"></script>
+<script src="gauntlet_draw.js"></script>
+<script src="gauntlet_spread.js"></script>
+<script>
+(function () {
+  "use strict";
+  var CARDS = null, COVERAGE = null;
+  var $ = function (id) { return document.getElementById(id); };
+  var esc = function (s) { return String(s).replace(/[&<>"]/g, function (c) {
+    return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]; }); };
+  var pct = function (x) { return Math.round(x * 100) + "%"; };
+
+  // ---------------------------------------------------------------- data
+
+  Promise.all([
+    fetch("gauntlet-cards.json").then(function (r) { return r.json(); }),
+    fetch("gauntlet-coverage.json").then(function (r) { return r.json(); }),
+  ]).then(function (res) {
+    CARDS = res[0]; COVERAGE = res[1];
+    var p = COVERAGE.provenance;
+    $("load-status").innerHTML =
+      "<span class='text-emerald-400 font-semibold'>Catalog loaded.</span> " +
+      CARDS.length + " card records · engine <code>" + esc(String(p.engine_commit).slice(0, 10)) +
+      "</code> (" + esc(String(p.engine_commit_date).slice(0, 10)) + ", sets to " + p.engine_max_set + ") · " +
+      "similcana " + esc(String(p.similcana_generated_on).slice(0, 10)) + " (sets to " + p.similcana_max_set + ") · " +
+      "join fixture <strong class='" + (p.join_fixture_status === "PASS" ? "text-emerald-400" : "text-rose-400") +
+      "'>" + esc(p.join_fixture_status) + "</strong>";
+    $("run").disabled = false;
+  }).catch(function (e) {
+    $("load-status").innerHTML = "<span class='text-rose-400 font-semibold'>Could not load the catalog.</span> " +
+      esc(e.message) + " — run <code>bun run build/serialize.ts</code> first.";
+  });
+
+  // ---------------------------------------------------------------- opponent inputs
+
+  var oppCount = 0;
+  function addOpponent(name, text) {
+    oppCount++;
+    var wrap = document.createElement("div");
+    wrap.className = "opp";
+    wrap.innerHTML =
+      "<input class='opp-name w-full bg-gray-950 border border-gray-800 rounded px-2 py-1 text-xs mb-1' " +
+      "value='" + esc(name || ("Opponent " + oppCount)) + "'>" +
+      "<textarea rows='5' class='opp-list w-full bg-gray-950 border border-gray-800 rounded p-2 text-xs'></textarea>";
+    $("opponents").appendChild(wrap);
+    if (text) wrap.querySelector(".opp-list").value = text;
+  }
+  $("add-opp").addEventListener("click", function () { addOpponent(); });
+  addOpponent();
+
+  // ---------------------------------------------------------------- sample field
+
+  $("sample").addEventListener("click", function () {
+    if (!CARDS) return;
+    var seen = new Set(), pool = [];
+    CARDS.forEach(function (c) {
+      if (parseInt(c.set, 10) < 10 || c.rarity === "enchanted" || seen.has(c.canonicalId)) return;
+      seen.add(c.canonicalId); pool.push(c);
+    });
+    var s = 3, rng = function () { return (s = (s * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff; };
+    var take = function (pred, n) {
+      var out = [], used = new Set();
+      while (out.length < n) {
+        var c = pool[Math.floor(rng() * pool.length)];
+        if (!c || !pred(c) || used.has(c.key)) continue;
+        used.add(c.key); out.push(c);
+      }
+      return out;
+    };
+    var isChar = function (c) { return c.cardType === "character" && c.willpower != null; };
+    var isSpell = function (c) { return c.cardType === "action" || c.cardType === "item"; };
+    var list = function (a) { return a.map(function (c) { return "4 " + c.fullName; }).join("\n"); };
+    $("my-deck").value = list(take(isChar, 11).concat(take(isSpell, 4)));
+    $("opponents").innerHTML = ""; oppCount = 0;
+    addOpponent("Aggro field", list(take(isChar, 15)));
+    addOpponent("Control field", list(take(isChar, 11).concat(take(isSpell, 4))));
+  });
+
+  // ---------------------------------------------------------------- run
+
+  $("run").addEventListener("click", function () {
+    var opponents = Array.prototype.map.call(document.querySelectorAll(".opp"), function (el) {
+      return { label: el.querySelector(".opp-name").value.trim() || "Opponent",
+               decklist: el.querySelector(".opp-list").value };
+    }).filter(function (o) { return o.decklist.trim().length > 0; });
+
+    if (!opponents.length) { alert("Add at least one opponent decklist."); return; }
+
+    var spread = GauntletSpread.buildSpread({
+      myDecklist: $("my-deck").value,
+      opponents: opponents,
+      cards: CARDS,
+      coverage: COVERAGE,
+      onThePlay: $("on-the-play").checked,
+    });
+    render(spread);
+  });
+
+  // ---------------------------------------------------------------- render
+
+  function render(s) {
+    var cov = s.coverage;
+
+    // Invariant 1. A FAIL join renders no spread at all — not a spread with a warning on it.
+    if (!s.renderable) {
+      $("blocked").classList.remove("hidden");
+      $("blocked-reason").textContent = cov.blockedReason;
+      $("results").innerHTML = "";
+      return;
+    }
+    $("blocked").classList.add("hidden");
+
+    // Invariant 2. A spotless coverage block is a failure state, not a clean bill of health.
+    if (cov.suspiciouslyClean) {
+      $("suspicious").classList.remove("hidden");
+      $("suspicious-reason").textContent = cov.suspiciousReason;
+    } else {
+      $("suspicious").classList.add("hidden");
+    }
+
+    $("my-deck-count").textContent = s.myDeck.totalCards + " cards, " + s.myDeck.distinct + " distinct, " +
+      s.myDeck.stats.inkableCount + " inkable";
+
+    var html = "";
+    html += renderRanking(s);
+    s.opponents.forEach(function (rep) { html += renderOpponent(rep, s); });
+    html += renderCoverage(cov, s);
+    $("results").innerHTML = html;
+  }
+
+  function renderRanking(s) {
+    var rows = s.ranking.map(function (r) {
+      return "<tr><td>" + r.rank + "</td><td>" + esc(r.label) + "</td>" +
+        "<td class='font-mono'>" + r.favorability.toFixed(3) + "</td>" +
+        "<td>" + esc(r.verdict) + "</td></tr>";
+    }).join("");
+    return "<section class='card p-4'><h2 class='font-bold mb-2'>The field, ranked</h2>" +
+      "<table class='w-full text-sm'><thead><tr><th>#</th><th>Opponent</th><th>Favorability</th><th>Read</th></tr></thead>" +
+      "<tbody>" + rows + "</tbody></table>" +
+      "<p class='text-xs text-gray-500 mt-2'>Favorability is your weighted answer strength minus theirs. " +
+      "Every contribution is expandable below — there is no opaque constant anywhere in it.</p></section>";
+  }
+
+  function renderOpponent(rep, s) {
+    var weak = rep.weakSpots.map(function (w) {
+      return "<li><strong class='text-rose-300'>" + esc(w.card) + "</strong> " +
+        "<span class='text-gray-500'>" + esc(w.stats) +
+        (w.keywords.length ? " · " + esc(w.keywords.join(", ")) : "") + "</span><br>" +
+        "<span class='text-gray-400 text-xs'>" + esc(w.reason) + "</span></li>";
+    }).join("");
+
+    var rows = rep.threats.slice().sort(function (a, b) { return a.strength - b.strength; })
+      .map(function (t) { return threatRow(t); }).join("");
+
+    var decomp = rep.score.decomposition.map(function (d) {
+      return "<tr><td>" + esc(d.name) + "</td><td class='font-mono'>" + d.value.toFixed(4) + "</td>" +
+        "<td class='text-xs text-gray-400'>" + esc(d.how) + "</td></tr>";
+    }).join("");
+
+    return "<section class='card p-4 space-y-3'>" +
+      "<div class='flex items-baseline justify-between'>" +
+        "<h2 class='font-bold text-lg'>" + esc(rep.label) + "</h2>" +
+        "<span class='text-sm'>favorability <span class='font-mono'>" + rep.score.favorability.toFixed(3) +
+        "</span> — <strong>" + esc(rep.score.verdict) + "</strong></span></div>" +
+
+      (rep.unresolvedLines.length
+        ? "<div class='text-xs text-amber-300'>" + rep.unresolvedLines.length +
+          " decklist line(s) did not resolve and are excluded: " +
+          esc(rep.unresolvedLines.map(function (u) { return u.text; }).join("; ")) + "</div>"
+        : "") +
+
+      "<details><summary class='text-sm font-semibold'>How this score is built</summary>" +
+        "<table class='w-full text-sm mt-2'>" + decomp + "</table></details>" +
+
+      (weak ? "<div><h3 class='font-semibold text-sm mb-1 text-rose-300'>Weak spots — " +
+        rep.weakSpots.length + "</h3><ul class='space-y-1 text-sm list-disc pl-5'>" + weak + "</ul></div>"
+        : "<p class='text-sm text-emerald-400'>No zero-out or magnitude-only threats in this matchup.</p>") +
+
+      "<details open><summary class='text-sm font-semibold'>Every threat</summary>" +
+        "<table class='w-full text-sm mt-2'><thead><tr>" +
+        "<th>Threat</th><th>Outs</th><th>First castable</th><th>P(by then)</th><th>Best mechanism</th>" +
+        "</tr></thead><tbody>" + rows + "</tbody></table></details>" +
+      "</section>";
+  }
+
+  function threatRow(t) {
+    var b = t.threat;
+    var kws = (b.keywords || []).map(function (k) { return k.keyword + (k.value ? " +" + k.value : ""); }).join(", ");
+    var best = t.contributions.length
+      ? t.contributions.slice().sort(function (x, y) { return y.value - x.value; })[0]
+      : null;
+
+    // Fidelity is named INLINE in the matchup view, never only in a summary panel.
+    var flags = "";
+    var f = b.fidelity || {};
+    if (f.no_engine_record) flags += " <span class='pill k-blind' title='" + esc(f.reason || "") +
+      "'>no engine record — effects unreadable</span>";
+    if (f.silent_stub) flags += " <span class='pill k-blind'>silent stub</span>";
+    if (f.partial_stub) flags += " <span class='pill k-blind' title='" + esc(f.partial_stub_reason || "") + "'>partial stub</span>";
+    if (f.runtime_dependent) flags += " <span class='pill k-magni'>runtime-dependent</span>";
+    if (b.lanes && b.lanes.double_blind) flags += " <span class='pill k-blind'>double blind — not vouched for</span>";
+    else if (b.lanes && b.lanes.engine === "flagged") flags += " <span class='pill k-redux'>redux cross-check</span>";
+
+    var cellMark = t.magnitudeOnly
+      ? " <span class='pill k-magni' title='answerable only by challenging; depends on the runtime modifier stack'>magnitude only</span>"
+      : (t.unresolvedOuts > 0 ? " <span class='pill k-magni'>" + t.unresolvedOuts + " unresolved</span>" : "");
+
+    return "<tr>" +
+      "<td><strong>" + esc(b.fullName) + "</strong> <span class='text-gray-500'>" +
+        (b.strength || "?") + "/" + (b.willpower || "?") + (kws ? " · " + esc(kws) : "") + "</span>" +
+        flags + cellMark + "</td>" +
+      "<td class='font-mono'>" + (t.outCopies || "<span class='text-rose-400'>0</span>") + "</td>" +
+      "<td class='font-mono'>" + (t.draw ? "T" + t.draw.earliestCastableTurn : "—") + "</td>" +
+      "<td class='font-mono'>" + (t.draw ? pct(t.draw.pByEarliestTurn) : "—") + "</td>" +
+      "<td class='text-xs'>" + (best
+        ? esc(best.mechanism) + " <span class='pill " +
+          (best.classTrust === 1 ? "k-exist" : "k-magni") + "'>" +
+          (best.classTrust === 1 ? "existence" : "magnitude") + "</span>"
+        : "<span class='text-rose-400'>no answer</span>") + "</td>" +
+      "</tr>";
+  }
+
+  function renderCoverage(c, s) {
+    var list = function (title, arr, fmt) {
+      if (!arr || !arr.length) return "<div class='text-xs text-gray-500'>" + title + ": none</div>";
+      return "<details><summary class='text-xs text-gray-300'>" + title + " — " + arr.length +
+        "</summary><ul class='text-xs text-gray-400 list-disc pl-5 mt-1'>" +
+        arr.map(function (x) { return "<li>" + esc(fmt ? fmt(x) : x) + "</li>"; }).join("") + "</ul></details>";
+    };
+
+    var w = "";
+    Object.keys(s.weights).forEach(function (group) {
+      w += "<div class='mt-2'><div class='text-xs font-semibold text-gray-300'>" + esc(group) + "</div><table class='w-full text-xs'>";
+      Object.keys(s.weights[group]).forEach(function (k) {
+        var e = s.weights[group][k];
+        w += "<tr><td class='font-mono'>" + esc(k) + "</td><td class='font-mono'>" + e.weight +
+          "</td><td class='text-gray-400'>" + esc(e.why) + "</td></tr>";
+      });
+      w += "</table></div>";
+    });
+
+    var p = c.provenance;
+    return "<section class='card p-4 space-y-3'>" +
+      "<h2 class='font-bold'>Coverage contract</h2>" +
+      "<p class='text-xs text-gray-500'>No favorability figure renders without this block. " +
+      "Every field is computed from the data — nothing here is decoration.</p>" +
+
+      "<div><h3 class='text-sm font-semibold'>Provenance</h3><div class='text-xs text-gray-400'>" +
+        "engine <code>" + esc(String(p.engine_commit).slice(0, 10)) + "</code> " + esc(String(p.engine_commit_date).slice(0, 10)) +
+        ", sets to " + p.engine_max_set + " · similcana " + esc(String(p.similcana_generated_on).slice(0, 10)) +
+        ", sets to " + p.similcana_max_set + " · redux " + p.redux_pattern_count + " usable of " +
+        p.redux_entries_total + ", last touched " + esc(String(p.redux_last_modified).slice(0, 10)) +
+        " · join fixture <strong>" + esc(p.join_fixture_status) + "</strong> · stub fixture <strong>" +
+        esc(p.stub_fixture_status) + "</strong></div></div>" +
+
+      "<div><h3 class='text-sm font-semibold'>Correctness</h3>" +
+        "<p class='text-sm text-amber-200'>" + esc(c.correctness.rarity_weighted_sentence) + "</p>" +
+        list("Silent stubs", c.correctness.silent_stubs) +
+        list("Stubs that lose a keyword", c.correctness.stubs_keyword_bearing, function (x) {
+          return x.card + " — loses " + x.keywords.join(", "); }) +
+        list("Partial stubs", c.correctness.partial_stubs, function (x) { return x.card + " — " + x.reason; }) +
+        list("Runtime-dependent", c.correctness.runtime_dependent) +
+        list("No engine record — newer than the engine catalog", c.correctness.no_engine_record, function (x) {
+          return x.card + " — set " + x.set + ", keywords known: " +
+            (x.keywordsKnown.length ? x.keywordsKnown.join(", ") : "none"); }) +
+        (c.correctness.no_engine_record && c.correctness.no_engine_record.length
+          ? "<p class='text-xs text-amber-200/70 mt-1'>" + esc(c.correctness.no_engine_record_note) + "</p>"
+          : "") +
+      "</div>" +
+
+      "<div><h3 class='text-sm font-semibold'>Resolution ledger</h3>" +
+        "<div class='text-xs text-gray-400'>" + c.resolution_ledger.resolved_engine_full +
+        " cards fully resolved from the engine · " + c.resolution_ledger.flagged_total + " flagged · " +
+        c.resolution_ledger.magnitude_verdicts_unresolved + " of " + c.resolution_ledger.matrix_cells +
+        " matrix cells carry an unresolved magnitude verdict</div>" +
+        list("Lanes disagree — the tool's own error detector", c.resolution_ledger.lanes_disagree, function (x) {
+          return x.card + " — redux reads " + x.keyword + ", the engine record does not carry it"; }) +
+        list("Double blind — not vouched for by either lane", c.resolution_ledger.double_blind) +
+      "</div>" +
+
+      (c.presence.unresolved_decklist_lines
+        ? "<div><h3 class='text-sm font-semibold text-amber-300'>Decklist lines excluded</h3>" +
+          list("Unresolved input", c.presence.unresolved_decklist_detail) + "</div>"
+        : "") +
+
+      "<details><summary class='text-sm font-semibold'>Every weight this score uses</summary>" + w + "</details>" +
+      "</section>";
+  }
+})();
+</script>
+</body>
+</html>
