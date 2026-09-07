@@ -1,0 +1,52 @@
+                }
+                } else if (e.key === 'ArrowRight') {
+                    // Go to earliest child
+                    const children = App.bookmarks.filter(b => b.parentId === App.treeNavActiveId).sort((a, b) => a.timestamp - b.timestamp);
+                    if (children.length > 0) {
+                        nextId = children[0].id;
+                    }
+                } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                    // Find sibling (nodes with same parent)
+                    const activeNode = App.bookmarks.find(b => b.id === App.treeNavActiveId);
+                    if (activeNode) {
+                        const siblings = App.bookmarks.filter(b => b.parentId === activeNode.parentId).sort((a, b) => App.nodePositions[a.id].y - App.nodePositions[b.id].y);
+                        const currentIndex = siblings.findIndex(s => s.id === App.treeNavActiveId);
+                        if (e.key === 'ArrowUp' && currentIndex > 0) {
+                            nextId = siblings[currentIndex - 1].id;
+                        } else if (e.key === 'ArrowDown' && currentIndex < siblings.length - 1) {
+                            nextId = siblings[currentIndex + 1].id;
+                        }
+                    }
+                }
+
+                if (nextId) {
+                    App.treeNavActiveId = nextId;
+                    App.renderTree();
+
+                    // Center viewport on new target
+                    const targetPos = App.nodePositions[nextId];
+                    const viewport = document.getElementById('tree-viewport');
+                    const vWidth = viewport.clientWidth;
+                    const vHeight = viewport.clientHeight;
+                    const nodeCenterX = targetPos.x + (220 / 2);
+                    const nodeCenterY = targetPos.y + (150 / 2);
+                    App.treePan.translateX = (vWidth / 2) - (nodeCenterX * App.treePan.zoom);
+                    App.treePan.translateY = (vHeight / 2) - (nodeCenterY * App.treePan.zoom);
+                    document.getElementById('tree-canvas').style.transform = `translate(${App.treePan.translateX}px, ${App.treePan.translateY}px) scale(${App.treePan.zoom})`;
+                }
+            } else if (e.key === 'Enter') {
+                // A focused node button handles its own Enter — don't double-restore.
+                if (document.activeElement.tagName === 'BUTTON') return;
+                e.preventDefault();
+                if (App.treeNavActiveId) {
+                    App.restoreTimeline(App.treeNavActiveId, false);
+                }
+            }
+        });
+
+        // Init App on load
+        window.onload = () => App.init();
+    </script>
+</body>
+
+</html>
