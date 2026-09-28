@@ -136,7 +136,7 @@ Every backend exposes the same `decide(state, questions)` call, so the UI can sw
 |---|---|---|
 | **0. Engine spike** (1–2 days) | Run TheCardGoat's engine headless in Node. Confirm we can (a) load two decklists, (b) get `legalMoves` as data, (c) serialize and restore state. Decide between adopting that engine and extending `lorcana_game_module.js`. | — |
 | **1. "What would the bot do?" puzzles** — _first version built: [`what_would_the_bot_do.html`](what_would_the_bot_do.html)_ | Static page that loads a Dojo bookmark or duels.ink replay position, generates candidate moves (engine or a hand-written list), asks Jev/Von, and shows the probability bars. For replay positions it also shows **what the human actually did**. This is a great visual demo, and it's our evaluation set. | No |
-| **2. Bot vs bot spectator** | Full games using the engine plus L1, with autoplay, step-through and move-by-move probabilities, rendered in the Dojo look. Baseline: L1 against the existing heuristic `makeAIMove()`. | Yes |
+| **2. Bot vs bot spectator** — _built: [`bot_arena/`](bot_arena/index.html)_ | Full games using the engine plus L1, with autoplay, step-through and move-by-move probabilities, rendered in the Dojo look. Baseline: L1 against the existing heuristic `makeAIMove()`. | Yes |
 | **3. Stronger play** | L2 lookahead and L3 planner. Measure win rate over hundreds of self-play games per level. | Yes |
 | **4. Train our own** | Export the replay dataset and fine-tune Von/Laya. Measure match rate with human moves plus win rate against L1/L2. Optionally run it in the browser. | Yes |
 
@@ -156,6 +156,13 @@ Engine: [`TheCardGoat/tcg-engines`](https://github.com/TheCardGoat/tcg-engines) 
 | Runs in the browser? | Yes. `bun build --target browser` gives a 7.7 MB bundle (1.8 MB gzipped; must load as `<script type="module">` because it uses top-level await). A full game ran in Chromium in about 8 s with no errors. **So it can stay a static GitHub Pages site with no server.** |
 
 **Decision:** adopt this engine rather than extend `lorcana_game_module.js`. Next: phase 2 (bot-vs-bot spectator page), with the engine bundled into the site and Von/Jev/heuristic plugged in as the decider.
+
+### Phase 2 notes: Bot Arena (`simulator/bot_arena/`)
+
+- `engine_entry.ts` is our adapter (board view, readable option text, apply-a-pick). `build_engine.sh` clones the engine at the pinned commit and bundles both into `lorcana-engine.js`. Rerun it to update the engine.
+- Search caps are raised to the values the engine's own match runner uses (`targetCombinationsPerFamily: 48` etc.). With the defaults, some abilities came back with **no** options and the engine's bots conceded.
+- For anything still left without options, the adapter offers "decline" or "resolve with the first valid targets" rather than a pass the engine would refuse.
+- Stress test: 16 games covering all 8 deck fixtures, engine bot vs random. All finished at 20 lore with no deadlocks, concessions or substituted moves. An instant game takes about 6 s in Chromium.
 
 ---
 

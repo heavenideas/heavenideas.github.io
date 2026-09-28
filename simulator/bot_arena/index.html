@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lorcana Bot Arena</title>
+    <style>
+        :root {
+            --bg: #111114;
+            --panel: #1a1a1e;
+            --panel-2: #151518;
+            --border: #2c2c33;
+            --border-soft: #24242a;
+            --text: #d6d6de;
+            --muted: #8b8b98;
+            --p2: #3f2e70;
+            --p2-hi: #a78bfa;
+            --p1: #a86b32;
+            --p1-hi: #f0a560;
+            --gold: #f5c542;
+            --good: #34d399;
+            --bad: #f87171;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--border);
+            background: var(--panel-2);
+            flex-wrap: wrap;
+        }
+
+        header h1 { font-size: 18px; margin: 0; }
+        header .version { color: var(--muted); font-size: 12px; }
+        header .status { margin-left: auto; color: var(--muted); font-size: 12px; }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 290px minmax(0, 1fr) 400px;
+            gap: 12px;
+            padding: 12px;
+            align-items: start;
+        }
+
+        @media (max-width: 1280px) {
+            .layout { grid-template-columns: 290px minmax(0, 1fr); }
+            #right { grid-column: 1 / -1; }
+        }
+
+        @media (max-width: 820px) {
+            .layout { grid-template-columns: minmax(0, 1fr); padding: 8px; }
+        }
+
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+
+        .panel h2 {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--muted);
+            margin: 0 0 10px;
+        }
+
+        button, select, input, textarea {
+            font: inherit;
+            color: var(--text);
+            background: #23232a;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 6px 10px;
+        }
+
+        button { cursor: pointer; }
+        button:hover:not(:disabled) { border-color: var(--p2-hi); }
+        button:disabled { opacity: .45; cursor: default; }
+        button.primary { background: #5b3fb0; border-color: #7c5ce0; color: #fff; font-weight: 600; }
+        button.primary:hover:not(:disabled) { background: #6b4fc4; }
+
+        label { display: block; font-size: 12px; color: var(--muted); margin: 8px 0 3px; }
+        label.inline { display: flex; align-items: center; gap: 6px; color: var(--text); font-size: 13px; margin: 6px 0; }
+        input[type=text], input[type=password], select, textarea { width: 100%; }
+        textarea { font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
+        .row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+        .row > button { flex: 1 1 auto; }
+        .hint { font-size: 12px; color: var(--muted); margin: 6px 0 0; }
+        .err { font-size: 12px; color: var(--bad); margin: 4px 0 0; white-space: pre-line; }
+
+        .seat { border-left: 3px solid var(--c); padding-left: 10px; margin-bottom: 12px; }
+        .seat .who { font-weight: 700; color: var(--hi); }
+
+        /* ---- board ---- */
+        .controls { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+        .controls select { width: auto; }
+
+        .race { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; margin: 8px 0; font-size: 12px; }
+        .race .track { height: 12px; border-radius: 99px; background: #26262e; position: relative; overflow: hidden; }
+        .race .fill { position: absolute; top: 0; bottom: 0; transition: width .4s; }
+        .race .fill.p1 { left: 0; background: var(--p1-hi); }
+        .race .fill.p2 { right: 0; background: var(--p2-hi); }
+
+        .half { border-radius: 10px; padding: 10px; margin-bottom: 8px; position: relative; }
+        .half.p2 { background: linear-gradient(180deg, #2a2046, #1d1830); border: 1px solid var(--p2); }
+        .half.p1 { background: linear-gradient(0deg, #3a2716, #241a12); border: 1px solid var(--p1); }
+        .half.acting { box-shadow: 0 0 0 2px var(--gold); }
+        .half-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+        .half-head .who { font-weight: 700; }
+        .half-head .brain { font-size: 12px; color: var(--muted); }
+        .pill { font-size: 12px; background: rgba(0, 0, 0, .35); padding: 2px 8px; border-radius: 99px; }
+        .pill.lore { color: var(--gold); font-weight: 700; }
+        .zone-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; margin: 6px 0 3px; }
+        .cards { display: flex; flex-wrap: wrap; gap: 6px; min-height: 30px; }
+        .empty { color: var(--muted); font-size: 12px; font-style: italic; }
+
+        .card { width: 74px; position: relative; }
+        .card .face {
+            width: 74px;
+            height: 103px;
+            border-radius: 6px;
+            background: #2a2a33;
+            overflow: hidden;
+            position: relative;
+            border: 1px solid #000;
+            transition: transform .25s;
+        }
+        .card .fallback { position: absolute; inset: 0; padding: 20px 5px 5px; font-size: 10px; line-height: 1.2; white-space: pre-line; }
+        .card img { width: 100%; height: 100%; object-fit: cover; position: relative; display: block; }
+        .card.exerted .face { transform: rotate(90deg) scale(.72); opacity: .82; }
+        .card.back .face { background: repeating-linear-gradient(45deg, #2b2440, #2b2440 6px, #231d36 6px, #231d36 12px); }
+        .card .badges { position: absolute; top: 2px; left: 2px; right: 2px; display: flex; gap: 2px; flex-wrap: wrap; z-index: 2; }
+        .badge { font-size: 10px; font-weight: 700; padding: 0 4px; border-radius: 4px; background: rgba(0, 0, 0, .75); }
+        .badge.dmg { background: #b91c1c; color: #fff; }
+        .badge.dry { background: #0e7490; color: #fff; }
+        .card .cap { font-size: 10px; color: var(--muted); text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+        .card.hl .face { box-shadow: 0 0 0 3px var(--gold), 0 0 14px var(--gold); }
+
+        .banner {
+            border-radius: 10px;
+            padding: 14px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: 700;
+            background: #2a2414;
+            border: 1px solid var(--gold);
+            color: var(--gold);
+            margin-bottom: 8px;
+        }
+
+        /* ---- decision ---- */
+        .opt {
+            display: grid;
+            grid-template-columns: 1fr 52px;
+            gap: 8px;
+            align-items: center;
+            padding: 6px 8px;
+            border-radius: 7px;
+            background: var(--panel-2);
+            margin-bottom: 4px;
+            border: 1px solid transparent;
+            position: relative;
+            font-size: 13px;
+        }
+        .opt.pick { border-color: var(--gold); background: #2a2414; }
+        .opt small { display: block; color: var(--muted); font-size: 11.5px; }
+        .opt .p { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+        .opt .bar { position: absolute; left: 0; bottom: 0; height: 3px; border-radius: 0 0 0 7px; background: var(--p2-hi); }
+        .opt.pick .bar { background: var(--gold); }
+        .tag { display: inline-block; font-size: 10px; font-weight: 700; padding: 0 5px; border-radius: 4px; background: #2e2e38; color: #c4c4d0; margin-right: 4px; vertical-align: 1px; }
+        .meta { display: flex; gap: 10px; flex-wrap: wrap; font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+        .meta b { color: var(--text); }
+
+        #log { max-height: 420px; overflow-y: auto; font-size: 12.5px; }
+        #log .turn { font-size: 11px; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); margin: 8px 0 3px; }
+        #log .entry { padding: 2px 0 2px 8px; border-left: 3px solid var(--c); margin-bottom: 2px; }
+        #log .entry .b { color: var(--muted); font-size: 11px; }
+
+        #loading {
+            position: fixed;
+            inset: 0;
+            background: rgba(10, 10, 12, .94);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 50;
+            font-size: 15px;
+            text-align: center;
+            padding: 16px;
+        }
+        #loading.hidden { display: none; }
+        .spinner { width: 32px; height: 32px; border: 3px solid #333; border-top-color: var(--p2-hi); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        #toast {
+            position: fixed;
+            bottom: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #27272f;
+            border: 1px solid var(--border);
+            padding: 8px 14px;
+            border-radius: 8px;
+            display: none;
+            z-index: 60;
+            max-width: 90vw;
+        }
+
+        pre { white-space: pre-wrap; word-break: break-word; background: #0c0c0f; border: 1px solid var(--border-soft); border-radius: 6px; padding: 8px; font-size: 11.5px; max-height: 300px; overflow: auto; }
+        details summary { cursor: pointer; color: var(--muted); font-size: 12px; margin: 6px 0; }
+    </style>
+</head>
+
+<body>
+    <div id="loading">
+        <div class="spinner"></div>
+        <div id="loadingText">Loading the rules engine (about 2 MB)…</div>
+    </div>
+    <div id="toast"></div>
+
+    <header>
+        <h1>Lorcana Bot Arena</h1>
+        <span class="version">v0.1.0</span>
+        <span class="status" id="status"></span>
+    </header>
+
+    <div class="layout">
+        <!-- ================= LEFT: setup ================= -->
+        <aside id="left">
+            <div class="panel">
+                <h2>Match setup</h2>
+                <div id="seats"></div>
+                <div id="remoteCfg" style="display:none">
+                    <h2 style="margin-top:4px">Model endpoint</h2>
+                    <label for="baseUrl">Base URL (POST {base}/v1/systemone)</label>
+                    <input type="text" id="baseUrl">
+                    <label for="modelName">Model</label>
+                    <input type="text" id="modelName">
+                    <label for="apiKey">API key (Bearer)</label>
+                    <input type="password" id="apiKey" placeholder="optional for local servers" autocomplete="off">
+                    <label class="inline"><input type="checkbox" id="rememberKey"> Remember key in this browser</label>
+                    <p class="hint" id="remoteHint"></p>
+                </div>
+                <label for="seed">Shuffle seed</label>
+                <input type="text" id="seed">
+                <div class="row" style="margin-top:10px">
+                    <button class="primary" onclick="Arena.newGame()">New game</button>
+                    <button onclick="Arena.rematch()" title="Same decks and seed, so the same opening draws">Rematch</button>
+                </div>
+                <div class="err" id="setupErr"></div>
+            </div>
+            <div class="panel">
+                <h2>About</h2>
+                <p class="hint" style="margin-top:0">Rules by <a href="https://github.com/TheCardGoat/tcg-engines" style="color:var(--p2-hi)">TheCardGoat's open-source Lorcana engine</a> (MIT), running in your browser. Every card ability is resolved by the engine; the bots only choose between the legal options it lists.</p>
+                <p class="hint">Engine bots marked “oracle” can see the opponent's deck. Model bots only see their own hand.</p>
+            </div>
+        </aside>
+
+        <!-- ================= CENTER: board ================= -->
+        <section id="center">
+            <div class="panel">
+                <div class="controls">
+                    <button onclick="Arena.step()" id="stepBtn" disabled>Step</button>
+                    <button onclick="Arena.togglePlay()" id="playBtn" class="primary" disabled>▶ Play</button>
+                    <select id="speed" title="Autoplay speed">
+                        <option value="1400">Slow</option>
+                        <option value="600" selected>Normal</option>
+                        <option value="150">Fast</option>
+                        <option value="0">Instant</option>
+                    </select>
+                    <label class="inline" style="margin:0 0 0 6px"><input type="checkbox" id="showHands" checked onchange="Arena.render()"> Show hands</label>
+                </div>
+                <div id="banner"></div>
+                <div id="board"><p class="empty">Pick two decks and brains, then press <b>New game</b>.</p></div>
+            </div>
+        </section>
+
+        <!-- ================= RIGHT: decision + log ================= -->
+        <section id="right">
+            <div class="panel">
+                <h2>Last decision</h2>
+                <div id="decision"><p class="empty">No decisions yet.</p></div>
+                <details>
+                    <summary>What the model read</summary>
+                    <pre id="stateText">—</pre>
+                </details>
+            </div>
+            <div class="panel">
+                <h2>Game log</h2>
+                <div id="log"><p class="empty">—</p></div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        const Arena = {
+            CARD_DB_URLS: [
+                'https://cdn.jsdelivr.net/gh/heavenideas/similcana@main/database/allCards.json',
+                'https://raw.githubusercontent.com/heavenideas/similcana/refs/heads/main/database/allCards.json'
+            ],
+            REMOTE: {
+                von: { label: 'Von / Laya (local, free)', base: 'http://localhost:8000', model: 'von-latest', hint: 'Run a Jev-compatible server locally, e.g. `von serve --port 8000`.' },
+                jev: { label: 'TypeSafe Jev (API key)', base: 'https://api.typesafe.ai', model: 'jev-latest', hint: 'Needs a TypeSafe API key. Browsers may block direct calls (CORS); if so, use a small proxy.' },
+                custom: { label: 'Custom /v1/systemone', base: '', model: 'jev-latest', hint: 'Any server that speaks the Jev request/response format.' }
+            },
+            SEATS: [
+                { id: 'player_one', name: 'Player 1', css: 'p1', color: 'var(--p1)', hi: 'var(--p1-hi)' },
+                { id: 'player_two', name: 'Player 2', css: 'p2', color: 'var(--p2)', hi: 'var(--p2-hi)' }
+            ],
+
+            imgIndex: {},
+            game: null,
+            config: null,
+            playing: false,
+            busy: false,
+            lastDecision: null,
+
+            // =====================================================
+            // Boot
+            // =====================================================
+            async init() {
+                const engineReady = new Promise((resolve, reject) => {
+                    const s = document.createElement('script');
+                    s.type = 'module';
+                    s.src = 'lorcana-engine.js';
+                    s.onload = () => resolve();
+                    s.onerror = () => reject(new Error('could not load lorcana-engine.js'));
+                    document.head.appendChild(s);
+                });
+                // Card art is optional; the board falls back to text faces without it.
+                this.loadCardImages().catch(() => { });
+                try {
+                    await engineReady;
+                    // The bundle finishes starting up after it loads (top-level await), so wait for it.
+                    for (let i = 0; i < 300 && !window.LorcanaArena; i++) await new Promise(r => setTimeout(r, 100));
+                    if (!window.LorcanaArena) throw new Error('engine did not start');
+                } catch (e) {
+                    document.getElementById('loadingText').textContent = 'Could not start the rules engine: ' + e.message;
+                    return;
+                }
+                this.decks = LorcanaArena.decks();
+                this.strategies = LorcanaArena.strategies().filter(s => !/-test$/.test(s.id));
+                this.buildSeats();
+                this.restoreSettings();
+                document.getElementById('seed').value = this.randomSeed();
+                document.getElementById('loading').classList.add('hidden');
+                this.setStatus('Engine ready');
+            },
+
+            async loadCardImages() {
+                let cards = null;
+                try {
+                    const text = await new Promise((resolve) => {
+                        const req = indexedDB.open('lorcana_dojo_cache', 1);
+                        req.onupgradeneeded = () => { if (!req.result.objectStoreNames.contains('kv')) req.result.createObjectStore('kv'); };
+                        req.onerror = () => resolve(null);
+                        req.onsuccess = () => {
+                            try {
+                                const get = req.result.transaction('kv', 'readonly').objectStore('kv').get('allCardsText');
+                                get.onsuccess = () => resolve(get.result || null);
+                                get.onerror = () => resolve(null);
+                            } catch (e) { resolve(null); }
+                        };
+                    });
+                    if (text) cards = JSON.parse(text).cards;
+                } catch (e) { }
+                if (!cards) {
+                    for (const url of this.CARD_DB_URLS) {
+                        try { const r = await fetch(url); if (r.ok) { cards = (await r.json()).cards; break; } } catch (e) { }
+                    }
+                }
+                if (!cards) return;
+                cards.forEach(c => {
+                    const img = c.images && (c.images.thumbnail || c.images.full);
+                    if (!img) return;
+                    const key = `${parseInt(c.setCode, 10)}-${c.number}`;
+                    if (!this.imgIndex[key]) this.imgIndex[key] = img;
+                    const nk = (c.fullName || '').toLowerCase();
+                    if (nk && !this.imgIndex[nk]) this.imgIndex[nk] = img;
+                });
+                this.render();
+            },
+
+            // =====================================================
+            // Setup
+            // =====================================================
+            brainOptions() {
+                const o = this.strategies.map(s => `<option value="engine:${s.id}">Engine bot — ${this.esc(s.label)}</option>`);
+                o.push('<option value="random">Random legal move</option>');
+                Object.entries(this.REMOTE).forEach(([k, v]) => o.push(`<option value="remote:${k}">${this.esc(v.label)}</option>`));
+                return o.join('');
+            },
+
+            buildSeats() {
+                const el = document.getElementById('seats');
+                el.innerHTML = '';
+                this.SEATS.forEach((seat, i) => {
+                    const d = document.createElement('div');
+                    d.className = 'seat';
+                    d.style.setProperty('--c', seat.color);
+                    d.style.setProperty('--hi', seat.hi);
+                    d.innerHTML = `<div class="who">${seat.name}</div>
+                        <label>Deck</label>
+                        <select id="deck-${i}">${this.decks.map(dk => `<option value="${dk.id}">${this.esc(dk.name)}</option>`).join('')}<option value="paste">Paste a deck list…</option></select>
+                        <textarea id="paste-${i}" rows="6" style="display:none;margin-top:4px" placeholder="4 Mickey Mouse - Brave Little Tailor&#10;4 Be Prepared&#10;…"></textarea>
+                        <label>Brain</label>
+                        <select id="brain-${i}">${this.brainOptions()}</select>`;
+                    el.appendChild(d);
+                    d.querySelector(`#deck-${i}`).onchange = e => {
+                        d.querySelector(`#paste-${i}`).style.display = e.target.value === 'paste' ? '' : 'none';
+                        this.saveSettings();
+                    };
+                    d.querySelector(`#brain-${i}`).onchange = () => { this.onBrainChange(); this.saveSettings(); };
+                    d.querySelector(`#paste-${i}`).onchange = () => this.saveSettings();
+                });
+                document.getElementById('deck-1').selectedIndex = Math.min(3, this.decks.length - 1);
+                ['baseUrl', 'modelName', 'apiKey', 'rememberKey'].forEach(id => document.getElementById(id).addEventListener('change', () => this.saveSettings()));
+            },
+
+            remoteKind() {
+                for (let i = 0; i < 2; i++) {
+                    const v = document.getElementById(`brain-${i}`).value;
+                    if (v.startsWith('remote:')) return v.split(':')[1];
+                }
+                return null;
+            },
+
+            onBrainChange() {
+                const kind = this.remoteKind();
+                document.getElementById('remoteCfg').style.display = kind ? '' : 'none';
+                if (!kind) return;
+                const saved = this.loadSettings().cfg || {};
+                const def = this.REMOTE[kind];
+                document.getElementById('baseUrl').value = (saved[kind] && saved[kind].base) || def.base;
+                document.getElementById('modelName').value = (saved[kind] && saved[kind].model) || def.model;
+                document.getElementById('remoteHint').textContent = def.hint;
+            },
+
+            loadSettings() {
+                try { return JSON.parse(localStorage.getItem('arena_settings') || '{}'); } catch (e) { return {}; }
+            },
+
+            saveSettings() {
+                const s = this.loadSettings();
+                s.seats = [0, 1].map(i => ({
+                    deck: document.getElementById(`deck-${i}`).value,
+                    paste: document.getElementById(`paste-${i}`).value,
+                    brain: document.getElementById(`brain-${i}`).value
+                }));
+                const kind = this.remoteKind();
+                s.cfg = s.cfg || {};
+                if (kind) s.cfg[kind] = { base: document.getElementById('baseUrl').value.trim(), model: document.getElementById('modelName').value.trim() };
+                if (document.getElementById('rememberKey').checked) s.apiKey = document.getElementById('apiKey').value;
+                else delete s.apiKey;
+                try { localStorage.setItem('arena_settings', JSON.stringify(s)); } catch (e) { }
+            },
+
+            restoreSettings() {
+                const s = this.loadSettings();
+                (s.seats || []).forEach((seat, i) => {
+                    const deck = document.getElementById(`deck-${i}`), brain = document.getElementById(`brain-${i}`);
+                    if ([...deck.options].some(o => o.value === seat.deck)) deck.value = seat.deck;
+                    if ([...brain.options].some(o => o.value === seat.brain)) brain.value = seat.brain;
+                    const paste = document.getElementById(`paste-${i}`);
+                    paste.value = seat.paste || '';
+                    paste.style.display = deck.value === 'paste' ? '' : 'none';
+                });
+                if (s.apiKey) { document.getElementById('apiKey').value = s.apiKey; document.getElementById('rememberKey').checked = true; }
+                this.onBrainChange();
+            },
+
+            randomSeed() { return Math.random().toString(36).slice(2, 8); },
+
+            readSetup() {
+                const seats = [0, 1].map(i => {
+                    const deckSel = document.getElementById(`deck-${i}`).value;
+                    const list = deckSel === 'paste' ? document.getElementById(`paste-${i}`).value : this.decks.find(d => d.id === deckSel).list;
+                    const deckName = deckSel === 'paste' ? 'Pasted deck' : this.decks.find(d => d.id === deckSel).name;
+                    const brainSel = document.getElementById(`brain-${i}`);
+                    return { list, deckName, brain: brainSel.value, brainLabel: brainSel.options[brainSel.selectedIndex].text };
+                });
+                return {
+                    seats,
+                    seed: document.getElementById('seed').value.trim() || this.randomSeed(),
+                    remote: {
+                        base: document.getElementById('baseUrl').value.trim().replace(/\/+$/, ''),
+                        model: document.getElementById('modelName').value.trim() || 'jev-latest',
+                        key: document.getElementById('apiKey').value.trim()
+                    }
+                };
+            },
+
+            newGame(sameSeed) {
+                this.pause();
+                const errEl = document.getElementById('setupErr');
+                errEl.textContent = '';
+                if (!sameSeed) document.getElementById('seed').value = document.getElementById('seed').value.trim() || this.randomSeed();
+                const cfg = this.readSetup();
+                const problems = [];
+                cfg.seats.forEach((s, i) => {
+                    const chk = LorcanaArena.checkDeck(s.list);
+                    if (!chk.count) problems.push(`${this.SEATS[i].name}: no recognisable cards.`);
+                    chk.problems.slice(0, 6).forEach(p => problems.push(`${this.SEATS[i].name}: ${p}`));
+                    if (chk.count && chk.count < 60) problems.push(`${this.SEATS[i].name}: only ${chk.count} cards (playing anyway).`);
+                });
+                if (problems.length) errEl.textContent = problems.join('\n');
+                if (cfg.seats.some(s => !LorcanaArena.checkDeck(s.list).count)) return;
+                if (cfg.seats.some(s => s.brain.startsWith('remote:')) && !cfg.remote.base) { errEl.textContent += '\nSet a base URL for the model endpoint.'; return; }
+                try {
+                    this.game = LorcanaArena.newGame(cfg.seats[0].list, cfg.seats[1].list, cfg.seed);
+                } catch (e) { errEl.textContent += '\n' + e.message; return; }
+                this.config = cfg;
+                this.lastDecision = null;
+                this.saveSettings();
+                ['stepBtn', 'playBtn'].forEach(id => document.getElementById(id).disabled = false);
+                this.setStatus(`Seed ${cfg.seed}`);
+                this.render();
+            },
+
+            rematch() {
+                if (!this.config) { this.newGame(); return; }
+                document.getElementById('seed').value = this.config.seed;
+                this.newGame(true);
+            },
+
+            // =====================================================
+            // Playing
+            // =====================================================
+            async step() {
+                if (!this.game || this.busy) return false;
+                if (this.game.winner()) { this.pause(); this.render(); return false; }
+                this.busy = true;
+                document.getElementById('stepBtn').disabled = true;
+                try {
+                    await this.decideAndApply();
+                } catch (e) {
+                    this.pause();
+                    this.toast(e.message, 7000);
+                }
+                this.busy = false;
+                document.getElementById('stepBtn').disabled = false;
+                return true;
+            },
+
+            async decideAndApply() {
+                const g = this.game;
+                const opts = g.options();
+                const actor = opts.actor;
+                if (!actor) { g.applyEngine('deck-aware-lore-race'); return; }
+                const seatIdx = actor === 'player_one' ? 0 : 1;
+                const seat = this.config.seats[seatIdx];
+                const d = { actor, seatIdx, brain: seat.brainLabel, options: opts.list, turn: g.server.getTurnNumber() };
+
+                if (seat.brain.startsWith('engine:')) {
+                    const id = seat.brain.slice(7);
+                    // The ranking is display-only, so skip it when running at Instant speed.
+                    if (!this.fastMode()) {
+                        const ranking = g.engineRanking(id);
+                        d.ranks = {};
+                        opts.list.forEach(o => {
+                            const r = o.candidate ? ranking.indexOf(JSON.stringify(o.candidate)) : -1;
+                            d.ranks[o.key] = r >= 0 ? r + 1 : null;
+                        });
+                    }
+                    const res = g.applyEngine(id, opts.list);
+                    d.pick = res.key || null;
+                    d.executed = res.executed;
+                } else if (seat.brain === 'random') {
+                    const real = opts.list.filter(o => o.family !== 'pass');
+                    const pool = real.length ? real : opts.list;
+                    const pick = pool[Math.floor(Math.random() * pool.length)];
+                    d.probs = {};
+                    opts.list.forEach(o => { d.probs[o.key] = pool.includes(o) ? 1 / pool.length : 0; });
+                    d.pick = pick.key;
+                    d.executed = g.apply(pick, 'random').executed;
+                } else {
+                    let pickKey, t0 = performance.now();
+                    if (opts.list.length === 1) {
+                        pickKey = opts.list[0].key;
+                        d.probs = { [pickKey]: 1 };
+                        d.note = 'Only one legal option — no model call needed.';
+                    } else {
+                        const r = await this.askModel(actor, opts.list);
+                        d.probs = r.probs;
+                        d.confidence = r.confidence;
+                        d.tokens = r.tokens;
+                        pickKey = r.pick;
+                    }
+                    d.ms = Math.round(performance.now() - t0);
+                    const pick = opts.list.find(o => o.key === pickKey) || opts.list[0];
+                    d.pick = pick.key;
+                    const res = g.apply(pick, 'model');
+                    d.executed = res.executed;
+                    if (!res.ok) d.note = 'The engine could not play that option exactly, so it substituted the move shown.';
+                }
+                this.lastDecision = d;
+                // At Instant speed, redraw every 10 moves instead of after each one.
+                this.stepCount = (this.stepCount || 0) + 1;
+                if (!this.fastMode() || this.stepCount % 10 === 0) this.render();
+            },
+
+            fastMode() {
+                return this.playing && document.getElementById('speed').value === '0';
+            },
+
+            async askModel(actor, list) {
+                const r = this.config.remote;
+                const state = this.game.stateText(actor);
+                document.getElementById('stateText').textContent = state;
+                const criteria = {};
+                list.forEach(o => { criteria[o.key] = o.detail ? `${o.text}. ${o.detail}` : o.text; });
+                const body = {
+                    model: r.model,
+                    state,
+                    questions: {
+                        move: {
+                            type: 'choice',
+                            instructions: 'You are an expert Disney Lorcana player. Choose the single best option to take next. Weigh the lore race, removing threats, protecting your characters, and using your ink efficiently.',
+                            criteria
+                        }
+                    }
+                };
+                let res;
+                try {
+                    res = await fetch(`${r.base}/v1/systemone`, {
+                        method: 'POST',
+                        headers: Object.assign({ 'Content-Type': 'application/json' }, r.key ? { Authorization: `Bearer ${r.key}` } : {}),
+                        body: JSON.stringify(body)
+                    });
+                } catch (e) {
+                    throw new Error(`Could not reach ${r.base} (${e.message}). Is the server running, and does it allow browser (CORS) requests?`);
+                }
+                const text = await res.text();
+                if (!res.ok) throw new Error(`Model server replied ${res.status}: ${text.slice(0, 200)}`);
+                const data = JSON.parse(text);
+                const ans = data.answers && data.answers.move;
+                if (!ans || !ans.probabilities) throw new Error('Model reply had no move probabilities.');
+                const probs = {};
+                list.forEach(o => { probs[o.key] = ans.probabilities[o.key] || 0; });
+                const ranked = Object.entries(probs).sort((a, b) => b[1] - a[1]);
+                return {
+                    probs,
+                    pick: ans.choice && probs[ans.choice] !== undefined ? ans.choice : ranked[0][0],
+                    confidence: ans.confidence !== undefined ? ans.confidence : ranked[0][1] - (ranked[1] ? ranked[1][1] : 0),
+                    tokens: data.usage ? data.usage.input_tokens : null
+                };
+            },
+
+            async togglePlay() {
+                if (this.playing) { this.pause(); return; }
+                this.playing = true;
+                document.getElementById('playBtn').textContent = '⏸ Pause';
+                while (this.playing && this.game && !this.game.winner()) {
+                    const delay = parseInt(document.getElementById('speed').value, 10);
+                    const ok = await this.step();
+                    if (!ok) break;
+                    // "Instant" still yields to the browser so the page stays responsive.
+                    await new Promise(r => setTimeout(r, delay));
+                }
+                this.pause();
+            },
+
+            pause() {
+                const wasFast = this.fastMode();
+                this.playing = false;
+                document.getElementById('playBtn').textContent = '▶ Play';
+                if (wasFast) this.render();
+            },
+
+            // =====================================================
+            // Rendering
+            // =====================================================
+            render() {
+                if (!this.game) return;
+                const v = this.game.view();
+                this.renderBanner(v);
+                this.renderBoard(v);
+                this.renderDecision();
+                this.renderLog();
+            },
+
+            renderBanner(v) {
+                const el = document.getElementById('banner');
+                if (!v.winner) { el.innerHTML = ''; return; }
+                const idx = v.winner === 'player_one' ? 0 : 1;
+                const seat = this.config.seats[idx];
+                el.innerHTML = `<div class="banner">${this.SEATS[idx].name} wins — ${this.esc(seat.deckName)} (${this.esc(seat.brainLabel)})<br><span style="font-size:13px;font-weight:400">Turn ${v.turn}, ${v.players.player_one.lore}–${v.players.player_two.lore} lore</span></div>`;
+            },
+
+            renderBoard(v) {
+                const el = document.getElementById('board');
+                el.innerHTML = '';
+                const p1 = v.players.player_one, p2 = v.players.player_two;
+                el.appendChild(this.renderHalf(v, 1));
+                const race = document.createElement('div');
+                race.className = 'race';
+                race.innerHTML = `<span style="color:var(--p1-hi);font-weight:700">P1 ${p1.lore}</span>
+                    <div class="track"><div class="fill p1" style="width:${Math.min(50, p1.lore * 2.5)}%"></div><div class="fill p2" style="width:${Math.min(50, p2.lore * 2.5)}%"></div></div>
+                    <span style="color:var(--p2-hi);font-weight:700">${p2.lore} P2</span>`;
+                el.appendChild(race);
+                el.appendChild(this.renderHalf(v, 0));
+            },
+
+            renderHalf(v, idx) {
+                const seat = this.SEATS[idx], cfg = this.config.seats[idx];
+                const p = v.players[seat.id];
+                const half = document.createElement('div');
+                half.className = `half ${seat.css}` + (v.actor === seat.id && !v.winner ? ' acting' : '');
+                half.innerHTML = `<div class="half-head">
+                    <span class="who"></span><span class="brain"></span>
+                    <span class="pill lore">${p.lore} lore</span>
+                    <span class="pill">Ink ${p.inkReady}/${p.inkTotal}</span>
+                    <span class="pill">Deck ${p.deckCount}</span>
+                    <span class="pill">Discard ${p.discard.length}</span>
+                    ${v.turnPlayer === seat.id ? '<span class="pill" style="color:var(--gold)">their turn</span>' : ''}</div>`;
+                half.querySelector('.who').textContent = `${seat.name} — ${cfg.deckName}`;
+                half.querySelector('.brain').textContent = cfg.brainLabel;
+                const zone = (label, cards, hidden) => {
+                    const l = document.createElement('div');
+                    l.className = 'zone-label';
+                    l.textContent = label;
+                    const wrap = document.createElement('div');
+                    wrap.className = 'cards';
+                    if (!cards.length) wrap.innerHTML = '<span class="empty">empty</span>';
+                    cards.forEach(c => wrap.appendChild(this.renderCard(c, hidden)));
+                    half.append(l, wrap);
+                };
+                zone('In play', p.play, false);
+                zone(`Hand (${p.handCount})`, p.hand, !document.getElementById('showHands').checked);
+                return half;
+            },
+
+            renderCard(c, hidden) {
+                const el = document.createElement('div');
+                el.className = 'card' + (hidden ? ' back' : '') + (c.exerted && !hidden ? ' exerted' : '');
+                el.dataset.id = c.id;
+                const face = document.createElement('div');
+                face.className = 'face';
+                if (!hidden) {
+                    el.title = `${c.name}\n${c.type} · cost ${c.cost}` + (c.type === 'character' ? ` · ${c.strength}/${c.willpower} · ${c.lore} lore` : '') + (c.keywords.length ? `\n${c.keywords.join(', ')}` : '');
+                    const fb = document.createElement('div');
+                    fb.className = 'fallback';
+                    fb.textContent = c.name + (c.type === 'character' ? `\n${c.strength} str / ${c.willpower} will\n${c.lore} lore` : '');
+                    face.appendChild(fb);
+                    const src = this.imgIndex[`${parseInt(c.set, 10)}-${c.number}`] || this.imgIndex[(c.name || '').toLowerCase()];
+                    if (src) {
+                        const img = document.createElement('img');
+                        img.loading = 'lazy';
+                        img.alt = c.name;
+                        img.src = src;
+                        img.onerror = () => img.remove();
+                        face.appendChild(img);
+                    }
+                    const badges = document.createElement('div');
+                    badges.className = 'badges';
+                    if (c.damage) badges.innerHTML += `<span class="badge dmg">${c.damage} dmg</span>`;
+                    if (c.drying) badges.innerHTML += '<span class="badge dry">drying</span>';
+                    el.append(face, badges);
+                    const cap = document.createElement('div');
+                    cap.className = 'cap';
+                    cap.textContent = c.name.split(' - ')[0];
+                    el.appendChild(cap);
+                } else {
+                    el.appendChild(face);
+                }
+                return el;
+            },
+
+            renderDecision() {
+                const el = document.getElementById('decision');
+                const d = this.lastDecision;
+                if (!d) { el.innerHTML = '<p class="empty">No decisions yet. Press Step or Play.</p>'; return; }
+                const seat = this.SEATS[d.seatIdx];
+                let html = `<div class="meta"><span style="color:${seat.hi};font-weight:700">${seat.name}</span><span>turn ${d.turn}</span><span>${this.esc(d.brain)}</span>`;
+                if (d.ms !== undefined) html += `<span><b>${d.ms}</b> ms</span>`;
+                if (d.confidence !== undefined) html += `<span>confidence <b>${(d.confidence * 100).toFixed(0)}%</b></span>`;
+                if (d.tokens) html += `<span><b>${d.tokens}</b> tokens</span>`;
+                html += `</div><p style="margin:0 0 8px"><b>Played:</b> ${this.esc(d.executed || '')}</p>`;
+                if (d.note) html += `<p class="hint" style="margin:-4px 0 8px">${this.esc(d.note)}</p>`;
+                el.innerHTML = html;
+                let list = [...d.options];
+                if (d.probs) list.sort((a, b) => (d.probs[b.key] || 0) - (d.probs[a.key] || 0));
+                else if (d.ranks) list.sort((a, b) => (d.ranks[a.key] || 999) - (d.ranks[b.key] || 999));
+                list.slice(0, 30).forEach(o => {
+                    const row = document.createElement('div');
+                    row.className = 'opt' + (o.key === d.pick ? ' pick' : '');
+                    let right = '', bar = '';
+                    if (d.probs) {
+                        const p = d.probs[o.key] || 0;
+                        right = (p * 100).toFixed(p >= 0.1 || p === 0 ? 0 : 1) + '%';
+                        bar = `<span class="bar" style="width:${Math.max(0.5, p * 100)}%"></span>`;
+                    } else if (d.ranks) {
+                        right = d.ranks[o.key] ? '#' + d.ranks[o.key] : '—';
+                    }
+                    row.innerHTML = `<span><span class="tag"></span><span class="t"></span><small></small></span><span class="p">${right}</span>${bar}`;
+                    row.querySelector('.tag').textContent = o.family;
+                    row.querySelector('.t').textContent = o.text;
+                    row.querySelector('small').textContent = o.detail || '';
+                    el.appendChild(row);
+                });
+                if (list.length > 30) el.insertAdjacentHTML('beforeend', `<p class="hint">…and ${list.length - 30} more options.</p>`);
+                if (d.ranks) el.insertAdjacentHTML('beforeend', '<p class="hint">Engine bots rank options instead of giving probabilities.</p>');
+            },
+
+            renderLog() {
+                const el = document.getElementById('log');
+                const h = this.game.history;
+                if (!h.length) { el.innerHTML = '<p class="empty">—</p>'; return; }
+                const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
+                let html = '', lastTurn = null;
+                h.forEach(e => {
+                    if (e.turn !== lastTurn) { html += `<div class="turn">Turn ${e.turn}</div>`; lastTurn = e.turn; }
+                    const idx = e.actor === 'player_one' ? 0 : 1;
+                    html += `<div class="entry" style="--c:${this.SEATS[idx].hi}">${this.esc(e.text)}</div>`;
+                });
+                el.innerHTML = html;
+                if (atBottom || this.playing) el.scrollTop = el.scrollHeight;
+            },
+
+            setStatus(t) { document.getElementById('status').textContent = t; },
+
+            toast(msg, ms = 4000) {
+                const t = document.getElementById('toast');
+                t.textContent = msg;
+                t.style.display = 'block';
+                clearTimeout(this._toastT);
+                this._toastT = setTimeout(() => { t.style.display = 'none'; }, ms);
+            },
+
+            esc(s) { return String(s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch])); }
+        };
+
+        Arena.init();
+    </script>
+</body>
+
+</html>
