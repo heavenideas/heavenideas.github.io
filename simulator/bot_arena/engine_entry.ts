@@ -176,7 +176,7 @@ class ArenaGame {
       case "alterHand":
         return c.cardsToMulligan.length
           ? { text: `Mulligan ${c.cardsToMulligan.length} card(s)`, detail: `Put back: ${c.cardsToMulligan.map(n).join(", ")}` }
-          : { text: "Keep the opening hand", detail: "" };
+          : { text: "Keep the opening hand", detail: this.handSummary(actor) };
       case "putCardIntoInkwell": {
         const k = this.card(c.cardId, b);
         return { text: `Ink ${n(c.cardId)}`, detail: `Cost ${k?.cost} card leaves your hand to become ink.` };
@@ -229,7 +229,7 @@ class ArenaGame {
           text += " " + c.destinations.filter((d: any) => d.cards.length).map((d: any) => `${d.cards.map(n).join(", ")} → ${d.zone}`).join("; ");
         } else if (c.namedCard) text += ` name “${c.namedCard}”`;
         else if (!c.targets?.length) text += c.resolveOptional ? " use it" : " resolve";
-        return { text: text + targets, detail: "" };
+        return { text: c.resolveOptional === false ? text : text + targets, detail: "" };
       }
     }
     return { text: c.family, detail: "" };
@@ -254,11 +254,38 @@ class ArenaGame {
     }));
     if (actor && list.length === 0) list.push(...this.rescueOptions(actor, b));
     if (this.canPass(actor) || (actor && list.length === 0)) {
-      const inkReady = (b.players[actor as Pid]?.inkwell ?? []).filter((id: string) => !b.cards[id]?.exerted).length;
-      list.push({ key: "pass", family: "pass", candidate: null, text: "End turn", detail: `Keep ${inkReady} ink unused.` } as any);
+      list.push({ key: "pass", family: "pass", candidate: null, ...this.describePass(actor as Pid, b, list) } as any);
     }
     this.boardCache = null;
     return { actor, list };
+  }
+
+  handSummary(actor: Pid) {
+    const b = this.boardCache ?? this.server.getBoard();
+    const hand = (b.players[actor]?.hand ?? []).map((id: string) => b.cards[id]).filter(Boolean);
+    if (!hand.length) return "";
+    const inkable = hand.filter((c: any) => c.canBePutInInkwell).length;
+    const costs = hand.map((c: any) => c.playCost).sort((x: number, y: number) => x - y).join(", ");
+    return `Hand: ${hand.map((c: any) => c.fullName).join("; ")}. Costs ${costs}; ${inkable} inkable.`;
+  }
+
+  /**
+   * "End turn" spelled out as what it gives up, worked out from the options still open.
+   * A bare "End turn" reads as a safe default to zero-shot models, so they pick it far too often.
+   */
+  describePass(actor: Pid, b: any, list: any[]) {
+    const inkReady = (b.players[actor]?.inkwell ?? []).filter((id: string) => !b.cards[id]?.exerted).length;
+    const quests = list.filter((o) => o.family === "quest");
+    const questLore = quests.reduce((sum, o) => sum + (b.cards[o.candidate.cardId]?.lore ?? 0), 0);
+    const canInk = list.some((o) => o.family === "putCardIntoInkwell");
+    const plays = list.filter((o) => o.family === "playCard").length;
+    const wasted: string[] = [];
+    if (quests.length) wasted.push(`${quests.length} character(s) that could quest for ${questLore} lore`);
+    if (canInk) wasted.push("your ink drop for this turn");
+    if (plays) wasted.push(`${plays} playable card option(s)`);
+    if (inkReady) wasted.push(`${inkReady} ready ink`);
+    if (!wasted.length) return { text: "End turn", detail: "Nothing useful is left to do this turn." };
+    return { text: "End turn now, doing nothing else", detail: `Gives up: ${wasted.join(", ")}.` };
   }
 
   /**
@@ -325,7 +352,7 @@ class ArenaGame {
     if (!option || option.family === "pass" || forcePass) {
       const r = this.server.passTurn(actor);
       this.history.push({ turn, actor: actor as Pid, text: forcePass ? "End turn (turn ran too long)" : "End turn", brain });
-      return { ok: r?.success !== false, executed: "pass" };
+      return { ok: r?.success !== false, executed: forcePass ? "End turn (turn ran too long)" : "End turn" };
     }
     if (option.rescue) return this.applyRescue(option, brain, actor as Pid, turn);
     const res = this.server.takeAutomatedActionForCurrentActor({
