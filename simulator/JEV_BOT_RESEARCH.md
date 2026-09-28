@@ -142,6 +142,21 @@ Every backend exposes the same `decide(state, questions)` call, so the UI can sw
 
 **Metrics:** move legality (should be 100% by construction), agreement with human moves on held-out replays (top-1 / top-3), win rate against the heuristic bot and between bot levels, cost per game, and latency per decision.
 
+### Phase 0 results: TheCardGoat engine spike (2026-09-28)
+
+Engine: [`TheCardGoat/tcg-engines`](https://github.com/TheCardGoat/tcg-engines) → `submodules/lorcana` (MIT licence, last commit 2026-09-24). The older `TheCardGoat/lorcana-simulator` repo is no longer public.
+
+| Question | Answer |
+|---|---|
+| Installs? | Yes. `pnpm install --frozen-lockfile --ignore-scripts` in `submodules/lorcana` takes about 13 s (Node 22, pnpm 10.33, Bun 1.3). |
+| Plays a full game headless? | Yes. Two built-in bots (`deck-aware-lore-race`) played amber-amethyst vs steel-sapphire: 13 turns, 78 actions, 20-lore win, about 5 s. |
+| Card coverage | Sets 1–12 card definitions, including triggered abilities, songs, shift, locations and "you may" prompts. |
+| Can an outside (async) model choose the moves? | Yes. `server.enumerateAutomatedActionsForCurrentActor()` returns the legal candidates. After awaiting the model's pick, `server.takeAutomatedActionForCurrentActor({ strategy })` with a strategy that moves the chosen candidate to the front executes exactly that move. In the spike, 92/92 picks were executed exactly as chosen, over a 25-turn game covering ink, play, quest, challenge, move-to-location, bag/effect resolution and mulligan. |
+| Gotchas | Candidates are raw (`{ family, cardId: "t000035", … }`), so we must build readable option text by looking up each instance's card definition. "Pass turn" is not a candidate: the engine passes only when nothing else is left, so we need to add our own "end turn" option. The strategy hook `summarizeCandidates` is synchronous, so the model call has to happen *outside* it, as above. |
+| Runs in the browser? | Yes. `bun build --target browser` gives a 7.7 MB bundle (1.8 MB gzipped; must load as `<script type="module">` because it uses top-level await). A full game ran in Chromium in about 8 s with no errors. **So it can stay a static GitHub Pages site with no server.** |
+
+**Decision:** adopt this engine rather than extend `lorcana_game_module.js`. Next: phase 2 (bot-vs-bot spectator page), with the engine bundled into the site and Von/Jev/heuristic plugged in as the decider.
+
 ---
 
 ## 8. Risks and open questions
