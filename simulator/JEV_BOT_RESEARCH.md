@@ -135,7 +135,7 @@ Every backend exposes the same `decide(state, questions)` call, so the UI can sw
 | Phase | Deliverable | Needs full engine? |
 |---|---|---|
 | **0. Engine spike** (1–2 days) | Run TheCardGoat's engine headless in Node. Confirm we can (a) load two decklists, (b) get `legalMoves` as data, (c) serialize and restore state. Decide between adopting that engine and extending `lorcana_game_module.js`. | — |
-| **1. "What would the bot do?" puzzles** | Static page that loads a Dojo bookmark or duels.ink replay position, generates candidate moves (engine or a hand-written list), asks Jev/Von, and shows the probability bars. For replay positions it also shows **what the human actually did**. This is a great visual demo, and it's our evaluation set. | No |
+| **1. "What would the bot do?" puzzles** — _first version built: [`what_would_the_bot_do.html`](what_would_the_bot_do.html)_ | Static page that loads a Dojo bookmark or duels.ink replay position, generates candidate moves (engine or a hand-written list), asks Jev/Von, and shows the probability bars. For replay positions it also shows **what the human actually did**. This is a great visual demo, and it's our evaluation set. | No |
 | **2. Bot vs bot spectator** | Full games using the engine plus L1, with autoplay, step-through and move-by-move probabilities, rendered in the Dojo look. Baseline: L1 against the existing heuristic `makeAIMove()`. | Yes |
 | **3. Stronger play** | L2 lookahead and L3 planner. Measure win rate over hundreds of self-play games per level. | Yes |
 | **4. Train our own** | Export the replay dataset and fine-tune Von/Laya. Measure match rate with human moves plus win rate against L1/L2. Optionally run it in the browser. | Yes |

@@ -1,0 +1,1387 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>What Would the Bot Do?</title>
+    <style>
+        :root {
+            --bg: #111114;
+            --panel: #1a1a1e;
+            --panel-2: #151518;
+            --border: #2c2c33;
+            --border-soft: #24242a;
+            --text: #d6d6de;
+            --muted: #8b8b98;
+            --top: #3f2e70;
+            --bottom: #a86b32;
+            --accent: #a78bfa;
+            --gold: #f5c542;
+            --good: #34d399;
+            --bad: #f87171;
+            --human: #38bdf8;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--border);
+            background: var(--panel-2);
+            flex-wrap: wrap;
+        }
+
+        header h1 { font-size: 18px; margin: 0; letter-spacing: .2px; }
+        header .version { color: var(--muted); font-size: 12px; }
+        header .status { margin-left: auto; color: var(--muted); font-size: 12px; }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 300px minmax(0, 1fr) 420px;
+            gap: 12px;
+            padding: 12px;
+            align-items: start;
+        }
+
+        @media (max-width: 1250px) {
+            .layout { grid-template-columns: 300px minmax(0, 1fr); }
+            #right { grid-column: 1 / -1; }
+        }
+
+        @media (max-width: 800px) {
+            .layout { grid-template-columns: minmax(0, 1fr); padding: 8px; }
+        }
+
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+
+        .panel h2 {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--muted);
+            margin: 0 0 10px;
+        }
+
+        button, select, input, textarea {
+            font: inherit;
+            color: var(--text);
+            background: #23232a;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 6px 10px;
+        }
+
+        button { cursor: pointer; }
+        button:hover:not(:disabled) { border-color: var(--accent); }
+        button:disabled { opacity: .45; cursor: default; }
+        button.primary { background: #5b3fb0; border-color: #7c5ce0; color: #fff; font-weight: 600; }
+        button.primary:hover:not(:disabled) { background: #6b4fc4; }
+
+        label { display: block; font-size: 12px; color: var(--muted); margin: 8px 0 3px; }
+        label.inline { display: flex; align-items: center; gap: 6px; color: var(--text); font-size: 13px; }
+        input[type=text], input[type=password], select, textarea { width: 100%; }
+        textarea { font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
+
+        .row { display: flex; gap: 6px; flex-wrap: wrap; }
+        .row > button { flex: 1 1 auto; }
+        .hint { font-size: 12px; color: var(--muted); margin: 6px 0 0; }
+        .warn { font-size: 12px; color: #fbbf24; margin: 6px 0 0; }
+
+        /* ---- bookmark list ---- */
+        #bookmarkList { max-height: 320px; overflow-y: auto; margin-top: 8px; }
+        .bm {
+            padding: 6px 8px;
+            border-radius: 6px;
+            border-left: 3px solid var(--c, #555);
+            cursor: pointer;
+            margin-bottom: 4px;
+            background: var(--panel-2);
+        }
+        .bm:hover { background: #202027; }
+        .bm.sel { outline: 1px solid var(--accent); background: #24203a; }
+        .bm .n { font-weight: 600; font-size: 13px; }
+        .bm .s { color: var(--muted); font-size: 11px; }
+
+        /* ---- board ---- */
+        .half {
+            border-radius: 10px;
+            padding: 10px;
+            margin-bottom: 8px;
+            position: relative;
+        }
+        .half.opp { background: linear-gradient(180deg, #2a2046, #1d1830); border: 1px solid var(--top); }
+        .half.bot { background: linear-gradient(0deg, #3a2716, #241a12); border: 1px solid var(--bottom); }
+        .half-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
+        .half-head .who { font-weight: 700; }
+        .pill { font-size: 12px; background: rgba(0, 0, 0, .35); padding: 2px 8px; border-radius: 99px; }
+        .pill.lore { color: var(--gold); font-weight: 700; }
+        .zone-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; margin: 6px 0 3px; }
+        .cards { display: flex; flex-wrap: wrap; gap: 6px; min-height: 30px; }
+        .empty { color: var(--muted); font-size: 12px; font-style: italic; }
+
+        .card {
+            width: 78px;
+            position: relative;
+            border-radius: 6px;
+            transition: transform .2s;
+            cursor: default;
+        }
+        .card .face {
+            width: 78px;
+            height: 109px;
+            border-radius: 6px;
+            background: #2a2a33;
+            overflow: hidden;
+            position: relative;
+            border: 1px solid #000;
+        }
+        .card .face .fallback {
+            position: absolute;
+            inset: 0;
+            padding: 20px 5px 5px;
+            font-size: 10px;
+            white-space: pre-line;
+            line-height: 1.2;
+            color: #ddd;
+        }
+        .card img { width: 100%; height: 100%; object-fit: cover; position: relative; display: block; }
+        .card.exerted .face { transform: rotate(90deg) scale(.72); opacity: .8; }
+        .card .badges { position: absolute; top: 2px; left: 2px; right: 2px; display: flex; gap: 2px; flex-wrap: wrap; z-index: 2; }
+        .badge { font-size: 10px; font-weight: 700; padding: 0 4px; border-radius: 4px; background: rgba(0, 0, 0, .75); }
+        .badge.dmg { background: #b91c1c; color: #fff; }
+        .badge.dry { background: #0e7490; color: #fff; }
+        .badge.ex { background: #6b21a8; color: #fff; }
+        .card .cap { font-size: 10px; color: var(--muted); text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+        .card.hl .face { box-shadow: 0 0 0 3px var(--gold), 0 0 14px var(--gold); }
+
+        .board-tools { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
+
+        /* ---- moves ---- */
+        .move {
+            display: grid;
+            grid-template-columns: 34px 1fr 56px;
+            gap: 8px;
+            align-items: center;
+            padding: 7px 8px;
+            border-radius: 7px;
+            background: var(--panel-2);
+            margin-bottom: 4px;
+            cursor: pointer;
+            border: 1px solid transparent;
+            position: relative;
+        }
+        .move:hover { border-color: #3a3a44; }
+        .move.mine { border-color: var(--good); }
+        .move.botpick { border-color: var(--gold); background: #2a2414; }
+        .move .k { font-family: ui-monospace, monospace; color: var(--muted); font-size: 11px; }
+        .move .t { font-size: 13px; }
+        .move .t small { display: block; color: var(--muted); font-size: 11.5px; }
+        .move .p { text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; }
+        .move .bar { position: absolute; left: 0; bottom: 0; height: 3px; background: var(--accent); border-radius: 0 0 0 7px; transition: width .4s; }
+        .move.botpick .bar { background: var(--gold); }
+        .tag { display: inline-block; font-size: 10px; font-weight: 700; padding: 0 5px; border-radius: 4px; margin-left: 4px; vertical-align: 1px; }
+        .tag.human { background: #0c4a6e; color: #bae6fd; }
+        .tag.you { background: #064e3b; color: #a7f3d0; }
+        .tag.bot { background: #713f12; color: #fde68a; }
+        .tag.kind { background: #2e2e38; color: #c4c4d0; margin: 0 4px 0 0; }
+
+        .verdict { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0; }
+        .stat { background: var(--panel-2); border-radius: 8px; padding: 8px 10px; }
+        .stat .l { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; }
+        .stat .v { font-size: 18px; font-weight: 700; }
+
+        .gauge { height: 10px; border-radius: 99px; background: linear-gradient(90deg, #7c3aed, #3f3f46 50%, #d97706); position: relative; margin: 6px 0 2px; }
+        .gauge .needle { position: absolute; top: -4px; width: 4px; height: 18px; background: #fff; border-radius: 2px; transform: translateX(-2px); transition: left .4s; }
+        .gauge-l { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); }
+
+        #human ul, #turnLog ol { margin: 4px 0 0; padding-left: 18px; }
+        #human li, #turnLog li { margin-bottom: 2px; }
+
+        pre {
+            white-space: pre-wrap;
+            word-break: break-word;
+            background: #0c0c0f;
+            border: 1px solid var(--border-soft);
+            border-radius: 6px;
+            padding: 8px;
+            font-size: 11.5px;
+            max-height: 360px;
+            overflow: auto;
+        }
+
+        details summary { cursor: pointer; color: var(--muted); font-size: 12px; margin: 6px 0; }
+
+        #loading {
+            position: fixed;
+            inset: 0;
+            background: rgba(10, 10, 12, .92);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 50;
+            font-size: 15px;
+        }
+        #loading.hidden { display: none; }
+        .spinner { width: 32px; height: 32px; border: 3px solid #333; border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        #toast {
+            position: fixed;
+            bottom: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #27272f;
+            border: 1px solid var(--border);
+            padding: 8px 14px;
+            border-radius: 8px;
+            display: none;
+            z-index: 60;
+            max-width: 90vw;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="loading">
+        <div class="spinner"></div>
+        <div id="loadingText">Loading card database…</div>
+    </div>
+    <div id="toast"></div>
+
+    <header>
+        <h1>What Would the Bot Do?</h1>
+        <span class="version">v0.1.0</span>
+        <span class="status" id="dbStatus"></span>
+    </header>
+
+    <div class="layout">
+        <!-- ================= LEFT: position + brain ================= -->
+        <aside id="left">
+            <div class="panel">
+                <h2>1 · Pick a position</h2>
+                <div class="row">
+                    <button onclick="WW.loadExample(1)">Example session 1</button>
+                    <button onclick="WW.loadExample(2)">Example session 2</button>
+                </div>
+                <div class="row" style="margin-top:6px">
+                    <button onclick="WW.loadDojoLocal()" title="Uses the session the Practice Dojo autosaved in this browser">My Dojo session</button>
+                    <button onclick="document.getElementById('fileIn').click()">Upload session…</button>
+                </div>
+                <input type="file" id="fileIn" accept=".json,application/json" style="display:none" onchange="WW.loadFile(this)">
+                <p class="hint" id="sessionInfo">Load a Practice Dojo session (duels.ink replays imported into the Dojo work too), then choose a bookmark.</p>
+                <div id="bookmarkList"></div>
+                <details>
+                    <summary>…or paste a single state JSON</summary>
+                    <textarea id="pasteState" rows="4" placeholder='{"turn":3,"activePlayer":0,"players":[...]}'></textarea>
+                    <button style="margin-top:4px" onclick="WW.loadPasted()">Load state</button>
+                </details>
+            </div>
+
+            <div class="panel">
+                <h2>2 · Bot brain</h2>
+                <label for="backend">Decision model</label>
+                <select id="backend" onchange="WW.onBackendChange()">
+                    <option value="heuristic">Heuristic baseline (offline, free)</option>
+                    <option value="jev">TypeSafe Jev (hosted, needs API key)</option>
+                    <option value="von">Von / Laya local server (free)</option>
+                    <option value="custom">Custom /v1/systemone endpoint</option>
+                </select>
+                <div id="remoteCfg" style="display:none">
+                    <label for="baseUrl">Base URL (POST {base}/v1/systemone)</label>
+                    <input type="text" id="baseUrl">
+                    <label for="modelName">Model</label>
+                    <input type="text" id="modelName">
+                    <label for="apiKey">API key (Bearer)</label>
+                    <input type="password" id="apiKey" placeholder="optional for local servers" autocomplete="off">
+                    <label class="inline" style="margin-top:6px"><input type="checkbox" id="rememberKey"> Remember key in this browser</label>
+                    <p class="hint" id="backendHint"></p>
+                </div>
+                <label for="detail">State detail sent to the model</label>
+                <select id="detail" onchange="WW.refresh()">
+                    <option value="compact">Compact — names, stats, keywords (fits 512-token models)</option>
+                    <option value="full">Full — also ability text</option>
+                </select>
+                <label class="inline" style="margin-top:8px"><input type="checkbox" id="askEval" checked> Also ask “who is winning?” (Score)</label>
+                <label class="inline"><input type="checkbox" id="shuffleTwice"> Ask twice in shuffled order &amp; average (reduces option-order bias)</label>
+            </div>
+        </aside>
+
+        <!-- ================= CENTER: board ================= -->
+        <section id="center">
+            <div class="panel">
+                <div class="board-tools">
+                    <h2 style="margin:0">Board</h2>
+                    <label class="inline"><input type="checkbox" id="inkedThisTurn" onchange="WW.refresh()"> Bot already inked this turn</label>
+                    <button onclick="WW.readyBot()" title="Ready and dry the bot's cards and ink, like the start of its turn">Start-of-turn ready</button>
+                    <button onclick="WW.resetPosition()" id="resetBtn" disabled>Reset position</button>
+                </div>
+                <div id="board"><p class="empty">No position loaded yet. Pick a session and a bookmark on the left.</p></div>
+            </div>
+        </section>
+
+        <!-- ================= RIGHT: moves + verdict ================= -->
+        <section id="right">
+            <div class="panel">
+                <h2>3 · Candidate moves</h2>
+                <p class="hint" style="margin-top:-4px">Click a move to lock in <b>your</b> pick first, then ask the bot.</p>
+                <div class="row" style="margin:8px 0">
+                    <button class="primary" id="askBtn" onclick="WW.ask()" disabled>Ask the bot</button>
+                    <button id="applyBtn" onclick="WW.applyBotPick()" disabled title="Apply the bot's pick to the board and list the next moves">Play its move</button>
+                    <button id="turnBtn" onclick="WW.playTurn()" disabled title="Keep asking and applying until the bot passes">Play out the turn</button>
+                </div>
+                <div id="verdict"></div>
+                <div id="moves"></div>
+            </div>
+
+            <div class="panel" id="human" style="display:none"></div>
+
+            <div class="panel" id="turnLog" style="display:none"></div>
+
+            <div class="panel">
+                <h2>Under the hood</h2>
+                <details>
+                    <summary>State text the model reads (<span id="tokEst">0</span> tokens est.)</summary>
+                    <pre id="stateText"></pre>
+                </details>
+                <details>
+                    <summary>Last request JSON</summary>
+                    <pre id="reqJson">—</pre>
+                    <button onclick="WW.copyCurl()">Copy as curl</button>
+                </details>
+                <details>
+                    <summary>Last response JSON</summary>
+                    <pre id="resJson">—</pre>
+                </details>
+                <p class="hint">The rules here are a light engine: printed stats and keywords (Evasive, Bodyguard, Challenger, Resist, Rush, Reckless, Shift, Singer, Ward). Other card text is shown to the model but not simulated.</p>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        const WW = {
+            VERSION: 'v0.1.0',
+            CARD_DB_URLS: [
+                'https://cdn.jsdelivr.net/gh/heavenideas/similcana@main/database/allCards.json',
+                'https://raw.githubusercontent.com/heavenideas/similcana/refs/heads/main/database/allCards.json'
+            ],
+            EXAMPLES: {
+                1: '../practice_dojo/multiverse_examples/multiverse_session_example_01.json',
+                2: '../practice_dojo/multiverse_examples/multiverse_session_example_02.json'
+            },
+            BACKENDS: {
+                jev: { base: 'https://api.typesafe.ai', model: 'jev-latest', hint: 'Keys come from console.typesafe.ai (new signups were paused in late Sep 2026). If the browser blocks the call (CORS), put a small proxy in front of it.' },
+                von: { base: 'http://localhost:8000', model: 'von-latest', hint: 'pip install von-sdk, then run: von serve --port 8000. Any Jev-compatible local server (e.g. a Laya REST server) works too. Chrome may ask to allow access to devices on your local network the first time.' },
+                custom: { base: '', model: 'jev-latest', hint: 'Any server that implements POST /v1/systemone with the Jev request/response format.' }
+            },
+
+            cardDB: {},
+            bookmarks: [],
+            original: null,   // state as loaded (for reset / human diff)
+            state: null,      // working state (mutated by "play its move")
+            selectedBm: null,
+            moves: [],
+            result: null,     // { probs: {key: p}, pick, confidence, evalScore, ms, usage }
+            myPick: null,
+            botSteps: [],
+            lastRequest: null,
+            busy: false,
+
+            // =====================================================
+            // Boot
+            // =====================================================
+            async init() {
+                this.restoreSettings();
+                try {
+                    const cards = await this.loadCardDB();
+                    cards.forEach(c => { this.cardDB[c.id] = c; });
+                    document.getElementById('dbStatus').textContent = `${cards.length} cards loaded`;
+                } catch (e) {
+                    document.getElementById('loadingText').textContent = 'Could not load the card database: ' + e.message;
+                    return;
+                }
+                document.getElementById('loading').classList.add('hidden');
+            },
+
+            async loadCardDB() {
+                // Reuse the copy the Practice Dojo caches in IndexedDB (same origin) when present.
+                try {
+                    const text = await new Promise((resolve) => {
+                        const req = indexedDB.open('lorcana_dojo_cache', 1);
+                        req.onupgradeneeded = () => {
+                            if (!req.result.objectStoreNames.contains('kv')) req.result.createObjectStore('kv');
+                        };
+                        req.onerror = () => resolve(null);
+                        req.onsuccess = () => {
+                            try {
+                                const get = req.result.transaction('kv', 'readonly').objectStore('kv').get('allCardsText');
+                                get.onsuccess = () => resolve(get.result || null);
+                                get.onerror = () => resolve(null);
+                            } catch (e) { resolve(null); }
+                        };
+                    });
+                    if (text) return JSON.parse(text).cards;
+                } catch (e) { /* fall through to network */ }
+
+                let lastErr;
+                for (const url of this.CARD_DB_URLS) {
+                    try {
+                        const res = await fetch(url);
+                        if (!res.ok) throw new Error('HTTP ' + res.status);
+                        return (await res.json()).cards;
+                    } catch (e) { lastErr = e; }
+                }
+                throw lastErr;
+            },
+
+            // =====================================================
+            // Settings (backend config, remembered per browser)
+            // =====================================================
+            restoreSettings() {
+                let s = {};
+                try { s = JSON.parse(localStorage.getItem('wwbd_settings') || '{}'); } catch (e) { }
+                if (s.backend) document.getElementById('backend').value = s.backend;
+                if (s.detail) document.getElementById('detail').value = s.detail;
+                if (s.askEval !== undefined) document.getElementById('askEval').checked = s.askEval;
+                if (s.shuffleTwice !== undefined) document.getElementById('shuffleTwice').checked = s.shuffleTwice;
+                this.onBackendChange(s);
+                if (s.apiKey) {
+                    document.getElementById('apiKey').value = s.apiKey;
+                    document.getElementById('rememberKey').checked = true;
+                }
+                ['baseUrl', 'modelName', 'apiKey', 'rememberKey', 'askEval', 'shuffleTwice', 'detail']
+                    .forEach(id => document.getElementById(id).addEventListener('change', () => this.saveSettings()));
+            },
+
+            saveSettings() {
+                const backend = document.getElementById('backend').value;
+                let s = {};
+                try { s = JSON.parse(localStorage.getItem('wwbd_settings') || '{}'); } catch (e) { }
+                s.backend = backend;
+                s.detail = document.getElementById('detail').value;
+                s.askEval = document.getElementById('askEval').checked;
+                s.shuffleTwice = document.getElementById('shuffleTwice').checked;
+                s.cfg = s.cfg || {};
+                if (backend !== 'heuristic') {
+                    s.cfg[backend] = {
+                        base: document.getElementById('baseUrl').value.trim(),
+                        model: document.getElementById('modelName').value.trim()
+                    };
+                }
+                if (document.getElementById('rememberKey').checked) s.apiKey = document.getElementById('apiKey').value;
+                else delete s.apiKey;
+                try { localStorage.setItem('wwbd_settings', JSON.stringify(s)); } catch (e) { }
+            },
+
+            onBackendChange(saved) {
+                const backend = document.getElementById('backend').value;
+                const remote = backend !== 'heuristic';
+                document.getElementById('remoteCfg').style.display = remote ? '' : 'none';
+                if (remote) {
+                    let s = saved && saved.cfg ? saved : {};
+                    if (!saved || !saved.cfg) { try { s = JSON.parse(localStorage.getItem('wwbd_settings') || '{}'); } catch (e) { } }
+                    const def = this.BACKENDS[backend];
+                    const cfg = (s.cfg && s.cfg[backend]) || {};
+                    document.getElementById('baseUrl').value = cfg.base || def.base;
+                    document.getElementById('modelName').value = cfg.model || def.model;
+                    document.getElementById('backendHint').textContent = def.hint;
+                }
+                if (!saved) this.saveSettings();
+            },
+
+            // =====================================================
+            // Loading sessions / positions
+            // =====================================================
+            async loadExample(n) {
+                try {
+                    const res = await fetch(this.EXAMPLES[n]);
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
+                    this.useSession(await res.json(), `Example session ${n}`);
+                } catch (e) { this.toast('Could not load example: ' + e.message); }
+            },
+
+            loadDojoLocal() {
+                let raw = null;
+                try { raw = localStorage.getItem('lorcana_dojo_session'); } catch (e) { }
+                if (!raw) { this.toast('No Practice Dojo session found in this browser. Open the Dojo and play or import a game first.'); return; }
+                try { this.useSession(JSON.parse(raw), 'Your Dojo session'); }
+                catch (e) { this.toast('Dojo session could not be read: ' + e.message); }
+            },
+
+            loadFile(input) {
+                const f = input.files[0];
+                if (!f) return;
+                const reader = new FileReader();
+                reader.onload = () => {
+                    try { this.useSession(JSON.parse(reader.result), f.name); }
+                    catch (e) { this.toast('Not a valid JSON file: ' + e.message); }
+                };
+                reader.readAsText(f);
+                input.value = '';
+            },
+
+            loadPasted() {
+                try {
+                    const obj = JSON.parse(document.getElementById('pasteState').value);
+                    if (obj.bookmarks) { this.useSession(obj, 'Pasted session'); return; }
+                    this.bookmarks = [];
+                    this.renderBookmarks();
+                    document.getElementById('sessionInfo').textContent = 'Pasted state loaded.';
+                    this.setPosition(this.normalizeState(obj), null);
+                } catch (e) { this.toast('Could not read that state: ' + e.message); }
+            },
+
+            useSession(session, label) {
+                const list = (session.bookmarks || []).filter(b => b.state && !b.isDeckEdit);
+                this.bookmarks = list;
+                document.getElementById('sessionInfo').textContent =
+                    `${label}: ${list.length} bookmark${list.length === 1 ? '' : 's'}. The bot plays as whoever's turn it is.`;
+                this.renderBookmarks();
+                if (list.length) this.selectBookmark(list[0].id);
+                else if (session.currentState) this.setPosition(this.normalizeState(session.currentState), null);
+            },
+
+            renderBookmarks() {
+                const el = document.getElementById('bookmarkList');
+                el.innerHTML = '';
+                this.bookmarks.forEach(b => {
+                    const d = document.createElement('div');
+                    d.className = 'bm' + (this.selectedBm === b.id ? ' sel' : '');
+                    d.style.setProperty('--c', b.color || '#555');
+                    d.innerHTML = `<div class="n"></div><div class="s"></div>`;
+                    d.querySelector('.n').textContent = b.name || '(unnamed)';
+                    d.querySelector('.s').textContent = b.stats || '';
+                    d.onclick = () => this.selectBookmark(b.id);
+                    el.appendChild(d);
+                });
+            },
+
+            selectBookmark(id) {
+                const b = this.bookmarks.find(x => x.id === id);
+                if (!b) return;
+                this.selectedBm = id;
+                this.renderBookmarks();
+                let st;
+                try { st = typeof b.state === 'string' ? JSON.parse(b.state) : b.state; }
+                catch (e) { this.toast('Bookmark state is corrupted.'); return; }
+                this.setPosition(this.normalizeState(st), b);
+            },
+
+            // Accept both the Dojo's compressed card form and the full one.
+            normalizeState(s) {
+                const card = c => ({
+                    instanceId: c.instanceId,
+                    cardId: c.cardId,
+                    exerted: !!c.exerted,
+                    damage: c.damage || 0,
+                    faceUp: !!c.faceUp,
+                    locationId: c.locationId || null,
+                    drying: !!c.drying,
+                    stackedCards: (c.stackedCards || []).map(card)
+                });
+                return {
+                    turn: s.turn || 1,
+                    activePlayer: s.activePlayer || 0,
+                    players: s.players.map(p => ({
+                        id: p.id,
+                        name: p.name || `Player ${p.id + 1}`,
+                        lore: p.lore || 0,
+                        inkTotal: p.inkTotal || (p.inkwell || []).length,
+                        inkReady: p.inkReady !== undefined ? p.inkReady : (p.inkwell || []).length,
+                        deck: (p.deck || []).map(card),
+                        hand: (p.hand || []).map(card),
+                        field: (p.field || []).map(card),
+                        inkwell: (p.inkwell || []).map(card),
+                        discard: (p.discard || []).map(card)
+                    }))
+                };
+            },
+
+            setPosition(st, bookmark) {
+                this.original = JSON.parse(JSON.stringify(st));
+                this.state = st;
+                this.bm = bookmark;
+                this.botSteps = [];
+                document.getElementById('inkedThisTurn').checked = false;
+                document.getElementById('resetBtn').disabled = false;
+                this.renderHuman();
+                this.refresh();
+            },
+
+            resetPosition() {
+                if (!this.original) return;
+                this.state = JSON.parse(JSON.stringify(this.original));
+                this.botSteps = [];
+                document.getElementById('inkedThisTurn').checked = false;
+                this.refresh();
+            },
+
+            readyBot() {
+                if (!this.state) return;
+                const me = this.me();
+                me.field.forEach(c => { c.exerted = false; c.drying = false; });
+                me.inkwell.forEach(c => { c.exerted = false; });
+                me.inkReady = me.inkTotal;
+                document.getElementById('inkedThisTurn').checked = false;
+                this.refresh();
+            },
+
+            // =====================================================
+            // Card helpers (light rules engine)
+            // =====================================================
+            db(inst) { return this.cardDB[inst.cardId] || null; },
+            nameOf(inst) { const c = this.db(inst); return c ? c.fullName : `Unknown card #${inst.cardId}`; },
+            shortName(inst) { const c = this.db(inst); return c ? c.name : `#${inst.cardId}`; },
+            me() { return this.state.players[this.state.activePlayer]; },
+            opp() { return this.state.players[1 - this.state.activePlayer]; },
+
+            kw(inst, name) {
+                const c = this.db(inst);
+                if (!c || !c.abilities) return null;
+                const a = c.abilities.find(x => x.type === 'keyword' && x.keyword === name);
+                if (!a) return null;
+                return a.keywordValueNumber !== undefined ? a.keywordValueNumber : true;
+            },
+            has(inst, name) { return this.kw(inst, name) !== null; },
+            str(inst) { const c = this.db(inst); return (c && c.strength) || 0; },
+            wp(inst) { const c = this.db(inst); return (c && c.willpower) || 0; },
+            lore(inst) { const c = this.db(inst); return (c && c.lore) || 0; },
+            cost(inst) { const c = this.db(inst); return (c && c.cost) || 0; },
+            type(inst) { const c = this.db(inst); return c ? c.type : 'Unknown'; },
+            isSong(inst) { const c = this.db(inst); return !!(c && (c.subtypes || []).includes('Song')); },
+            isChar(inst) { return this.type(inst) === 'Character'; },
+
+            keywordList(inst) {
+                const c = this.db(inst);
+                if (!c || !c.abilities) return [];
+                return c.abilities.filter(a => a.type === 'keyword')
+                    .map(a => a.keyword + (a.keywordValue && !/^:/.test(a.keywordValue) ? ' ' + a.keywordValue.split(' ')[0] : ''));
+            },
+
+            statLine(inst) {
+                const c = this.db(inst);
+                if (!c) return '';
+                if (c.type === 'Character') return `${c.strength} str / ${c.willpower} will / ${c.lore} lore`;
+                if (c.type === 'Location') return `${c.willpower} will / ${c.lore} lore / move ${c.moveCost}`;
+                return '';
+            },
+
+            // Keywords are one thing; named abilities are summarised for the "full" state view.
+            abilityText(inst, max = 160) {
+                const c = this.db(inst);
+                if (!c) return '';
+                let parts = [];
+                (c.abilities || []).filter(a => a.type !== 'keyword').forEach(a => parts.push(`${a.name ? a.name + ': ' : ''}${a.effect || a.fullText}`));
+                (c.effects || []).forEach(e => parts.push(e));
+                // Song reminder text ("… can ⟳ to sing this song for free") is rules help, not an effect.
+                parts = parts.filter(p => !/to sing this\s+song for free/i.test(p));
+                let t = parts.join(' | ').replace(/\s+/g, ' ').trim();
+                if (t.length > max) t = t.slice(0, max - 1) + '…';
+                return t;
+            },
+
+            // =====================================================
+            // Move generation (engine-computed consequences in every option)
+            // =====================================================
+            generateMoves() {
+                const st = this.state, me = this.me(), op = this.opp();
+                const inked = document.getElementById('inkedThisTurn').checked;
+                const ink = me.inkReady;
+                const moves = [];
+                const add = m => moves.push(m);
+                const ready = c => !c.exerted;
+                const dry = c => !c.drying;
+
+                // --- Ink
+                if (!inked) {
+                    me.hand.forEach(c => {
+                        const d = this.db(c);
+                        if (d && d.inkwell) add({ kind: 'ink', src: c.instanceId, text: `Ink ${this.nameOf(c)}`, sub: `Ink ${me.inkTotal} → ${me.inkTotal + 1}; ${this.nameOf(c)} (cost ${d.cost}) leaves your hand.` });
+                    });
+                }
+
+                // --- Play / Shift / Sing
+                me.hand.forEach(c => {
+                    const d = this.db(c);
+                    if (!d) return;
+                    const t = d.type;
+                    if (d.cost <= ink) {
+                        let sub = `Pay ${d.cost} ink (${ink - d.cost} left).`;
+                        if (t === 'Character') sub += ` ${this.statLine(c)}. Can't quest or challenge this turn${this.has(c, 'Rush') ? ' — except Rush lets it challenge' : ''}.`;
+                        if (t === 'Action') sub += ` Effect: ${this.abilityText(c, 140)}`;
+                        if (t === 'Item' || t === 'Location') { const a = this.abilityText(c, 110); if (a) sub += ` ${a}`; }
+                        add({ kind: 'play', src: c.instanceId, text: `Play ${this.nameOf(c)} (${t}, ${d.cost} ink)`, sub });
+                    }
+                    const shift = this.kw(c, 'Shift');
+                    if (typeof shift === 'number' && shift <= ink) {
+                        me.field.filter(f => this.isChar(f) && this.shortName(f) === d.name).forEach(base => {
+                            add({
+                                kind: 'shift', src: c.instanceId, dst: base.instanceId,
+                                text: `Shift ${this.nameOf(c)} onto ${this.nameOf(base)} (${shift} ink)`,
+                                sub: `Pay ${shift} ink (${ink - shift} left). Becomes ${this.statLine(c)}, keeps ${base.exerted ? 'exerted' : 'ready'} state and ${base.damage} damage; ${base.drying ? 'still drying' : 'can quest/challenge right away'}.`
+                            });
+                        });
+                    }
+                    if (this.isSong(c)) {
+                        me.field.filter(f => this.isChar(f) && ready(f) && dry(f)).forEach(s => {
+                            const singCost = typeof this.kw(s, 'Singer') === 'number' ? this.kw(s, 'Singer') : this.cost(s);
+                            if (singCost >= d.cost) add({
+                                kind: 'sing', src: c.instanceId, dst: s.instanceId,
+                                text: `Sing ${this.nameOf(c)} with ${this.nameOf(s)} (free)`,
+                                sub: `Exerts ${this.shortName(s)} (gives up its ${this.lore(s)} lore quest). Effect: ${this.abilityText(c, 130)}`
+                            });
+                        });
+                    }
+                });
+
+                // --- Quest
+                me.field.filter(c => this.isChar(c) && ready(c) && dry(c) && this.lore(c) > 0 && !this.has(c, 'Reckless')).forEach(c => {
+                    const after = me.lore + this.lore(c);
+                    add({ kind: 'quest', src: c.instanceId, text: `Quest with ${this.nameOf(c)} (+${this.lore(c)} lore)`, sub: `Lore ${me.lore} → ${after}${after >= 20 ? ' — WINS THE GAME' : ` (${20 - after} to win)`}. It stays exerted and can be challenged on the opponent's turn.` });
+                });
+
+                // --- Challenge (characters & locations)
+                const exertedOpp = op.field.filter(c => this.isChar(c) && c.exerted);
+                const bodyguards = exertedOpp.filter(c => this.has(c, 'Bodyguard'));
+                me.field.filter(c => this.isChar(c) && ready(c) && (dry(c) || this.has(c, 'Rush')) && this.str(c) > 0).forEach(a => {
+                    const targets = [];
+                    exertedOpp.forEach(t => {
+                        if (this.has(t, 'Evasive') && !this.has(a, 'Evasive') && !this.has(a, 'Alert')) return;
+                        if (bodyguards.length && !this.has(t, 'Bodyguard')) return;
+                        targets.push(t);
+                    });
+                    op.field.filter(l => this.type(l) === 'Location').forEach(l => targets.push(l));
+                    targets.forEach(t => add(this.challengeMove(a, t)));
+                });
+
+                // --- Move a character to a location
+                me.field.filter(l => this.type(l) === 'Location').forEach(l => {
+                    const mc = (this.db(l) || {}).moveCost || 0;
+                    if (mc > ink) return;
+                    me.field.filter(c => this.isChar(c) && c.locationId !== l.instanceId).forEach(c => {
+                        add({ kind: 'move', src: c.instanceId, dst: l.instanceId, text: `Move ${this.nameOf(c)} to ${this.nameOf(l)} (${mc} ink)`, sub: `Pay ${mc} ink (${ink - mc} left). ${this.abilityText(l, 110)}` });
+                    });
+                });
+
+                // --- Activated abilities (items & characters)
+                me.field.forEach(c => {
+                    const d = this.db(c);
+                    if (!d) return;
+                    (d.abilities || []).filter(a => a.type === 'activated').forEach((a, i) => {
+                        const costs = (a.costs || []).join(' ');
+                        const needExert = /⟳/.test(costs);
+                        const inkCost = (costs.match(/(\d+)\s*⬡/) || [0, 0])[1] * 1;
+                        if (needExert && c.exerted) return;
+                        if (needExert && this.isChar(c) && c.drying) return;
+                        if (inkCost > ink) return;
+                        add({
+                            kind: 'activate', src: c.instanceId, idx: i, exert: needExert, ink: inkCost,
+                            text: `Use ${this.shortName(c)}: ${a.name || 'ability'}${(a.costsText || costs) ? ` (${a.costsText || costs})` : ''}`,
+                            sub: `${a.effect || a.fullText}`.replace(/\s+/g, ' ')
+                        });
+                    });
+                });
+
+                // --- Pass
+                add({ kind: 'pass', text: 'End turn', sub: `Keep ${ink} ink unused and ${me.field.filter(c => this.isChar(c) && ready(c)).length} ready character(s) back as blockers.` });
+
+                // Keys the model sees: short, stable, order-independent.
+                moves.slice(0, 255).forEach((m, i) => { m.key = 'm' + (i + 1); });
+                return moves.slice(0, 255);
+            },
+
+            challengeMove(a, t) {
+                const isLoc = this.type(t) === 'Location';
+                const atk = this.str(a) + (this.kw(a, 'Challenger') || 0);
+                const toDef = Math.max(0, atk - (this.kw(t, 'Resist') || 0));
+                const toAtk = isLoc ? 0 : Math.max(0, this.str(t) - (this.kw(a, 'Resist') || 0));
+                const defDead = t.damage + toDef >= this.wp(t);
+                const atkDead = a.damage + toAtk >= this.wp(a);
+                let sub = `Deals ${toDef} to ${this.shortName(t)} (${t.damage + toDef}/${this.wp(t)})`;
+                sub += defDead ? ' → BANISHED' : ' → survives';
+                if (!isLoc) sub += `; takes ${toAtk} (${a.damage + toAtk}/${this.wp(a)})` + (atkDead ? ' → YOUR CHARACTER IS BANISHED' : ' → survives');
+                if (defDead) sub += isLoc ? ` Removes a location worth ${this.lore(t)} lore per turn.` : ` Removes ${this.lore(t)} lore of questing.`;
+                return {
+                    kind: 'challenge', src: a.instanceId, dst: t.instanceId, toDef, toAtk, defDead, atkDead,
+                    text: `Challenge ${this.nameOf(t)} with ${this.nameOf(a)}`, sub
+                };
+            },
+
+            // =====================================================
+            // Apply a move to the working state
+            // =====================================================
+            applyMove(m) {
+                const me = this.me(), op = this.opp();
+                const take = (zone, id) => { const i = zone.findIndex(c => c.instanceId === id); return i >= 0 ? zone.splice(i, 1)[0] : null; };
+                const find = (zone, id) => zone.find(c => c.instanceId === id);
+                const banish = (p, c) => {
+                    take(p.field, c.instanceId);
+                    p.field.forEach(x => { if (x.locationId === c.instanceId) x.locationId = null; });
+                    const under = c.stackedCards || [];
+                    c.stackedCards = [];
+                    c.damage = 0; c.exerted = false; c.locationId = null;
+                    p.discard.push(c, ...under);
+                };
+                switch (m.kind) {
+                    case 'ink': {
+                        const c = take(me.hand, m.src);
+                        c.faceUp = false;
+                        me.inkwell.push(c);
+                        me.inkTotal++; me.inkReady++;
+                        document.getElementById('inkedThisTurn').checked = true;
+                        break;
+                    }
+                    case 'play': {
+                        const c = take(me.hand, m.src);
+                        me.inkReady -= this.cost(c);
+                        if (this.type(c) === 'Action') me.discard.push(c);
+                        else { c.drying = this.isChar(c); me.field.push(c); }
+                        break;
+                    }
+                    case 'shift': {
+                        const c = take(me.hand, m.src);
+                        const base = find(me.field, m.dst);
+                        me.inkReady -= this.kw(c, 'Shift');
+                        const idx = me.field.indexOf(base);
+                        c.exerted = base.exerted; c.damage = base.damage; c.drying = base.drying; c.locationId = base.locationId;
+                        c.stackedCards = [...(base.stackedCards || []), { ...base, stackedCards: [] }];
+                        me.field.splice(idx, 1, c);
+                        break;
+                    }
+                    case 'sing': {
+                        const c = take(me.hand, m.src);
+                        find(me.field, m.dst).exerted = true;
+                        me.discard.push(c);
+                        break;
+                    }
+                    case 'quest': {
+                        const c = find(me.field, m.src);
+                        c.exerted = true;
+                        me.lore += this.lore(c);
+                        break;
+                    }
+                    case 'challenge': {
+                        const a = find(me.field, m.src), t = find(op.field, m.dst);
+                        a.exerted = true;
+                        a.damage += m.toAtk; t.damage += m.toDef;
+                        if (m.defDead) banish(op, t);
+                        if (m.atkDead) banish(me, a);
+                        break;
+                    }
+                    case 'move': {
+                        const c = find(me.field, m.src);
+                        me.inkReady -= (this.db(find(me.field, m.dst)) || {}).moveCost || 0;
+                        c.locationId = m.dst;
+                        break;
+                    }
+                    case 'activate': {
+                        const c = find(me.field, m.src);
+                        if (m.exert) c.exerted = true;
+                        me.inkReady -= m.ink;
+                        break;
+                    }
+                }
+            },
+
+            // =====================================================
+            // State serialisation — what the model actually reads
+            // =====================================================
+            buildStateText() {
+                const st = this.state, me = this.me(), op = this.opp();
+                const full = document.getElementById('detail').value === 'full';
+                const inked = document.getElementById('inkedThisTurn').checked;
+                const line = (c, zone) => {
+                    const d = this.db(c);
+                    if (!d) return `- Unknown card`;
+                    let s = `- ${d.fullName} [${d.type}, cost ${d.cost}`;
+                    const sl = this.statLine(c);
+                    if (sl) s += `, ${sl}`;
+                    s += ']';
+                    if (zone === 'hand') s += d.inkwell ? ' inkable' : ' not inkable';
+                    if (zone === 'field') {
+                        const flags = [];
+                        if (this.isChar(c) || this.type(c) === 'Item') flags.push(c.exerted ? 'exerted' : 'ready');
+                        if (c.drying) flags.push('just played');
+                        if (c.damage) flags.push(`${c.damage} damage`);
+                        if (c.locationId) { const l = [...me.field, ...op.field].find(x => x.instanceId === c.locationId); if (l) flags.push(`at ${this.shortName(l)}`); }
+                        if (flags.length) s += ' ' + flags.join(', ');
+                    }
+                    const kws = this.keywordList(c);
+                    if (kws.length) s += ` {${kws.join(', ')}}`;
+                    if (full) { const a = this.abilityText(c); if (a) s += ` — ${a}`; }
+                    return s;
+                };
+                const list = (arr, zone) => arr.length ? arr.map(c => line(c, zone)).join('\n') : '- (none)';
+                return [
+                    `Disney Lorcana. You are BOT (${me.name}). First player to 20 lore wins.`,
+                    `Turn ${st.turn}, your main phase.`,
+                    `Lore: BOT ${me.lore}, OPPONENT ${op.lore}.`,
+                    `Your ink: ${me.inkReady} ready of ${me.inkTotal}. ${inked ? 'You already inked a card this turn.' : 'You may still ink one card this turn.'}`,
+                    `YOUR HAND (${me.hand.length}):`, list(me.hand, 'hand'),
+                    `YOUR BOARD:`, list(me.field, 'field'),
+                    `OPPONENT BOARD:`, list(op.field, 'field'),
+                    `Opponent has ${op.hand.length} cards in hand, ${op.inkTotal} ink, ${op.deck.length} in deck, ${op.discard.length} in discard. You have ${me.deck.length} in deck, ${me.discard.length} in discard.`
+                ].join('\n');
+            },
+
+            buildQuestions(order) {
+                const criteria = {};
+                order.forEach(m => { criteria[m.key] = `${m.text}. ${m.sub}`; });
+                const q = {
+                    move: {
+                        type: 'choice',
+                        instructions: 'You are an expert Disney Lorcana player acting as BOT. Choose the single best action to take next this turn. Weigh the lore race, removing threats, protecting your characters, and using your ink efficiently.',
+                        criteria
+                    }
+                };
+                if (document.getElementById('askEval').checked) {
+                    q.eval = {
+                        type: 'score',
+                        instructions: 'Given this board, how is the game going for BOT?',
+                        criteria: ['BOT is clearly losing', 'BOT is slightly behind', 'The game is even', 'BOT is slightly ahead', 'BOT is clearly winning']
+                    };
+                }
+                return q;
+            },
+
+            // =====================================================
+            // Decision backends
+            // =====================================================
+            async decide() {
+                const backend = document.getElementById('backend').value;
+                const t0 = performance.now();
+                let out;
+                if (backend === 'heuristic') out = this.heuristicDecide();
+                else out = await this.remoteDecide();
+                out.ms = Math.round(performance.now() - t0);
+                return out;
+            },
+
+            async remoteDecide() {
+                const base = document.getElementById('baseUrl').value.trim().replace(/\/+$/, '');
+                const model = document.getElementById('modelName').value.trim() || 'jev-latest';
+                const key = document.getElementById('apiKey').value.trim();
+                if (!base) throw new Error('Set a base URL for the endpoint.');
+                const state = this.buildStateText();
+                const orders = [this.moves];
+                if (document.getElementById('shuffleTwice').checked) orders.push(this.shuffled(this.moves));
+
+                const answers = [];
+                let usage = { input_tokens: 0 };
+                for (const order of orders) {
+                    const body = { model, state, questions: this.buildQuestions(order) };
+                    this.lastRequest = { url: `${base}/v1/systemone`, body, key: !!key };
+                    document.getElementById('reqJson').textContent = JSON.stringify(body, null, 2);
+                    let res;
+                    try {
+                        res = await fetch(`${base}/v1/systemone`, {
+                            method: 'POST',
+                            headers: Object.assign({ 'Content-Type': 'application/json' }, key ? { Authorization: `Bearer ${key}` } : {}),
+                            body: JSON.stringify(body)
+                        });
+                    } catch (e) {
+                        throw new Error(`Could not reach ${base} (${e.message}). Is the server running, and does it allow browser (CORS) requests?`);
+                    }
+                    const text = await res.text();
+                    document.getElementById('resJson').textContent = text;
+                    if (!res.ok) throw new Error(`Server replied ${res.status}: ${text.slice(0, 200)}`);
+                    const data = JSON.parse(text);
+                    answers.push(data.answers || {});
+                    if (data.usage) usage.input_tokens += data.usage.input_tokens || 0;
+                }
+
+                // Average the move distributions across orderings.
+                const probs = {};
+                this.moves.forEach(m => {
+                    probs[m.key] = answers.reduce((s, a) => s + ((a.move && a.move.probabilities && a.move.probabilities[m.key]) || 0), 0) / answers.length;
+                });
+                const ev = answers.map(a => a.eval).filter(Boolean);
+                return this.finish(probs, {
+                    evalScore: ev.length ? ev.reduce((s, e) => s + e.score, 0) / ev.length : null,
+                    evalLevels: 5,
+                    usage
+                });
+            },
+
+            // Transparent baseline: a hand-tuned score per move, softmaxed into probabilities.
+            heuristicDecide() {
+                const me = this.me(), op = this.opp();
+                const inkedAlready = document.getElementById('inkedThisTurn').checked;
+                const score = m => {
+                    const src = m.src && ([...me.hand, ...me.field].find(c => c.instanceId === m.src));
+                    switch (m.kind) {
+                        case 'quest': return me.lore + this.lore(src) >= 20 ? 1000 : 8 + this.lore(src) * 4;
+                        case 'challenge': {
+                            const t = op.field.find(c => c.instanceId === m.dst);
+                            let s = m.defDead ? 10 + this.lore(t) * 5 + this.cost(t) * 2 : m.toDef;
+                            if (m.atkDead) s -= this.cost(src) * 2 + this.lore(src) * 3;
+                            return s;
+                        }
+                        case 'ink': return inkedAlready ? -99 : 18 + (me.inkTotal < 4 ? 6 : 0) - this.cost(src) * 0.4 - (this.isChar(src) ? 1 : 0);
+                        case 'play': {
+                            const t = this.type(src), c = this.cost(src);
+                            if (t === 'Character') return 6 + c * 2 + this.lore(src) * 2;
+                            if (t === 'Action') return 4 + c * 1.5;
+                            return 4 + c * 1.5;
+                        }
+                        case 'shift': return 9 + this.cost(src) * 2 + this.lore(src) * 2;
+                        case 'sing': {
+                            const singer = me.field.find(c => c.instanceId === m.dst);
+                            return 7 + this.cost(src) * 2 - this.lore(singer) * 3;
+                        }
+                        case 'activate': return 5;
+                        case 'move': return 3;
+                        case 'pass': return 0;
+                    }
+                    return 0;
+                };
+                const raw = this.moves.map(m => score(m));
+                const T = 3;
+                const mx = Math.max(...raw);
+                const ex = raw.map(s => Math.exp((s - mx) / T));
+                const sum = ex.reduce((a, b) => a + b, 0);
+                const probs = {};
+                this.moves.forEach((m, i) => { probs[m.key] = ex[i] / sum; });
+
+                // Board eval from lore gap, lore on board and board size (0..4 scale like the Score question).
+                const boardLore = p => p.field.filter(c => this.isChar(c)).reduce((s, c) => s + this.lore(c), 0);
+                const edge = (me.lore - op.lore) + (boardLore(me) - boardLore(op)) * 1.5 + (me.field.length - op.field.length) + (me.hand.length - op.hand.length) * 0.5;
+                const evalScore = 4 / (1 + Math.exp(-edge / 5));
+                document.getElementById('reqJson').textContent = '(heuristic runs in the page — no request)';
+                document.getElementById('resJson').textContent = JSON.stringify({ probabilities: probs, evalScore }, null, 2);
+                this.lastRequest = null;
+                return this.finish(probs, { evalScore, evalLevels: 5 });
+            },
+
+            finish(probs, extra) {
+                const ranked = Object.entries(probs).sort((a, b) => b[1] - a[1]);
+                const pick = ranked[0][0];
+                const confidence = ranked[0][1] - (ranked[1] ? ranked[1][1] : 0);
+                return Object.assign({ probs, pick, confidence }, extra);
+            },
+
+            shuffled(arr) {
+                const a = [...arr];
+                for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+                return a;
+            },
+
+            // =====================================================
+            // User actions
+            // =====================================================
+            async ask() {
+                if (!this.state || this.busy) return;
+                this.setBusy(true);
+                try {
+                    this.result = await this.decide();
+                } catch (e) {
+                    this.result = null;
+                    this.toast(e.message, 7000);
+                }
+                this.setBusy(false);
+                this.renderMoves();
+                return this.result;
+            },
+
+            applyBotPick(silent) {
+                if (!this.result) return false;
+                const m = this.moves.find(x => x.key === this.result.pick);
+                if (!m) return false;
+                this.botSteps.push({ text: m.text, sub: m.sub, p: this.result.probs[m.key], kind: m.kind });
+                if (m.kind === 'pass') { this.refresh(); return false; }
+                this.applyMove(m);
+                this.refresh();
+                if (!silent) this.flash(m);
+                return true;
+            },
+
+            async playTurn() {
+                if (!this.state || this.busy) return;
+                this.stopTurn = false;
+                for (let step = 0; step < 40; step++) {
+                    const r = await this.ask();
+                    if (!r) return;
+                    await new Promise(res => setTimeout(res, 450));
+                    const cont = this.applyBotPick(true);
+                    if (!cont || this.me().lore >= 20) break;
+                }
+            },
+
+            pickMine(key) {
+                this.myPick = this.myPick === key ? null : key;
+                this.renderMoves();
+            },
+
+            copyCurl() {
+                if (!this.lastRequest) { this.toast('Ask a remote model first — the heuristic runs locally.'); return; }
+                const r = this.lastRequest;
+                const cmd = `curl -X POST ${r.url} \\\n  -H "Content-Type: application/json" \\\n` +
+                    (r.key ? `  -H "Authorization: Bearer $TYPESAFE_API_KEY" \\\n` : '') +
+                    `  -d '${JSON.stringify(r.body).replace(/'/g, "'\\''")}'`;
+                navigator.clipboard.writeText(cmd).then(() => this.toast('curl command copied (key left as $TYPESAFE_API_KEY)'), () => this.toast('Clipboard not available'));
+            },
+
+            // =====================================================
+            // What the human actually did next (diff against the child bookmark)
+            // =====================================================
+            humanDiff() {
+                if (!this.bm) return null;
+                const kids = this.bookmarks.filter(b => b.parentId === this.bm.id).sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+                if (!kids.length) return null;
+                let next;
+                try { next = this.normalizeState(typeof kids[0].state === 'string' ? JSON.parse(kids[0].state) : kids[0].state); }
+                catch (e) { return null; }
+                const a = this.original, pi = a.activePlayer;
+                const zonesOf = st => {
+                    const map = {};
+                    st.players.forEach((p, idx) => ['deck', 'hand', 'field', 'inkwell', 'discard'].forEach(z => p[z].forEach(c => {
+                        map[c.instanceId] = { p: idx, z, c };
+                        (c.stackedCards || []).forEach(sc => { map[sc.instanceId] = { p: idx, z: 'stacked', c: sc }; });
+                    })));
+                    return map;
+                };
+                const before = zonesOf(a), after = zonesOf(next);
+                const lines = [], touched = {};
+                const note = (id, kind) => { (touched[id] = touched[id] || new Set()).add(kind); };
+                Object.entries(before).forEach(([id, b]) => {
+                    const n = after[id];
+                    if (!n) return;
+                    const name = this.nameOf(b.c);
+                    if (b.p === pi) {
+                        if (b.z === 'hand' && n.z === 'inkwell') { lines.push(`Inked ${name}`); note(id, 'ink'); }
+                        else if (b.z === 'hand' && (n.z === 'field' || n.z === 'stacked')) { lines.push(`Played ${name}`); note(id, 'play'); }
+                        else if (b.z === 'hand' && n.z === 'discard') { lines.push(this.type(b.c) === 'Action' ? `Played ${name}` : `Discarded ${name}`); note(id, 'play'); }
+                        else if (b.z === 'field' && n.z === 'stacked') { lines.push(`Shifted onto ${name}`); note(id, 'shiftbase'); }
+                        else if (b.z === 'field' && n.z === 'discard') { lines.push(`Lost ${name} (banished)`); note(id, 'lost'); }
+                        else if (b.z === 'field' && n.z === 'field' && !b.c.exerted && n.c.exerted && this.isChar(b.c)) { lines.push(`Exerted ${name} (quest, challenge or sing)`); note(id, 'exert'); }
+                    } else if (b.z === 'field' && n.z === 'discard') { lines.push(`Opponent's ${name} was banished`); note(id, 'banished'); }
+                    else if (b.z === 'field' && n.z === 'field' && n.c.damage > b.c.damage) { lines.push(`Opponent's ${name} took ${n.c.damage - b.c.damage} damage`); note(id, 'damaged'); }
+                });
+                const loreGain = next.players[pi].lore - a.players[pi].lore;
+                if (loreGain > 0) lines.push(`Gained ${loreGain} lore (${a.players[pi].lore} → ${next.players[pi].lore})`);
+                return { name: kids[0].name, lines, touched, more: kids.length - 1 };
+            },
+
+            humanMatches(m, diff) {
+                if (!diff) return false;
+                const t = diff.touched;
+                const has = (id, k) => t[id] && t[id].has(k);
+                switch (m.kind) {
+                    case 'ink': return has(m.src, 'ink');
+                    case 'play': return has(m.src, 'play');
+                    case 'shift': return has(m.src, 'play') && has(m.dst, 'shiftbase');
+                    case 'sing': return has(m.src, 'play') && has(m.dst, 'exert');
+                    case 'quest': return has(m.src, 'exert');
+                    case 'challenge': return has(m.src, 'exert') && (has(m.dst, 'banished') || has(m.dst, 'damaged'));
+                }
+                return false;
+            },
+
+            renderHuman() {
+                const el = document.getElementById('human');
+                this.diff = this.humanDiff();
+                if (!this.diff) { el.style.display = 'none'; return; }
+                el.style.display = '';
+                const d = this.diff;
+                el.innerHTML = `<h2>What the human did next</h2>
+                    <p class="hint" style="margin-top:-4px">Differences up to the next bookmark, “${this.esc(d.name)}”${d.more ? ` (${d.more} other branch${d.more > 1 ? 'es' : ''} not shown)` : ''}. Matching moves get a <span class="tag human">HUMAN</span> tag.</p>
+                    ${d.lines.length ? '<ul>' + d.lines.map(l => `<li>${this.esc(l)}</li>`).join('') + '</ul>' : '<p class="empty">No visible change for this player.</p>'}`;
+            },
+
+            // =====================================================
+            // Rendering
+            // =====================================================
+            refresh() {
+                if (!this.state) return;
+                this.moves = this.generateMoves();
+                this.result = null;
+                this.myPick = null;
+                const text = this.buildStateText();
+                document.getElementById('stateText').textContent = text;
+                document.getElementById('tokEst').textContent = Math.round(text.length / 4);
+                this.renderBoard();
+                this.renderMoves();
+                this.renderTurnLog();
+                ['askBtn', 'turnBtn'].forEach(id => document.getElementById(id).disabled = false);
+            },
+
+            renderBoard() {
+                const el = document.getElementById('board');
+                const me = this.me(), op = this.opp();
+                el.innerHTML = '';
+                el.appendChild(this.renderHalf(op, 'opp', `Opponent — ${op.name}`, false));
+                el.appendChild(this.renderHalf(me, 'bot', `Bot — ${me.name} (turn ${this.state.turn})`, true));
+            },
+
+            renderHalf(p, cls, title, showHand) {
+                const half = document.createElement('div');
+                half.className = 'half ' + cls;
+                half.innerHTML = `<div class="half-head">
+                    <span class="who"></span>
+                    <span class="pill lore">${p.lore} lore</span>
+                    <span class="pill">Ink ${p.inkReady}/${p.inkTotal}</span>
+                    <span class="pill">Hand ${p.hand.length}</span>
+                    <span class="pill">Deck ${p.deck.length}</span>
+                    <span class="pill">Discard ${p.discard.length}</span></div>`;
+                half.querySelector('.who').textContent = title;
+                const zone = (label, cards) => {
+                    const l = document.createElement('div');
+                    l.className = 'zone-label';
+                    l.textContent = label;
+                    const wrap = document.createElement('div');
+                    wrap.className = 'cards';
+                    if (!cards.length) wrap.innerHTML = '<span class="empty">empty</span>';
+                    cards.forEach(c => wrap.appendChild(this.renderCard(c)));
+                    half.append(l, wrap);
+                };
+                zone('In play', p.field);
+                if (showHand) zone('Hand', p.hand);
+                return half;
+            },
+
+            renderCard(c) {
+                const d = this.db(c);
+                const el = document.createElement('div');
+                el.className = 'card' + (c.exerted ? ' exerted' : '');
+                el.dataset.id = c.instanceId;
+                el.title = d ? `${d.fullName}\n${d.type} · cost ${d.cost}${this.statLine(c) ? ' · ' + this.statLine(c) : ''}\n${d.fullText || ''}` : 'Unknown card';
+                const face = document.createElement('div');
+                face.className = 'face';
+                const fb = document.createElement('div');
+                fb.className = 'fallback';
+                fb.textContent = d ? `${d.fullName}\n${this.statLine(c)}` : '?';
+                face.appendChild(fb);
+                if (d && d.images && (d.images.thumbnail || d.images.full)) {
+                    const img = document.createElement('img');
+                    img.loading = 'lazy';
+                    img.alt = d.name;
+                    img.src = d.images.thumbnail || d.images.full;
+                    img.onerror = () => img.remove();
+                    face.appendChild(img);
+                }
+                const badges = document.createElement('div');
+                badges.className = 'badges';
+                if (c.damage) badges.innerHTML += `<span class="badge dmg">${c.damage} dmg</span>`;
+                if (c.drying) badges.innerHTML += `<span class="badge dry">drying</span>`;
+                if (c.exerted) badges.innerHTML += `<span class="badge ex">exerted</span>`;
+                const cap = document.createElement('div');
+                cap.className = 'cap';
+                cap.textContent = d ? d.name : '?';
+                el.append(face, badges, cap);
+                return el;
+            },
+
+            renderMoves() {
+                const el = document.getElementById('moves');
+                const r = this.result;
+                el.innerHTML = '';
+                const list = r ? [...this.moves].sort((a, b) => (r.probs[b.key] || 0) - (r.probs[a.key] || 0)) : this.moves;
+                list.forEach(m => {
+                    const row = document.createElement('div');
+                    row.className = 'move' + (this.myPick === m.key ? ' mine' : '') + (r && r.pick === m.key ? ' botpick' : '');
+                    const p = r ? (r.probs[m.key] || 0) : null;
+                    const tags = [];
+                    if (r && r.pick === m.key) tags.push('<span class="tag bot">BOT</span>');
+                    if (this.myPick === m.key) tags.push('<span class="tag you">YOU</span>');
+                    if (this.humanMatches(m, this.diff)) tags.push('<span class="tag human">HUMAN</span>');
+                    row.innerHTML = `<span class="k">${m.key}</span>
+                        <span class="t"><span class="tag kind">${m.kind}</span><span class="tt"></span>${tags.join('')}<small></small></span>
+                        <span class="p">${p === null ? '' : (p * 100).toFixed(p >= 0.1 ? 0 : 1) + '%'}</span>
+                        ${p === null ? '' : `<span class="bar" style="width:${Math.max(0.5, p * 100)}%"></span>`}`;
+                    row.querySelector('.tt').textContent = m.text;
+                    row.querySelector('small').textContent = m.sub;
+                    row.onclick = () => this.pickMine(m.key);
+                    row.onmouseenter = () => this.highlight(m, true);
+                    row.onmouseleave = () => this.highlight(m, false);
+                    el.appendChild(row);
+                });
+                this.renderVerdict();
+                document.getElementById('applyBtn').disabled = !r;
+            },
+
+            renderVerdict() {
+                const el = document.getElementById('verdict');
+                const r = this.result;
+                if (!r) { el.innerHTML = `<p class="hint">${this.moves.length} legal moves found.</p>`; return; }
+                const pickMove = this.moves.find(m => m.key === r.pick);
+                const backend = document.getElementById('backend');
+                let html = `<div class="stat" style="margin-bottom:8px"><div class="l">Bot picks (${this.esc(backend.options[backend.selectedIndex].text.split(' (')[0])})</div>
+                    <div class="v" style="font-size:15px">${this.esc(pickMove ? pickMove.text : r.pick)}</div></div>
+                    <div class="verdict">
+                    <div class="stat"><div class="l">Probability</div><div class="v">${(r.probs[r.pick] * 100).toFixed(0)}%</div></div>
+                    <div class="stat"><div class="l">Confidence (top-1 − top-2)</div><div class="v">${(r.confidence * 100).toFixed(0)}%</div></div>
+                    <div class="stat"><div class="l">Latency</div><div class="v">${r.ms} ms</div></div>
+                    <div class="stat"><div class="l">${r.usage ? 'Input tokens' : 'Cost'}</div><div class="v">${r.usage ? r.usage.input_tokens || '—' : 'free'}</div></div></div>`;
+                if (this.myPick) {
+                    const agree = this.myPick === r.pick;
+                    html += `<p class="${agree ? 'hint' : 'warn'}" style="color:${agree ? 'var(--good)' : ''}">${agree ? 'You and the bot agree.' : `You picked ${this.myPick} — the bot gave it ${((r.probs[this.myPick] || 0) * 100).toFixed(0)}%.`}</p>`;
+                }
+                if (r.evalScore !== null && r.evalScore !== undefined) {
+                    const pct = (r.evalScore / (r.evalLevels - 1)) * 100;
+                    html += `<div style="margin-top:8px"><div class="l" style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px">Who is winning? (score ${r.evalScore.toFixed(2)} / ${r.evalLevels - 1})</div>
+                        <div class="gauge"><div class="needle" style="left:${pct}%"></div></div>
+                        <div class="gauge-l"><span>Opponent</span><span>Even</span><span>Bot</span></div></div>`;
+                }
+                el.innerHTML = html;
+            },
+
+            renderTurnLog() {
+                const el = document.getElementById('turnLog');
+                if (!this.botSteps.length) { el.style.display = 'none'; return; }
+                el.style.display = '';
+                el.innerHTML = `<h2>Bot's turn so far</h2><ol>${this.botSteps.map(s => `<li>${this.esc(s.text)} <span class="hint">(${(s.p * 100).toFixed(0)}%)</span></li>`).join('')}</ol>` +
+                    (this.me().lore >= 20 ? '<p style="color:var(--gold);font-weight:700">Bot reached 20 lore!</p>' : '');
+            },
+
+            highlight(m, on) {
+                [m.src, m.dst].filter(Boolean).forEach(id => {
+                    const c = document.querySelector(`.card[data-id="${CSS.escape(id)}"]`);
+                    if (c) c.classList.toggle('hl', on);
+                });
+            },
+
+            flash(m) {
+                this.highlight(m, true);
+                setTimeout(() => this.highlight(m, false), 900);
+            },
+
+            setBusy(b) {
+                this.busy = b;
+                ['askBtn', 'applyBtn', 'turnBtn'].forEach(id => document.getElementById(id).disabled = b);
+                document.getElementById('askBtn').textContent = b ? 'Thinking…' : 'Ask the bot';
+            },
+
+            toast(msg, ms = 4000) {
+                const t = document.getElementById('toast');
+                t.textContent = msg;
+                t.style.display = 'block';
+                clearTimeout(this._toastT);
+                this._toastT = setTimeout(() => { t.style.display = 'none'; }, ms);
+            },
+
+            esc(s) { return String(s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch])); }
+        };
+
+        WW.init();
+    </script>
+</body>
+
+</html>
