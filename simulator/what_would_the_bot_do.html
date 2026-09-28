@@ -269,7 +269,7 @@
 
     <header>
         <h1>What Would the Bot Do?</h1>
-        <span class="version">v0.1.0</span>
+        <span class="version">v0.1.1</span>
         <span class="status" id="dbStatus"></span>
     </header>
 
@@ -378,7 +378,7 @@
 
     <script>
         const WW = {
-            VERSION: 'v0.1.0',
+            VERSION: 'v0.1.1',
             CARD_DB_URLS: [
                 'https://cdn.jsdelivr.net/gh/heavenideas/similcana@main/database/allCards.json',
                 'https://raw.githubusercontent.com/heavenideas/similcana/refs/heads/main/database/allCards.json'
@@ -402,6 +402,7 @@
             result: null,     // { probs: {key: p}, pick, confidence, evalScore, ms, usage }
             myPick: null,
             botSteps: [],
+            usedAbilities: new Set(),   // "instanceId:index" — activated abilities used this turn
             lastRequest: null,
             busy: false,
 
@@ -620,6 +621,7 @@
                 this.state = st;
                 this.bm = bookmark;
                 this.botSteps = [];
+                this.usedAbilities = new Set();
                 document.getElementById('inkedThisTurn').checked = false;
                 document.getElementById('resetBtn').disabled = false;
                 this.renderHuman();
@@ -630,6 +632,7 @@
                 if (!this.original) return;
                 this.state = JSON.parse(JSON.stringify(this.original));
                 this.botSteps = [];
+                this.usedAbilities = new Set();
                 document.getElementById('inkedThisTurn').checked = false;
                 this.refresh();
             },
@@ -640,6 +643,7 @@
                 me.field.forEach(c => { c.exerted = false; c.drying = false; });
                 me.inkwell.forEach(c => { c.exerted = false; });
                 me.inkReady = me.inkTotal;
+                this.usedAbilities = new Set();
                 document.getElementById('inkedThisTurn').checked = false;
                 this.refresh();
             },
@@ -792,6 +796,8 @@
                         if (needExert && c.exerted) return;
                         if (needExert && this.isChar(c) && c.drying) return;
                         if (inkCost > ink) return;
+                        // Abilities without an exert cost could otherwise be picked forever.
+                        if (this.usedAbilities.has(c.instanceId + ':' + i)) return;
                         add({
                             kind: 'activate', src: c.instanceId, idx: i, exert: needExert, ink: inkCost,
                             text: `Use ${this.shortName(c)}: ${a.name || 'ability'}${(a.costsText || costs) ? ` (${a.costsText || costs})` : ''}`,
@@ -894,6 +900,7 @@
                     }
                     case 'activate': {
                         const c = find(me.field, m.src);
+                        this.usedAbilities.add(m.src + ':' + m.idx);
                         if (m.exert) c.exerted = true;
                         me.inkReady -= m.ink;
                         break;
@@ -1115,13 +1122,17 @@
 
             async playTurn() {
                 if (!this.state || this.busy) return;
-                this.stopTurn = false;
+                const seen = new Set();
                 for (let step = 0; step < 40; step++) {
                     const r = await this.ask();
                     if (!r) return;
                     await new Promise(res => setTimeout(res, 450));
                     const cont = this.applyBotPick(true);
                     if (!cont || this.me().lore >= 20) break;
+                    // Stop if a move left the board exactly as it was before.
+                    const snap = JSON.stringify(this.state);
+                    if (seen.has(snap)) { this.toast('Bot stopped: its last move did not change the board.'); break; }
+                    seen.add(snap);
                 }
             },
 
