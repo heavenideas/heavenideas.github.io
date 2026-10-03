@@ -1,5 +1,14 @@
 # Mastery Lab — handoff for the next session
 
+> **Update (v3.0.0):** five of the six tools now ship as plugins in `practice_dojo/plugins/`
+> (Race Clock, Turn Briefing, Mulligan Lab, Sequencing Coach, Game Ledger). Plan and plugin contract:
+> `V3_PLAN.md`; architecture: dev guide §20; manual tests: `TEST-PROTOCOL-v3.0.0.md`.
+> **Next: the classifier phase.** Reference = how `utilities/unified_win_probability_utilities.js`
+> uses `lorcanaUtils_MatchUpAnalyzer/lorcana_abilities_redux.json`; preferred source = the TheCardGoat
+> engine in `simulator/bot_arena/`. It unlocks the Threat & Exposure Map, the Coach's best-order
+> search, and text-dependent facts (activated lore, cost reducers, draw effects). The notes below
+> describe the pre-v3 exploration.
+
 Exploration of how the ideas in *Mastering Competitive Lorcana* (DarkWings | Chupa) could become practice tools in the Practice Dojo. **Nothing here is wired into `practice_dojo.html`.** This folder holds prototypes and their engine so a fresh session can pick up from here.
 
 ## Where things stand

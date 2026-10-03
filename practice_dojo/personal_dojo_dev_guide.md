@@ -1210,3 +1210,33 @@ clears it. Bookmarks (`includeLog = true`) store the full journal, since a branc
   `takenAction` frames is a later step), so the Coach and Ledger only cover turns played in the Dojo.
 - Bookmarks carry the journal so far, so a long game's bookmarks grow (roughly 100 bytes per event).
 - `decompressState` still drops `turnActions` / `cardsPlayedThisTurn` on undo (pre-existing, untouched).
+
+### 20.6 The five tools (one paragraph each)
+
+Each file = a pure `*Core` object (exported for node tests) + a `register()` call.
+
+- **Race Clock** (`race_clock.js`, `raceClock`): `RaceClockCore.compute(state, cardDB, me)`. Rate =
+  printed lore of non-Reckless characters + locations; the acting player only gets what can still
+  quest now. Times are in half-turns so turn order counts; "never" is `null` (JSON-safe). Action
+  previews use `App.challengeOutcome` on a light clone; ranking = winner first, then finishing sooner
+  (ahead) / delaying them (behind). Hides its verdict while a Briefing is pending.
+- **Turn Briefing** (`turn_briefing.js`, `briefing`, off by default): entry per turn in
+  `state.ext.briefing[turnKey]` with the clock snapshot taken at turn start; created on `turnStart`
+  once a character is down. Lifetime calibration in `localStorage['lorcana_dojo_briefing_stats']`,
+  de-duplicated by a per-briefing `bid` so undo + re-answer doesn't double count. `api.pending(ctx)`
+  reads `state.ext.briefing` directly (Race Clock calls it with its own ctx).
+- **Mulligan Lab** (`mulligan_lab.js`, `mulliganLab`): every distinct throw set (≤128) × 400 paired
+  games through turn 4; policy = ink one card (never the plan card if avoidable), then the subset of
+  cards that puts the most printed cost on board (Shift at Shift cost onto a same-name character,
+  Songs sung free by a dry character with enough cost/Singer). Chunked (~15 ms slices), cached in
+  memory. Only write: `App.mulliganSelection` + `renderMulliganCards()` from "Mark this".
+- **Sequencing Coach** (`sequencing_coach.js`, `coach`): `CoachCore.turns(events)` segments the
+  journal by `turnEnd`, folding delayed challenge banishes into their challenge; `flags()` =
+  inkBeforeDraw, supportAfterChallenge, notPossible (keywords only: Rush, Evasive, Reckless,
+  Locations), inkLeft, noInk.
+- **Game Ledger** (`game_ledger.js`, `ledger`): `LedgerCore.build(events, cardDB)` → per-turn rows,
+  turning points (3 biggest lead swings after turn 2, lead = lore + 2 × `turnEnd.boardLore`),
+  receipts per instance (ends on banish / discard / ink / `leave`). Kills only via `via:'challenge'`.
+
+Both journal tools detect imported or pre-v3 sessions (empty journal with `turn > 1`, or a first
+event after turn 1) and say so.

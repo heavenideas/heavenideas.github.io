@@ -11,7 +11,7 @@
 
     const GOAL = 20;
     const MAX_LANES = 24;          // half-turns drawn at most
-    const FAR = 1000;              // "never" when scoring a clock
+    const FAR = 1000;              // "never" when ranking clocks
 
     function lib() {
         if (root.DojoLab) return root.DojoLab;
@@ -139,13 +139,23 @@
             };
         },
 
-        // One number per clock, higher = better for `me`.
-        score(clock) {
-            const f = clock.finishHalf;
+        // How good a clock is for `me`, as a key compared left to right (bigger = better).
+        // Winner first. When you win, finishing sooner matters most (race); when they win,
+        // pushing their finish later matters most (slow them down).
+        key(clock) {
+            const [fm, fo] = clock.finishHalf;
             const far = clock.half + FAR;
-            return (f[1] == null ? far : f[1]) - (f[0] == null ? far : f[0]);
+            if (clock.winner == null) return [1, 0, 0];
+            if (clock.winner === clock.me) return [2, -(fm == null ? far : fm), (fo == null ? far : fo)];
+            return [0, (fo == null ? far : fo), -(fm == null ? far : fm)];
         },
-        // Tiebreak when finish turns don't move: lore-per-turn difference.
+        // > 0 when clock a is better for `me` than clock b, < 0 when worse, 0 when equal.
+        compare(a, b) {
+            const ka = RaceClockCore.key(a), kb = RaceClockCore.key(b);
+            for (let i = 0; i < ka.length; i++) if (ka[i] !== kb[i]) return ka[i] > kb[i] ? 1 : -1;
+            return 0;
+        },
+        // Tiebreak when the finish turns don't move: lore-per-turn difference.
         edge(clock) { return clock.rate[0] - clock.rate[1]; },
 
         // What each available action does to the clock (active player only).
@@ -154,9 +164,9 @@
             const L = lib();
             const act = state.activePlayer ? 1 : 0, other = 1 - act;
             const base = RaceClockCore.compute(state, cardDB, act);
-            const bScore = RaceClockCore.score(base), bEdge = RaceClockCore.edge(base);
+            const bEdge = RaceClockCore.edge(base);
             const rowOf = (row, after) => Object.assign(row, {
-                after, delta: RaceClockCore.score(after) - bScore, edgeDelta: RaceClockCore.edge(after) - bEdge
+                after, delta: RaceClockCore.compare(after, base), edgeDelta: RaceClockCore.edge(after) - bEdge
             });
             const find = (s, pi, iid) => s.players[pi].field.find(c => c.instanceId === iid);
             const drop = (s, pi, iid) => { const f = s.players[pi].field; const i = f.findIndex(c => c.instanceId === iid); if (i >= 0) f.splice(i, 1); };
@@ -211,7 +221,7 @@
                     }, RaceClockCore.compute(s, cardDB, act)));
                 }
             }
-            const byBest = (x, y) => (y.delta - x.delta) || (y.edgeDelta - x.edgeDelta);
+            const byBest = (x, y) => RaceClockCore.compare(y.after, x.after) || (y.edgeDelta - x.edgeDelta);
             quests.sort(byBest);
             challenges.sort(byBest);
             return { base, quests, challenges };

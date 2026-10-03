@@ -214,7 +214,8 @@ test('actions: quest rows, challenge rows, legality, sorting', () => {
     assert.ok(mr.legal, 'locations can always be challenged');
     for (let i = 1; i < res.challenges.length; i++) {
         const a = res.challenges[i - 1], b = res.challenges[i];
-        assert.ok(a.delta > b.delta || (a.delta === b.delta && a.edgeDelta >= b.edgeDelta), 'sorted best first');
+        const c = Core.compare(a.after, b.after);
+        assert.ok(c > 0 || (c === 0 && a.edgeDelta >= b.edgeDelta), 'sorted best first');
     }
     // nothing in the real state moved
     assert.strictEqual(mickey.exerted, false);
@@ -243,6 +244,18 @@ test('actions: a banish that flips the race sorts first', () => {
     const top = res.challenges[0];
     assert.strictEqual(top.dIid, theirHans.instanceId);
     assert.ok(top.delta > 0);
+});
+
+test('ranking: when ahead, finishing sooner beats widening the gap', () => {
+    const mk = (fm, fo, winner) => ({ me: 0, half: 10, winner, finishHalf: [fm, fo], rate: [0, 0] });
+    const base = mk(12, 15, 0);
+    assert.ok(Core.compare(mk(12, 21, 0), base) > 0, 'same finish, they get slower: better');
+    assert.ok(Core.compare(mk(14, 21, 0), base) < 0, 'you get slower while ahead: worse');
+    assert.ok(Core.compare(mk(null, null, null), base) < 0, 'losing the win: worse');
+    const behind = mk(16, 13, 1);
+    assert.ok(Core.compare(mk(18, 15, 1), behind) > 0, 'when behind, pushing their finish later is better');
+    assert.ok(Core.compare(mk(16, 17, 0), behind) > 0, 'flipping the race is best');
+    assert.ok(Core.compare(mk(null, null, null), behind) > 0, 'stalling them beats losing');
 });
 
 let failed = 0;
