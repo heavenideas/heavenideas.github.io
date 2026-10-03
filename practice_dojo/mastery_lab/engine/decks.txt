@@ -1,0 +1,40 @@
+DECK_A
+4 Aladdin & Genie - Mischievous Pals
+4 Aladdin - Doing His Part
+4 Hades - Looking for a Deal
+2 John Silver - Alien Pirate
+4 Junior Woodchuck Guidebook
+2 Lenny - Toy Binoculars
+3 Lyle Tiberius Rourke - Adventurer for Hire
+4 Malicious, Mean, and Scary
+4 Milo Thatch - Getting His Hands Dirty
+3 Piercing Attack
+4 Prince Phillip - Vanquisher of Foes
+3 Rafiki - Mystical Fighter
+4 Retro Evolution Device
+1 Second Star to the Right
+3 Sven - Leaping Reindeer
+4 The Huntsman - On the Queen's Orders
+2 To Wither a Flower
+4 Tod - Clever Fox
+1 Under the Sea
+DECK_B
+4 Besties, Assemble!
+3 Cheshire Cat - Inexplicable
+4 Demona - Scourge of the Wyvern Clan
+3 Dumbo - Ninth Wonder of the Universe
+4 Gaston - Superior Archer
+3 Grandmother Willow - Ancient Advisor
+4 Hades - Looking for a Deal
+4 Hamm - Piggy Bank
+3 Isis Vanderchill - Ice Queen of St. Canard
+4 Junior Woodchuck Guidebook
+3 Sven - Leaping Reindeer
+2 The Horseman Strikes!
+3 Tigger - Bouncing All the Way
+2 Ursula - Whisper of Vanessa
+2 Raging Storm
+3 Alma Madrigal - Leading the Way
+4 Luisa Madrigal - Pushing Through
+4 Agustin Madrigal - Exceptionally Kind
+1 Lantern

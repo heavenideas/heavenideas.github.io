@@ -1,0 +1,14 @@
+require('./lab.js'); const L=globalThis.DojoLab;
+const hand=['Luisa','Hamm','Agustin','Gaston','Storm','Demona','Alma'].map(k=>L.ID[k]);
+let t=Date.now();
+const res=L.mulliganOptions('B',hand,{onPlay:true,planId:L.ID.Hamm,planTurn:2,sims:800,seed:7});
+console.log('options',res.length,'ms',Date.now()-t);
+const nm=id=>L.M[id].name;
+for(const r of res.slice(0,8)) console.log(r.rank, r.mean.toFixed(2), 'throw:',r.thrown.map(nm).join('+')||'(keep 7)', 'played',r.played.map(x=>x.toFixed(2)).join('/'), 'miss',r.missAny.toFixed(2),'plan',r.plan&&r.plan.toFixed(2));
+const keep=res.find(r=>r.thrown.length===0); console.log('keep7 rank',keep.rank,keep.mean.toFixed(2));
+const sd=res.find(r=>r.thrown.length===2&&r.thrown.includes(L.ID.Storm)&&r.thrown.includes(L.ID.Demona)); console.log('storm+demona rank',sd.rank,sd.mean.toFixed(2));
+console.log('worst',res[res.length-1].mean.toFixed(2),res[res.length-1].thrown.map(nm).join('+'));
+const ha=['Phillip','Milo','MMS','Tod','Huntsman','Rafiki','Sea'].map(k=>L.ID[k]);
+const r2=L.mulliganOptions('A',ha,{onPlay:false,planId:L.ID.MMS,planTurn:4,sims:800,seed:3});
+for(const r of r2.slice(0,5)) console.log(r.rank,r.mean.toFixed(2),'throw:',r.thrown.map(nm).join('+')||'(keep 7)','plan',r.plan.toFixed(2));
+console.log('keep7',r2.find(r=>!r.thrown.length).rank);

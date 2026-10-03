@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Threat and Exposure Map</title>
+<script src="./support.js"></script>
+<script src="/_blob/19bd967edd1578bce22b6dc908fa9350"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&amp;family=Geist+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:oklch(0.155 0.008 60)}
+a{color:oklch(0.84 0.14 70)}a:hover{color:oklch(0.92 0.12 75)}
+.lab{--bg:oklch(0.155 0.008 60);--s1:oklch(0.195 0.010 60);--s2:oklch(0.23 0.012 60);--s3:oklch(0.27 0.014 60);--hi:oklch(0.34 0.016 60);--bd:oklch(0.31 0.013 60);--bd2:oklch(0.25 0.011 60);--tx:oklch(0.965 0.004 60);--tx2:oklch(0.82 0.008 60);--dim:oklch(0.70 0.012 60);--acc:oklch(0.80 0.14 70);--accs:oklch(0.80 0.14 70 / .15);--me:oklch(0.79 0.145 78);--mes:oklch(0.79 0.145 78 / .16);--op:oklch(0.72 0.15 305);--ops:oklch(0.72 0.15 305 / .18);--ok:oklch(0.76 0.13 155);--oks:oklch(0.76 0.13 155 / .16);--bad:oklch(0.70 0.18 25);--bads:oklch(0.70 0.18 25 / .16);--warn:oklch(0.85 0.13 95);font-family:'Geist',system-ui,-apple-system,'Segoe UI',sans-serif;color:var(--tx);background:var(--bg);font-size:14px;line-height:1.45;padding:32px 24px 48px;box-sizing:border-box}
+.lab *{box-sizing:border-box}
+.mono{font-family:'Geist Mono',ui-monospace,Menlo,monospace}
+.eyebrow{font-family:'Geist Mono',ui-monospace,monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--acc)}
+.panel{background:var(--s1);border:1px solid var(--bd2);border-radius:14px;padding:18px;min-width:0}
+.ptitle{font-family:'Geist Mono',ui-monospace,monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin:0 0 12px}
+.btn{appearance:none;border:1px solid var(--bd);background:var(--s2);color:var(--tx);font:inherit;font-size:13px;font-weight:600;border-radius:9px;padding:8px 13px;min-height:44px;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+.btn:hover{background:var(--s3);border-color:var(--hi)}
+.btn.on{background:var(--accs);border-color:var(--acc)}
+.btn:disabled{opacity:.45;cursor:default}
+.seg{display:inline-flex;border:1px solid var(--bd);border-radius:10px;overflow:hidden}
+.seg .btn{border:0;border-radius:0}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:3px 9px;border-radius:999px;background:var(--s2);border:1px solid var(--bd2);color:var(--tx2);white-space:nowrap}
+.tc{position:relative;width:var(--cw,86px);height:calc(var(--cw,86px) * 1.4);border-radius:8px;overflow:hidden;flex:0 0 auto;background:linear-gradient(155deg,color-mix(in oklab,var(--tint) 22%,var(--s2)),var(--s2) 68%);box-shadow:inset 0 0 0 1px oklch(1 0 0 / .07),0 2px 6px oklch(0 0 0 / .35);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:16% 8% 20% 12%;font-size:calc(var(--cw,86px) * .118);line-height:1.15;color:var(--tx)}
+.tc::before{content:'';position:absolute;left:0;top:0;bottom:0;width:5.5%;background:var(--strip)}
+.tc-cost{position:absolute;top:5%;left:11%;width:1.8em;height:1.8em;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.05em}
+.tc-cost.ink{border-radius:50%;background:#D4AF37;color:#111;box-shadow:inset 0 0 0 .1em #fff}
+.tc-cost.noink{background:#2f3036;color:#fff;clip-path:polygon(50% 2%,98% 26%,98% 74%,50% 98%,2% 74%,2% 26%)}
+.tc-name{font-weight:700}
+.tc-ver{font-size:.82em;color:var(--dim);margin-top:.2em}
+.tc-kw{font-size:.74em;margin-top:.4em;color:var(--warn);font-weight:600}
+.tc-stats{position:absolute;left:12%;right:8%;bottom:4%;display:flex;justify-content:space-between;font-weight:700;font-size:1.02em}
+.tc-stats small{font-size:.6em;opacity:.6;margin-left:.1em}
+.tc-lore{position:absolute;right:8%;top:6%;font-size:.95em;font-weight:800;color:var(--warn);display:flex;align-items:center;gap:.15em}
+.tc-dmg{position:absolute;right:7%;top:34%;min-width:1.8em;height:1.8em;border-radius:999px;background:var(--bad);color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:.95em;padding:0 .3em;z-index:2}
+.slot{position:relative;width:var(--cw,86px);height:calc(var(--cw,86px) * 1.4);flex:0 0 auto}
+.slot.ex{width:calc(var(--cw,86px) * 1.4);height:var(--cw,86px)}
+.slot.ex .tc{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(90deg);filter:brightness(.78)}
+/* artboard */
+.row{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-end}
+.pick{appearance:none;background:none;border:2px solid transparent;border-radius:14px;padding:8px 8px 10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--tx);font:inherit;min-width:118px}
+.pick:hover{border-color:var(--bd)}
+.pick.sel{border-color:var(--acc);background:var(--accs)}
+.ring{width:54px;height:54px;border-radius:50%;display:flex;align-items:center;justify-content:center;position:relative}
+.ring::after{content:'';position:absolute;inset:6px;border-radius:50%;background:var(--s1)}
+.ring b{position:relative;z-index:1;font-family:'Geist Mono',monospace;font-size:13px}
+.tag{font-family:'Geist Mono',ui-monospace,monospace;font-size:11px;padding:3px 8px;border-radius:7px;background:var(--s2);color:var(--tx2);text-align:center;line-height:1.3}
+.tag.hot{background:var(--bads);color:var(--bad)}
+.fact{display:grid;grid-template-columns:minmax(0,1fr) 64px;gap:12px;align-items:baseline;padding:10px 0;border-top:1px solid var(--bd2)}
+.fact b{font-weight:600}
+.fact .p{font-family:'Geist Mono',ui-monospace,monospace;text-align:right;font-weight:700}
+.fact .sub{display:block;font-size:12.5px;color:var(--dim);margin-top:2px}
+.kind{font-family:'Geist Mono',ui-monospace,monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:2px 6px;border-radius:5px;margin-right:6px;background:var(--s3);color:var(--tx2)}
+.kind.bad{background:var(--bads);color:var(--bad)}
+.kind.ok{background:var(--oks);color:var(--ok)}
+.kind.warn{background:oklch(0.85 0.13 95 / .14);color:var(--warn)}
+.mini{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--bd2);font-size:13px}
+</style>
+</helmet>
+<div class="lab">
+<div style="max-width: 1232px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px">
+
+<header style="display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; flex-wrap: wrap">
+<div style="display: flex; flex-direction: column; gap: 8px; max-width: 760px">
+<div class="eyebrow">03 · Every turn · Threat Assessment · Virtual Card Advantage</div>
+<h1 style="margin: 0; font-size: 34px; line-height: 1.05; letter-spacing: -0.02em">Threat &amp; Exposure Map</h1>
+<p style="margin: 0; color: var(--tx2); font-size: 15px">“What happens if I don’t answer this?” and its mirror, “what can they do to this?” Tap any card. Their hand is treated as random from the cards you haven’t seen, the same assumption as the Dojo’s draw odds, so every number can be checked by hand.</p>
+</div>
+<div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center">
+<div class="seg" role="group" aria-label="Whose seat"><sc-for list="{{seats}}" as="st" hint-placeholder-count="2"><button class="{{st.cls}}" onClick="{{st.go}}">{{st.label}}</button></sc-for></div>
+<button class="{{questCls}}" onClick="{{toggleQuest}}" disabled="{{questDisabled}}" aria-pressed="{{questAll}}">If you quest with everything</button>
+</div>
+</header>
+
+<sc-if value="{{loading}}" hint-placeholder-val="{{false}}"><div class="panel" style="color: var(--dim)">Loading the card engine…</div></sc-if>
+
+<sc-if value="{{ready}}" hint-placeholder-val="{{true}}">
+<section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(380px, 100%), 1fr)); gap: 16px; align-items: start">
+<div style="display: flex; flex-direction: column; gap: 16px; grid-column: span 2; min-width: 0">
+<div class="panel">
+<div style="display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap"><p class="ptitle">Their board · {{opName}} · ranked by what ignoring it for two turns costs you</p><span class="chip">{{poolText}}</span></div>
+<div class="row" style="--cw: 92px">
+<sc-for list="{{theirs}}" as="c" hint-placeholder-count="3">
+<button class="{{c.pickCls}}" onClick="{{c.pick}}" aria-label="{{c.aria}}">
+<span class="{{c.tagCls}}">{{c.tag}}</span>
+<div class="{{c.slotCls}}"><div class="tc" style="{{c.style}}"><span class="{{c.costCls}}">{{c.cost}}</span><sc-if value="{{c.lore}}" hint-placeholder-val="{{false}}"><span class="tc-lore">{{c.lore}}<svg width="8" height="8" viewBox="0 0 10 10" aria-hidden="true"><path d="M5 0 L10 5 L5 10 L0 5 Z" fill="currentColor"></path></svg></span></sc-if><span class="tc-name">{{c.name}}</span><span class="tc-ver">{{c.version}}</span><sc-if value="{{c.kw}}" hint-placeholder-val="{{false}}"><span class="tc-kw">{{c.kw}}</span></sc-if><sc-if value="{{c.hasDamage}}" hint-placeholder-val="{{false}}"><span class="tc-dmg">{{c.damage}}</span></sc-if><sc-if value="{{c.hasStats}}" hint-placeholder-val="{{false}}"><span class="tc-stats"><span>{{c.str}}<small>S</small></span><span>{{c.wp}}<small>W</small></span></span></sc-if></div></div>
+</button>
+</sc-for>
+</div>
+</div>
+<div class="panel">
+<p class="ptitle">Your board · {{meName}} · how likely each one is to be removed on their next turn</p>
+<div class="row" style="--cw: 92px">
+<sc-for list="{{mine}}" as="c" hint-placeholder-count="3">
+<button class="{{c.pickCls}}" onClick="{{c.pick}}" aria-label="{{c.aria}}">
+<div class="ring" style="background: conic-gradient({{c.ringColor}} {{c.deg}}deg, var(--s3) 0)"><b>{{c.pText}}</b></div>
+<div class="{{c.slotCls}}"><div class="tc" style="{{c.style}}"><span class="{{c.costCls}}">{{c.cost}}</span><sc-if value="{{c.lore}}" hint-placeholder-val="{{false}}"><span class="tc-lore">{{c.lore}}<svg width="8" height="8" viewBox="0 0 10 10" aria-hidden="true"><path d="M5 0 L10 5 L5 10 L0 5 Z" fill="currentColor"></path></svg></span></sc-if><span class="tc-name">{{c.name}}</span><span class="tc-ver">{{c.version}}</span><sc-if value="{{c.kw}}" hint-placeholder-val="{{false}}"><span class="tc-kw">{{c.kw}}</span></sc-if><sc-if value="{{c.hasDamage}}" hint-placeholder-val="{{false}}"><span class="tc-dmg">{{c.damage}}</span></sc-if><sc-if value="{{c.hasStats}}" hint-placeholder-val="{{false}}"><span class="tc-stats"><span>{{c.str}}<small>S</small></span><span>{{c.wp}}<small>W</small></span></span></sc-if></div></div>
+</button>
+</sc-for>
+</div>
+</div>
+<section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 16px">
+<div class="panel">
+<p class="ptitle">Dead in their hand right now · virtual card advantage</p>
+<p style="margin: 0 0 6px; font-size: 13px; color: var(--tx2)">{{deadLead}}</p>
+<sc-for list="{{dead}}" as="d" hint-placeholder-count="3"><div class="mini"><span>{{d.name}}</span><span class="mono" style="color: var(--dim)">{{d.copies}} unseen · {{d.why}}</span></div></sc-for>
+</div>
+<div class="panel">
+<p class="ptitle">Sweepers · how much of your board one card takes</p>
+<sc-if value="{{noSweeps}}" hint-placeholder-val="{{false}}"><p style="margin: 0; font-size: 13px; color: var(--tx2)">Nothing in their unseen cards sweeps your current board.</p></sc-if>
+<sc-for list="{{sweeps}}" as="w" hint-placeholder-count="2"><div class="mini"><span>{{w.name}} <span style="color: var(--dim)">· {{w.route}}</span></span><span class="mono" style="color: var(--bad)">{{w.value}} ink · {{w.p}}</span></div></sc-for>
+</div>
+</section>
+</div>
+
+<aside class="panel" style="display: flex; flex-direction: column; gap: 4px; position: relative">
+<p class="ptitle" style="margin-bottom: 4px">{{dTitle}}</p>
+<div style="font-size: 22px; font-weight: 800; letter-spacing: -0.01em; line-height: 1.15">{{dName}}</div>
+<div style="font-size: 14px; color: var(--tx2); margin: 4px 0 8px">{{dHeadline}}</div>
+<sc-for list="{{dSections}}" as="sec" hint-placeholder-count="2">
+<div style="margin-top: 10px">
+<p class="ptitle" style="margin: 0 0 2px">{{sec.title}}</p>
+<sc-if value="{{sec.empty}}" hint-placeholder-val="{{false}}"><p style="margin: 6px 0 0; font-size: 13px; color: var(--dim)">{{sec.emptyText}}</p></sc-if>
+<sc-for list="{{sec.rows}}" as="r" hint-placeholder-count="2">
+<div class="fact"><span><span class="{{r.kindCls}}">{{r.kind}}</span><b>{{r.title}}</b><span class="sub">{{r.sub}}</span></span><span class="p" style="color: {{r.pColor}}">{{r.p}}</span></div>
+</sc-for>
+</div>
+</sc-for>
+</aside>
+</section>
+</sc-if>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1420}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { ok: false, seat: 0, questAll: false, sel: null }; }
+  componentDidMount() {
+    const go = () => { if (window.DojoLab) { clearInterval(this._t); this.base = window.DojoLab.scenario(); this.setState({ ok: true }); return true; } return false; };
+    if (!go()) this._t = setInterval(go, 80);
+  }
+  componentWillUnmount() { clearInterval(this._t); }
+  renderVals() {
+    const L = window.DojoLab; const s = this.state;
+    const seats = [{ v: 0, label: 'Madrigals (to act)' }, { v: 1, label: 'Phillip’s chair' }].map(x => ({ label: x.label, cls: s.seat === x.v ? 'btn on' : 'btn', go: () => this.setState({ seat: x.v, sel: null, questAll: x.v === 0 ? s.questAll : false }) }));
+    if (!L || !s.ok) return { loading: true, ready: false, seats, questCls: 'btn', toggleQuest: () => {}, questDisabled: true, questAll: false };
+    const M = L.M; const nm = (id) => M[id].name; const pct = L.pct;
+    const me = s.seat;
+    let g = this.base;
+    if (s.questAll && me === 0) { g = L.clone(g); for (const c of g.players[0].field) if (L.canQuest(g, c)) { c.exerted = true; g.players[0].lore += M[c.id].lore; } }
+    const tm = L.threatMap(g, me);
+    const P = g.players[me], O = g.players[me ^ 1];
+    const routeText = (r, id) => {
+      if (!r) return '';
+      if (typeof r === 'object' && r.via === 'upgrade') return `Retro Evolution Device: ${nm(r.from)} becomes it for free`;
+      if (r === 'paid') return `cast for ${M[id].cost} ink`;
+      if (r === 'sung for free') return 'sung for free by one of their characters';
+      if (r === 'sung together') return 'sung together by their board';
+      if (r === 'Rush') return 'Rush: can challenge the turn it’s played';
+      if (r === 'shifted') return `shifted for ${M[id].kw.shift}`;
+      return String(r);
+    };
+    const what = (mode) => ({ banish: 'banishes it', damage: 'damage finishes it', bounce: 'returns it to hand', bottom: 'puts it on the bottom', challenge: 'challenge' })[mode] || mode;
+    const theirOrder = tm.theirs.map(t => t.iid);
+    const allSel = s.sel || (theirOrder[0] ? { side: 'op', iid: theirOrder[0] } : null);
+    const card = (c) => { const v = L.instView(g, c); v.costCls = 'tc-cost ' + v.inkCls; return v; };
+    const theirs = O.field.filter(c => M[c.id].type === 'Character').map(c => {
+      const t = tm.theirs.find(x => x.iid === c.iid); const rank = theirOrder.indexOf(c.iid) + 1; const v = card(c);
+      v.tag = `#${rank} · ${t.ignore2.toFixed(1)}`; v.tagCls = rank === 1 ? 'tag hot' : 'tag';
+      v.pickCls = allSel && allSel.side === 'op' && allSel.iid === c.iid ? 'pick sel' : 'pick';
+      v.pick = () => this.setState({ sel: { side: 'op', iid: c.iid } });
+      v.aria = `${M[c.id].full}, threat rank ${rank}`;
+      return v;
+    });
+    const mine = P.field.filter(c => M[c.id].type === 'Character').map(c => {
+      const x = tm.mine.find(e => e && e.iid === c.iid); const v = card(c);
+      v.pText = pct(x.pAny); v.deg = Math.round(x.pAny * 360); v.ringColor = x.pAny >= 0.5 ? 'var(--bad)' : x.pAny >= 0.2 ? 'var(--warn)' : 'var(--ok)';
+      v.pickCls = allSel && allSel.side === 'me' && allSel.iid === c.iid ? 'pick sel' : 'pick';
+      v.pick = () => this.setState({ sel: { side: 'me', iid: c.iid } });
+      v.aria = `${M[c.id].full}, ${pct(x.pAny)} likely to be removed next turn`;
+      return v;
+    });
+    // dossier
+    let dTitle = '', dName = '', dHeadline = '', dSections = [];
+    if (allSel && allSel.side === 'op') {
+      const t = tm.theirs.find(x => x.iid === allSel.iid) || tm.theirs[0]; const m = M[t.id];
+      dTitle = 'If you don’t answer it'; dName = m.full;
+      const lore2 = 2 * t.lore;
+      dHeadline = `Two turns of ignoring it: +${lore2} lore${t.cards ? `, +${2 * t.cards} cards` : ''}${t.condCards ? ', plus a conditional draw each turn' : ''}${t.enables.length ? ', and it unlocks the plays below.' : '.'}`;
+      dSections.push({ title: 'What it unlocks next turn', empty: !t.enables.length, emptyText: 'Nothing beyond its own lore.', rows: t.enables.map(e => ({
+        kind: e.kind === 'upgrade' ? 'device' : e.kind, kindCls: 'kind bad',
+        title: e.kind === 'upgrade' ? `${nm(e.id)} for free` : e.kind === 'sing' ? `Sings ${nm(e.id)}` : `Shift ${nm(e.id)}`,
+        sub: e.kind === 'upgrade' ? `Retro Evolution Device banishes ${m.name} (cost ${m.cost}) to play a cost-${M[e.id].cost} character${e.text ? ` · ${e.text}` : ''}` : (e.text || ''),
+        p: pct(e.p), pColor: e.p >= 0.3 ? 'var(--bad)' : 'var(--tx2)' })) });
+      dSections.push({ title: 'Your answers', empty: !t.answers.length && !t.blockers.length, emptyText: 'Nothing on your board or in your hand reaches it this turn.', rows: t.answers.map(a => a.kind === 'card' ? ({
+          kind: 'card', kindCls: a.affordable ? 'kind ok' : 'kind', title: `${nm(a.id)} ${what(a.mode)}`, sub: a.affordable ? 'castable this turn' : 'not enough ink this turn', p: a.affordable ? 'yes' : 'later', pColor: a.affordable ? 'var(--ok)' : 'var(--dim)' })
+        : ({ kind: 'challenge', kindCls: a.possible ? 'kind ok' : 'kind', title: `${nm(a.id)} challenges it${a.support ? ' with Support' : ''}`,
+          sub: `${a.survives ? 'survives' : 'trades itself'}${a.needsExert ? (a.viaExert === 'exert-all' ? ' · needs an exert-all first (Ward can’t stop it)' : a.viaExert ? ' · needs an exert first' : ' · it’s ready, and nothing in hand can exert it') : ''}`,
+          p: a.possible ? 'yes' : 'no', pColor: a.possible ? 'var(--ok)' : 'var(--dim)' })).concat(t.blockers.map(b => ({ kind: 'blocked', kindCls: 'kind warn', title: `${nm(b.id)} can’t choose it`, sub: `${b.why}: opponents can’t choose it except to challenge`, p: '—', pColor: 'var(--dim)' }))) });
+    } else if (allSel) {
+      const x = tm.mine.find(e => e && e.iid === allSel.iid); const m = M[x.id];
+      dTitle = 'What can remove it next turn'; dName = m.full;
+      dHeadline = `${pct(x.pAny)} chance it’s gone after their turn${x.exerted ? '. It’s exerted, so their board can challenge it' : '. It’s ready, so only cards can reach it'}.`;
+      const rows = [];
+      for (const c of x.certain) rows.push({ kind: 'board', kindCls: 'kind bad', title: `${nm(c.id)} challenges it`, sub: c.survives ? 'and survives' : 'and trades', p: 'sure', pColor: 'var(--bad)' });
+      for (const p of x.pool) rows.push({ kind: 'hand', kindCls: 'kind', title: `${nm(p.id)}`, sub: `${routeText(p.route, p.id)} · ${what(p.why)} · ${p.copies} unseen`, p: pct(p.p), pColor: p.p >= 0.3 ? 'var(--bad)' : 'var(--tx2)' });
+      for (const e of x.enabled) rows.push({ kind: 'combo', kindCls: 'kind warn', title: `${e.by.map(nm).join(' / ')}, then a challenge`, sub: `exert it, then ${e.then.map(t => nm(t.id) + (t.support ? ' with Support' : '')).join(' or ')}`, p: pct(e.p), pColor: e.p >= 0.3 ? 'var(--bad)' : 'var(--tx2)' });
+      for (const c of x.combos.slice(0, 3)) rows.push({ kind: 'combo', kindCls: 'kind warn', title: `${nm(c.a)} + ${nm(c.b)}`, sub: `sweep for 1, then ${routeText(c.routeB, c.b)}`, p: pct(c.p), pColor: 'var(--tx2)' });
+      dSections.push({ title: 'Their outs against it', empty: !rows.length, emptyText: 'Nothing they can show next turn removes it.', rows });
+    }
+    const pool = tm.pool;
+    const deadWhy = (id) => { const a = M[id].answers.filter(z => z.mode !== 'exert')[0]; if (!a) return ''; if (a.filter && a.filter.kw) return `no ${a.filter.kw} target`; if (a.filter && a.filter.strGte != null) return `nothing with ${a.filter.strGte}+ strength they can choose`; if (a.filter && a.filter.costLte != null) return `nothing costing ${a.filter.costLte} or less`; if (a.mode === 'damage') return `${a.n} damage kills nothing`; return 'no legal target'; };
+    const dead = tm.dead.map(d => ({ name: M[d.id].full, copies: d.copies, why: deadWhy(d.id) }));
+    const deadCopies = tm.dead.reduce((sum, d) => sum + d.copies, 0);
+    const n = Math.min(pool.N, pool.hand + 1);
+    const sweeps = tm.sweeps.map(w => ({ name: M[w.id].full, route: routeText(w.route, w.id) || 'not castable next turn', value: w.value, p: pct(L.pAtLeastOne(w.copies, pool.N, n)) }));
+    return {
+      loading: false, ready: true, seats,
+      questAll: !!s.questAll, questCls: s.questAll && me === 0 ? 'btn on' : 'btn', questDisabled: me !== 0, toggleQuest: () => this.setState({ questAll: !s.questAll }),
+      opName: L.DECKS[O.key].short, meName: L.DECKS[P.key].short,
+      poolText: `Their hand: ${O.hand.length} + 1 draw, from ${pool.N} cards you haven’t seen`,
+      theirs, mine, dTitle, dName, dHeadline, dSections,
+      dead, deadLead: deadCopies ? `${deadCopies} of their unseen cards would do nothing if they drew them now. Your board shape is doing that, not luck.` : 'Every removal card they could hold has a target on your board.',
+      sweeps, noSweeps: !sweeps.length
+    };
+  }
+}
+</script>
+</body>
+</html>

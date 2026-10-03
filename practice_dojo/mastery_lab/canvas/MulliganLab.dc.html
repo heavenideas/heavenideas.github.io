@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Mulligan Lab</title>
+<script src="./support.js"></script>
+<script src="/_blob/19bd967edd1578bce22b6dc908fa9350"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&amp;family=Geist+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:oklch(0.155 0.008 60)}
+a{color:oklch(0.84 0.14 70)}a:hover{color:oklch(0.92 0.12 75)}
+.lab{--bg:oklch(0.155 0.008 60);--s1:oklch(0.195 0.010 60);--s2:oklch(0.23 0.012 60);--s3:oklch(0.27 0.014 60);--hi:oklch(0.34 0.016 60);--bd:oklch(0.31 0.013 60);--bd2:oklch(0.25 0.011 60);--tx:oklch(0.965 0.004 60);--tx2:oklch(0.82 0.008 60);--dim:oklch(0.70 0.012 60);--acc:oklch(0.80 0.14 70);--accs:oklch(0.80 0.14 70 / .15);--me:oklch(0.79 0.145 78);--mes:oklch(0.79 0.145 78 / .16);--op:oklch(0.72 0.15 305);--ops:oklch(0.72 0.15 305 / .18);--ok:oklch(0.76 0.13 155);--oks:oklch(0.76 0.13 155 / .16);--bad:oklch(0.70 0.18 25);--bads:oklch(0.70 0.18 25 / .16);--warn:oklch(0.85 0.13 95);font-family:'Geist',system-ui,-apple-system,'Segoe UI',sans-serif;color:var(--tx);background:var(--bg);font-size:14px;line-height:1.45;padding:32px 24px 48px;box-sizing:border-box}
+.lab *{box-sizing:border-box}
+.mono{font-family:'Geist Mono',ui-monospace,Menlo,monospace}
+.eyebrow{font-family:'Geist Mono',ui-monospace,monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--acc)}
+.panel{background:var(--s1);border:1px solid var(--bd2);border-radius:14px;padding:18px;min-width:0}
+.ptitle{font-family:'Geist Mono',ui-monospace,monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin:0 0 12px}
+.btn{appearance:none;border:1px solid var(--bd);background:var(--s2);color:var(--tx);font:inherit;font-size:13px;font-weight:600;border-radius:9px;padding:8px 13px;min-height:44px;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+.btn:hover{background:var(--s3);border-color:var(--hi)}
+.btn.on{background:var(--accs);border-color:var(--acc)}
+.btn.pri{background:var(--acc);border-color:transparent;color:oklch(0.22 0.03 70)}
+.btn.sm{min-height:34px;padding:5px 10px;font-size:12px}
+.seg{display:inline-flex;gap:0;border:1px solid var(--bd);border-radius:10px;overflow:hidden}
+.seg .btn{border:0;border-radius:0}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:3px 9px;border-radius:999px;background:var(--s2);border:1px solid var(--bd2);color:var(--tx2);white-space:nowrap}
+.tc{position:relative;width:var(--cw,86px);height:calc(var(--cw,86px) * 1.4);border-radius:8px;overflow:hidden;flex:0 0 auto;background:linear-gradient(155deg,color-mix(in oklab,var(--tint) 22%,var(--s2)),var(--s2) 68%);box-shadow:inset 0 0 0 1px oklch(1 0 0 / .07),0 2px 6px oklch(0 0 0 / .35);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:16% 8% 20% 12%;font-size:calc(var(--cw,86px) * .118);line-height:1.15;color:var(--tx)}
+.tc::before{content:'';position:absolute;left:0;top:0;bottom:0;width:5.5%;background:var(--strip)}
+.tc-cost{position:absolute;top:5%;left:11%;width:1.8em;height:1.8em;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.05em}
+.tc-cost.ink{border-radius:50%;background:#D4AF37;color:#111;box-shadow:inset 0 0 0 .1em #fff}
+.tc-cost.noink{background:#2f3036;color:#fff;clip-path:polygon(50% 2%,98% 26%,98% 74%,50% 98%,2% 74%,2% 26%)}
+.tc-name{font-weight:700}
+.tc-ver{font-size:.82em;color:var(--dim);margin-top:.2em}
+.tc-kw{font-size:.74em;margin-top:.4em;color:var(--warn);font-weight:600}
+.tc-stats{position:absolute;left:12%;right:8%;bottom:4%;display:flex;justify-content:space-between;font-weight:700;font-size:1.02em}
+.tc-stats small{font-size:.6em;opacity:.6;margin-left:.1em}
+.tc-lore{position:absolute;right:8%;top:6%;font-size:.95em;font-weight:800;color:var(--warn);display:flex;align-items:center;gap:.15em}
+/* artboard */
+.hand{display:flex;gap:12px;flex-wrap:wrap}
+.hcard{appearance:none;background:none;border:0;padding:0;margin:0;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--tx);font:inherit;border-radius:10px}
+.hcard .tc{transition:transform .15s ease,filter .15s ease}
+.hcard:hover .tc{transform:translateY(-3px)}
+.hcard.marked .tc{filter:grayscale(.85) brightness(.55);transform:translateY(10px)}
+.hcard.marked .tc::after{content:'';position:absolute;inset:0;background:repeating-linear-gradient(135deg,oklch(0.70 0.18 25 / .22) 0 8px,transparent 8px 16px)}
+.hlabel{font-family:'Geist Mono',ui-monospace,monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border-radius:999px;border:1px solid var(--bd);color:var(--tx2)}
+.hcard.marked .hlabel{border-color:var(--bad);color:var(--bad);background:var(--bads)}
+.big{font-size:44px;font-weight:800;letter-spacing:-.03em;line-height:1}
+.trow{display:grid;grid-template-columns:44px minmax(0,1fr) 54px;gap:10px;align-items:center;padding:7px 0;border-top:1px solid var(--bd2)}
+.bar{height:9px;border-radius:5px;background:var(--s3);position:relative;overflow:hidden}
+.bar i{position:absolute;left:0;top:0;bottom:0;border-radius:5px}
+.strip{position:relative;height:56px;border-radius:10px;background:var(--s2);border:1px solid var(--bd2);margin:6px 0 2px}
+.d{position:absolute;top:50%;width:9px;height:9px;margin:-4.5px 0 0 -4.5px;border-radius:50%;background:oklch(0.62 0.012 60 / .55)}
+.d.best{background:var(--ok);width:13px;height:13px;margin:-6.5px 0 0 -6.5px;z-index:2}
+.d.keep{background:var(--tx2);width:13px;height:13px;margin:-6.5px 0 0 -6.5px;z-index:2;box-shadow:0 0 0 2px var(--bg)}
+.d.you{background:var(--acc);width:17px;height:17px;margin:-8.5px 0 0 -8.5px;z-index:3;box-shadow:0 0 0 3px var(--bg)}
+.opt{display:grid;grid-template-columns:40px minmax(0,1fr) 70px 112px;gap:12px;align-items:center;padding:8px 0;border-top:1px solid var(--bd2)}
+.opt.mine{background:var(--accs);border-radius:8px;padding:8px}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--dim)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+select.sel{appearance:none;font:inherit;font-size:13px;font-weight:600;color:var(--tx);background:var(--s2);border:1px solid var(--bd);border-radius:9px;padding:9px 34px 9px 12px;min-height:44px;background-image:linear-gradient(45deg,transparent 50%,var(--dim) 50%),linear-gradient(135deg,var(--dim) 50%,transparent 50%);background-position:calc(100% - 18px) 50%,calc(100% - 13px) 50%;background-size:5px 5px;background-repeat:no-repeat}
+</style>
+</helmet>
+<div class="lab">
+<div style="max-width: 1232px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px">
+
+<header style="display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; flex-wrap: wrap">
+<div style="display: flex; flex-direction: column; gap: 8px; max-width: 760px">
+<div class="eyebrow">01 · Before the game · The Mulligan</div>
+<h1 style="margin: 0; font-size: 34px; line-height: 1.05; letter-spacing: -0.02em">Mulligan Lab</h1>
+<p style="margin: 0; color: var(--tx2); font-size: 15px">“Which hand gives me the highest chance of executing my game plan?” Mark what you would send back. The lab plays every possible mulligan of this hand forward through turn 4, 500 times each from the same shuffles, and shows where yours ranks.</p>
+</div>
+<div style="display: flex; gap: 8px; flex-wrap: wrap">
+<sc-for list="{{presets}}" as="p" hint-placeholder-count="3">
+<button class="{{p.cls}}" onClick="{{p.go}}">{{p.label}}</button>
+</sc-for>
+</div>
+</header>
+
+<sc-if value="{{loading}}" hint-placeholder-val="{{false}}">
+<div class="panel" style="color: var(--dim)">Loading the card engine…</div>
+</sc-if>
+
+<sc-if value="{{ready}}" hint-placeholder-val="{{true}}">
+<section class="panel" style="display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; align-items: center">
+<div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center">
+<div class="seg" role="group" aria-label="Deck">
+<sc-for list="{{decks}}" as="dk" hint-placeholder-count="2"><button class="{{dk.cls}}" onClick="{{dk.go}}">{{dk.label}}</button></sc-for>
+</div>
+<div class="seg" role="group" aria-label="Turn order">
+<sc-for list="{{orders}}" as="ord" hint-placeholder-count="2"><button class="{{ord.cls}}" onClick="{{ord.go}}">{{ord.label}}</button></sc-for>
+</div>
+</div>
+<div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap">
+<label for="plan" class="ptitle" style="margin: 0">Plan card</label>
+<select id="plan" class="sel" value="{{planValue}}" onChange="{{onPlan}}">
+<sc-for list="{{planOptions}}" as="po" hint-placeholder-count="8"><option value="{{po.value}}">{{po.label}}</option></sc-for>
+</select>
+<span class="ptitle" style="margin: 0">by</span>
+<div class="seg" role="group" aria-label="Plan turn">
+<sc-for list="{{planTurns}}" as="pt" hint-placeholder-count="5"><button class="{{pt.cls}}" onClick="{{pt.go}}">{{pt.label}}</button></sc-for>
+</div>
+</div>
+</div>
+<div>
+<p class="ptitle">Your opening seven · tap a card to send it to the bottom</p>
+<div class="hand" style="--cw: 116px">
+<sc-for list="{{hand}}" as="c" hint-placeholder-count="7">
+<button class="{{c.cls}}" onClick="{{c.toggle}}" aria-pressed="{{c.marked}}" aria-label="{{c.aria}}">
+<div class="tc" style="{{c.style}}">
+<span class="{{c.costCls}}">{{c.cost}}</span>
+<sc-if value="{{c.lore}}" hint-placeholder-val="{{false}}"><span class="tc-lore">{{c.lore}}<svg width="8" height="8" viewBox="0 0 10 10" aria-hidden="true"><path d="M5 0 L10 5 L5 10 L0 5 Z" fill="currentColor"></path></svg></span></sc-if>
+<span class="tc-name">{{c.name}}</span>
+<span class="tc-ver">{{c.version}}</span>
+<sc-if value="{{c.kw}}" hint-placeholder-val="{{false}}"><span class="tc-kw">{{c.kw}}</span></sc-if>
+<sc-if value="{{c.hasStats}}" hint-placeholder-val="{{false}}"><span class="tc-stats"><span>{{c.str}}<small>S</small></span><span>{{c.wp}}<small>W</small></span></span></sc-if>
+</div>
+<span class="hlabel">{{c.label}}</span>
+</button>
+</sc-for>
+</div>
+</div>
+</section>
+
+<sc-if value="{{running}}" hint-placeholder-val="{{false}}">
+<section class="panel" style="display: flex; flex-direction: column; gap: 10px">
+<p class="ptitle" style="margin: 0">Playing out every mulligan · {{progressText}}</p>
+<div class="bar" style="height: 6px"><i style="width: {{progressPct}}; background: var(--acc)"></i></div>
+</section>
+</sc-if>
+
+<sc-if value="{{hasResults}}" hint-placeholder-val="{{false}}">
+<section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(380px, 100%), 1fr)); gap: 16px">
+<div class="panel" style="display: flex; flex-direction: column; gap: 14px">
+<p class="ptitle" style="margin: 0">Your mulligan</p>
+<div style="display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap">
+<span class="big" style="color: {{verdictColor}}">{{rankText}}</span>
+<span style="color: var(--tx2); font-size: 15px">{{rankSub}}</span>
+</div>
+<div style="display: flex; gap: 8px; flex-wrap: wrap">
+<span class="chip">Send back: {{thrownText}}</span>
+<sc-if value="{{tied}}" hint-placeholder-val="{{false}}"><span class="chip" style="border-color: var(--ok); color: var(--ok)">Statistically tied with the best</span></sc-if>
+</div>
+<p style="margin: 0; font-size: 15px; line-height: 1.5; text-wrap: pretty">{{insight}}</p>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px">
+<div style="background: var(--s2); border-radius: 10px; padding: 12px"><div class="ptitle" style="margin: 0 0 6px">Yours</div><div style="font-size: 24px; font-weight: 800">{{meanMine}}</div><div style="font-size: 12px; color: var(--dim)">ink value by T4</div></div>
+<div style="background: var(--s2); border-radius: 10px; padding: 12px"><div class="ptitle" style="margin: 0 0 6px; color: var(--ok)">Best</div><div style="font-size: 24px; font-weight: 800">{{meanBest}}</div><div style="font-size: 12px; color: var(--dim)">{{bestThrownShort}}</div></div>
+<div style="background: var(--s2); border-radius: 10px; padding: 12px"><div class="ptitle" style="margin: 0 0 6px">Keep all 7</div><div style="font-size: 24px; font-weight: 800">{{meanKeep}}</div><div style="font-size: 12px; color: var(--dim)">rank {{keepRank}}</div></div>
+</div>
+<p style="margin: 0; font-size: 12px; color: var(--dim)">Ink value = printed cost of everything you put into play or sang on turns 1–4. Ten ink is available; reducers and songs can push past it.</p>
+</div>
+
+<div class="panel" style="display: flex; flex-direction: column; gap: 6px">
+<p class="ptitle" style="margin: 0 0 4px">Turn by turn · yours vs best</p>
+<div class="legend"><span><i style="display: inline-block; width: 14px; height: 8px; border-radius: 3px; background: var(--acc)"></i>Yours</span><span><i style="display: inline-block; width: 14px; height: 8px; border-radius: 3px; background: var(--ok)"></i>Best</span></div>
+<sc-for list="{{turnRows}}" as="r" hint-placeholder-count="4">
+<div class="trow">
+<span class="mono" style="color: var(--dim); font-size: 12px">{{r.label}}</span>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--tx2)"><span>{{r.what}}</span><span class="mono">{{r.mineText}} → {{r.bestText}}</span></div>
+<div class="bar"><i style="width: {{r.mineW}}; background: var(--acc)"></i></div>
+<div class="bar"><i style="width: {{r.bestW}}; background: var(--ok)"></i></div>
+</div>
+<span class="mono" style="text-align: right; font-size: 13px; font-weight: 700; color: {{r.deltaColor}}">{{r.delta}}</span>
+</div>
+</sc-for>
+</div>
+</section>
+
+<section class="panel" style="display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: baseline">
+<p class="ptitle" style="margin: 0">All {{optionCount}} ways to mulligan this hand · ink value by turn 4</p>
+<div class="legend"><span><span class="d you" style="position: static; margin: 0"></span>yours</span><span><span class="d best" style="position: static; margin: 0"></span>best</span><span><span class="d keep" style="position: static; margin: 0"></span>keep all 7</span></div>
+</div>
+<div class="strip">
+<sc-for list="{{dots}}" as="dt" hint-placeholder-count="20"><span class="{{dt.cls}}" style="left: {{dt.left}}" title="{{dt.title}}"></span></sc-for>
+</div>
+<div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--dim)" class="mono"><span>{{minText}}</span><span>{{maxText}}</span></div>
+<div style="margin-top: 6px">
+<sc-for list="{{top}}" as="op" hint-placeholder-count="6">
+<div class="{{op.cls}}">
+<span class="mono" style="color: var(--dim)">#{{op.rank}}</span>
+<span style="font-weight: 600">{{op.thrown}}</span>
+<span class="mono" style="text-align: right">{{op.mean}}</span>
+<button class="btn sm" onClick="{{op.use}}">{{op.useLabel}}</button>
+</div>
+</sc-for>
+</div>
+</section>
+</sc-if>
+</sc-if>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1420}}'>
+const PRESETS = {
+  game: { label: 'This game’s opener', deck: 'B', onPlay: true, hand: ['Luisa', 'Hamm', 'Alma', 'Agustin', 'Gaston', 'Demona', 'Storm'], marked: ['Demona', 'Storm'], plan: 'Dumbo', planTurn: 4 },
+  trap: { label: 'Phillip: the curve trap', deck: 'A', onPlay: false, hand: ['Rafiki', 'Tod', 'Huntsman', 'MMS', 'Milo', 'Sea', 'Phillip'], marked: [], plan: 'RED', planTurn: 4 }
+};
+const pctTxt = (p) => Math.round(p * 100) + '%';
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { ok: false, preset: 'game', deck: 'B', onPlay: true, hand: [], marked: [], planId: null, planTurn: 4, results: null, progress: 0, running: false, dealN: 0 };
+  }
+  componentDidMount() {
+    const go = () => { if (window.DojoLab) { clearInterval(this._t); this.loadPreset('game'); return true; } return false; };
+    if (!go()) this._t = setInterval(go, 80);
+  }
+  componentWillUnmount() { clearInterval(this._t); clearTimeout(this._job); }
+  loadPreset(name) {
+    const L = window.DojoLab; const p = PRESETS[name];
+    const hand = p.hand.map(k => L.ID[k]);
+    const left = p.marked.slice();
+    const marked = p.hand.map(k => { const i = left.indexOf(k); if (i >= 0) { left.splice(i, 1); return true; } return false; });
+    this.setState({ ok: true, preset: name, deck: p.deck, onPlay: p.onPlay, hand, marked, planId: L.ID[p.plan], planTurn: p.planTurn }, () => this.grade());
+  }
+  deal(deckArg) {
+    const L = window.DojoLab; const n = this.state.dealN + 1; const deck = deckArg || this.state.deck;
+    const hand = L.dealHand(deck, 1000 + n * 7919).sort((a, b) => L.M[a].cost - L.M[b].cost || a - b);
+    this.setState({ preset: 'deal', deck, dealN: n, hand, marked: hand.map(() => false), planId: L.ID[deck === 'B' ? 'Dumbo' : 'RED'] }, () => this.grade());
+  }
+  grade() {
+    clearTimeout(this._job);
+    const L = window.DojoLab; const s = this.state;
+    const job = L.mulliganJob(s.deck, s.hand, { onPlay: s.onPlay, planId: s.planId, planTurn: s.planTurn, sims: 500, seed: 17 });
+    this.setState({ running: true, progress: 0, results: null });
+    const tick = () => {
+      job.step(5);
+      if (job.results) this.setState({ running: false, progress: 1, results: job.results });
+      else { this.setState({ progress: job.done / job.total }); this._job = setTimeout(tick, 0); }
+    };
+    this._job = setTimeout(tick, 20);
+  }
+  applyThrow(thrown) {
+    const left = thrown.slice();
+    const marked = this.state.hand.map(id => { const i = left.indexOf(id); if (i >= 0) { left.splice(i, 1); return true; } return false; });
+    this.setState({ marked });
+  }
+  renderVals() {
+    const L = window.DojoLab; const s = this.state;
+    const base = {
+      loading: !L || !s.ok, ready: !!(L && s.ok), running: false, hasResults: false,
+      presets: Object.keys(PRESETS).map(k => ({ label: PRESETS[k].label, cls: s.preset === k ? 'btn on' : 'btn', go: () => this.loadPreset(k) })).concat([{ label: 'Deal a new hand', cls: s.preset === 'deal' ? 'btn on' : 'btn', go: () => this.deal() }])
+    };
+    if (!L || !s.ok) return Object.assign(base, { decks: [], orders: [], planOptions: [], planTurns: [], hand: [] });
+    const M = L.M; const nm = (id) => M[id].name;
+    const decks = ['B', 'A'].map(k => ({ label: L.DECKS[k].name, cls: s.deck === k ? 'btn on' : 'btn', go: () => { if (s.deck !== k) this.deal(k); } }));
+    const orders = [{ v: true, label: 'On the play' }, { v: false, label: 'On the draw' }].map(o => ({ label: o.label, cls: s.onPlay === o.v ? 'btn on' : 'btn', go: () => { if (s.onPlay !== o.v) this.setState({ onPlay: o.v }, () => this.grade()); } }));
+    const uniq = []; for (const [id] of L.DECKS[s.deck].list) if (!uniq.includes(id)) uniq.push(id);
+    uniq.sort((a, b) => M[a].cost - M[b].cost || nm(a).localeCompare(nm(b)));
+    const planOptions = uniq.map(id => ({ value: String(id), label: `${M[id].cost} · ${M[id].full}` }));
+    const planTurns = [2, 3, 4, 5, 6].map(t => ({ label: 'T' + t, cls: s.planTurn === t ? 'btn on' : 'btn', go: () => { if (s.planTurn !== t) this.setState({ planTurn: t }, () => this.grade()); } }));
+    const hand = s.hand.map((id, i) => Object.assign(L.cardView(id), {
+      marked: !!s.marked[i], cls: s.marked[i] ? 'hcard marked' : 'hcard', costCls: 'tc-cost ' + L.cardView(id).inkCls,
+      label: s.marked[i] ? 'Bottom' : 'Keep', aria: `${M[id].full}: ${s.marked[i] ? 'sending to the bottom' : 'keeping'}`,
+      toggle: () => { const m = this.state.marked.slice(); m[i] = !m[i]; this.setState({ marked: m }); }
+    }));
+    const out = Object.assign(base, {
+      decks, orders, planOptions, planTurns, hand, planValue: String(s.planId),
+      onPlan: (e) => { const v = +e.target.value; this.setState({ planId: v }, () => this.grade()); },
+      running: s.running, progressPct: Math.round(s.progress * 100) + '%', progressText: Math.round(s.progress * 100) + '%'
+    });
+    const res = s.results; if (!res) return out;
+    const thrown = s.hand.filter((_, i) => s.marked[i]);
+    const key = thrown.slice().sort((a, b) => a - b).join(',');
+    const mine = res.find(r => r.key === key); const best = res[0]; const keep = res.find(r => r.key === '');
+    const names = (ids) => ids.length ? ids.map(nm).join(' + ') : 'nothing — keep all 7';
+    const short = (ids) => ids.length ? ids.map(nm).join(' + ') : 'keep all 7';
+    const f1 = (x) => x.toFixed(1);
+    // the clearest single reason the best option beats yours
+    let insight;
+    const rows = [];
+    for (let t = 0; t < 4; t++) rows.push({ t, kind: 'play', d: best.played[t] - mine.played[t] });
+    for (let t = 0; t < 4; t++) rows.push({ t, kind: 'full', d: best.full[t] - mine.full[t] });
+    const worst = rows.sort((a, b) => b.d - a.d)[0];
+    const planName = nm(s.planId);
+    const planGap = (best.plan || 0) - (mine.plan || 0);
+    if (mine.tied) {
+      insight = mine.rank === 1 ? `This is the strongest mulligan for this hand. It makes a play on turns 1–4 in ${pctTxt(mine.played.reduce((a, b) => a + b, 0) / 4)} of games and sees ${planName} by turn ${s.planTurn} ${pctTxt(mine.plan || 0)} of the time.`
+        : `Your choice is inside the noise of the best one (${short(best.thrown)}), so stop worrying about this decision and spend the thinking on turn 1.`;
+    } else if (worst.d >= 0.05) {
+      insight = worst.kind === 'play'
+        ? `The best mulligan sends back ${short(best.thrown)}. You make a play on turn ${worst.t + 1} in ${pctTxt(mine.played[worst.t])} of games; it does in ${pctTxt(best.played[worst.t])}. That gap is most of the difference.`
+        : `The best mulligan sends back ${short(best.thrown)}. You use all your ink on turn ${worst.t + 1} in ${pctTxt(mine.full[worst.t])} of games; it does in ${pctTxt(best.full[worst.t])}.`;
+    } else if (planGap >= 0.05) {
+      insight = `The curves are close, but the best option sees ${planName} by turn ${s.planTurn} in ${pctTxt(best.plan)} of games against your ${pctTxt(mine.plan)}.`;
+    } else insight = `Small gap: ${f1(mine.mean)} vs ${f1(best.mean)} ink value. The best option sends back ${short(best.thrown)}.`;
+    const turnRows = [];
+    for (let t = 0; t < 4; t++) {
+      const pairs = [['Makes a play', mine.played[t], best.played[t]], ['Uses all ink', mine.full[t], best.full[t]]];
+      for (const [what, a, b] of pairs) {
+        const d = Math.round((a - b) * 100);
+        turnRows.push({ label: 'T' + (t + 1), what, mineText: pctTxt(a), bestText: pctTxt(b), mineW: pctTxt(a), bestW: pctTxt(b), delta: d === 0 ? '±0' : (d > 0 ? '+' : '−') + Math.abs(d), deltaColor: d < -4 ? 'var(--bad)' : d > 4 ? 'var(--ok)' : 'var(--dim)' });
+      }
+    }
+    turnRows.push({ label: 'Plan', what: `${planName} by turn ${s.planTurn}`, mineText: pctTxt(mine.plan || 0), bestText: pctTxt(best.plan || 0), mineW: pctTxt(mine.plan || 0), bestW: pctTxt(best.plan || 0), delta: (() => { const d = Math.round(((mine.plan || 0) - (best.plan || 0)) * 100); return d === 0 ? '±0' : (d > 0 ? '+' : '−') + Math.abs(d); })(), deltaColor: 'var(--dim)' });
+    turnRows.push({ label: 'Ink', what: 'Misses an ink drop by T4', mineText: pctTxt(mine.missAny), bestText: pctTxt(best.missAny), mineW: pctTxt(mine.missAny), bestW: pctTxt(best.missAny), delta: (() => { const d = Math.round((mine.missAny - best.missAny) * 100); return d === 0 ? '±0' : (d > 0 ? '+' : '−') + Math.abs(d); })(), deltaColor: mine.missAny - best.missAny > 0.04 ? 'var(--bad)' : 'var(--dim)' });
+    const lo = res[res.length - 1].mean, hi = best.mean, span = Math.max(0.01, hi - lo);
+    const dots = res.slice().reverse().map(r => ({ left: (3 + 94 * (r.mean - lo) / span).toFixed(2) + '%', cls: r.key === key ? 'd you' : r === best ? 'd best' : r.key === '' ? 'd keep' : 'd', title: `#${r.rank} · ${short(r.thrown)} · ${f1(r.mean)}` }));
+    const topList = res.slice(0, 5); if (!topList.includes(mine)) topList.push(mine);
+    const top = topList.map(r => ({ rank: r.rank, thrown: r.thrown.length ? 'Send back ' + r.thrown.map(nm).join(' + ') : 'Keep all 7', mean: f1(r.mean) + (r.tied ? ' ≈' : ''), cls: r === mine ? 'opt mine' : 'opt', useLabel: r === mine ? 'Your choice' : 'Try this', use: () => this.applyThrow(r.thrown) }));
+    return Object.assign(out, {
+      hasResults: true, optionCount: res.length,
+      rankText: mine.rank === 1 ? 'Best' : '#' + mine.rank,
+      rankSub: `of ${res.length} distinct mulligans · ${mine.rank === 1 ? 'top of the list' : f1(mine.gap) + ' ink value behind the best'}`,
+      verdictColor: mine.tied ? 'var(--ok)' : mine.rank <= res.length / 4 ? 'var(--acc)' : 'var(--bad)',
+      tied: !!mine.tied && mine.rank !== 1, thrownText: names(thrown), insight,
+      meanMine: f1(mine.mean), meanBest: f1(best.mean), meanKeep: f1(keep.mean), keepRank: '#' + keep.rank, bestThrownShort: short(best.thrown),
+      turnRows, dots, minText: f1(lo), maxText: f1(hi), top
+    });
+  }
+}
+</script>
+</body>
+</html>

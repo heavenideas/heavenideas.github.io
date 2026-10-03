@@ -1,0 +1,29 @@
+{
+  "v": 3,
+  "createdOnFiles": { "v": 1, "at": "2026-10-02T23:40:00Z" },
+  "title": "Dojo Mastery Lab",
+  "launch": { "view": "canvas" },
+  "pages": [],
+  "boards": {
+    "Main.dc.html": { "x": 0, "y": 0, "w": 1280, "h": 1720, "title": "Overview — six practice tools from the guide", "expand": "fill", "is_interactive": true },
+    "MulliganLab.dc.html": { "x": 0, "y": 2080, "w": 1280, "h": 1420, "title": "01 · Mulligan Lab", "expand": "fill", "is_interactive": true },
+    "RaceClock.dc.html": { "x": 1360, "y": 2080, "w": 1280, "h": 1420, "title": "02 · Race Clock", "expand": "fill", "is_interactive": true },
+    "ThreatMap.dc.html": { "x": 2720, "y": 2080, "w": 1280, "h": 1420, "title": "03 · Threat & Exposure Map", "expand": "fill", "is_interactive": true },
+    "SequenceCoach.dc.html": { "x": 0, "y": 4380, "w": 1280, "h": 1320, "title": "04 · Sequencing Coach", "expand": "fill", "is_interactive": true },
+    "GameLedger.dc.html": { "x": 1360, "y": 4380, "w": 1280, "h": 1500, "title": "05 · Game Ledger", "expand": "fill", "is_interactive": true },
+    "TurnBriefing.dc.html": { "x": 2720, "y": 4380, "w": 1280, "h": 1320, "title": "06 · Turn Briefing", "expand": "fill", "is_interactive": true }
+  },
+  "order": ["Main.dc.html", "MulliganLab.dc.html", "RaceClock.dc.html", "ThreatMap.dc.html", "SequenceCoach.dc.html", "GameLedger.dc.html", "TurnBriefing.dc.html"],
+  "notes": {
+    "title": { "x": 0, "y": -300, "text": "Mastering Lorcana → Practice Dojo", "kind": "title1", "maxW": 2560 },
+    "row1": { "x": 0, "y": 1820, "text": "Before the game · Every turn", "kind": "title1", "maxW": 4000 },
+    "row2": { "x": 0, "y": 4120, "text": "After the turn · After the game · The habit", "kind": "title1", "maxW": 4000 },
+    "s1": { "x": 0, "y": 3540, "w": 620, "maxH": 330, "fill": "orange", "size": "s", "text": "Mulligan Lab — The Mulligan · Resource Management\n\nWhy it helps: objective feedback on the one decision you make every game, measured the way the chapter defines a good hand (curve, ink drops, plan card), not by how strong the cards look.\n\nDojo hook: a Grade button in the mulligan modal (Feature 25). Deck and hand are already in state. Size S.\n\nLeft out (YAGNI): matchup card values, on-play draw effects in the sim." },
+    "s2": { "x": 1360, "y": 3540, "w": 620, "maxH": 330, "fill": "orange", "size": "s", "text": "Race Clock — Quest or Challenge · Ahead or Behind · Role\n\nWhy it helps: answers 'Am I winning this race, or do I need to slow it down?' after every action, and shows what each available action does to it before you take it.\n\nDojo hook: a pure function of App.state, recomputed in render(). A strip in the HUD plus a delta on each action chip. Size S.\n\nLeft out (YAGNI): any win %. It assumes nothing changes, and says so." },
+    "s3": { "x": 2720, "y": 3540, "w": 620, "maxH": 330, "fill": "orange", "size": "s", "text": "Threat & Exposure Map — Threat Assessment · Virtual Card Advantage\n\nWhy it helps: 'What happens if I don't answer this?' and 'what can they do to this?' — Ward, Evasive, Support, songs and the Device upgrade counted, hidden cards as honest odds.\n\nDojo hook: the card-text classifier (96.6% of removal text) plus the opponent decklist the Dojo already loads. Size M.\n\nLeft out (YAGNI): reading the opponent's mind. Their hand is treated as random from what you haven't seen." },
+    "s4": { "x": 0, "y": 5740, "w": 620, "maxH": 330, "fill": "teal", "size": "s", "text": "Sequencing Coach — Sequencing\n\nWhy it helps: the invisible mistake — same plays, wrong order — shown with what you would have seen, and the best order found by trying them all.\n\nDojo hook: needs an ordered per-turn action log (turnActions is unordered today). 'Replay this turn' is just the turn-start bookmark that already exists. Size M.\n\nLeft out (YAGNI): suggesting new plays. It only reorders what you did." },
+    "s5": { "x": 1360, "y": 5920, "w": 620, "maxH": 330, "fill": "teal", "size": "s", "text": "Game Ledger — Tempo · Card Advantage · Card Value · Trading\n\nWhy it helps: a post-game review in the guide's three currencies, plus the turns that actually moved the race, and a receipt for every card.\n\nDojo hook: per-instance events (quest, challenge and banish already pass through _trackAction). Duels.ink replays carry the same facts in takenAction frames. Size M.\n\nLeft out (YAGNI): grading individual plays." },
+    "s6": { "x": 2720, "y": 5740, "w": 620, "maxH": 330, "fill": "teal", "size": "s", "text": "Turn Briefing — 'Every turn starts with questions'\n\nWhy it helps: you answer first, then the lenses check you. That builds the habit the guide asks for and measures how well calibrated your reads are.\n\nDojo hook: four taps at the start of a turn, saved on the turn node and checked with the Clock and Threat lenses. Size S once those exist.\n\nLeft out (YAGNI): streaks, cloud stats, leaderboards." }
+  },
+  "designSystems": []
+}

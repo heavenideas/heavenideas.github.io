@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Race Clock</title>
+<script src="./support.js"></script>
+<script src="/_blob/19bd967edd1578bce22b6dc908fa9350"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&amp;family=Geist+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:oklch(0.155 0.008 60)}
+a{color:oklch(0.84 0.14 70)}a:hover{color:oklch(0.92 0.12 75)}
+.lab{--bg:oklch(0.155 0.008 60);--s1:oklch(0.195 0.010 60);--s2:oklch(0.23 0.012 60);--s3:oklch(0.27 0.014 60);--hi:oklch(0.34 0.016 60);--bd:oklch(0.31 0.013 60);--bd2:oklch(0.25 0.011 60);--tx:oklch(0.965 0.004 60);--tx2:oklch(0.82 0.008 60);--dim:oklch(0.70 0.012 60);--acc:oklch(0.80 0.14 70);--accs:oklch(0.80 0.14 70 / .15);--me:oklch(0.79 0.145 78);--mes:oklch(0.79 0.145 78 / .16);--op:oklch(0.72 0.15 305);--ops:oklch(0.72 0.15 305 / .18);--ok:oklch(0.76 0.13 155);--oks:oklch(0.76 0.13 155 / .16);--bad:oklch(0.70 0.18 25);--bads:oklch(0.70 0.18 25 / .16);--warn:oklch(0.85 0.13 95);font-family:'Geist',system-ui,-apple-system,'Segoe UI',sans-serif;color:var(--tx);background:var(--bg);font-size:14px;line-height:1.45;padding:32px 24px 48px;box-sizing:border-box}
+.lab *{box-sizing:border-box}
+.mono{font-family:'Geist Mono',ui-monospace,Menlo,monospace}
+.eyebrow{font-family:'Geist Mono',ui-monospace,monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--acc)}
+.panel{background:var(--s1);border:1px solid var(--bd2);border-radius:14px;padding:18px;min-width:0}
+.ptitle{font-family:'Geist Mono',ui-monospace,monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin:0 0 12px}
+.btn{appearance:none;border:1px solid var(--bd);background:var(--s2);color:var(--tx);font:inherit;font-size:13px;font-weight:600;border-radius:9px;padding:8px 13px;min-height:44px;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+.btn:hover{background:var(--s3);border-color:var(--hi)}
+.btn.on{background:var(--accs);border-color:var(--acc)}
+.btn.pri{background:var(--acc);border-color:transparent;color:oklch(0.22 0.03 70)}
+.btn:disabled{opacity:.45;cursor:default}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:3px 9px;border-radius:999px;background:var(--s2);border:1px solid var(--bd2);color:var(--tx2);white-space:nowrap}
+.tc{position:relative;width:var(--cw,86px);height:calc(var(--cw,86px) * 1.4);border-radius:8px;overflow:hidden;flex:0 0 auto;background:linear-gradient(155deg,color-mix(in oklab,var(--tint) 22%,var(--s2)),var(--s2) 68%);box-shadow:inset 0 0 0 1px oklch(1 0 0 / .07),0 2px 6px oklch(0 0 0 / .35);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:16% 8% 20% 12%;font-size:calc(var(--cw,86px) * .118);line-height:1.15;color:var(--tx)}
+.tc::before{content:'';position:absolute;left:0;top:0;bottom:0;width:5.5%;background:var(--strip)}
+.tc-cost{position:absolute;top:5%;left:11%;width:1.8em;height:1.8em;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.05em}
+.tc-cost.ink{border-radius:50%;background:#D4AF37;color:#111;box-shadow:inset 0 0 0 .1em #fff}
+.tc-cost.noink{background:#2f3036;color:#fff;clip-path:polygon(50% 2%,98% 26%,98% 74%,50% 98%,2% 74%,2% 26%)}
+.tc-name{font-weight:700}
+.tc-ver{font-size:.82em;color:var(--dim);margin-top:.2em}
+.tc-kw{font-size:.74em;margin-top:.4em;color:var(--warn);font-weight:600}
+.tc-stats{position:absolute;left:12%;right:8%;bottom:4%;display:flex;justify-content:space-between;font-weight:700;font-size:1.02em}
+.tc-stats small{font-size:.6em;opacity:.6;margin-left:.1em}
+.tc-lore{position:absolute;right:8%;top:6%;font-size:.95em;font-weight:800;color:var(--warn);display:flex;align-items:center;gap:.15em}
+.tc-dmg{position:absolute;right:7%;top:34%;min-width:1.8em;height:1.8em;border-radius:999px;background:var(--bad);color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:.95em;padding:0 .3em;z-index:2}
+.slot{position:relative;width:var(--cw,86px);height:calc(var(--cw,86px) * 1.4);flex:0 0 auto}
+.slot.ex{width:calc(var(--cw,86px) * 1.4);height:var(--cw,86px)}
+.slot.ex .tc{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(90deg);filter:brightness(.78)}
+.slot.dry::after{content:'NEW';position:absolute;bottom:-9px;left:50%;transform:translateX(-50%);font-family:'Geist Mono',monospace;font-size:9px;letter-spacing:.08em;padding:1px 6px;border-radius:999px;background:var(--s3);color:var(--tx2);border:1px solid var(--bd);z-index:3}
+/* artboard */
+.fieldrow{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start;min-height:140px}
+.unit{display:flex;flex-direction:column;align-items:center;gap:10px;min-width:120px}
+.acts{display:flex;flex-direction:column;gap:5px;width:100%;min-width:150px}
+.act{appearance:none;border:1px solid var(--bd);background:var(--s2);color:var(--tx);font:inherit;font-size:12px;font-weight:600;border-radius:8px;padding:6px 9px;min-height:36px;cursor:pointer;display:flex;flex-direction:column;align-items:flex-start;gap:1px;text-align:left}
+.act:hover{background:var(--s3);border-color:var(--acc)}
+.act .fx{font-family:'Geist Mono',ui-monospace,monospace;font-size:10.5px;font-weight:500;color:var(--dim)}
+.act .fx.good{color:var(--ok)}
+.act .fx.bad{color:var(--bad)}
+.lane{display:grid;grid-template-columns:96px repeat(12, minmax(0, 1fr));gap:4px;align-items:stretch}
+.cell{border-radius:7px;background:var(--s2);min-height:40px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'Geist Mono',ui-monospace,monospace;font-size:13px;font-weight:700;color:var(--tx2);border:1px solid transparent}
+.cell.idle{background:transparent;color:transparent;border:1px dashed var(--bd2)}
+.cell.me{background:var(--mes);color:var(--tx)}
+.cell.op{background:var(--ops);color:var(--tx)}
+.cell.win{border-color:var(--ok);background:var(--oks);color:var(--ok)}
+.cell.lose{border-color:var(--bad);background:var(--bads);color:var(--bad)}
+.cell small{font-size:9.5px;font-weight:500;color:var(--dim)}
+.who{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600}
+.sw{width:10px;height:10px;border-radius:3px;display:inline-block}
+.logline{font-size:13px;color:var(--tx2);padding:6px 0;border-top:1px solid var(--bd2)}
+.cmp{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr);gap:6px 10px;font-size:13px;align-items:baseline}
+.cmp .h{font-family:'Geist Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+.banner{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:12px 14px;border-radius:12px;border:1px solid var(--acc);background:var(--accs)}
+</style>
+</helmet>
+<div class="lab">
+<div style="max-width: 1232px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px">
+
+<header style="display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; flex-wrap: wrap">
+<div style="display: flex; flex-direction: column; gap: 8px; max-width: 780px">
+<div class="eyebrow">02 · Every turn · Quest or Challenge · Playing from ahead or behind</div>
+<h1 style="margin: 0; font-size: 34px; line-height: 1.05; letter-spacing: -0.02em">Race Clock</h1>
+<p style="margin: 0; color: var(--tx2); font-size: 15px">“Am I winning this race, or do I need to slow it down?” This is turn 13 of the game, Madrigals to act. Every button shows what that action does to the clock before you press it. Play a line, save it, reset, play another one, and compare.</p>
+</div>
+<div style="display: flex; gap: 8px; flex-wrap: wrap">
+<button class="btn" onClick="{{undo}}" disabled="{{noUndo}}">Undo</button>
+<button class="btn" onClick="{{reset}}">Reset turn 13</button>
+</div>
+</header>
+
+<sc-if value="{{loading}}" hint-placeholder-val="{{false}}"><div class="panel" style="color: var(--dim)">Loading the card engine…</div></sc-if>
+
+<sc-if value="{{ready}}" hint-placeholder-val="{{true}}">
+<section class="panel" style="display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; align-items: flex-start">
+<div style="display: flex; flex-direction: column; gap: 6px; max-width: 760px">
+<p class="ptitle" style="margin: 0">If nothing changes</p>
+<div style="font-size: 26px; font-weight: 800; letter-spacing: -0.015em; line-height: 1.15; color: {{verdictColor}}">{{verdict}}</div>
+<div style="font-size: 14px; color: var(--tx2)">{{roleText}}</div>
+</div>
+<div style="display: flex; gap: 10px; flex-wrap: wrap">
+<div style="background: var(--s2); border-radius: 10px; padding: 10px 14px; min-width: 150px"><div class="ptitle" style="margin: 0 0 4px; color: var(--me)">You</div><div class="mono" style="font-size: 20px; font-weight: 700">{{meLore}}<span style="color: var(--dim); font-size: 13px">/20 · +{{meRate}}/turn</span></div></div>
+<div style="background: var(--s2); border-radius: 10px; padding: 10px 14px; min-width: 150px"><div class="ptitle" style="margin: 0 0 4px; color: var(--op)">Phillip</div><div class="mono" style="font-size: 20px; font-weight: 700">{{opLore}}<span style="color: var(--dim); font-size: 13px">/20 · +{{opRate}}/turn</span></div></div>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px; overflow-x: auto">
+<div class="lane"><span></span><sc-for list="{{cols}}" as="cl" hint-placeholder-count="12"><span class="mono" style="text-align: center; font-size: 11px; color: var(--dim)">T{{cl.turn}}</span></sc-for></div>
+<div class="lane"><span class="who"><span class="sw" style="background: var(--me)"></span>Madrigals</span><sc-for list="{{cols}}" as="cl" hint-placeholder-count="12"><span class="{{cl.meCls}}">{{cl.meText}}</span></sc-for></div>
+<div class="lane"><span class="who"><span class="sw" style="background: var(--op)"></span>Phillip</span><sc-for list="{{cols}}" as="cl" hint-placeholder-count="12"><span class="{{cl.opCls}}">{{cl.opText}}</span></sc-for></div>
+</div>
+<p style="margin: 0; font-size: 12px; color: var(--dim)">Projected lore after each turn if every character quests every turn and nobody challenges — exactly the guide’s “if nothing changes”. No win percentage. It counts.</p>
+</section>
+
+<sc-if value="{{pending}}" hint-placeholder-val="{{false}}">
+<div class="banner">
+<strong>{{pendingText}}</strong>
+<sc-for list="{{pendingTargets}}" as="pt" hint-placeholder-count="2"><button class="btn pri" onClick="{{pt.go}}">{{pt.label}}</button></sc-for>
+<button class="btn" onClick="{{pendingSkip}}">Skip</button>
+</div>
+</sc-if>
+
+<section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(360px, 100%), 1fr)); gap: 16px; align-items: start">
+<div style="display: flex; flex-direction: column; gap: 16px; grid-column: span 2; min-width: 0">
+<div class="panel">
+<div style="display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap"><p class="ptitle">Phillip · {{opHand}} cards in hand · {{opInk}} ink</p><span class="chip">Exerted characters can be challenged</span></div>
+<div class="fieldrow" style="--cw: 92px">
+<sc-for list="{{opField}}" as="c" hint-placeholder-count="3">
+<div class="unit">
+<div class="{{c.slotCls}}"><div class="tc" style="{{c.style}}"><span class="{{c.costCls}}">{{c.cost}}</span><sc-if value="{{c.lore}}" hint-placeholder-val="{{false}}"><span class="tc-lore">{{c.lore}}<svg width="8" height="8" viewBox="0 0 10 10" aria-hidden="true"><path d="M5 0 L10 5 L5 10 L0 5 Z" fill="currentColor"></path></svg></span></sc-if><span class="tc-name">{{c.name}}</span><span class="tc-ver">{{c.version}}</span><sc-if value="{{c.kw}}" hint-placeholder-val="{{false}}"><span class="tc-kw">{{c.kw}}</span></sc-if><sc-if value="{{c.hasDamage}}" hint-placeholder-val="{{false}}"><span class="tc-dmg">{{c.damage}}</span></sc-if><sc-if value="{{c.hasStats}}" hint-placeholder-val="{{false}}"><span class="tc-stats"><span>{{c.str}}<small>S</small></span><span>{{c.wp}}<small>W</small></span></span></sc-if></div></div>
+<span class="mono" style="font-size: 11px; color: var(--dim)">{{c.state}}</span>
+</div>
+</sc-for>
+</div>
+</div>
+<div class="panel">
+<p class="ptitle">Madrigals · your board · {{meReady}} of {{meWell}} ink ready{{inkedNote}}</p>
+<div class="fieldrow" style="--cw: 92px">
+<sc-for list="{{meField}}" as="c" hint-placeholder-count="3">
+<div class="unit">
+<div class="{{c.slotCls}}"><div class="tc" style="{{c.style}}"><span class="{{c.costCls}}">{{c.cost}}</span><sc-if value="{{c.lore}}" hint-placeholder-val="{{false}}"><span class="tc-lore">{{c.lore}}<svg width="8" height="8" viewBox="0 0 10 10" aria-hidden="true"><path d="M5 0 L10 5 L5 10 L0 5 Z" fill="currentColor"></path></svg></span></sc-if><span class="tc-name">{{c.name}}</span><span class="tc-ver">{{c.version}}</span><sc-if value="{{c.kw}}" hint-placeholder-val="{{false}}"><span class="tc-kw">{{c.kw}}</span></sc-if><sc-if value="{{c.hasDamage}}" hint-placeholder-val="{{false}}"><span class="tc-dmg">{{c.damage}}</span></sc-if><sc-if value="{{c.hasStats}}" hint-placeholder-val="{{false}}"><span class="tc-stats"><span>{{c.str}}<small>S</small></span><span>{{c.wp}}<small>W</small></span></span></sc-if></div></div>
+<div class="acts">
+<sc-for list="{{c.acts}}" as="a" hint-placeholder-count="2"><button class="act" onClick="{{a.go}}"><span>{{a.label}}</span><span class="{{a.fxCls}}">{{a.fx}}</span></button></sc-for>
+<sc-if value="{{c.noActs}}" hint-placeholder-val="{{false}}"><span class="mono" style="font-size: 11px; color: var(--dim); text-align: center">{{c.state}}</span></sc-if>
+</div>
+</div>
+</sc-for>
+</div>
+</div>
+<div class="panel">
+<p class="ptitle">Your hand</p>
+<div class="fieldrow" style="--cw: 92px">
+<sc-for list="{{meHand}}" as="c" hint-placeholder-count="3">
+<div class="unit">
+<div class="slot"><div class="tc" style="{{c.style}}"><span class="{{c.costCls}}">{{c.cost}}</span><sc-if value="{{c.lore}}" hint-placeholder-val="{{false}}"><span class="tc-lore">{{c.lore}}<svg width="8" height="8" viewBox="0 0 10 10" aria-hidden="true"><path d="M5 0 L10 5 L5 10 L0 5 Z" fill="currentColor"></path></svg></span></sc-if><span class="tc-name">{{c.name}}</span><span class="tc-ver">{{c.version}}</span><sc-if value="{{c.kw}}" hint-placeholder-val="{{false}}"><span class="tc-kw">{{c.kw}}</span></sc-if><sc-if value="{{c.hasStats}}" hint-placeholder-val="{{false}}"><span class="tc-stats"><span>{{c.str}}<small>S</small></span><span>{{c.wp}}<small>W</small></span></span></sc-if></div></div>
+<div class="acts">
+<sc-for list="{{c.acts}}" as="a" hint-placeholder-count="2"><button class="act" onClick="{{a.go}}"><span>{{a.label}}</span><span class="{{a.fxCls}}">{{a.fx}}</span></button></sc-for>
+<sc-if value="{{c.noActs}}" hint-placeholder-val="{{false}}"><span class="mono" style="font-size: 11px; color: var(--dim); text-align: center">{{c.state}}</span></sc-if>
+</div>
+</div>
+</sc-for>
+</div>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 16px; min-width: 0">
+<div class="panel">
+<p class="ptitle">This turn</p>
+<sc-if value="{{noLog}}" hint-placeholder-val="{{true}}"><p style="margin: 0; color: var(--dim); font-size: 13px">Nothing yet. Try questing with everything first. That is the line the clock already assumes.</p></sc-if>
+<sc-for list="{{log}}" as="l" hint-placeholder-count="3"><div class="logline">{{l}}</div></sc-for>
+<div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px">
+<button class="btn" onClick="{{saveA}}">Save as line A</button>
+<button class="btn" onClick="{{saveB}}">Save as line B</button>
+</div>
+</div>
+<sc-if value="{{hasLines}}" hint-placeholder-val="{{false}}">
+<div class="panel">
+<p class="ptitle">Compare lines</p>
+<div class="cmp">
+<span class="h"></span><span class="h">Line A</span><span class="h">Line B</span>
+<sc-for list="{{cmpRows}}" as="r" hint-placeholder-count="6"><span style="color: var(--tx2)">{{r.k}}</span><span class="mono" style="color: {{r.aColor}}">{{r.a}}</span><span class="mono" style="color: {{r.bColor}}">{{r.b}}</span></sc-for>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px; margin-top: 14px">
+<span class="ptitle" style="margin: 0">A · {{lineAText}}</span>
+<span class="ptitle" style="margin: 0">B · {{lineBText}}</span>
+</div>
+</div>
+</sc-if>
+<div class="panel">
+<p class="ptitle">Try these</p>
+<sc-for list="{{tries}}" as="t" hint-placeholder-count="3"><div class="logline"><b style="color: var(--tx)">{{t.k}}</b> — {{t.v}}</div></sc-for>
+</div>
+</div>
+</section>
+</sc-if>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1420}}'>
+const ME = 0;
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { ok: false, g: null, hist: [], A: null, B: null }; }
+  componentDidMount() {
+    const go = () => { if (window.DojoLab) { clearInterval(this._t); this.setState({ ok: true, g: window.DojoLab.scenario(), hist: [] }); return true; } return false; };
+    if (!go()) this._t = setInterval(go, 80);
+  }
+  componentWillUnmount() { clearInterval(this._t); }
+  act(a) { const L = window.DojoLab; const g = L.clone(this.state.g); L.doAction(g, ME, a); this.setState({ g, hist: this.state.hist.concat([this.state.g]) }); }
+  save(which) { const L = window.DojoLab; const g = this.state.g; this.setState({ [which]: { sum: L.lineSummary(g, ME), log: g.log.map(l => l.text) } }); }
+  renderVals() {
+    const L = window.DojoLab; const s = this.state;
+    if (!L || !s.ok) return { loading: true, ready: false, noUndo: true, undo: () => {}, reset: () => {} };
+    const M = L.M; const g = s.g; const nm = (id) => M[id].name;
+    const rc = L.raceClock(g, ME);
+    const fin = (t) => t == null ? 'never' : 'T' + t;
+    const verdict = rc.winner === ME ? `You win on turn ${rc.finish[0]}` : rc.winner == null ? 'Nobody gets to 20' : `Phillip wins on turn ${rc.finish[1]}`;
+    const verdictColor = rc.winner === ME ? (rc.pressure === 'ahead' ? 'var(--ok)' : 'var(--acc)') : 'var(--bad)';
+    const roleText = {
+      behind: 'You are well behind. Safe, efficient plays won’t win this: slow their lore down or find your outs.',
+      close: `Phillip is one step ahead (you: ${fin(rc.finish[0])}, them: ${fin(rc.finish[1])}). Every point of their lore you remove counts more than one of yours.`,
+      narrow: `Narrow lead (you: ${fin(rc.finish[0])}, them: ${fin(rc.finish[1])}). Protect it: make them be the one who has to take risks.`,
+      ahead: `Comfortably ahead (you: ${fin(rc.finish[0])}, them: ${fin(rc.finish[1])}). Don’t overextend. Make them spend answers on your terms.`,
+      stalled: 'Neither side has questers on the board.'
+    }[rc.pressure];
+    // timeline columns: who acts each game turn, projected lore, where each side reaches 20
+    const cols = []; let lm = rc.lore[0], lo = rc.lore[1]; let doneMe = false, doneOp = false; const winT = rc.winner === ME ? rc.finish[0] : rc.finish[1];
+    for (let i = 0; i < 12; i++) {
+      const t = g.turn + i; const mine = (i % 2 === 0) === (g.active === ME);
+      const col = { turn: t, meCls: 'cell idle', meText: '·', opCls: 'cell idle', opText: '·' };
+      if (mine && !doneMe) { lm += (i === 0 && g.active === ME) ? rc.avail : rc.rate[0]; col.meCls = 'cell me'; col.meText = Math.min(lm, 99); if (lm >= 20) { doneMe = true; col.meCls = t === winT ? 'cell win' : 'cell me'; } }
+      if (!mine && !doneOp) { lo += (i === 0 && g.active !== ME) ? rc.avail : rc.rate[1]; col.opCls = 'cell op'; col.opText = Math.min(lo, 99); if (lo >= 20) { doneOp = true; col.opCls = t === winT ? 'cell lose' : 'cell op'; } }
+      cols.push(col);
+    }
+    // previews: what each legal action does to the clock
+    const acts = g.pending ? [] : L.legalActions(g, ME);
+    const preview = (a) => {
+      const h = L.clone(g); L.doAction(h, ME, a); while (h.pending) L.doAction(h, ME, { kind: 'target', target: h.pending.targets[0] });
+      const r2 = L.raceClock(h, ME);
+      const d = (x, y) => x == null && y == null ? 0 : x == null ? 99 : y == null ? -99 : x - y;
+      const dMe = d(r2.finish[0], rc.finish[0]), dOp = d(r2.finish[1], rc.finish[1]);
+      const bits = [];
+      if (dOp) bits.push(r2.finish[1] == null ? 'they never finish' : `them ${dOp > 0 ? '+' : '−'}${Math.abs(dOp)}`);
+      if (dMe) bits.push(r2.finish[0] == null ? 'you never finish' : `you ${dMe > 0 ? '+' : '−'}${Math.abs(dMe)}`);
+      const flipped = r2.winner !== rc.winner;
+      const good = (dOp > 0) || (dMe < 0) || (flipped && r2.winner === ME);
+      const bad = (dOp < 0) || (dMe > 0) || (flipped && r2.winner !== ME);
+      return { fx: (flipped ? (r2.winner === ME ? 'flips the race to you · ' : 'flips the race to them · ') : '') + (bits.join(' · ') || 'clock unchanged'), fxCls: good && !bad ? 'fx good' : bad && !good ? 'fx bad' : 'fx' };
+    };
+    const short = (a) => {
+      const c = L.find(g, a.iid).c; const m = M[c.id];
+      if (a.kind === 'ink') return 'Ink it';
+      if (a.kind === 'play') return `Play · ${a.label.match(/\((\d+)\)/) ? a.label.match(/\((\d+)\)/)[1] : m.cost} ink`;
+      if (a.kind === 'sing') return `Sing with ${nm(L.find(g, a.singer).c.id)}`;
+      if (a.kind === 'quest') return a.support ? `Quest · Support → ${nm(L.find(g, a.support).c.id)}` : `Quest +${m.lore}`;
+      if (a.kind === 'activate') return m.gain.act || m.draw.act ? `Ability · pay ${m.actInk}: draw${m.gain.act ? ' + ' + m.gain.act + ' lore' : ''}` : 'Ability · next character −1';
+      if (a.kind === 'challenge') { const d = L.find(g, a.def).c; const r = L.challengeMath(g, c, d); return `Challenge ${nm(d.id)} · ${r.toD} dmg${r.dDies ? ' (banish)' : ''}${r.aDies ? ', dies' : ''}`; }
+      return a.label;
+    };
+    const actsFor = (iid) => acts.filter(a => a.iid === iid).map(a => Object.assign({ label: short(a), go: () => this.act(a) }, preview(a)));
+    const stateOf = (c) => c.exerted ? 'exerted' : (c.drying ? 'just played' : 'ready');
+    const view = (c, withActs) => { const v = L.instView(g, c); v.costCls = 'tc-cost ' + v.inkCls; v.state = stateOf(v); if (withActs) { v.acts = actsFor(c.iid); v.noActs = v.acts.length === 0; } return v; };
+    const P = g.players[ME], O = g.players[ME ^ 1];
+    const pend = g.pending;
+    const cmpRow = (k, fa, fb, better) => {
+      const a = s.A ? fa(s.A.sum) : '—', b = s.B ? fb(s.B.sum) : '—';
+      let aColor = 'var(--tx)', bColor = 'var(--tx)';
+      if (s.A && s.B && better) { const w = better(s.A.sum, s.B.sum); if (w > 0) aColor = 'var(--ok)'; if (w < 0) bColor = 'var(--ok)'; }
+      return { k, a, b, aColor, bColor };
+    };
+    const num = (x) => x == null ? 99 : x;
+    const cmpRows = [
+      cmpRow('Race (if nothing changes)', x => x.winner === ME ? 'you win' : 'they win', x => x.winner === ME ? 'you win' : 'they win', (a, b) => (a.winner === ME) - (b.winner === ME)),
+      cmpRow('You reach 20', x => fin(x.finish[0]), x => fin(x.finish[0]), (a, b) => num(b.finish[0]) - num(a.finish[0])),
+      cmpRow('They reach 20', x => fin(x.finish[1]), x => fin(x.finish[1]), (a, b) => num(a.finish[1]) - num(b.finish[1])),
+      cmpRow('Lore after', x => `${x.lore}–${x.oppLore}`, x => `${x.lore}–${x.oppLore}`, null),
+      cmpRow('Board ink (you / them)', x => `${x.board} / ${x.oppBoard}`, x => `${x.board} / ${x.oppBoard}`, (a, b) => (a.board - a.oppBoard) - (b.board - b.oppBoard)),
+      cmpRow('Cards in hand', x => String(x.hand), x => String(x.hand), (a, b) => a.hand - b.hand),
+      cmpRow('Characters ≥50% likely removed', x => String(x.atRisk), x => String(x.atRisk), (a, b) => b.atRisk - a.atRisk)
+    ];
+    return {
+      loading: false, ready: true,
+      undo: () => { const h = this.state.hist; if (!h.length) return; this.setState({ g: h[h.length - 1], hist: h.slice(0, -1) }); },
+      noUndo: s.hist.length === 0,
+      reset: () => this.setState({ g: L.scenario(), hist: [] }),
+      verdict, verdictColor, roleText, meLore: rc.lore[0], opLore: rc.lore[1], meRate: rc.rate[0], opRate: rc.rate[1], cols,
+      pending: !!pend,
+      pendingText: pend ? `${nm(L.find(g, pend.src).c.id)}: choose a target` : '',
+      pendingTargets: pend ? pend.targets.map(t => ({ label: nm(L.find(g, t).c.id), go: () => this.act({ kind: 'target', target: t }) })) : [],
+      pendingSkip: () => this.act({ kind: 'target', target: null }),
+      opHand: O.hand.length, opInk: O.well, opField: O.field.map(c => view(c, false)),
+      meReady: P.ready, meWell: P.well, inkedNote: P.inked ? ' · inked this turn' : '',
+      meField: P.field.map(c => view(c, true)), meHand: P.hand.map(c => view(c, true)),
+      log: g.log.map(l => l.text), noLog: g.log.length === 0,
+      saveA: () => this.save('A'), saveB: () => this.save('B'),
+      hasLines: !!(s.A || s.B), cmpRows,
+      lineAText: s.A ? (s.A.log.join(' → ') || 'no actions') : 'not saved', lineBText: s.B ? (s.B.log.join(' → ') || 'no actions') : 'not saved',
+      tries: [
+        { k: 'Quest with everything', v: 'the clock doesn’t move: this is the “nothing changes” line, and Phillip still gets there first.' },
+        { k: 'Hamm into Milo', v: 'look at the preview: Milo is ready, so the challenge isn’t even on the list. Something has to exert it first.' },
+        { k: 'Demona, then Support', v: 'Demona exerts their whole board (Ward can’t stop “all”). Agustin’s Support gives Hamm +3 strength, Hamm hits Milo for 5, and their clock jumps by more than 20 turns.' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

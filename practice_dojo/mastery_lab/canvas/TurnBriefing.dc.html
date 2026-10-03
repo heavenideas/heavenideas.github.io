@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Turn Briefing</title>
+<script src="./support.js"></script>
+<script src="/_blob/19bd967edd1578bce22b6dc908fa9350"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&amp;family=Geist+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:oklch(0.155 0.008 60)}
+a{color:oklch(0.84 0.14 70)}a:hover{color:oklch(0.92 0.12 75)}
+.lab{--bg:oklch(0.155 0.008 60);--s1:oklch(0.195 0.010 60);--s2:oklch(0.23 0.012 60);--s3:oklch(0.27 0.014 60);--hi:oklch(0.34 0.016 60);--bd:oklch(0.31 0.013 60);--bd2:oklch(0.25 0.011 60);--tx:oklch(0.965 0.004 60);--tx2:oklch(0.82 0.008 60);--dim:oklch(0.70 0.012 60);--acc:oklch(0.80 0.14 70);--accs:oklch(0.80 0.14 70 / .15);--me:oklch(0.79 0.145 78);--op:oklch(0.72 0.15 305);--ok:oklch(0.76 0.13 155);--oks:oklch(0.76 0.13 155 / .16);--bad:oklch(0.70 0.18 25);--bads:oklch(0.70 0.18 25 / .16);--warn:oklch(0.85 0.13 95);font-family:'Geist',system-ui,-apple-system,'Segoe UI',sans-serif;color:var(--tx);background:var(--bg);font-size:14px;line-height:1.45;padding:32px 24px 48px;box-sizing:border-box}
+.lab *{box-sizing:border-box}
+.mono{font-family:'Geist Mono',ui-monospace,Menlo,monospace}
+.eyebrow{font-family:'Geist Mono',ui-monospace,monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--acc)}
+.panel{background:var(--s1);border:1px solid var(--bd2);border-radius:14px;padding:18px;min-width:0}
+.ptitle{font-family:'Geist Mono',ui-monospace,monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin:0 0 12px}
+.btn{appearance:none;border:1px solid var(--bd);background:var(--s2);color:var(--tx);font:inherit;font-size:13px;font-weight:600;border-radius:9px;padding:8px 13px;min-height:44px;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+.btn:hover{background:var(--s3);border-color:var(--hi)}
+.btn.on{background:var(--accs);border-color:var(--acc)}
+.btn.right{background:var(--oks);border-color:var(--ok)}
+.btn.wrong{background:var(--bads);border-color:var(--bad)}
+.btn.answer{border-style:dashed;border-color:var(--ok)}
+.btn.pri{background:var(--acc);border-color:transparent;color:oklch(0.22 0.03 70)}
+.btn:disabled{opacity:.45;cursor:default}
+.tc{position:relative;width:var(--cw,86px);height:calc(var(--cw,86px) * 1.4);border-radius:8px;overflow:hidden;flex:0 0 auto;background:linear-gradient(155deg,color-mix(in oklab,var(--tint) 22%,var(--s2)),var(--s2) 68%);box-shadow:inset 0 0 0 1px oklch(1 0 0 / .07),0 2px 6px oklch(0 0 0 / .35);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:16% 8% 20% 12%;font-size:calc(var(--cw,86px) * .118);line-height:1.15;color:var(--tx)}
+.tc::before{content:'';position:absolute;left:0;top:0;bottom:0;width:5.5%;background:var(--strip)}
+.tc-cost{position:absolute;top:5%;left:11%;width:1.8em;height:1.8em;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.05em}
+.tc-cost.ink{border-radius:50%;background:#D4AF37;color:#111;box-shadow:inset 0 0 0 .1em #fff}
+.tc-cost.noink{background:#2f3036;color:#fff;clip-path:polygon(50% 2%,98% 26%,98% 74%,50% 98%,2% 74%,2% 26%)}
+.tc-name{font-weight:700}
+.tc-ver{font-size:.82em;color:var(--dim);margin-top:.2em}
+.tc-kw{font-size:.74em;margin-top:.4em;color:var(--warn);font-weight:600}
+.tc-stats{position:absolute;left:12%;right:8%;bottom:4%;display:flex;justify-content:space-between;font-weight:700;font-size:1.02em}
+.tc-stats small{font-size:.6em;opacity:.6;margin-left:.1em}
+.tc-lore{position:absolute;right:8%;top:6%;font-size:.95em;font-weight:800;color:var(--warn);display:flex;align-items:center;gap:.15em}
+.tc-dmg{position:absolute;right:7%;top:34%;min-width:1.8em;height:1.8em;border-radius:999px;background:var(--bad);color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:.95em;padding:0 .3em;z-index:2}
+.slot{position:relative;width:var(--cw,86px);height:calc(var(--cw,86px) * 1.4);flex:0 0 auto}
+.slot.ex{width:calc(var(--cw,86px) * 1.4);height:var(--cw,86px)}
+.slot.ex .tc{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(90deg);filter:brightness(.78)}
+/* artboard */
+.row{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;min-height:110px}
+.q{display:flex;flex-direction:column;gap:10px;padding:16px 0;border-top:1px solid var(--bd2)}
+.q:first-child{border-top:0;padding-top:0}
+.qh{display:flex;gap:10px;align-items:baseline}
+.qn{font-family:'Geist Mono',monospace;font-size:12px;color:var(--acc);font-weight:700}
+.qt{font-size:16px;font-weight:700}
+.fact{font-size:13.5px;color:var(--tx2);padding:10px 12px;border-radius:10px;background:var(--s2);text-wrap:pretty}
+.fact b{color:var(--tx)}
+.dots{display:flex;gap:8px}
+.dot{width:28px;height:6px;border-radius:3px;background:var(--s3)}
+.dot.cur{background:var(--acc)}
+.dot.done{background:var(--ok)}
+.score{display:grid;grid-template-columns:minmax(0,1fr) 70px;gap:8px;padding:9px 0;border-top:1px solid var(--bd2);font-size:13.5px}
+.score span:last-child{font-family:'Geist Mono',monospace;font-weight:700;text-align:right}
+</style>
+</helmet>
+<div class="lab">
+<div style="max-width: 1232px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px">
+
+<header style="display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; flex-wrap: wrap">
+<div style="display: flex; flex-direction: column; gap: 8px; max-width: 780px">
+<div class="eyebrow">06 · The habit · Putting it all together</div>
+<h1 style="margin: 0; font-size: 34px; line-height: 1.05; letter-spacing: -0.02em">Turn Briefing</h1>
+<p style="margin: 0; color: var(--tx2); font-size: 15px">“The strongest players don’t memorize situations. They develop habits.” Four questions at the start of your turn. Answer from the board, then check. The lenses grade you and keep score, so over a session you see which reads you get wrong, not just which games you lose.</p>
+</div>
+<div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px">
+<div class="dots"><sc-for list="{{dots}}" as="dt" hint-placeholder-count="4"><span class="{{dt.cls}}"></span></sc-for></div>
+<span class="mono" style="font-size: 12px; color: var(--dim)">{{progressText}}</span>
+</div>
+</header>
+
+<sc-if value="{{loading}}" hint-placeholder-val="{{false}}"><div class="panel" style="color: var(--dim)">Loading the card engine…</div></sc-if>
+
+<sc-if value="{{ready}}" hint-placeholder-val="{{true}}">
+<section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr)); gap: 16px; align-items: start">
+<div class="panel" style="display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: baseline">
+<div style="font-size: 22px; font-weight: 800">Turn {{turn}} · Madrigals to act</div>
+<span class="mono" style="font-size: 13px; color: var(--tx2)">lore {{meLore}}–{{opLore}} · {{meInk}} ink · {{meHand}} cards in hand</span>
+</div>
+<div>
+<p class="ptitle">Phillip · {{opHand}} cards in hand · {{opInk}} ink</p>
+<div class="row" style="--cw: 80px">
+<sc-for list="{{opField}}" as="c" hint-placeholder-count="3">
+<div class="{{c.slotCls}}"><div class="tc" style="{{c.style}}"><span class="{{c.costCls}}">{{c.cost}}</span><sc-if value="{{c.lore}}" hint-placeholder-val="{{false}}"><span class="tc-lore">{{c.lore}}<svg width="8" height="8" viewBox="0 0 10 10" aria-hidden="true"><path d="M5 0 L10 5 L5 10 L0 5 Z" fill="currentColor"></path></svg></span></sc-if><span class="tc-name">{{c.name}}</span><span class="tc-ver">{{c.version}}</span><sc-if value="{{c.kw}}" hint-placeholder-val="{{false}}"><span class="tc-kw">{{c.kw}}</span></sc-if><sc-if value="{{c.hasDamage}}" hint-placeholder-val="{{false}}"><span class="tc-dmg">{{c.damage}}</span></sc-if><sc-if value="{{c.hasStats}}" hint-placeholder-val="{{false}}"><span class="tc-stats"><span>{{c.str}}<small>S</small></span><span>{{c.wp}}<small>W</small></span></span></sc-if></div></div>
+</sc-for>
+</div>
+</div>
+<div>
+<p class="ptitle">Your board</p>
+<div class="row" style="--cw: 80px">
+<sc-for list="{{meField}}" as="c" hint-placeholder-count="3">
+<div class="{{c.slotCls}}"><div class="tc" style="{{c.style}}"><span class="{{c.costCls}}">{{c.cost}}</span><sc-if value="{{c.lore}}" hint-placeholder-val="{{false}}"><span class="tc-lore">{{c.lore}}<svg width="8" height="8" viewBox="0 0 10 10" aria-hidden="true"><path d="M5 0 L10 5 L5 10 L0 5 Z" fill="currentColor"></path></svg></span></sc-if><span class="tc-name">{{c.name}}</span><span class="tc-ver">{{c.version}}</span><sc-if value="{{c.kw}}" hint-placeholder-val="{{false}}"><span class="tc-kw">{{c.kw}}</span></sc-if><sc-if value="{{c.hasDamage}}" hint-placeholder-val="{{false}}"><span class="tc-dmg">{{c.damage}}</span></sc-if><sc-if value="{{c.hasStats}}" hint-placeholder-val="{{false}}"><span class="tc-stats"><span>{{c.str}}<small>S</small></span><span>{{c.wp}}<small>W</small></span></span></sc-if></div></div>
+</sc-for>
+</div>
+</div>
+<div>
+<p class="ptitle">Your hand</p>
+<div class="row" style="--cw: 80px; min-height: 0">
+<sc-for list="{{meHandCards}}" as="c" hint-placeholder-count="3">
+<div class="slot"><div class="tc" style="{{c.style}}"><span class="{{c.costCls}}">{{c.cost}}</span><span class="tc-name">{{c.name}}</span><span class="tc-ver">{{c.version}}</span><sc-if value="{{c.kw}}" hint-placeholder-val="{{false}}"><span class="tc-kw">{{c.kw}}</span></sc-if><sc-if value="{{c.hasStats}}" hint-placeholder-val="{{false}}"><span class="tc-stats"><span>{{c.str}}<small>S</small></span><span>{{c.wp}}<small>W</small></span></span></sc-if></div></div>
+</sc-for>
+</div>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 16px; min-width: 0">
+<div class="panel">
+<sc-for list="{{questions}}" as="q" hint-placeholder-count="4">
+<div class="q">
+<div class="qh"><span class="qn">{{q.n}}</span><span class="qt">{{q.text}}</span></div>
+<div style="display: flex; gap: 8px; flex-wrap: wrap"><sc-for list="{{q.options}}" as="o" hint-placeholder-count="2"><button class="{{o.cls}}" onClick="{{o.go}}" disabled="{{o.locked}}" aria-pressed="{{o.picked}}">{{o.label}}</button></sc-for></div>
+<sc-if value="{{q.showFact}}" hint-placeholder-val="{{false}}"><div class="fact"><b>{{q.verdict}}</b> {{q.fact}}</div></sc-if>
+</div>
+</sc-for>
+<div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px">
+<button class="btn pri" onClick="{{check}}" disabled="{{cantCheck}}">{{checkLabel}}</button>
+<button class="btn" onClick="{{next}}" disabled="{{cantNext}}">{{nextLabel}}</button>
+</div>
+</div>
+<sc-if value="{{checked}}" hint-placeholder-val="{{false}}">
+<div class="panel">
+<p class="ptitle">What actually happened on their next turn</p>
+<p style="margin: 0; font-size: 14px; color: var(--tx2)">{{happened}}</p>
+</div>
+</sc-if>
+<div class="panel">
+<p class="ptitle">Your reads this session</p>
+<sc-for list="{{scores}}" as="sc" hint-placeholder-count="4"><div class="score"><span>{{sc.k}}</span><span style="color: {{sc.color}}">{{sc.v}}</span></div></sc-for>
+<p style="margin: 10px 0 0; font-size: 12.5px; color: var(--dim)">{{scoreNote}}</p>
+</div>
+</div>
+</section>
+</sc-if>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1320}}'>
+const QKEYS = ['race', 'role', 'threat', 'exposed'];
+const QLABEL = { race: 'Who wins if nothing changes', role: 'Your job this turn', threat: 'Biggest threat', exposed: 'Most exposed if you quest with everything' };
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { ok: false, idx: 0, answers: {}, checked: {} }; }
+  componentDidMount() {
+    const go = () => { if (window.DojoLab) { clearInterval(this._t); this.drill = window.DojoLab.briefingDrill(); this.setState({ ok: true }); return true; } return false; };
+    if (!go()) this._t = setInterval(go, 80);
+  }
+  componentWillUnmount() { clearInterval(this._t); }
+  correct(pos, key, val) {
+    const f = pos.facts;
+    if (key === 'race') return val === (f.race.winner === 0 ? 'me' : 'op');
+    if (key === 'role') return val === f.role;
+    if (key === 'threat') { if (!f.threat) return true; const top = f.threat.all[0].ignore2; const pick = f.threat.all.find(t => t.iid === val); return !!pick && pick.ignore2 >= top - 1e-9; }
+    if (key === 'exposed') { if (!f.exposed) return true; const top = f.exposed.p; const pick = f.exposed.all.find(x => x.iid === val); return !!pick && pick.p >= top - 0.005; }
+    return false;
+  }
+  renderVals() {
+    const L = window.DojoLab; const s = this.state;
+    if (!L || !s.ok) return { loading: true, ready: false, dots: [], progressText: '' };
+    const M = L.M; const nm = (id) => M[id].name; const pct = L.pct;
+    const pos = this.drill[s.idx]; const g = pos.g; const f = pos.facts;
+    const ans = s.answers[s.idx] || {}; const isChecked = !!s.checked[s.idx];
+    const P = g.players[0], O = g.players[1];
+    const card = (c) => { const v = L.instView(g, c); v.costCls = 'tc-cost ' + v.inkCls; return v; };
+    const pick = (key, val) => {
+      const st = this.state; if (st.checked[st.idx]) return;
+      const a = Object.assign({}, st.answers); a[st.idx] = Object.assign({}, a[st.idx] || {}, { [key]: val }); this.setState({ answers: a });
+    };
+    const opt = (key, val, label) => {
+      const picked = ans[key] === val;
+      let cls = picked ? 'btn on' : 'btn';
+      if (isChecked) { const ok = this.correct(pos, key, val); cls = picked ? (ok ? 'btn right' : 'btn wrong') : (ok ? 'btn answer' : 'btn'); }
+      return { label, cls, picked, locked: isChecked, go: () => pick(key, val) };
+    };
+    const fin = (t) => t == null ? 'never' : 'T' + t;
+    const oppChars = O.field.filter(c => M[c.id].type === 'Character');
+    const myChars = P.field.filter(c => M[c.id].type === 'Character');
+    const verdict = (key) => this.correct(pos, key, ans[key]) ? 'Right.' : 'Not quite.';
+    const threatFact = () => {
+      if (!f.threat) return 'They have no characters.';
+      return f.threat.all.map((t, i) => `${i === 0 ? '' : ' · '}${nm(t.id)}: +${2 * t.lore} lore over two turns${t.enables.length ? `, unlocks ${t.enables.map(e => `${nm(e.id)} (${pct(e.p)})`).join(', ')}` : ''}`).join('');
+    };
+    const exposedFact = () => {
+      if (!f.exposed) return 'You have no characters.';
+      return f.exposed.all.map(x => `${nm(x.id)} ${pct(x.p)}${x.certain.length ? ` (${x.certain.map(nm).join('/')} can challenge it)` : x.pool.length ? ` (${x.pool.map(p => nm(p.id)).join(', ')})` : ''}`).join(' · ');
+    };
+    const questions = [
+      { key: 'race', n: 'Q1', text: 'If nothing changes, who wins?', options: [opt('race', 'me', 'You'), opt('race', 'op', 'Phillip')],
+        fact: `You finish ${fin(f.race.finish[0])} at +${f.race.rate[0]} a turn; Phillip finishes ${fin(f.race.finish[1])} at +${f.race.rate[1]}. Whoever acts first wins a tie.` },
+      { key: 'role', n: 'Q2', text: 'So your job this turn is…', options: [opt('role', 'race', 'Race: push lore, protect the lead'), opt('role', 'slow', 'Slow them down: remove their lore')],
+        fact: f.role === 'race' ? 'You win the race as it stands. Every unnecessary challenge delays your win, so trade only to protect the lead.' : 'You lose the race as it stands. A point of their lore prevented is worth more than a point of yours.' },
+      { key: 'threat', n: 'Q3', text: 'Which of their characters matters most?', options: oppChars.map(c => opt('threat', c.iid, nm(c.id))), fact: threatFact() },
+      { key: 'exposed', n: 'Q4', text: 'If you quest with everything, which of yours is most likely gone next turn?', options: myChars.map(c => opt('exposed', c.iid, nm(c.id))), fact: exposedFact() }
+    ].map(q => {
+      // a question with one possible answer isn't a question: show the fact and move on
+      if (q.options.length < 2) return Object.assign(q, { options: [], showFact: true, verdict: q.options.length ? 'Only one candidate.' : '' });
+      return Object.assign(q, { showFact: isChecked, verdict: isChecked ? verdict(q.key) : '' });
+    });
+    const answeredAll = questions.every(q => q.options.length === 0 || ans[q.key] != null);
+    // session score
+    const tally = {}; for (const k of QKEYS) tally[k] = { right: 0, total: 0 };
+    const countable = (p, k) => k === 'threat' ? p.g.players[1].field.filter(c => M[c.id].type === 'Character').length > 1 : k === 'exposed' ? p.g.players[0].field.filter(c => M[c.id].type === 'Character').length > 1 : true;
+    this.drill.forEach((p, i) => { if (!s.checked[i]) return; const a = s.answers[i] || {}; for (const k of QKEYS) { if (a[k] == null || !countable(p, k)) continue; tally[k].total++; if (this.correct(p, k, a[k])) tally[k].right++; } });
+    const scores = QKEYS.map(k => ({ k: QLABEL[k], v: tally[k].total ? `${tally[k].right}/${tally[k].total}` : '—', color: !tally[k].total ? 'var(--dim)' : tally[k].right === tally[k].total ? 'var(--ok)' : 'var(--warn)' }));
+    const doneCount = Object.keys(s.checked).length;
+    const weakest = QKEYS.filter(k => tally[k].total).sort((a, b) => (tally[a].right / tally[a].total) - (tally[b].right / tally[b].total))[0];
+    const scoreNote = !doneCount ? 'Nothing checked yet. Answer from the board first: the point is the habit, not the score.'
+      : (weakest && tally[weakest].right < tally[weakest].total ? `Your weakest read so far: ${QLABEL[weakest].toLowerCase()}. In the Dojo this follows you across sessions, stored on each turn node.` : 'Clean so far. In the Dojo this follows you across sessions, stored on each turn node.');
+    const happened = pos.happened.length ? pos.happened.map(h => `${nm(h.id)} ${h.how === 'bounce' ? 'was bounced' : 'was banished'}${h.by ? ` by ${nm(h.by)}` : ''}.`).join(' ') : 'They didn’t remove anything of yours.';
+    return {
+      loading: false, ready: true,
+      dots: this.drill.map((p, i) => ({ cls: i === s.idx ? 'dot cur' : s.checked[i] ? 'dot done' : 'dot' })),
+      progressText: `Position ${s.idx + 1} of ${this.drill.length} · from the scripted game`,
+      turn: pos.turn, meLore: P.lore, opLore: O.lore, meInk: P.ready, meHand: P.hand.length, opHand: O.hand.length, opInk: O.well,
+      opField: O.field.map(card), meField: P.field.map(card), meHandCards: P.hand.map(card),
+      questions, checked: isChecked, happened,
+      check: () => { const c2 = Object.assign({}, s.checked); c2[s.idx] = true; this.setState({ checked: c2 }); },
+      cantCheck: isChecked || !answeredAll, checkLabel: isChecked ? 'Checked' : 'Check my read',
+      next: () => this.setState({ idx: (s.idx + 1) % this.drill.length }), cantNext: !isChecked,
+      nextLabel: s.idx + 1 < this.drill.length ? 'Next position' : 'Back to the first',
+      scores, scoreNote
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Game Ledger</title>
+<script src="./support.js"></script>
+<script src="/_blob/19bd967edd1578bce22b6dc908fa9350"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&amp;family=Geist+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:oklch(0.155 0.008 60)}
+a{color:oklch(0.84 0.14 70)}a:hover{color:oklch(0.92 0.12 75)}
+.lab{--bg:oklch(0.155 0.008 60);--s1:oklch(0.195 0.010 60);--s2:oklch(0.23 0.012 60);--s3:oklch(0.27 0.014 60);--hi:oklch(0.34 0.016 60);--bd:oklch(0.31 0.013 60);--bd2:oklch(0.25 0.011 60);--tx:oklch(0.965 0.004 60);--tx2:oklch(0.82 0.008 60);--dim:oklch(0.70 0.012 60);--acc:oklch(0.80 0.14 70);--accs:oklch(0.80 0.14 70 / .15);--me:oklch(0.79 0.145 78);--mes:oklch(0.79 0.145 78 / .2);--op:oklch(0.72 0.15 305);--ops:oklch(0.72 0.15 305 / .22);--ok:oklch(0.76 0.13 155);--bad:oklch(0.70 0.18 25);--warn:oklch(0.85 0.13 95);font-family:'Geist',system-ui,-apple-system,'Segoe UI',sans-serif;color:var(--tx);background:var(--bg);font-size:14px;line-height:1.45;padding:32px 24px 48px;box-sizing:border-box}
+.lab *{box-sizing:border-box}
+.mono{font-family:'Geist Mono',ui-monospace,Menlo,monospace}
+.eyebrow{font-family:'Geist Mono',ui-monospace,monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--acc)}
+.panel{background:var(--s1);border:1px solid var(--bd2);border-radius:14px;padding:18px;min-width:0}
+.ptitle{font-family:'Geist Mono',ui-monospace,monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin:0 0 12px}
+.btn{appearance:none;border:1px solid var(--bd);background:var(--s2);color:var(--tx);font:inherit;font-size:13px;font-weight:600;border-radius:9px;padding:8px 13px;min-height:40px;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+.btn:hover{background:var(--s3);border-color:var(--hi)}
+.btn.on{background:var(--accs);border-color:var(--acc)}
+.seg{display:inline-flex;border:1px solid var(--bd);border-radius:10px;overflow:hidden}
+.seg .btn{border:0;border-radius:0}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:3px 9px;border-radius:999px;background:var(--s2);border:1px solid var(--bd2);color:var(--tx2);white-space:nowrap}
+.sw{width:10px;height:10px;border-radius:3px;display:inline-block}
+/* chart */
+.chart{display:grid;grid-template-columns:repeat(21, minmax(0, 1fr));gap:4px;align-items:stretch}
+.col{appearance:none;border:1px solid transparent;background:transparent;border-radius:8px;padding:0;margin:0;cursor:pointer;display:flex;flex-direction:column;align-items:stretch;gap:6px;color:var(--tx);font:inherit;min-width:0}
+.col:hover{background:var(--s2)}
+.col.sel{border-color:var(--acc);background:var(--accs)}
+.lead{position:relative;height:120px}
+.lead .zero{position:absolute;left:0;right:0;top:50%;height:1px;background:var(--bd)}
+.lead i{position:absolute;left:22%;right:22%;border-radius:3px}
+.tempo{position:relative;height:96px;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:2px}
+.tempo i{display:block;width:56%;border-radius:3px}
+.tempo i.rm{background-image:repeating-linear-gradient(135deg,oklch(0 0 0 / .45) 0 3px,transparent 3px 6px)}
+.res{display:flex;justify-content:center;align-items:flex-end;gap:2px;height:46px}
+.res i{display:block;width:34%;border-radius:2px}
+.tl{font-family:'Geist Mono',ui-monospace,monospace;font-size:10.5px;color:var(--dim);text-align:center;padding-bottom:4px}
+.tp{font-family:'Geist Mono',ui-monospace,monospace;font-size:10px;font-weight:700;text-align:center;height:16px;color:var(--warn)}
+.ax{font-family:'Geist Mono',ui-monospace,monospace;font-size:10.5px;color:var(--dim);letter-spacing:.06em;text-transform:uppercase}
+.kv{display:grid;grid-template-columns:repeat(auto-fit, minmax(110px, 1fr));gap:8px}
+.kv div{background:var(--s2);border-radius:10px;padding:10px}
+.kv b{display:block;font-family:'Geist Mono',monospace;font-size:20px}
+.kv span{font-size:12px;color:var(--dim)}
+.line{font-size:13px;color:var(--tx2);padding:6px 0;border-top:1px solid var(--bd2)}
+.rc{display:grid;grid-template-columns:minmax(0,1.6fr) 44px 64px 52px 56px 64px minmax(0,1.3fr) 70px;gap:10px;align-items:center;padding:9px 0;border-top:1px solid var(--bd2);font-size:13px}
+.rc.h{font-family:'Geist Mono',monospace;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);border-top:0;padding-top:0}
+.rc .m{font-family:'Geist Mono',monospace;text-align:right}
+.nm{display:flex;align-items:center;gap:8px;min-width:0}
+.nm span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.costb{flex:0 0 auto;width:22px;height:22px;border-radius:50%;background:#D4AF37;color:#111;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px}
+.vbar{height:8px;border-radius:4px;background:var(--s3);position:relative;overflow:hidden}
+.vbar i{position:absolute;left:0;top:0;bottom:0;border-radius:4px;background:var(--ok)}
+.callout{background:var(--s2);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:4px}
+</style>
+</helmet>
+<div class="lab">
+<div style="max-width: 1232px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px">
+
+<header style="display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; flex-wrap: wrap">
+<div style="display: flex; flex-direction: column; gap: 8px; max-width: 800px">
+<div class="eyebrow">05 · After the game · Tempo · Card Advantage · Card Value</div>
+<h1 style="margin: 0; font-size: 34px; line-height: 1.05; letter-spacing: -0.02em">Game Ledger</h1>
+<p style="margin: 0; color: var(--tx2); font-size: 15px">“Who has more useful resources remaining?” and “How much can this card accomplish before my opponent deals with it?” The whole game in the guide’s three currencies, the turns that actually moved the race, and a receipt for every card. Tap a turn.</p>
+</div>
+<div style="display: flex; gap: 8px; flex-wrap: wrap">
+<span class="chip"><span class="sw" style="background: var(--me)"></span>Madrigals</span>
+<span class="chip"><span class="sw" style="background: var(--op)"></span>Phillip</span>
+<span class="chip mono">{{resultText}}</span>
+</div>
+</header>
+
+<sc-if value="{{loading}}" hint-placeholder-val="{{false}}"><div class="panel" style="color: var(--dim)">Loading the card engine…</div></sc-if>
+
+<sc-if value="{{ready}}" hint-placeholder-val="{{true}}">
+<section class="panel" style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: baseline">
+<p class="ptitle" style="margin: 0">Race lead · lore two rounds out if nothing changes (up = Madrigals)</p>
+<span class="chip">Biggest swings · {{swingText}}</span>
+</div>
+<div style="overflow-x: auto"><div class="chart" style="min-width: 760px">
+<sc-for list="{{cols}}" as="cl" hint-placeholder-count="21">
+<button class="{{cl.cls}}" onClick="{{cl.pick}}" aria-label="{{cl.aria}}">
+<span class="tp">{{cl.tp}}</span>
+<span class="lead"><span class="zero"></span><i style="top: {{cl.leadTop}}; height: {{cl.leadH}}; background: {{cl.leadColor}}"></i></span>
+<span class="tempo"><i class="rm" style="height: {{cl.rmH}}; background-color: {{cl.color}}"></i><i style="height: {{cl.builtH}}; background: {{cl.color}}"></i></span>
+<span class="res"><i style="height: {{cl.resMe}}; background: var(--me)"></i><i style="height: {{cl.resOp}}; background: var(--op)"></i></span>
+<span class="tl">T{{cl.t}}</span>
+</button>
+</sc-for>
+</div></div>
+<div style="display: flex; gap: 18px; flex-wrap: wrap" class="ax">
+<span>Middle band: ink built (solid) + opponent ink removed (hatched), by the player whose turn it was</span>
+<span>Bottom: cards in hand + on board, both players</span>
+</div>
+</section>
+
+<section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(380px, 100%), 1fr)); gap: 16px; align-items: start">
+<div class="panel" style="display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: baseline">
+<div style="font-size: 22px; font-weight: 800">Turn {{d.t}} · <span style="color: {{d.color}}">{{d.who}}</span></div>
+<span class="chip mono" style="color: {{d.deltaColor}}">race {{d.delta}}</span>
+</div>
+<p style="margin: 0; font-size: 14px; color: var(--tx2); text-wrap: pretty">{{d.story}}</p>
+<div class="kv">
+<div><b>{{d.built}}</b><span>ink built</span></div>
+<div><b>{{d.paid}}</b><span>ink paid</span></div>
+<div><b>{{d.removed}}</b><span>their ink removed</span></div>
+<div><b>{{d.lost}}</b><span>own ink lost</span></div>
+<div><b>{{d.lore}}</b><span>lore gained</span></div>
+<div><b>{{d.drew}}</b><span>extra cards</span></div>
+</div>
+<div>
+<p class="ptitle" style="margin: 4px 0 2px">What happened</p>
+<sc-for list="{{d.log}}" as="l" hint-placeholder-count="4"><div class="line">{{l}}</div></sc-for>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 12px; grid-column: span 2; min-width: 0">
+<div class="panel" style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: center">
+<p class="ptitle" style="margin: 0">Card receipts · what each card did before it was dealt with</p>
+<div class="seg" role="group" aria-label="Whose cards"><sc-for list="{{sides}}" as="sd" hint-placeholder-count="3"><button class="{{sd.cls}}" onClick="{{sd.go}}">{{sd.label}}</button></sc-for></div>
+</div>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 10px">
+<div class="callout"><span class="ptitle" style="margin: 0; color: var(--ok)">Paid for itself most</span><b style="font-size: 16px">{{mvp.name}}</b><span style="font-size: 13px; color: var(--tx2)">{{mvp.text}}</span></div>
+<div class="callout"><span class="ptitle" style="margin: 0; color: var(--bad)">Most ink, least return</span><b style="font-size: 16px">{{dud.name}}</b><span style="font-size: 13px; color: var(--tx2)">{{dud.text}}</span></div>
+</div>
+<div style="overflow-x: auto">
+<div style="min-width: 760px">
+<div class="rc h"><span>Card</span><span class="m">Ink</span><span class="m">Turns</span><span class="m">Lore</span><span class="m">Cards</span><span class="m">Removed</span><span>Dealt with by</span><span>Return</span></div>
+<sc-for list="{{receipts}}" as="r" hint-placeholder-count="10">
+<div class="rc">
+<span class="nm"><span class="sw" style="background: {{r.color}}; flex: 0 0 auto"></span><span title="{{r.full}}">{{r.name}}</span></span>
+<span class="m">{{r.cost}}</span><span class="m">{{r.turns}}</span><span class="m">{{r.lore}}</span><span class="m">{{r.drew}}</span><span class="m">{{r.removed}}</span>
+<span style="color: var(--tx2); font-size: 12.5px">{{r.by}}</span>
+<span class="vbar" title="{{r.scoreText}}"><i style="width: {{r.w}}"></i></span>
+</div>
+</sc-for>
+</div>
+</div>
+<p style="margin: 0; font-size: 12px; color: var(--dim)">Return = lore quested + cards drawn + half the ink it removed + one per answer card the opponent had to spend on it. Turns = its owner’s turns on the board.</p>
+</div>
+</div>
+</section>
+</sc-if>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1500}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { ok: false, sel: 13, side: 'all' }; }
+  componentDidMount() {
+    const go = () => { if (window.DojoLab) { clearInterval(this._t); this.led = window.DojoLab.buildLedger(); this.G = window.DojoLab.game(); this.setState({ ok: true }); return true; } return false; };
+    if (!go()) this._t = setInterval(go, 80);
+  }
+  componentWillUnmount() { clearInterval(this._t); }
+  renderVals() {
+    const L = window.DojoLab; const s = this.state;
+    const sides = [{ v: 'all', label: 'Both' }, { v: 0, label: 'Madrigals' }, { v: 1, label: 'Phillip' }].map(x => ({ label: x.label, cls: s.side === x.v ? 'btn on' : 'btn', go: () => this.setState({ side: x.v }) }));
+    if (!L || !s.ok) return { loading: true, ready: false, sides, resultText: '', cols: [], receipts: [], d: { log: [] }, mvp: {}, dud: {} };
+    const M = L.M; const nm = (id) => M[id] ? M[id].name : '?'; const led = this.led; const G = this.G;
+    const T = led.turns; const color = (p) => p === 0 ? 'var(--me)' : 'var(--op)';
+    const maxLead = Math.max(6, ...T.map(t => Math.abs(t.lead)));
+    const maxTempo = Math.max(...T.map(t => t.built + t.removed), 6);
+    const maxRes = Math.max(...T.map(t => Math.max(t.res[0], t.res[1])), 6);
+    const tps = new Set(led.turningPoints.concat(led.swings[0], led.swings[1]));
+    const cols = T.map(t => {
+      const h = Math.abs(t.lead) / maxLead * 50; // % of the 120px band, half above, half below
+      return {
+        t: t.t, cls: s.sel === t.t ? 'col sel' : 'col', pick: () => this.setState({ sel: t.t }), aria: `Turn ${t.t}`,
+        tp: tps.has(t.t) ? (t.leadDelta > 0 ? '+' : '−') + Math.abs(t.leadDelta) : '',
+        leadTop: t.lead >= 0 ? (50 - h).toFixed(1) + '%' : '50%', leadH: Math.max(1.5, h).toFixed(1) + '%', leadColor: t.lead >= 0 ? 'var(--me)' : 'var(--op)',
+        builtH: (t.built / maxTempo * 92).toFixed(1) + 'px', rmH: (t.removed / maxTempo * 92).toFixed(1) + 'px', color: color(t.p),
+        resMe: (t.res[0] / maxRes * 44).toFixed(1) + 'px', resOp: (t.res[1] / maxRes * 44).toFixed(1) + 'px'
+      };
+    });
+    // selected turn
+    const t = T[s.sel - 1];
+    const plays = t.plays.map(p => `${nm(p.id)}${p.how === 'upgrade' ? ' (free via the Device)' : p.how === 'sing' ? ' (sung)' : p.paid < M[p.id].cost ? ` (paid ${p.paid})` : ''}`);
+    const removals = t.removals.map(r => `${nm(r.id)}${r.how === 'bounce' ? ' back to hand' : ''}`);
+    const pieces = [];
+    if (plays.length) pieces.push(`Played ${plays.join(', ')}.`);
+    if (removals.length) pieces.push(`Removed ${removals.join(', ')} (${t.removed} ink).`);
+    if (t.losses.length) pieces.push(`Lost ${t.losses.map(nm).join(', ')}.`);
+    if (t.free) pieces.push(`${t.free} ink of value came free.`);
+    if (!t.built && t.removed && t.p !== undefined) pieces.push('Nothing developed: the whole turn went into answering.');
+    const who = L.DECKS[G.g.players[t.p].key].short;
+    const d = {
+      t: t.t, who, color: color(t.p), story: pieces.join(' ') || 'A quiet turn.',
+      delta: (t.leadDelta > 0 ? '+' : t.leadDelta < 0 ? '−' : '±') + Math.abs(t.leadDelta) + ` → lead ${t.lead > 0 ? '+' : ''}${t.lead}`,
+      deltaColor: t.leadDelta > 0 ? 'var(--me)' : t.leadDelta < 0 ? 'var(--op)' : 'var(--dim)',
+      built: t.built, paid: t.paid, removed: t.removed, lost: t.lost, lore: t.lore, drew: t.drew,
+      log: G.g.log.filter(l => l.t === t.t).map(l => l.text)
+    };
+    // receipts
+    let recs = led.receipts.slice();
+    if (s.side !== 'all') recs = recs.filter(r => r.owner === s.side);
+    recs.sort((a, b) => b.score - a.score || b.cost - a.cost);
+    const maxScore = Math.max(1, ...recs.map(r => r.score));
+    const byText = (r) => {
+      if (r.out == null) return 'still in play';
+      if (r.how === 'sacrifice') return `sacrificed to ${nm(r.by)} (T${r.out})`;
+      if (r.how === 'bounce') return `bounced by ${nm(r.by)} (T${r.out})`;
+      if (r.how === 'challenge') return `banished in a challenge with ${nm(r.by)} (T${r.out})`;
+      return `banished by ${r.hitBy.length ? r.hitBy.map(nm).join(' + ') : nm(r.by)} (T${r.out})`;
+    };
+    const receipts = recs.map(r => ({
+      name: nm(r.id), full: M[r.id].full, color: color(r.owner), cost: r.cost, turns: r.ownTurns, lore: r.lore, drew: r.drew, removed: r.removed,
+      by: byText(r), w: (r.score / maxScore * 100).toFixed(0) + '%', scoreText: `return ${r.score.toFixed(1)}`
+    }));
+    const pool = led.receipts.filter(r => s.side === 'all' || r.owner === s.side);
+    const best = pool.slice().sort((a, b) => (b.score / b.cost) - (a.score / a.cost) || b.score - a.score)[0];
+    const worst = pool.filter(r => r.out != null).sort((a, b) => (a.score - a.cost / 2) - (b.score - b.cost / 2))[0];
+    const story = (r) => `${r.cost} ink. ${r.ownTurns} turn${r.ownTurns === 1 ? '' : 's'} on board, ${r.lore} lore, ${r.drew} card${r.drew === 1 ? '' : 's'} drawn${r.removed ? `, removed ${r.removed} ink (${r.kills.map(k => nm(k.id)).join(', ')})` : ''}${r.forced ? `, forced ${r.forced} answer card${r.forced > 1 ? 's' : ''}` : ''}. ${byText(r).charAt(0).toUpperCase() + byText(r).slice(1)}.`;
+    const P = G.g.players;
+    const swingText = [...led.swings[0].map(x => `T${x} Madrigals`), ...led.swings[1].map(x => `T${x} Phillip`)].sort((a, b) => parseInt(a.slice(1)) - parseInt(b.slice(1))).join(' · ');
+    return {
+      loading: false, ready: true, sides, cols, d, receipts, swingText,
+      resultText: `${P[0].lore >= 20 ? 'Madrigals' : 'Phillip'} win ${P[0].lore}–${P[1].lore} · turn ${T.length}`,
+      mvp: best ? { name: `${M[best.id].full}`, text: story(best) } : { name: '—', text: '' },
+      dud: worst ? { name: `${M[worst.id].full}`, text: story(worst) } : { name: '—', text: '' }
+    };
+  }
+}
+</script>
+</body>
+</html>

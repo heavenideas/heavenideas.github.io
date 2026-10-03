@@ -1,0 +1,7 @@
+require('./lab.js'); const L=globalThis.DojoLab; const M=L.M; const nm=id=>M[id]?M[id].name:'?';
+const led=L.buildLedger();
+for(const T of led.turns) console.log(`T${T.t} ${T.p?'P':'M'} built ${T.built} paid ${T.paid} free ${T.free} removed ${T.removed} lost ${T.lost} sac ${T.sacrificed} lore+${T.lore} drew ${T.drew} | lore ${T.loreAfter} board ${T.board} res ${T.res} rate ${T.rate} diff ${T.boardDiff} Δ${T.delta}`);
+console.log('turning points',led.turningPoints);
+for(const r of led.receipts.sort((a,b)=>b.score-a.score)) console.log(`${r.owner?'P':'M'} ${nm(r.id).padEnd(28)} cost ${r.cost} in T${r.in} out ${r.out?'T'+r.out:'-'} ${r.how||''} by ${r.by?nm(r.by):'-'} turns ${r.ownTurns} lore ${r.lore} drew ${r.drew} kills ${r.kills.map(k=>nm(k.id)).join('+')} hitBy ${r.hitBy.map(nm).join('+')} forced ${r.forced} score ${r.score.toFixed(1)}`);
+let t=Date.now(); const d=L.briefingDrill(); console.log('brief ms',Date.now()-t);
+for(const b of d){const f=b.facts; console.log(`T${b.turn}: winner ${f.race.winner===0?'M':f.race.winner===1?'P':'-'} finish ${f.race.finish} rate ${f.race.rate} lore ${f.race.lore} | threat ${f.threat&&nm(f.threat.id)} [${f.threat&&f.threat.all.map(t=>nm(t.id)+':'+t.ignore2.toFixed(1)).join(', ')}] | exposed ${f.exposed&&nm(f.exposed.id)} ${f.exposed&&(f.exposed.p*100).toFixed(0)}% [${f.exposed&&f.exposed.all.map(x=>nm(x.id)+':'+(x.p*100).toFixed(0)).join(', ')}] | happened ${b.happened.map(h=>nm(h.id)+' '+h.how+' by '+nm(h.by)).join('; ')}`);}

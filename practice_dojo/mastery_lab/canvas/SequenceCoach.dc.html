@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sequencing Coach</title>
+<script src="./support.js"></script>
+<script src="/_blob/19bd967edd1578bce22b6dc908fa9350"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&amp;family=Geist+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:oklch(0.155 0.008 60)}
+a{color:oklch(0.84 0.14 70)}a:hover{color:oklch(0.92 0.12 75)}
+.lab{--bg:oklch(0.155 0.008 60);--s1:oklch(0.195 0.010 60);--s2:oklch(0.23 0.012 60);--s3:oklch(0.27 0.014 60);--hi:oklch(0.34 0.016 60);--bd:oklch(0.31 0.013 60);--bd2:oklch(0.25 0.011 60);--tx:oklch(0.965 0.004 60);--tx2:oklch(0.82 0.008 60);--dim:oklch(0.70 0.012 60);--acc:oklch(0.80 0.14 70);--accs:oklch(0.80 0.14 70 / .15);--me:oklch(0.79 0.145 78);--op:oklch(0.72 0.15 305);--ok:oklch(0.76 0.13 155);--oks:oklch(0.76 0.13 155 / .16);--bad:oklch(0.70 0.18 25);--bads:oklch(0.70 0.18 25 / .16);--warn:oklch(0.85 0.13 95);--warns:oklch(0.85 0.13 95 / .13);font-family:'Geist',system-ui,-apple-system,'Segoe UI',sans-serif;color:var(--tx);background:var(--bg);font-size:14px;line-height:1.45;padding:32px 24px 48px;box-sizing:border-box}
+.lab *{box-sizing:border-box}
+.mono{font-family:'Geist Mono',ui-monospace,Menlo,monospace}
+.eyebrow{font-family:'Geist Mono',ui-monospace,monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--acc)}
+.panel{background:var(--s1);border:1px solid var(--bd2);border-radius:14px;padding:18px;min-width:0}
+.ptitle{font-family:'Geist Mono',ui-monospace,monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin:0 0 12px}
+.btn{appearance:none;border:1px solid var(--bd);background:var(--s2);color:var(--tx);font:inherit;font-size:13px;font-weight:600;border-radius:9px;padding:8px 13px;min-height:44px;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+.btn:hover{background:var(--s3);border-color:var(--hi)}
+.btn.pri{background:var(--acc);border-color:transparent;color:oklch(0.22 0.03 70)}
+.btn.ico{min-width:44px;justify-content:center;padding:0;font-family:'Geist Mono',monospace;font-size:16px}
+.btn:disabled{opacity:.35;cursor:default}
+/* artboard */
+.step{display:grid;grid-template-columns:40px minmax(0,1fr) 96px;gap:14px;align-items:start;padding:14px;border-radius:12px;background:var(--s2);border:1px solid var(--bd2)}
+.step.bad{border-color:var(--bad);background:color-mix(in oklab,var(--bad) 7%,var(--s2))}
+.step.warn{border-color:color-mix(in oklab,var(--warn) 60%,var(--bd2))}
+.n{width:32px;height:32px;border-radius:50%;background:var(--s3);display:flex;align-items:center;justify-content:center;font-family:'Geist Mono',monospace;font-weight:700}
+.step.bad .n{background:var(--bads);color:var(--bad)}
+.verb{font-family:'Geist Mono',ui-monospace,monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
+.res{font-size:13px;color:var(--tx2);margin-top:4px}
+.res.bad{color:var(--bad)}
+.flag{margin-top:10px;padding:10px 12px;border-radius:10px;background:var(--warns);border:1px solid color-mix(in oklab,var(--warn) 35%,transparent)}
+.flag.illegal{background:var(--bads);border-color:color-mix(in oklab,var(--bad) 40%,transparent)}
+.flag b{display:block;font-size:13px;margin-bottom:2px}
+.flag span{font-size:13px;color:var(--tx2)}
+.kv{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:9px 0;border-top:1px solid var(--bd2);font-size:13.5px}
+.kv span:last-child{font-family:'Geist Mono',monospace;font-weight:700}
+select.sel{appearance:none;font:inherit;font-size:13px;font-weight:600;color:var(--tx);background:var(--s1);border:1px solid var(--bd);border-radius:9px;padding:8px 34px 8px 12px;min-height:40px;margin-top:6px;background-image:linear-gradient(45deg,transparent 50%,var(--dim) 50%),linear-gradient(135deg,var(--dim) 50%,transparent 50%);background-position:calc(100% - 18px) 50%,calc(100% - 13px) 50%;background-size:5px 5px;background-repeat:no-repeat}
+</style>
+</helmet>
+<div class="lab">
+<div style="max-width: 1232px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px">
+
+<header style="display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; flex-wrap: wrap">
+<div style="display: flex; flex-direction: column; gap: 8px; max-width: 780px">
+<div class="eyebrow">04 · After the turn · Sequencing</div>
+<h1 style="margin: 0; font-size: 34px; line-height: 1.05; letter-spacing: -0.02em">Sequencing Coach</h1>
+<p style="margin: 0; color: var(--tx2); font-size: 15px">“The strongest players don’t necessarily make better plays. Very often, they simply make the same plays in a better order.” Here is turn 13 as it was recorded: the right five actions, in the wrong order. Move steps with the arrows and change the ink. The coach replays the turn after every change.</p>
+</div>
+<div style="display: flex; gap: 8px; flex-wrap: wrap">
+<button class="btn" onClick="{{reset}}">What you played</button>
+<button class="btn pri" onClick="{{solve}}">Show the best order</button>
+</div>
+</header>
+
+<sc-if value="{{loading}}" hint-placeholder-val="{{false}}"><div class="panel" style="color: var(--dim)">Loading the card engine…</div></sc-if>
+
+<sc-if value="{{ready}}" hint-placeholder-val="{{true}}">
+<section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(380px, 100%), 1fr)); gap: 16px; align-items: start">
+<div style="display: flex; flex-direction: column; gap: 10px; grid-column: span 2; min-width: 0">
+<sc-for list="{{steps}}" as="st" hint-placeholder-count="5">
+<div class="{{st.cls}}">
+<span class="n">{{st.n}}</span>
+<div style="min-width: 0">
+<div class="verb">{{st.verb}}</div>
+<div style="font-size: 16px; font-weight: 700">{{st.title}}</div>
+<sc-if value="{{st.isInk}}" hint-placeholder-val="{{false}}">
+<label class="verb" for="inkpick" style="display: block; margin-top: 8px">Card to ink</label>
+<select id="inkpick" class="sel" value="{{inkValue}}" onChange="{{onInk}}"><sc-for list="{{inkOptions}}" as="io" hint-placeholder-count="4"><option value="{{io.value}}">{{io.label}}</option></sc-for></select>
+</sc-if>
+<div class="{{st.resCls}}">{{st.res}}</div>
+<sc-for list="{{st.flags}}" as="f" hint-placeholder-count="1"><div class="{{f.cls}}"><b>{{f.title}}</b><span>{{f.text}}</span></div></sc-for>
+</div>
+<div style="display: flex; gap: 6px; justify-content: flex-end">
+<button class="btn ico" onClick="{{st.up}}" disabled="{{st.first}}" aria-label="{{st.upLabel}}">↑</button>
+<button class="btn ico" onClick="{{st.down}}" disabled="{{st.last}}" aria-label="{{st.downLabel}}">↓</button>
+</div>
+</div>
+</sc-for>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 16px; min-width: 0">
+<div class="panel">
+<p class="ptitle">Coach</p>
+<div style="font-size: 26px; font-weight: 800; letter-spacing: -0.015em; color: {{gradeColor}}">{{grade}}</div>
+<p style="margin: 6px 0 0; font-size: 14px; color: var(--tx2)">{{gradeSub}}</p>
+</div>
+<div class="panel">
+<p class="ptitle">This order’s result</p>
+<sc-for list="{{outcome}}" as="o" hint-placeholder-count="6"><div class="kv"><span style="color: var(--tx2)">{{o.k}}</span><span style="color: {{o.color}}">{{o.v}}</span></div></sc-for>
+</div>
+<sc-if value="{{hasBest}}" hint-placeholder-val="{{false}}">
+<div class="panel" style="border-color: var(--ok)">
+<p class="ptitle" style="color: var(--ok)">Best order found</p>
+<p style="margin: 0; font-size: 14px; line-height: 1.5">{{bestText}}</p>
+<p style="margin: 8px 0 0; font-size: 12.5px; color: var(--dim)">{{bestSub}}</p>
+</div>
+</sc-if>
+<div class="panel">
+<p class="ptitle">What the coach looks for</p>
+<sc-for list="{{rules}}" as="r" hint-placeholder-count="5"><div class="kv" style="grid-template-columns: 1fr"><span style="font-family: inherit; font-weight: 400; color: var(--tx2)"><b style="color: var(--tx)">{{r.k}}</b> · {{r.v}}</span></div></sc-for>
+</div>
+</div>
+</section>
+</sc-if>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1320}}'>
+const STEPS = {
+  ink: { key: 'ink', kind: 'ink' },
+  dumbo: { key: 'dumbo', kind: 'activate', who: 'Dumbo' },
+  demona: { key: 'demona', kind: 'play', card: 'Demona' },
+  agustin: { key: 'agustin', kind: 'quest', who: 'Agustin', support: true },
+  hamm: { key: 'hamm', kind: 'challenge', att: 'Hamm', def: 'Milo' }
+};
+const RECORDED = ['ink', 'demona', 'hamm', 'agustin', 'dumbo'];
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { ok: false, order: RECORDED.slice(), ink: null, best: null }; }
+  componentDidMount() {
+    const go = () => { if (window.DojoLab) { clearInterval(this._t); this.start = window.DojoLab.scenario(); this.setState({ ok: true, ink: window.DojoLab.ID.JWG }); return true; } return false; };
+    if (!go()) this._t = setInterval(go, 80);
+  }
+  componentWillUnmount() { clearInterval(this._t); }
+  move(i, d) { const o = this.state.order.slice(); const j = i + d; if (j < 0 || j >= o.length) return; const t = o[i]; o[i] = o[j]; o[j] = t; this.setState({ order: o }); }
+  renderVals() {
+    const L = window.DojoLab; const s = this.state;
+    const noop = () => {};
+    if (!L || !s.ok) return { loading: true, ready: false, reset: noop, solve: noop };
+    const M = L.M; const ID = L.ID; const nm = (id) => M[id].name;
+    const steps = s.order.map(k => STEPS[k]);
+    const run = L.coachRun(this.start, steps, s.ink, 0);
+    const sc = L.coachScore(this.start, run, 0);
+    const flags = L.coachFlags(this.start, steps, run, 0);
+    const title = (st) => {
+      if (st.kind === 'ink') return 'Ink a card';
+      if (st.kind === 'activate') return `${nm(ID[st.who])} · pay 1: draw a card and gain 1 lore`;
+      if (st.kind === 'play') return `Play ${M[ID[st.card]].full} · ${M[ID[st.card]].cost} ink`;
+      if (st.kind === 'quest') return `${nm(ID[st.who])} quests · Support goes to the next challenger`;
+      return `${nm(ID[st.att])} challenges ${nm(ID[st.def])}`;
+    };
+    const verb = (st) => ({ ink: 'Irreversible · resource', activate: 'Information · ability', play: 'Play', quest: 'Quest', challenge: 'Challenge' })[st.kind];
+    const res = (r, st) => {
+      if (!r.ok) return r.why;
+      if (st.kind === 'ink') return `Inked ${nm(r.card)}. It’s gone for the rest of the game.`;
+      if (st.kind === 'activate') return `+1 lore · drew ${(r.drew || []).map(nm).join(', ') || 'nothing'}`;
+      if (st.kind === 'play') return st.card === 'Demona' ? `Exerts all their characters${(r.drew || []).length ? ` · refill drew ${(r.drew || []).map(nm).join(', ')}` : ''}` : 'Played';
+      if (st.kind === 'quest') return `+1 lore${r.supportTo ? ` · Support: +3 strength to ${r.supportTo}` : ' · no challenger after it, so Support is wasted'}`;
+      if (st.kind === 'challenge' && r.res) return `${r.res.toD} damage to ${nm(ID[st.def])}${r.res.dDies ? ' (banished)' : ' (survives)'} · ${nm(ID[st.att])} takes ${r.res.toA}${r.res.aDies ? ' (banished)' : ''}`;
+      return '';
+    };
+    const view = steps.map((st, i) => {
+      const r = run.steps[i];
+      const fl = flags.filter(f => f.at === i).map(f => ({ cls: f.rule === 'illegal' ? 'flag illegal' : 'flag', title: f.title, text: f.text })).filter(f => !(f.cls === 'flag illegal' && !r.ok));
+      return {
+        n: i + 1, verb: verb(st), title: title(st), isInk: st.kind === 'ink',
+        res: res(r, st), resCls: r.ok ? 'res' : 'res bad',
+        cls: !r.ok ? 'step bad' : fl.length ? 'step warn' : 'step', flags: fl,
+        first: i === 0, last: i === steps.length - 1,
+        up: () => this.move(i, -1), down: () => this.move(i, 1),
+        upLabel: `Move step ${i + 1} up`, downLabel: `Move step ${i + 1} down`
+      };
+    });
+    // ink choices: anything inkable that can be in hand during this turn
+    const inkIds = [];
+    for (const c of this.start.players[0].hand) if (M[c.id].ink && !inkIds.includes(c.id)) inkIds.push(c.id);
+    for (const c of this.start.players[0].deck.slice(0, 2)) if (M[c.id].ink && !inkIds.includes(c.id)) inkIds.push(c.id);
+    const startHand = this.start.players[0].hand.map(c => c.id);
+    const inkOptions = inkIds.map(id => ({ value: String(id), label: `${M[id].full}${startHand.includes(id) ? '' : ' (drawn this turn)'}` }));
+    const illegal = run.steps.filter(r => !r.ok).length;
+    const notes = flags.filter(f => f.rule !== 'illegal').length;
+    const fin = (t) => t == null ? 'never' : 'T' + t;
+    const g = run.g; const O = g.players[1];
+    const miloAlive = O.field.some(c => c.id === ID.Milo);
+    const outcome = [
+      { k: 'Lore this turn', v: '+' + sc.lore, color: 'var(--tx)' },
+      { k: 'Their ink removed / yours lost', v: `${sc.removed} / ${sc.lost}`, color: sc.removed - sc.lost > 0 ? 'var(--ok)' : 'var(--tx)' },
+      { k: 'Milo Thatch', v: miloAlive ? 'still there' : 'banished', color: miloAlive ? 'var(--bad)' : 'var(--ok)' },
+      { k: 'Device → Prince Phillip line', v: sc.comboOpen ? 'open' : 'closed', color: sc.comboOpen ? 'var(--bad)' : 'var(--ok)' },
+      { k: 'Race · you / them reach 20', v: `${fin(sc.finish[0])} / ${fin(sc.finish[1])}`, color: sc.winner === 0 ? 'var(--ok)' : 'var(--bad)' },
+      { k: 'Live cards left in hand', v: String(sc.liveHand), color: 'var(--tx)' },
+      { k: 'Ink left unspent', v: String(sc.readyLeft), color: sc.readyLeft ? 'var(--warn)' : 'var(--tx)' }
+    ];
+    const grade = illegal ? `${illegal} step${illegal > 1 ? 's' : ''} can’t happen in this order` : notes ? `${notes} thing${notes > 1 ? 's' : ''} to fix` : 'Clean turn';
+    const gradeColor = illegal ? 'var(--bad)' : notes ? 'var(--warn)' : 'var(--ok)';
+    const gradeSub = illegal ? 'The Dojo would let you do it anyway. It’s a sandbox, but the real game won’t.' : notes ? 'Same actions throughout. Only the order (and the ink choice) is changing.' : (sc.comboOpen ? 'Legal and tidy, but Milo survives.' : 'Draw first, ink the dead card, enable before you challenge, Support before the challenge it powers.');
+    const best = s.best;
+    const bestOrderText = best ? best.best.order.map((k, i) => `${i + 1}. ${k === 'ink' ? 'ink ' + nm(best.best.ink) : title(STEPS[k]).split(' · ')[0]}`).join('  ') : '';
+    return {
+      loading: false, ready: true,
+      reset: () => this.setState({ order: RECORDED.slice(), ink: ID.JWG }),
+      solve: () => { const b = s.best || L.coachBest(this.start, Object.values(STEPS), 0); this.setState({ best: b, order: b.best.order.slice(), ink: b.best.ink }); },
+      steps: view, inkOptions, inkValue: String(s.ink), onInk: (e) => this.setState({ ink: +e.target.value }),
+      grade, gradeColor, gradeSub, outcome,
+      hasBest: !!best, bestText: bestOrderText,
+      bestSub: best ? `Tried every order of these ${steps.length} actions with every ink choice: ${best.tried} replays, ${best.legal} of them legal. ${best.same} reach the same result. The coach ranks by race first, then board ink exchanged, then the live cards you keep, then fewer blind decisions.` : '',
+      rules: [
+        { k: 'Information first', v: 'a draw you could already afford came after an irreversible ink. The sandbox knows the deck, so it tells you what you would have seen.' },
+        { k: 'Will you regret this ink?', v: 'you inked a card with a job on this board while a dead one was in hand.' },
+        { k: 'Support before the challenge', v: 'Support only lands on a challenger that acts after the quest.' },
+        { k: 'Discount before the play', v: 'Hamm, Lantern and Willow only discount the next character.' },
+        { k: 'Not possible here', v: 'challenging a ready character, or casting without the ink. Exert first.' },
+        { k: 'Ink on the table', v: 'ready ink left while something could still use it.' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

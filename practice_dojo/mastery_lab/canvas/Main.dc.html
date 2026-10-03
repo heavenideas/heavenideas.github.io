@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Dojo Mastery Lab — overview</title>
+<script src="./support.js"></script>
+<script src="/_blob/19bd967edd1578bce22b6dc908fa9350"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&amp;family=Geist+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:oklch(0.155 0.008 60)}
+a{color:oklch(0.84 0.14 70)}a:hover{color:oklch(0.92 0.12 75)}
+.lab{--bg:oklch(0.155 0.008 60);--s1:oklch(0.195 0.010 60);--s2:oklch(0.23 0.012 60);--s3:oklch(0.27 0.014 60);--hi:oklch(0.34 0.016 60);--bd:oklch(0.31 0.013 60);--bd2:oklch(0.25 0.011 60);--tx:oklch(0.965 0.004 60);--tx2:oklch(0.82 0.008 60);--dim:oklch(0.70 0.012 60);--acc:oklch(0.80 0.14 70);--accs:oklch(0.80 0.14 70 / .14);--me:oklch(0.79 0.145 78);--op:oklch(0.72 0.15 305);--ok:oklch(0.76 0.13 155);--bad:oklch(0.70 0.18 25);--warn:oklch(0.85 0.13 95);font-family:'Geist',system-ui,-apple-system,'Segoe UI',sans-serif;color:var(--tx);background:var(--bg);font-size:14px;line-height:1.5;padding:40px 24px 56px;box-sizing:border-box}
+.lab *{box-sizing:border-box}
+.mono{font-family:'Geist Mono',ui-monospace,Menlo,monospace}
+.eyebrow{font-family:'Geist Mono',ui-monospace,monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--acc)}
+.tile{background:var(--s1);border:1px solid var(--bd2);border-radius:14px;padding:18px 18px 16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.tile:hover{border-color:var(--bd)}
+.num{font-family:'Geist Mono',ui-monospace,monospace;font-size:12px;color:var(--dim)}
+.when{font-family:'Geist Mono',ui-monospace,monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;padding:3px 8px;border-radius:999px;border:1px solid var(--bd);color:var(--tx2);white-space:nowrap}
+.q{margin:0;font-size:15px;line-height:1.35;color:var(--tx);font-weight:600;text-wrap:pretty}
+.p{margin:0;color:var(--tx2);font-size:13.5px;text-wrap:pretty}
+.k{font-family:'Geist Mono',ui-monospace,monospace;font-size:11px;color:var(--dim);letter-spacing:.06em;text-transform:uppercase}
+.size{font-family:'Geist Mono',ui-monospace,monospace;font-size:12px;font-weight:600;padding:2px 8px;border-radius:6px;background:var(--s3);color:var(--tx)}
+.open{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 14px;border-radius:9px;border:1px solid var(--bd);background:var(--s2);color:var(--tx);text-decoration:none;font-weight:600;font-size:13px;align-self:flex-start}
+.open:hover{background:var(--s3);color:var(--tx);border-color:var(--hi)}
+.box{border:1px solid var(--bd);background:var(--s2);border-radius:10px;padding:10px 12px;font-size:13px;color:var(--tx2);min-width:0}
+.box b{display:block;color:var(--tx);font-size:13.5px;margin-bottom:2px}
+.arrow{color:var(--dim);font-family:'Geist Mono',monospace;font-size:18px;display:flex;align-items:center;justify-content:center}
+.turnrow{display:grid;grid-template-columns:62px minmax(0,1fr);gap:12px;align-items:baseline;padding:10px 0;border-top:1px solid var(--bd2)}
+.tt{font-family:'Geist Mono',ui-monospace,monospace;font-size:12px;color:var(--acc);font-weight:600}
+.step{display:grid;grid-template-columns:28px minmax(0,1fr);gap:12px;padding:12px 0;border-top:1px solid var(--bd2)}
+.stepn{width:28px;height:28px;border-radius:50%;background:var(--accs);color:var(--acc);display:flex;align-items:center;justify-content:center;font-family:'Geist Mono',monospace;font-weight:700;font-size:13px}
+.cut{display:flex;gap:10px;align-items:baseline;padding:8px 0;border-top:1px solid var(--bd2);color:var(--tx2);font-size:13.5px}
+.cut i{font-style:normal;color:var(--bad);font-family:'Geist Mono',monospace;font-size:12px;flex:0 0 auto}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font-size:12px;border:1px solid var(--bd);color:var(--tx2)}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+</style>
+</helmet>
+<div class="lab">
+<div style="max-width: 1232px; margin: 0 auto; display: flex; flex-direction: column; gap: 36px">
+
+<header style="display: flex; flex-direction: column; gap: 14px">
+<div class="eyebrow">Practice Dojo · design exploration · six working prototypes</div>
+<h1 style="margin: 0; font-size: 44px; line-height: 1.05; font-weight: 800; letter-spacing: -0.025em; max-width: 980px; text-wrap: balance">The guide is a list of questions. The Dojo can answer them while you practise.</h1>
+<p class="p" style="font-size: 16px; max-width: 860px; color: var(--tx2)">“Mastering Competitive Lorcana” never tells you the right play. It gives you questions strong players ask before every decision. Each prototype takes one of those questions, lets you answer it, then shows the real answer from the board you are actually looking at.</p>
+<div style="display: flex; flex-wrap: wrap; gap: 10px">
+<span class="pill"><span class="dot" style="background: var(--me)"></span>Amber-Amethyst Madrigals (you)</span>
+<span class="pill"><span class="dot" style="background: var(--op)"></span>Emerald-Amethyst Phillip</span>
+<span class="pill mono">{{gameLine}}</span>
+<span class="pill mono">35 real cards · allCards.json v2.3.5</span>
+</div>
+</header>
+
+<section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(360px, 100%), 1fr)); gap: 16px">
+<sc-for list="{{tiles}}" as="t" hint-placeholder-count="6">
+<article class="tile">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 8px">
+<span class="num">{{t.n}}</span>
+<span class="when">{{t.when}}</span>
+</div>
+<h2 style="margin: 0; font-size: 21px; letter-spacing: -0.01em">{{t.name}}</h2>
+<p class="q">“{{t.q}}”</p>
+<p class="p">{{t.does}}</p>
+<div style="display: flex; flex-direction: column; gap: 4px; margin-top: 2px">
+<span class="k">Dojo hook</span>
+<p class="p" style="font-size: 13px">{{t.hook}}</p>
+</div>
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: auto; padding-top: 6px">
+<a class="open" href="{{t.href}}">Open prototype <span class="mono" aria-hidden="true">→</span></a>
+<span class="size" title="Build size">{{t.size}}</span>
+</div>
+</article>
+</sc-for>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 14px">
+<div class="eyebrow">One engine, six views</div>
+<h2 style="margin: 0; font-size: 26px; letter-spacing: -0.015em">Nothing here needs a rules engine or a new data store.</h2>
+<p class="p" style="max-width: 880px">Every lens is a pure function of the state the Dojo already keeps. The only genuinely new piece is a small card-text classifier. It reads the structured <span class="mono">abilities[]</span> and <span class="mono">effects[]</span> fields, the same rule the text card follows, and it already parses {{coverage}}.</p>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(170px, 100%), 1fr)); gap: 10px; align-items: stretch">
+<div class="box"><b>allCards.json + both decklists</b>already loaded and cached in IndexedDB</div>
+<div class="box"><b>Card-text classifier</b>Ward · Evasive · Support · Challenger · removal · engines · reducers · the Device upgrade</div>
+<div class="box"><b>App.state + turn nodes</b>board, hands, inkwell, discard, bookmarks, turnActions</div>
+<div class="box" style="border-color: var(--acc)"><b>Five lenses</b>race clock · exposure · threats · sequencing · ledger</div>
+<div class="box"><b>Six views</b>a HUD strip, card badges, two modals, a node section, a review screen</div>
+</div>
+</section>
+
+<section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(560px, 100%), 1fr)); gap: 28px">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<div class="eyebrow">The game every prototype uses</div>
+<h2 style="margin: 0 0 6px; font-size: 22px">One real game, 21 turns, rules-checked</h2>
+<p class="p" style="margin-bottom: 6px">Scripted move by move with the two decklists. Every play was checked for ink, drying, exerted targets and copy limits. The Mulligan Lab opens on its opening hand, the Clock, Map and Coach on its turn 13, the Ledger replays all of it, and the Briefing drills four of its positions.</p>
+<sc-for list="{{moments}}" as="m" hint-placeholder-count="5">
+<div class="turnrow"><span class="tt">{{m.t}}</span><span class="p">{{m.text}}</span></div>
+</sc-for>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<div class="eyebrow">Recommended build order</div>
+<h2 style="margin: 0 0 6px; font-size: 22px">Smallest change, biggest habit first</h2>
+<sc-for list="{{order}}" as="o" hint-placeholder-count="6">
+<div class="step"><span class="stepn">{{o.n}}</span><div><b style="font-size: 14px">{{o.name}}</b><p class="p" style="font-size: 13px">{{o.why}}</p></div></div>
+</sc-for>
+</div>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 4px; max-width: 900px">
+<div class="eyebrow" style="color: var(--bad)">Deliberately not built</div>
+<sc-for list="{{cuts}}" as="c" hint-placeholder-count="5">
+<div class="cut"><i>✕</i><span>{{c}}</span></div>
+</sc-for>
+</section>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1720}}'>
+class Component extends DCLogic {
+  componentDidMount() { if (!window.DojoLab) this._t = setInterval(() => { if (window.DojoLab) { clearInterval(this._t); this.forceUpdate(); } }, 80); }
+  componentWillUnmount() { clearInterval(this._t); }
+  renderVals() {
+    const L = window.DojoLab;
+    let gameLine = 'Madrigals win 21–3 on turn 21';
+    if (L) { const { g } = L.game(); gameLine = `${g.players[0].lore >= 20 ? 'Madrigals' : 'Phillip'} win ${g.players[0].lore}–${g.players[1].lore} on turn ${g.turn - 1}`; }
+    return {
+      gameLine,
+      coverage: '255 of the 264 standard cards whose text removes, damages, bounces or exerts a character (96.6%). Most of the misses are self-targeting costs it correctly ignores',
+      tiles: [
+        { n: '01', name: 'Mulligan Lab', when: 'Before the game', q: 'Which hand gives me the highest chance of executing my game plan?', does: 'Mark the cards you would send back and see where your choice ranks among every possible mulligan of that hand, each played forward 500 times from the same shuffles.', hook: 'A Grade button in the existing mulligan modal (Feature 25). Deck and hand are already in state.', size: 'S', href: 'MulliganLab.dc.html' },
+        { n: '02', name: 'Race Clock', when: 'Every turn', q: 'Am I winning this race, or do I need to slow it down?', does: 'Answers "if nothing changes, who wins?" in turns, live as you play, and previews what every available action does to it before you commit.', hook: 'Pure function of App.state, recomputed in render(): a strip in the HUD and a delta on each action chip.', size: 'S', href: 'RaceClock.dc.html' },
+        { n: '03', name: 'Threat & Exposure Map', when: 'Every turn', q: 'What happens if I don’t answer this?', does: 'For their cards: what ignoring them costs and what they unlock. For yours: what can remove them next turn, with honest odds from the cards you haven’t seen, and which of their answers are dead.', hook: 'The card-text classifier plus the opponent decklist the Dojo already loads.', size: 'M', href: 'ThreatMap.dc.html' },
+        { n: '04', name: 'Sequencing Coach', when: 'After the turn', q: 'Same plays, better order?', does: 'Replays your turn in any order, flags information you gave up and enablers you played too late, and finds the best order by trying all of them.', hook: 'Needs an ordered per-turn action log. "Replay this turn" is just the turn-start bookmark that already exists.', size: 'M', href: 'SequenceCoach.dc.html' },
+        { n: '05', name: 'Game Ledger', when: 'After the game', q: 'Who has more useful resources remaining?', does: 'Tempo, card advantage and card value turn by turn, the swings that decided the race, and a receipt for every card: what it did before it was dealt with.', hook: 'Per-instance events (quest, challenge and banish already pass through _trackAction). Works on Duels.ink replays.', size: 'M', href: 'GameLedger.dc.html' },
+        { n: '06', name: 'Turn Briefing', when: 'The habit', q: 'Every turn starts with questions.', does: 'Four taps before you act: who wins if nothing changes, your job this turn, their biggest threat, your most exposed card. Then the lenses check you and keep score.', hook: 'Answers stored on the turn node, checked against lenses 02 and 03.', size: 'S', href: 'TurnBriefing.dc.html' }
+      ],
+      moments: [
+        { t: 'T4', text: 'Luisa quests into an untapped Rafiki (Challenger +3) and dies for it. Exposure, before the Map existed.' },
+        { t: 'T8', text: 'Dumbo comes down and Phillip spends the whole turn answering it: Tod sings Malicious, Mean, and Scary, then Piercing Attack. Two cards for one, and nothing developed. That is the guide’s tempo chapter.' },
+        { t: 'T12', text: 'Phillip’s Retro Evolution Device turns Hades into Milo Thatch for 1 ink, and Milo bounces the Madrigal Hades. Phillip goes ahead in the race.' },
+        { t: 'T13', text: 'The position. If nothing changes, Phillip wins by one turn. Milo is Warded, so Gaston and Alma can’t touch it, and it is also the 7-cost the Device needs to make Prince Phillip.' },
+        { t: 'T13', text: 'The answer: Dumbo draws first, the dead Gaston goes into the inkwell, Demona exerts their whole board (Ward can’t stop “all”), and Agustin’s Support turns Hamm into a 5-strength challenger. A 2-ink Hamm takes the 7-ink Milo, and the Prince Phillip line closes.' }
+      ],
+      order: [
+        { n: 1, name: 'Race Clock', why: 'The smallest change with the most reach: it reads only lore and the board, and it changes how you read every single turn.' },
+        { n: 2, name: 'Mulligan Lab', why: 'Self-contained, objective, and it trains the most repeated decision in the game. It rides on the existing modal.' },
+        { n: 3, name: 'Threat & Exposure Map', why: 'The classifier is the only genuinely new code. Once it exists, the Map, the Briefing and the Coach’s ink advice all come almost for free.' },
+        { n: 4, name: 'Turn Briefing', why: 'Free once 1 and 3 exist. This is the step that turns the lenses into a habit instead of a crutch.' },
+        { n: 5, name: 'Sequencing Coach', why: 'Needs ordered per-turn action logging. High value, but only once the habit loop is running.' },
+        { n: 6, name: 'Game Ledger', why: 'Needs per-instance tracking. The biggest payoff is on imported Duels.ink games, so it pairs naturally with the replay importer.' }
+      ],
+      cuts: [
+        'No win probability, CTL or UWP. Every number here is a count, a clock or a hypergeometric, and you can check it by hand.',
+        'No “best move” engine. The Coach only reorders what you already did, and the lenses describe the board without playing it for you.',
+        'No rules enforcement. Lenses read state and never block a move: the Dojo stays a sandbox.',
+        'No new storage. Everything rides on bookmarks, turn nodes and turnActions.',
+        'No streaks, cloud stats or leaderboards until the Briefing proves people actually use it.'
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>
