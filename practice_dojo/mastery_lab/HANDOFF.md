@@ -46,4 +46,4 @@ Proposed build order: Race Clock → Mulligan Lab → Threat Map → Briefing �
 
 These were uploads and are not in the repo:
 - `Mastering.md` — the guide text.
-- `allCards.json` — the same database the Dojo loads from the CDN.
+- (`allCards.json` is now committed at `practice_dojo/mastery_lab/allCards.json`, formatVersion 2.3.5.)
