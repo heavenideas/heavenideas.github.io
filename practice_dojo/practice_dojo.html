@@ -10864,6 +10864,9 @@
                     this.state.cardsPlayedThisTurn.push(found.card.cardId);
                     this._trackAction('inked', found.card.cardId, { iid: instanceId });
                 }
+                if (found.loc === 'field' && (targetZone === 'hand' || targetZone === 'deck')) {
+                    this.plugin('leftPlay', { iid: instanceId, cardId: found.card.cardId, to: targetZone });
+                }
                 if (targetZone === 'discard' && found.loc !== 'discard') {
                     // From the field it's a banish; from anywhere else it's a discard.
                     this._trackAction(found.loc === 'field' ? 'banished' : 'discarded', found.card.cardId, { iid: instanceId });
@@ -11280,6 +11283,7 @@
                     c.locationId = null;
                     found.player.hand.push(c);
                 });
+                if (found.loc === 'field') this.plugin('leftPlay', { iid: instanceId, cardId: found.card.cardId, to: 'hand' });
 
                 if (found.loc === 'discard') {
                     this.logAction(`Returned ${dbCard.name} from the discard pile to the hand.`);

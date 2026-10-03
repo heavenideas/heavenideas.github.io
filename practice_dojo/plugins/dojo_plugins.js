@@ -87,6 +87,17 @@
         const db = App().cardDB;
         return p.field.reduce((s, c) => s + ((db[c.cardId] && db[c.cardId].cost) || 0), 0);
     }
+    // Printed lore a board makes per turn: characters that can quest (not Reckless) + locations.
+    function boardLore(p) {
+        const db = App().cardDB, lib = Host.lib;
+        return p.field.reduce((s, c) => {
+            const d = db[c.cardId];
+            if (!d) return s;
+            if (d.type === 'Location') return s + (d.lore || 0);
+            if (d.type === 'Character' && !(lib.kw && lib.kw(d, 'Reckless'))) return s + (d.lore || 0);
+            return s;
+        }, 0);
+    }
     function record(kind, payload) {
         const j = journal();
         if (!j) return;
@@ -104,6 +115,7 @@
             hand: [P[0].hand.length, P[1].hand.length],
             deck: [P[0].deck.length, P[1].deck.length],
             board: [boardCost(P[0]), boardCost(P[1])],
+            boardLore: [boardLore(P[0]), boardLore(P[1])],
             fieldChars: P.map(p => p.field.filter(c => db[c.cardId] && db[c.cardId].type === 'Character').length),
             handCards: me.hand.map(c => c.cardId)
         };
@@ -130,6 +142,11 @@
                 break;
             }
             case 'mulligan': record('mulligan', Object.assign({}, payload)); break;
+            case 'leftPlay': {
+                const owner = ownerOf(payload.iid);
+                record('leave', Object.assign({ player: owner == null ? s.activePlayer : owner }, payload));
+                break;
+            }
             case 'turnEnd': record('turnEnd', Object.assign({}, payload, snapshot(payload.player))); break;
             case 'turnStart': record('turnStart', Object.assign({}, payload)); break;
         }

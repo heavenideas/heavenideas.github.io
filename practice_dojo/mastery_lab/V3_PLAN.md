@@ -74,6 +74,7 @@ the host isn't loaded. Events:
 | `turnStart` | end of `endTurn`, before `render` | `{ player, turn }` (after ready + draw step) |
 | `gameStart` | end of `startGame`, before `render` | `{}` |
 | `mulligan` | `confirmMulligan`, after the redraw | `{ player, thrown: [cardId] }` |
+| `leftPlay` | `moveCard` field→hand/deck, `returnToHand` from the field | `{ iid, cardId, to: 'hand'\|'deck' }` (journal kind `leave`) |
 | `mulliganRender` | end of `renderMulliganCards` | `{ player, marked: [iid] }` |
 | `render` | end of `render()` | `{}` |
 
@@ -140,7 +141,7 @@ Recorded by the host for every `action`, `challenge`, `lore`, `damage`, `mulliga
   seq,            // 1, 2, 3… within this game
   turn, active,   // App.state.turn / activePlayer when it happened
   kind,           // 'draw' 'ink' 'play' 'shift' 'quest' 'banish' 'discard'   (from action types)
-                  // 'challenge' 'lore' 'damage' 'mulligan' 'turnEnd' 'turnStart'
+                  // 'challenge' 'lore' 'damage' 'mulligan' 'leave' 'turnEnd' 'turnStart'
   player,         // owner of the card (actions) / the player concerned
   iid, cardId,    // when a card is involved
   ...payload      // the extra fields from §4
@@ -148,7 +149,7 @@ Recorded by the host for every `action`, `challenge`, `lore`, `damage`, `mulliga
 ```
 
 `turnEnd` events also carry a snapshot taken by the host: `inkReady`, `inkTotal`, and per player
-`lore: [p0, p1]`, `hand: [p0, p1]`, `board: [p0, p1]` (sum of printed cost on field),
+`lore: [p0, p1]`, `hand: [p0, p1]`, `board: [p0, p1]` (sum of printed cost on field), `boardLore: [p0, p1]` (printed lore per turn: non-Reckless characters + locations),
 `fieldChars: [p0, p1]`, `deck: [p0, p1]`, plus `handCards: [cardId]` for the ending player.
 
 A player-turn is identified by `turn` + `active` (key `"<turn>-<active>"`, same as `turnComments`).

@@ -121,8 +121,18 @@ function readDeck(label) {
         check(kinds.mulligan === 1, 'mulligan recorded');
         check(j.every((e, i) => e.seq === i + 1), 'seq is contiguous');
         check(j.filter(e => ['ink', 'play', 'quest', 'draw'].includes(e.kind)).every(e => e.iid && e.cardId != null), 'card events carry iid + cardId');
+        const bounced = await page.evaluate(() => {
+            const s = App.state, me = s.players[s.activePlayer];
+            const c = me.field.find(x => App.cardDB[x.cardId].type === 'Character');
+            if (!c) return 'none';
+            App.returnToHand(c.instanceId);
+            const ev = App.state.ext.journal.events.slice(-1)[0];
+            App.undo();
+            return ev.kind === 'leave' && ev.iid === c.instanceId && ev.to === 'hand' ? 'ok' : JSON.stringify(ev);
+        });
+        check(bounced === 'ok' || bounced === 'none', `bounce to hand recorded as leave (${bounced})`);
         const te = j.find(e => e.kind === 'turnEnd');
-        check(te && Array.isArray(te.lore) && Array.isArray(te.handCards) && typeof te.inkReady === 'number', 'turnEnd snapshot present');
+        check(te && Array.isArray(te.lore) && Array.isArray(te.handCards) && typeof te.inkReady === 'number' && Array.isArray(te.boardLore), 'turnEnd snapshot present');
 
         // Undo removes the last action from the journal; history stores only the length.
         const before = j.length;
