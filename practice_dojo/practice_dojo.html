@@ -6347,6 +6347,8 @@
                     class="fa-solid fa-clock-rotate-left"></i> <span>Timelines</span></button>
             <button class="icon-btn" onclick="App.openTreeModal()" title="Multiverse tree (M)"><i
                     class="fa-solid fa-network-wired"></i> <span>Multiverse</span></button>
+            <!-- v3: Lab plugins put their button + chips here (plugins/dojo_plugins.js) -->
+            <div class="plugin-topbar-slot" id="plugin-topbar-slot" hidden></div>
             <div class="divider-v"></div>
             <button class="icon-btn" onclick="document.getElementById('tweaks-panel').classList.toggle('is-open')"
                 title="Tweaks"><i class="fa-solid fa-sliders"></i></button>
@@ -6489,6 +6491,8 @@
                         <div class="prob-list" id="mulligan-prob"></div>
                     </div>
                 </div>
+                <!-- v3: Lab plugins (e.g. Mulligan Lab) render here -->
+                <div class="plugin-mulligan-slot" id="plugin-mulligan-slot"></div>
             </div>
             <div class="modal-foot">
                 <button class="btn btn-ghost" onclick="App.closeMulligan()">Cancel</button>
@@ -7114,6 +7118,8 @@
                 </div>
                 <div class="tweak-inks" id="tweak-palette-inks"></div>
             </div>
+            <!-- v3: Lab tool toggles (plugins/dojo_plugins.js) -->
+            <div id="plugin-tweaks-slot"></div>
         </div>
     </div>
 
@@ -7128,7 +7134,7 @@
         let cardFuse = null;
         let allSessions = [];
 
-        const APP_VERSION = "v2.18.0"; // Centralized version string (redesign)
+        const APP_VERSION = "v3.0.0"; // Centralized version string (redesign)
 
         // Tweaks panel accent presets (hue values for the OKLCH accent ramp)
         const ACCENT_PRESETS = {
@@ -7218,6 +7224,8 @@
                     activeTimelineColor: stateObj.activeTimelineColor,
                     turnComments: stateObj.turnComments,
                     turnStartHand: stateObj.turnStartHand,
+                    // v3 plugins: each plugin's own data + the action journal.
+                    ext: this._compressExt(stateObj.ext, includeLog),
                     players: stateObj.players.map(p => ({
                         id: p.id,
                         name: p.name,
@@ -7240,6 +7248,31 @@
                 return compressed;
             },
 
+            // v3 plugin data (state.ext), deep-copied so a snapshot never shares objects with
+            // the live state. Undo snapshots (full = false) keep only the journal's length —
+            // like `logLength` for the log — because all 250 of them go to localStorage;
+            // _decompressExt cuts the live journal back to that length on undo.
+            _compressExt(ext, full) {
+                if (!ext || typeof ext !== 'object') return undefined;
+                const out = {};
+                for (const k of Object.keys(ext)) {
+                    const j = ext[k];
+                    if (k === 'journal' && !full && j && Array.isArray(j.events)) out[k] = { v: j.v, len: j.events.length };
+                    else out[k] = JSON.parse(JSON.stringify(j));
+                }
+                return out;
+            },
+            _decompressExt(ext) {
+                if (!ext || typeof ext !== 'object') return {};
+                const out = JSON.parse(JSON.stringify(ext));
+                const j = out.journal;
+                if (j && typeof j.len === 'number' && !Array.isArray(j.events)) {
+                    const live = (this.state && this.state.ext && this.state.ext.journal && this.state.ext.journal.events) || [];
+                    out.journal = { v: j.v, events: JSON.parse(JSON.stringify(live.slice(0, j.len))) };
+                }
+                return out;
+            },
+
             decompressState(compressed, currentLog = []) {
                 return {
                     activeBookmarkId: compressed.activeBookmarkId || null,
@@ -7250,6 +7283,7 @@
                     activeTimelineColor: compressed.activeTimelineColor || null,
                     turnComments: compressed.turnComments || {},
                     turnStartHand: compressed.turnStartHand || null,
+                    ext: this._decompressExt(compressed.ext),
                     log: compressed.log !== undefined ? [...compressed.log] : currentLog.slice(0, compressed.logLength || 0),
                     players: compressed.players.map(p => ({
                         id: p.id,
@@ -7364,6 +7398,7 @@
 
                 if (p.lore !== oldLore) {
                     const diff = p.lore - oldLore;
+                    this.plugin('lore', { player: playerId, delta: diff });
                     const sign = diff > 0 ? '+' : '';
                     this.logAction(`${p.id === this.state.activePlayer ? 'You' : 'Opponent'} manually adjusted lore by ${sign}${diff}.`);
                     this.render();
@@ -8215,6 +8250,15 @@
                 this.state.log.push({ text: msg, isSystem, player: this.state.activePlayer });
             },
 
+            // v3.0.0 plugin hook. Forwards to plugins/dojo_plugins.js when it is loaded;
+            // a no-op otherwise. Plugins read and advise — nothing they do can stop or
+            // change the action that triggered the call (errors are swallowed here).
+            plugin(name, payload) {
+                const host = window.DojoPlugins;
+                if (!host || typeof host.emit !== 'function') return;
+                try { host.emit(name, payload || {}); } catch (e) { console.warn('Plugin hook failed:', name, e); }
+            },
+
             _emptyTurnActions() {
                 return { drawn: [], inked: [], played: [], shifted: [], discarded: [], banished: [], quested: [] };
             },
@@ -8250,10 +8294,12 @@
             // Track a structured per-turn action (drawn / inked / played / shifted /
             // discarded / banished) so the auto-save timeline node can summarise the turn
             // (Duels.ink-style recap) and fill its card sections.
-            _trackAction(type, cardId) {
+            // `extra` (v3) carries the instance and context for the plugin journal: { iid, … }.
+            _trackAction(type, cardId, extra) {
                 if (!this.state.turnActions) this.state.turnActions = this._emptyTurnActions();
                 if (!this.state.turnActions[type]) this.state.turnActions[type] = [];
                 this.state.turnActions[type].push(cardId);
+                this.plugin('action', Object.assign({ type, cardId }, extra || {}));
             },
             // Snapshot the turn's tracked actions into the card sections a multiverse node
             // displays (Feature 31). Shifted cards count as plays. Called BEFORE endTurn()
@@ -8344,6 +8390,7 @@
                 this._captureTurnStartHand(this.state.activePlayer);
 
                 this.logAction(`--- Turn 1 Begins ---`, true);
+                this.plugin('gameStart');
                 this.render();
                 this.saveToLocalStorage();
             },
@@ -8356,7 +8403,7 @@
                 if (p.deck.length === 0) return null;
                 const c = p.deck.shift();
                 p.hand.push(c);
-                if (track) this._trackAction('drawn', c.cardId);
+                if (track) this._trackAction('drawn', c.cardId, { iid: c.instanceId });
                 return c;
             },
 
@@ -8373,6 +8420,7 @@
 
             endTurn() {
                 this.saveState();
+                this.plugin('turnEnd', { player: this.state.activePlayer, turn: this.state.turn });
 
                 this.state.activePlayer = this.state.inactivePlayer;
                 this.state.inactivePlayer = 1 - this.state.activePlayer;
@@ -8482,6 +8530,7 @@
                 // needed the previous turn's capture to compute what left that hand.
                 this.state.turnStartHand = turnStartHandSnap;
 
+                this.plugin('turnStart', { player: this.state.activePlayer, turn: this.state.turn });
                 this.render();
             },
 
@@ -10526,6 +10575,7 @@
                 });
 
                 this.updateMulliganProb();
+                this.plugin('mulliganRender', { player: this.state.activePlayer, marked: this.mulliganSelection.slice() });
             },
 
             confirmMulligan() {
@@ -10561,6 +10611,7 @@
                 p.hasMulliganed = true; // Mark as mulliganed
                 this._captureTurnStartHand(this.state.activePlayer); // the post-mulligan hand is the real opener
                 this.logAction(`You mulliganed ${cardsToReplace.length} cards.`);
+                this.plugin('mulligan', { player: this.state.activePlayer, thrown: cardsToReplace.map(c => c.cardId) });
 
                 this.closeMulligan();
                 this.render();
@@ -10787,6 +10838,7 @@
                 // Deduct ink automatically if dropping from hand to field
                 const dbCard = this.cardDB[found.card.cardId];
                 if (found.loc === 'hand' && targetZone === 'field' && targetPlayerIndex === this.state.activePlayer) {
+                    const inkBefore = targetPlayer.inkReady;
                     if (targetPlayer.inkReady >= dbCard.cost) {
                         targetPlayer.inkReady -= dbCard.cost;
                         // Exert inkwell cards visually
@@ -10801,7 +10853,7 @@
                     // Feature 14: Track played cards for visual rendering in auto-saves
                     if (!this.state.cardsPlayedThisTurn) this.state.cardsPlayedThisTurn = [];
                     this.state.cardsPlayedThisTurn.push(found.card.cardId);
-                    this._trackAction('played', found.card.cardId);
+                    this._trackAction('played', found.card.cardId, { iid: instanceId, cost: dbCard.cost, inkBefore });
                 }
 
                 // Feature 31: the drag-and-drop paths need the same action tracking the
@@ -10810,11 +10862,11 @@
                 if (targetZone === 'inkwell' && found.loc !== 'inkwell') {
                     if (!this.state.cardsPlayedThisTurn) this.state.cardsPlayedThisTurn = [];
                     this.state.cardsPlayedThisTurn.push(found.card.cardId);
-                    this._trackAction('inked', found.card.cardId);
+                    this._trackAction('inked', found.card.cardId, { iid: instanceId });
                 }
                 if (targetZone === 'discard' && found.loc !== 'discard') {
                     // From the field it's a banish; from anywhere else it's a discard.
-                    this._trackAction(found.loc === 'field' ? 'banished' : 'discarded', found.card.cardId);
+                    this._trackAction(found.loc === 'field' ? 'banished' : 'discarded', found.card.cardId, { iid: instanceId });
                 }
 
                 // Remove from old location
@@ -10909,7 +10961,7 @@
                 // Feature 14: Track card played to inkwell
                 if (!this.state.cardsPlayedThisTurn) this.state.cardsPlayedThisTurn = [];
                 this.state.cardsPlayedThisTurn.push(found.card.cardId);
-                this._trackAction('inked', found.card.cardId);
+                this._trackAction('inked', found.card.cardId, { iid: instanceId });
 
                 const cardsToMove = this._unpackStack(found.card);
                 cardsToMove.forEach(c => {
@@ -10933,6 +10985,7 @@
                 const dbCard = this.cardDB[found.card.cardId];
 
                 // Deduct ink if available (Dojo allows playing even if not enough, for testing)
+                const inkBefore = found.player.inkReady;
                 if (found.player.inkReady >= dbCard.cost) {
                     found.player.inkReady -= dbCard.cost;
                     // Exert inkwell cards visually
@@ -10969,7 +11022,7 @@
                 }
                 if (!this.state.cardsPlayedThisTurn) this.state.cardsPlayedThisTurn = [];
                 this.state.cardsPlayedThisTurn.push(found.card.cardId);
-                this._trackAction('played', found.card.cardId);
+                this._trackAction('played', found.card.cardId, { iid: instanceId, cost: dbCard.cost, inkBefore });
                 this.render();
             },
 
@@ -10996,6 +11049,7 @@
                 let found = this.findCard(instanceId);
                 if (!found) return;
                 const dbCard = this.cardDB[found.card.cardId];
+                const wasExerted = !!found.card.exerted, drying = !!found.card.drying;
 
                 found.card.exerted = true;
                 const loreVal = dbCard.lore || 0;
@@ -11003,7 +11057,7 @@
                 this.markFx(instanceId, 'quest', `+${loreVal} ◆`); // Feature 37
 
                 this.logAction(`You quested with ${dbCard.name} for ${loreVal} lore.`);
-                this._trackAction('quested', found.card.cardId);
+                this._trackAction('quested', found.card.cardId, { iid: instanceId, lore: loreVal, drying, wasExerted });
                 this.render();
                 this.checkBranchOver();
             },
@@ -11021,7 +11075,7 @@
                         this.markFx(c.instanceId, 'quest', `+${dbCard.lore} ◆`); // Feature 37
                         totalLore += dbCard.lore;
                         count++;
-                        this._trackAction('quested', c.cardId);
+                        this._trackAction('quested', c.cardId, { iid: c.instanceId, lore: dbCard.lore, drying: false, wasExerted: false });
                     }
                 });
 
@@ -11042,6 +11096,7 @@
                 if (found.card.damage < 0) found.card.damage = 0;
                 const delta = found.card.damage - before; // Feature 37
                 if (delta) this.markFx(instanceId, delta > 0 ? 'hit' : 'heal', (delta > 0 ? '+' : '−') + Math.abs(delta));
+                if (delta) this.plugin('damage', { iid: instanceId, cardId: found.card.cardId, delta });
                 this.render();
             },
 
@@ -11073,7 +11128,7 @@
                 this.logAction(`${dbCard.name}${cardsToMove.length > 1 ? ` and its stack (${cardsToMove.length} cards)` : ''} was banished.`);
                 // Same call handles the "Discard" context option on hand / inkwell cards —
                 // only a card leaving the field is a banish.
-                this._trackAction(found.loc === 'field' ? 'banished' : 'discarded', found.card.cardId);
+                this._trackAction(found.loc === 'field' ? 'banished' : 'discarded', found.card.cardId, { iid: instanceId });
                 this.render();
             },
 
@@ -11126,9 +11181,14 @@
 
                 this.saveState();
 
+                const attDrying = !!cf.card.drying, defExerted = !!df.card.exerted;
                 cf.card.damage = (cf.card.damage || 0) + dmgToChallenger;
                 df.card.damage = (df.card.damage || 0) + dmgToDefender;
                 cf.card.exerted = true;
+                this.plugin('challenge', {
+                    attIid: challengerInstanceId, attId: cf.card.cardId, defIid: defenderInstanceId, defId: df.card.cardId,
+                    toDef: dmgToDefender, toAtt: dmgToChallenger, attDrying, defExerted, defType: dDb.type
+                });
 
                 const cWp = cDb.willpower || 0;
                 const dWp = dDb.willpower || 0;
@@ -11158,7 +11218,7 @@
                                 df2.player.field.splice(idx, 1);
                                 cards.forEach(c => { c.damage = 0; c.exerted = false; c.drying = false; c.locationId = null; df2.player.discard.push(c); });
                                 this.logAction(`${dDb2.name} was banished!`);
-                                this._trackAction('banished', df2.card.cardId);
+                                this._trackAction('banished', df2.card.cardId, { iid: defenderInstanceId, via: 'challenge' });
                                 changed = true;
                             }
                         }
@@ -11176,7 +11236,7 @@
                                 cf2.player.field.splice(idx, 1);
                                 cards.forEach(c => { c.damage = 0; c.exerted = false; c.drying = false; c.locationId = null; cf2.player.discard.push(c); });
                                 this.logAction(`${cDb2.name} was banished!`);
-                                this._trackAction('banished', cf2.card.cardId);
+                                this._trackAction('banished', cf2.card.cardId, { iid: challengerInstanceId, via: 'challenge' });
                                 changed = true;
                             }
                         }
@@ -11319,6 +11379,7 @@
                 const dbCard = this.cardDB[draggedFound.card.cardId];
 
                 // If coming from hand, handle ink cost automatically
+                const inkBefore = draggedFound.player.inkReady;
                 if (draggedFound.loc === 'hand') {
                     const targetPlayer = draggedFound.player;
                     if (targetPlayer.inkReady >= dbCard.cost) {
@@ -11346,7 +11407,7 @@
                 if (isShift) {
                     if (!this.state.cardsPlayedThisTurn) this.state.cardsPlayedThisTurn = [];
                     this.state.cardsPlayedThisTurn.push(draggedFound.card.cardId);
-                    this._trackAction('shifted', draggedFound.card.cardId);
+                    this._trackAction('shifted', draggedFound.card.cardId, { iid: draggedInstanceId, cost: dbCard ? dbCard.cost : 0, inkBefore, onto: targetInstanceId });
                 }
 
                 // Inherit state from the target card
@@ -14208,6 +14269,7 @@
 
                 // Feature 37: keep the open overlays in step with the new state.
                 this.renderFeature37Overlays();
+                this.plugin('render');
             },
 
             renderFeature37Overlays() {
@@ -14731,8 +14793,20 @@
         });
 
         // Init App on load
+        // v3: `const App` is not a property of window; plugins (separate files) reach it here.
+        window.App = App;
         window.onload = () => App.init();
     </script>
+
+    <!-- v3.0.0 plugins. The Dojo above runs unchanged without them; each file hooks in
+         through App.plugin() events and the plugin-*-slot containers. -->
+    <script src="plugins/lab_lib.js"></script>
+    <script src="plugins/dojo_plugins.js"></script>
+    <script src="plugins/race_clock.js"></script>
+    <script src="plugins/turn_briefing.js"></script>
+    <script src="plugins/mulligan_lab.js"></script>
+    <script src="plugins/sequencing_coach.js"></script>
+    <script src="plugins/game_ledger.js"></script>
 </body>
 
 </html>

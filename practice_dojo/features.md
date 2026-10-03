@@ -531,6 +531,24 @@ Chosen from the head-to-head prototypes (Option A + "Challenge mode" + "A on pho
 - **Animations**: exert/ready rotate, damage shakes + flashes + floats the amount, quest lifts the card, played/shifted cards arrive, banished cards fade; challenge lunges the attacker. All off under *prefers-reduced-motion*.
 
 
+## Feature 38: Plugin system + Mastery Lab tools (v3.0.0)
+
+### User Story
+- As a player I want practice tools built on *Mastering Competitive Lorcana* that answer the guide's questions while I play, without changing how the Dojo itself behaves.
+- As a developer I want those tools to hook in from outside the core file, so the sandbox stays exactly as it is and a broken tool can't break a game.
+
+### Details
+- **Plugin system.** Tools live in `practice_dojo/plugins/*.js` and are loaded with `<script src>` after the core. The core only emits events (`App.plugin(name, payload)`) at ~10 points and offers three empty slots (topbar, mulligan modal, Tweaks). If every plugin file is missing, v3.0.0 plays exactly like v2.18.0. The single-file rule is relaxed for plugins only.
+- **Advisors, never referees.** Plugins read the board and advise. They never move a card, never block an action and never enforce a rule.
+- **Action journal.** An ordered record of the game per card instance (draw, ink, play, shift, quest, challenge, banish, discard, manual lore, damage, mulligan, turn end/start), kept in `state.ext.journal`. It rides undo, bookmarks, JSON export, cloud saves and resume. Undo snapshots store only its length, so localStorage doesn't grow 250×.
+- **Lab drawer.** Topbar *Lab* button (key `L`) opens a side drawer with one tab per enabled tool; a full-width sheet on phones. Tweaks → *Lab tools* turns each tool on or off.
+- **Race Clock** — "Am I winning this race, or do I need to slow it down?" If nothing changes, when does each side reach 20; a chip in the topbar, lanes turn by turn, and what each quest or challenge does to the clock.
+- **Turn Briefing** (off by default) — "Every turn starts with questions." Answer three quick questions at the start of a turn; the Race Clock grades them; calibration per game and lifetime.
+- **Mulligan Lab** — "Which hand gives me the highest chance of executing my game plan?" In the mulligan modal: every way to mulligan the seven, simulated through turn 4 from the same shuffles, ranked by ink spent on curve, with an optional plan card.
+- **Sequencing Coach** — "Same plays, better order." Each finished turn step by step, with flags: inked before drawing, Support after the challenge, ink left unspent, sandbox-only moves.
+- **Game Ledger** — "Who has more useful resources remaining?" Per-turn lore, extra cards, ink developed, value removed and lost; turning points; a receipt for every card.
+- **Not yet:** anything that needs card text (the classifier phase): Threat & Exposure Map, the Coach's best-order search, activated lore, cost reducers, "this card draws". Imported Duels.ink games have no journal yet.
+
 # Progress
 
 - [x] Feature 1: Manual Lore Scoring
@@ -572,4 +590,5 @@ Chosen from the head-to-head prototypes (Option A + "Challenge mode" + "A on pho
 - [x] Feature 35: Cards Quested section on multiverse nodes
 - [x] Feature 36: "Competition" player palette
 - [x] Feature 37: Card interaction redesign (Option A, challenge mode, phone hand & card drawer, ink counter)
+- [x] Feature 38: Plugin system + Mastery Lab tools (Race Clock, Turn Briefing, Mulligan Lab, Sequencing Coach, Game Ledger)
 

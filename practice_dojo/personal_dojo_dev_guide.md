@@ -1142,3 +1142,71 @@ it maps `.name` first; the replay reads `takenAction.type === 'QUEST'`.
 Seven sections put `TREE_NODE_H.full` at **510** (label 16px + row 46px each, plus the body). Empty
 sections still collapse to their label row, so a typical turn node is far shorter than the worst
 case. Compact view is unchanged at 250.
+
+---
+
+## **20. v3.0.0: Plugin System + Mastery Lab Tools (Feature 38)**
+
+Plan and contract: `mastery_lab/V3_PLAN.md`. This section is the short version for future work.
+
+### 20.1 The rule
+
+The core (`practice_dojo.html`) behaves exactly as v2.18.0. New tools are **plugins** in
+`practice_dojo/plugins/`, loaded by `<script src>` tags at the end of `<body>`. They read state and
+advise; they never mutate game data, never block a move, never call `saveState`. If every plugin
+file 404s, the Dojo boots and plays normally (checked by `tests/browser_smoke.js --no-plugins`).
+§5.1's single-file rule is relaxed **for plugins only**; the core is still one file.
+
+### 20.2 What the core gained (the whole diff, conceptually)
+
+| Change | Where |
+|---|---|
+| `window.App = App` | just before `window.onload`. `const App` is **not** a window property; plugins in other files need this. |
+| `App.plugin(name, payload)` | after `logAction`. Forwards to `window.DojoPlugins.emit` in try/catch; no-op without the host. |
+| `_trackAction(type, cardId, extra)` | third arg `{ iid, … }`; emits `action`. Every call site passes the instance (+ `lore/drying/wasExerted` for quests, `cost/inkBefore` for plays and shifts, `via:'challenge'` for challenge banishes). |
+| Other events | `challenge` (performChallenge, after damage), `lore` (changeLore), `damage` (addDamage), `turnEnd` (endTurn, right after saveState), `turnStart` (end of endTurn), `gameStart`, `mulligan`, `mulliganRender`, `render` (end of render). |
+| `state.ext` | `compressState` → `_compressExt`, `decompressState` → `_decompressExt`. Plugin data rides undo, bookmarks, exports, cloud saves, resume — no other code paths needed touching. |
+| Slots | `#plugin-topbar-slot` (topbar, before the Tweaks divider), `#plugin-mulligan-slot` (mulligan modal body), `#plugin-tweaks-slot` (end of Tweaks). |
+
+**Undo snapshots keep only the journal's length.** `saveToLocalStorage` writes all 250 history
+entries, so a full journal in each would multiply storage by 250. `_compressExt(ext, full=false)`
+stores `{ v, len }`; `_decompressExt` slices the *live* journal back to `len` on undo — the same
+trick the log uses with `logLength`. Correct because history is linear and `restoreTimeline`
+clears it. Bookmarks (`includeLog = true`) store the full journal, since a branch needs its own.
+
+### 20.3 The host (`plugins/dojo_plugins.js`) and lib (`plugins/lab_lib.js`)
+
+- `DojoPlugins.register({ id, name, icon, description, defaultEnabled, order, panel, topbar, mulligan, on, api })`.
+  `ctx` per call: `app, state, me (active), opp, card(id), store() → state.ext[id], journal(), persist(), refresh(), lib`.
+- The **journal** (`state.ext.journal.events`) is recorded by the host for every event, always, even
+  with all tools off, so a tool switched on mid-game has the history. Event = `{ seq, turn, active, kind, player, iid, cardId, … }`;
+  `turnEnd` adds a snapshot (ink, lore, hand, board value, deck, the ending player's hand cards).
+  A `draw` in the journal is a **mid-turn** draw only — opening hands, mulligan redraws and the draw
+  step were never tracked.
+- UI: Lab button + chips in the topbar slot; the drawer is created by the host and appended to `body`
+  (`#lab-drawer`, `z-index: 70`, full-width ≤760px); toggles in Tweaks persist in
+  `localStorage['lorcana_dojo_plugins']`. `L` toggles the drawer, `Esc` closes it; both stand down
+  while a core modal, dialog or context menu is open.
+- Panels and chips re-render (rAF-batched) after every core `render()`. Keep them cheap; heavy work
+  (Mulligan Lab's simulation) runs on a button, chunked.
+- `lab_lib.js`: structured card facts only (`kw(db, 'Support')`, `isSong`, `shiftsOnto`…), odds, a
+  seedable RNG. **No regex over card text** — that's the classifier phase.
+- Styles: `plugins/plugins.css` (linked by the host) uses the core tokens, so every palette applies.
+  Tools add scoped rules with `lib.css(id, text)`.
+
+### 20.4 Adding a plugin
+
+1. Create `plugins/my_tool.js`: pure logic object (exported for node tests) + `DojoPlugins.register({...})`.
+2. Add `<script src="plugins/my_tool.js"></script>` after the others in `practice_dojo.html`.
+3. Need a new event? Add one `this.plugin('name', {...})` line at the core site and document it in
+   `V3_PLAN.md` §4 and here.
+4. Tests: `node plugins/tests/run.js` (pure logic) and `node plugins/tests/browser_smoke.js`
+   (headless Chromium; stubs every CDN, serves `mastery_lab/allCards.json`; `--no-plugins`,
+   `--mobile`, `--shots <dir>`).
+
+### 20.5 Known limits
+
+- Imported `.md` / replay sessions start with an empty journal (deriving one from replay
+  `takenAction` frames is a later step), so the Coach and Ledger only cover turns played in the Dojo.
+- Bookmarks carry the journal so far, so a long game's bookmarks grow (roughly 100 bytes per event).
+- `decompressState` still drops `turnActions` / `cardsPlayedThisTurn` on undo (pre-existing, untouched).
